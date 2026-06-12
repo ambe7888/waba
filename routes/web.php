@@ -549,13 +549,13 @@ Route::middleware([
                     'loginAsUser'
                 ])->name('vendor.user.write.login_as');
 
-                Route::post("/logout-as", [
+                Route::match(['get', 'post'], "/logout-as", [
                     UserController::class,
                     'logoutAsUser'
                 ])->name('vendor.user.write.logout_as');
 
                 // logged out as vendor admin
-                Route::post("/logout-as-vendor-admin", [
+                Route::match(['get', 'post'], "/logout-as-vendor-admin", [
                     VendorController::class,
                     'logoutAsVendorAdmin'
                 ])->name('central.vendors.user.write.logout_as');

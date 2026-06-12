@@ -7,7 +7,7 @@
             '__vendorName__' => '<strong>'. getVendorSettings('title') .'</strong>'
         ]) !!}</span>
         @else
-            <a class="h4 mb-0 text-white d-none d-lg-inline-block" href="{{ route('home') }}">{{ __tr('Dashboard') }}</a>
+            <a class="h4 mb-0 text-white d-none d-lg-inline-block" href="{{ route('central.console') }}">{{ __tr('Dashboard') }}</a>
         @endif
         <!-- User -->
         <ul class="navbar-nav align-items-center d-none d-md-flex">
