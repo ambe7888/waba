@@ -10,9 +10,20 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-xl-12 mb-3 mt-md--5">
-            <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#addVendorModal">
-                <?= __tr('Add New Vendor') ?>
-            </button>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center bg-white p-3 rounded shadow-sm mb-3">
+                <div class="form-inline mb-2 mb-md-0">
+                    <label class="mr-2 font-weight-bold text-muted small text-uppercase" for="lwSubscriptionStatusFilter"><?= __tr('Filter by Subscription') ?></label>
+                    <select class="form-control form-control-sm" id="lwSubscriptionStatusFilter" style="min-width: 200px;">
+                        <option value=""><?= __tr('All') ?></option>
+                        <option value="active"><?= __tr('Active') ?></option>
+                        <option value="expired"><?= __tr('Expired') ?></option>
+                        <option value="no_plan"><?= __tr('No Plan') ?></option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm mb-0" data-toggle="modal" data-target="#addVendorModal">
+                    <i class="fa fa-plus-circle mr-1"></i> <?= __tr('Add New Vendor') ?>
+                </button>
+            </div>
         </div>
         <div class="col-xl-12">
             {{-- DATATABLE --}}
@@ -34,6 +45,9 @@
                 </th>
                 <th data-orderable="true" data-name="status">
                     <?= __tr('status') ?>
+                </th>
+                <th data-template="#lwSubscriptionColumn" name="subscription">
+                    <?= __tr('Subscription') ?>
                 </th>
                 <th data-orderable="true" data-name="mobile_number">
                     <?= __tr('Mobile Number') ?>
@@ -74,6 +88,39 @@
         <!-- Media and Files -->
         <a href="<%= __Utils.apiURL("{{ route('media.files.read_view', ['vendor_uid']) }}", {'vendor_uid': 'vendor_uid='+__tData._uid}) %>" class="btn btn-primary btn-sm" title="{!! __tr('Media & Files') !!}"><i class="fas fa-photo-video"></i> {!! __tr('Media & Files') !!}</a>
         <!--  /Media and Files -->
+    </script>
+    <script type="text/template" id="lwSubscriptionColumn">
+        <% if(__tData.subscription) { %>
+            <% if(__tData.subscription.has_plan) { %>
+                <div class="mb-1">
+                    <span class="font-weight-bold"><%- __tData.subscription.title %></span>
+                    <% if(__tData.subscription.type === 'free') { %>
+                        <span class="badge badge-secondary ml-1">{{ __tr('Free') }}</span>
+                    <% } else if(__tData.subscription.type === 'manual') { %>
+                        <span class="badge badge-info ml-1">{{ __tr('Manual') }}</span>
+                    <% } else { %>
+                        <span class="badge badge-primary ml-1">{{ __tr('Stripe') }}</span>
+                    <% } %>
+                </div>
+                <% if(__tData.subscription.ends_at) { %>
+                    <% if(__tData.subscription.is_expired) { %>
+                        <div class="text-danger text-sm font-weight-bold">
+                            <i class="fas fa-exclamation-circle mr-1"></i> {{ __tr('Expired on') }} <%- __tData.subscription.ends_at %>
+                        </div>
+                    <% } else { %>
+                        <div class="text-success text-sm">
+                            <i class="fas fa-calendar-alt mr-1"></i> {{ __tr('Expires on') }} <%- __tData.subscription.ends_at %>
+                        </div>
+                    <% } %>
+                <% } else if(__tData.subscription.type === 'free') { %>
+                    <div class="text-muted text-sm">{{ __tr('No Expiry') }}</div>
+                <% } %>
+            <% } else { %>
+                <span class="badge badge-danger"><%- __tData.subscription.title %></span>
+            <% } %>
+        <% } else { %>
+            <span class="text-muted">-</span>
+        <% } %>
     </script>
     <script type="text/template" id="lwLoginAs-template">
         <h2>{{ __tr('Are You Sure!') }}</h2>
@@ -360,10 +407,21 @@
         (function($) {
             'use strict';
             window.afterSuccessfullyCreated = function (responseData) {
-            if (responseData.reaction == 1) {
-                __Utils.viewReload();
+                if (responseData.reaction == 1) {
+                    __Utils.viewReload();
+                }
             }
-        }
+
+            // Subscription status filter change
+            $('#lwSubscriptionStatusFilter').on('change', function() {
+                var status = $(this).val();
+                var tableUrl = "{{ route('central.vendors.read.list') }}";
+                if (status) {
+                    tableUrl += "?subscription_status=" + status;
+                }
+                var table = $('#lwManageVendorsTable').DataTable();
+                table.ajax.url(tableUrl).load();
+            });
         })(jQuery);
     </script>
     @endpush

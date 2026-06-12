@@ -114,6 +114,43 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
             },
             'userId',
             'slug',
+            'subscription' => function ($key) {
+                $subscription = getVendorCurrentActiveSubscription($key['_id']);
+                if (__isEmpty($subscription)) {
+                    $getFreePlan = getFreePlan();
+                    if (! __isEmpty($getFreePlan) and $getFreePlan['enabled']) {
+                        return [
+                            'has_plan' => true,
+                            'title' => getFreePlan("title"),
+                            'type' => 'free',
+                            'ends_at' => null,
+                            'is_expired' => false,
+                        ];
+                    }
+                    return [
+                        'has_plan' => false,
+                        'title' => __tr('No Active Plan'),
+                        'type' => null,
+                        'ends_at' => null,
+                        'is_expired' => true,
+                    ];
+                }
+
+                $endsAt = $subscription->ends_at ?? null;
+                $isExpired = $endsAt ? ($endsAt < now()) : false;
+
+                // Find plan title
+                $planId = $subscription->type ?? $subscription->plan_id ?? null;
+                $planTitle = $planId ? (getPaidPlans("{$planId}.title") ?? $planId) : __tr('Paid Plan');
+
+                return [
+                    'has_plan' => true,
+                    'title' => $planTitle,
+                    'type' => $subscription->plan_id ? 'manual' : 'stripe',
+                    'ends_at' => $endsAt ? formatDate($endsAt) : null,
+                    'is_expired' => $isExpired,
+                ];
+            },
         ];
 
         return $this->dataTableResponse($userCollection, $requireColumns);
