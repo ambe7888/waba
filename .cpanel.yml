@@ -1,28 +1,30 @@
 deployment:
   tasks:
-    # 1. Définir le chemin de destination dans public_html
+    # 1. Définir le chemin de destination
     - export DEPLOYPATH=/home/adevcom1/whatsapp_business/
 
     # 2. Créer le dossier des logs si nécessaire
     - /bin/mkdir -p $DEPLOYPATH/logs
 
-    # 3. Copier les dossiers principaux de l'application Laravel
+    # 3. Copier les dossiers principaux de l'application Laravel & Yantrana
     - /bin/cp -R app $DEPLOYPATH
+    - /bin/cp -R addons $DEPLOYPATH
     - /bin/cp -R bootstrap $DEPLOYPATH
     - /bin/cp -R config $DEPLOYPATH
     - /bin/cp -R database $DEPLOYPATH
+    - /bin/cp -R locale $DEPLOYPATH
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp -R resources $DEPLOYPATH
     - /bin/cp -R routes $DEPLOYPATH
     - /bin/cp -R storage $DEPLOYPATH
     - /bin/cp -R vendor $DEPLOYPATH
 
-    # 4. Copier les fichiers de configuration et d'exécution à la racine exacte
+    # 4. Copier les fichiers de configuration et d'exécution indispensables
     - /bin/cp .htaccess $DEPLOYPATH
-    - /bin/cp index.php $DEPLOYPATH
+    - /bin/cp .user.ini $DEPLOYPATH
+    - /bin/cp php.ini $DEPLOYPATH
+    - /bin/cp app-boot-helper.php $DEPLOYPATH
     - /bin/cp artisan $DEPLOYPATH
-    - /bin/cp sw.js $DEPLOYPATH
     - /bin/cp composer.json $DEPLOYPATH
-    - /bin/cp composer.lock $DEPLOYPATH
-    - /bin/cp phpunit.xml $DEPLOYPATH
-    - /bin/cp package.json $DEPLOYPATH
+    - /bin/cp server.php $DEPLOYPATH
+
