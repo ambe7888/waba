@@ -180,7 +180,7 @@ $currentAppTheme=getUserAppTheme();
                         <ul class="nav nav-sm flex-column">
                             <li class="nav-item {{ markAsActiveLink('central.subscriptions') }}">
                                 <a class="nav-link" href="{{ route('central.subscriptions') }}">
-                                    <i class="fa fa-sync-alt"></i> {{ __tr('Recurring Stripe') }}
+                                    <i class="fa fa-sync-alt"></i> {{ __tr('Stripe Subscriptions') }}
                                 </a>
                             </li>
                             @stack('autoSubscriptionSidebarLinkStack')

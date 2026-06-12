@@ -961,3 +961,67 @@ a {
 .card:not(.lw-whatsapp-preview > .card) {
   background-color: rgba(255, 255, 255, 0.34);
 }
+
+/* Custom Modern UX/UI Overrides */
+
+/* 1. Header Top Bar Gradient */
+.main-content .navbar-top {
+  background: linear-gradient(87deg, #128c7e 0%, #25d366 100%) !important;
+}
+
+/* 2. Soft Shadows and Curved Cards */
+.card-stats {
+  box-shadow: 0 15px 35px rgba(50, 50, 93, 0.04), 0 5px 15px rgba(0, 0, 0, 0.02) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+}
+.card {
+  border-radius: 12px !important;
+}
+
+/* 3. Translucent Bicolor Icons for Stats Cards */
+.icon-shape.bg-danger {
+  background-color: rgba(245, 54, 92, 0.1) !important;
+  color: #f5365c !important;
+}
+.icon-shape.bg-danger i {
+  color: #f5365c !important;
+}
+
+.icon-shape.bg-primary {
+  background-color: rgba(94, 114, 228, 0.1) !important;
+  color: #5e72e4 !important;
+}
+.icon-shape.bg-primary i {
+  color: #5e72e4 !important;
+}
+
+.icon-shape.bg-info {
+  background-color: rgba(17, 205, 239, 0.1) !important;
+  color: #11cdff !important;
+}
+.icon-shape.bg-info i {
+  color: #11cdff !important;
+}
+
+.icon-shape.bg-warning {
+  background-color: rgba(251, 99, 64, 0.1) !important;
+  color: #fb6340 !important;
+}
+.icon-shape.bg-warning i {
+  color: #fb6340 !important;
+}
+
+.icon-shape.bg-success {
+  background-color: rgba(45, 206, 137, 0.1) !important;
+  color: #2dce89 !important;
+}
+.icon-shape.bg-success i {
+  color: #2dce89 !important;
+}
+
+/* Clean Chart Background in Light Mode */
+.card.bg-white {
+  background-color: #ffffff !important;
+}
+

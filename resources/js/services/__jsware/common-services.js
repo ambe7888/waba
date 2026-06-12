@@ -1229,8 +1229,11 @@
     // bind submit event for the form
     $('body').off('submit.lwAjaxForm').on('submit.lwAjaxForm', 'form.lw-ajax-form', function (e) {
         e.preventDefault();
+        var $thisForm = $(this);
+        if ($thisForm.data('is-request-processing') === true) {
+            return false;
+        }
         var $this = $(e.target),
-            $thisForm = $(this),
             confirmMessage = $thisForm.data('confirm'),
             options = $thisForm.data('confirm-options'),
             confirmParams = $thisForm.data('confirm-params');
@@ -1254,8 +1257,11 @@
      *-------------------------------------------------------- */
     $('body').off('change.lwAjaxFormSubmitOnChange').on('change.lwAjaxFormSubmitOnChange', 'form.lw-ajax-form[lwSubmitOnChange]', function (e) {
         e.preventDefault();
+        var $thisForm = $(this);
+        if ($thisForm.data('is-request-processing') === true) {
+            return false;
+        }
         var $this = $(e.target),
-            $thisForm = $(this),
             returnRequest = __DataRequest.__processSubmitForm($this, $thisForm);
         $this = $thisForm = null;
         return returnRequest;
@@ -1272,6 +1278,9 @@
         e.preventDefault();
         var $this = $(this),
             $thisForm = $this.parents('form');
+        if ($thisForm.data('is-request-processing') === true) {
+            return false;
+        }
         var returnRequest = __DataRequest.__processSubmitForm($this, $thisForm);
         $this = $thisForm = null;
         return returnRequest;
@@ -1283,8 +1292,11 @@
     *-------------------------------------------------------- */
     $('body').off('click.lwAjaxLinkAction').on('click.lwAjaxLinkAction', '.lw-ajax-link-action', function (e) {
         e.preventDefault();
-        var $this = $(this),
-            confirmMessage = $this.data('confirm'),
+        var $this = $(this);
+        if ($this.data('is-request-processing') === true) {
+            return false;
+        }
+        var confirmMessage = $this.data('confirm'),
             options = $this.data('confirm-options'),
             confirmParams = $this.data('confirm-params');
         if (confirmMessage) {
@@ -1304,8 +1316,11 @@
     *-------------------------------------------------------- */
     $('body').off('click.lwAjaxLinkActionViaConfirm').on('click.lwAjaxLinkActionViaConfirm', '.lw-ajax-link-action-via-confirm', function (e) {
         e.preventDefault();
-        var $this = $(this),
-            confirmMessage = $this.data('confirm'),
+        var $this = $(this);
+        if ($this.data('is-request-processing') === true) {
+            return false;
+        }
+        var confirmMessage = $this.data('confirm'),
             options = $this.data('confirm-options'),
             confirmParams = $this.data('confirm-params');
         if (confirmMessage) {
