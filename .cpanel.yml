@@ -6,7 +6,7 @@ deployment:
     # 2. Créer le dossier des logs si nécessaire
     - /bin/mkdir -p $DEPLOYPATH/logs
 
-    # 3. Copier les dossiers principaux de l'application Laravel & Yantrana
+    # 3. Copier les dossiers principaux de l'application Laravel & Yantrana (sans vendor qui est lourd et géré par composer)
     - /bin/cp -R app $DEPLOYPATH
     - /bin/cp -R addons $DEPLOYPATH
     - /bin/cp -R bootstrap $DEPLOYPATH
@@ -16,7 +16,6 @@ deployment:
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp -R resources $DEPLOYPATH
     - /bin/cp -R routes $DEPLOYPATH
-    - /bin/cp -R vendor $DEPLOYPATH
 
     # 4. Copier les fichiers de configuration et d'exécution indispensables
     - /bin/cp .htaccess $DEPLOYPATH
@@ -26,4 +25,5 @@ deployment:
     - /bin/cp artisan $DEPLOYPATH
     - /bin/cp composer.json $DEPLOYPATH
     - /bin/cp server.php $DEPLOYPATH
+
 
