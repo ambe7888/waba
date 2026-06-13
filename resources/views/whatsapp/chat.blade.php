@@ -107,19 +107,19 @@
                                 </div>
                                 @endif
                                 
-                                <div class="lw-modern-toggle-wrapper">
-                                    <label for="lwShowUnreadOnlyContacts">
-                                        <input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$($el).on('change', function() { showUnreadContactsOnly = this.checked; }); $watch('showUnreadContactsOnly', function(value) {
-                                            window.showUnreadContactsOnly = value ? 1 : 0;
-                                            _.defer(function() {
-                                                window.searchContacts();
-                                            });
-                                        })" class="custom-checkbox" id="lwShowUnreadOnlyContacts" type="checkbox" name="unread_only_contacts"> 
-                                        <span x-show="!showUnreadContactsOnly">{{  __tr('Show all') }}</span>
-                                        <span x-show="showUnreadContactsOnly">{{  __tr('Show unread only') }}</span>
+                                <div class="lw-modern-toggle-wrapper d-flex align-items-center" style="gap: 8px;">
+                                    <label for="lwShowUnreadOnlyContacts" class="mb-0 d-flex align-items-center" style="cursor: pointer; gap: 8px;">
+                                        <span class="lw-toggle-switch" @click="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; cursor: pointer; flex-shrink: 0;" >
+                                            <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
+                                        </span>
+                                        <span x-show="!showUnreadContactsOnly" style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">{{  __tr('Afficher tout') }}</span>
+                                        <span x-show="showUnreadContactsOnly" style="font-size: 0.8rem; color: #f97316; font-weight: 600; white-space: nowrap;">{{  __tr('Non lus uniquement') }}</span>
                                     </label>
                                     <abbr title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
                                 </div>
+                                <style>
+                                    .lw-toggle-switch.active { background: #f97316 !important; }
+                                </style>
                                 
                                 <div class="form-group lw-modern-search-wrapper">
                                     <i class="fa fa-search lw-search-icon"></i>
