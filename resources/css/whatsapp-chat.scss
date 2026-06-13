@@ -391,7 +391,7 @@
             flex-direction: row;
             align-items: center;
             min-height: 65px;
-            width: 100%;
+            width: calc(100% - 10px);
             z-index: 2;
             padding: 10px 15px;
             background: transparent;
