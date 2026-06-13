@@ -483,6 +483,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             '=',
             'unread_counts.contacts__id'
         );
+        $query->addSelect('unread_counts.unread_messages_count');
 
         // -----------------------------------------
         // LABEL FILTER
