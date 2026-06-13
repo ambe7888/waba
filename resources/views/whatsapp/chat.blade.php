@@ -109,8 +109,8 @@
                                 
                                 <div class="lw-modern-toggle-wrapper">
                                     <label for="lwShowUnreadOnlyContacts">
-                                        <input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$watch('showUnreadContactsOnly', function(value) {
-                                            window.showUnreadContactsOnly = value;
+                                        <input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$($el).on('change', function() { showUnreadContactsOnly = this.checked; }); $watch('showUnreadContactsOnly', function(value) {
+                                            window.showUnreadContactsOnly = value ? 1 : 0;
                                             _.defer(function() {
                                                 window.searchContacts();
                                             });
