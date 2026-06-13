@@ -8,7 +8,7 @@
 @push('head')
 {!! __yesset('dist/css/whatsapp-chat.css', true) !!}
 @endpush
-<div x-data="initialMessageData"> 
+<div x-data="initialMessageData" @chat-message-sent.window="cancelReply()"> 
 {{-- @if ($contact) --}}
 <div class="container-fluid lw-chat-main-container" x-data="{myAssignedUnreadMessagesCount:null,myUnassignedUnreadMessagesCount:null,showUnreadContactsOnly:false,usersUnreadMessagesCounts:{}}">
     <div class="">
@@ -381,6 +381,14 @@
                                                                         x-if="!whatsappMessageLogItem.is_incoming_message && !whatsappMessageLogItem.is_system_message">
                                                                         <div class="message sent">
                                                                             <template
+                                                                                x-if="whatsappMessageLogItem.replied_to_whatsapp_message_logs__uid">
+                                                                                <a href="#"
+                                                                                    @click.prevent="lwScrollTo('#'+whatsappMessageLogItem.replied_to_whatsapp_message_logs__uid)"
+                                                                                    class="badge d-flex text-muted justify-content-end"><i
+                                                                                        class="fa fa-link"></i> {{
+                                                                                    __tr('Replied to') }}</a>
+                                                                            </template>
+                                                                            <template
                                                                                 x-if="whatsappMessageLogItem.__data?.options?.bot_reply">
                                                                                 <span class="badge d-flex text-muted justify-content-end"
                                                                                     :title="whatsappMessageLogItem.__data?.options?.ai_bot_reply ? '{{ __tr('AI Bot Reply') }}' : '{{ __tr('Bot Reply') }}'">
@@ -484,7 +492,7 @@
                                                         </div>
                                                     </template>
                                                     <span x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
-                                                    <x-lw.form data-event-stream-update="true" data-callback="appFuncs.resetForm" id="whatsAppMessengerForm"
+                                                    <x-lw.form data-event-stream-update="true" data-callback="window.chatFormReset" id="whatsAppMessengerForm"
                                                         class="conversation-compose" data-show-processing="false"
                                                         :action="route('vendor.chat_message.send.process')"
                                                         @submit="cancelReply()">
@@ -991,6 +999,10 @@
     };
     window.updateContactList();
     window.onUpdateContactDetails();
+    window.chatFormReset = function(response) {
+        appFuncs.resetForm(response);
+        window.dispatchEvent(new CustomEvent('chat-message-sent'));
+    };
     window.lwMessengerEmojiArea = $(".lw-input-emoji").emojioneArea({
     useInternalCDN: true,
     pickerPosition: "top",
@@ -1005,7 +1017,7 @@
                 $('.lw-input-emoji').val(this.getText());
                 $('#whatsAppMessengerForm').submit();
                 this.hidePicker();
-                appFuncs.resetForm();
+                window.chatFormReset();
             }
         }
     }

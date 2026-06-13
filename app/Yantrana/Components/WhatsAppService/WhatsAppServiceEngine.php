@@ -2787,7 +2787,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // to show message in chat instantly we have created first log entry
         // only for chat box
         if (!isExternalApiRequest() and $messageBody) {
-            $initializeLogMessage = $this->whatsAppMessageLogRepository->storeIt([
+            $initializeLogData = [
                 'is_incoming_message' => 0,
                 'status' => 'initialize',
                 'contact_wa_id' => $contact->wa_id,
@@ -2802,7 +2802,17 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         'ai_bot_reply',
                     ]),
                 ],
-            ]);
+            ];
+            if (isset($options['messageWamid']) && $options['messageWamid']) {
+                $repliedToMessageModel = $this->whatsAppMessageLogRepository->fetchIt([
+                    'wamid' => $options['messageWamid'],
+                    'vendors__id' => $vendorId,
+                ]);
+                if (!__isEmpty($repliedToMessageModel)) {
+                    $initializeLogData['replied_to_whatsapp_message_logs__uid'] = $repliedToMessageModel->_uid;
+                }
+            }
+            $initializeLogMessage = $this->whatsAppMessageLogRepository->storeIt($initializeLogData);
             usleep(200000);
             // update message list
             updateClientModelsViaEvent([
