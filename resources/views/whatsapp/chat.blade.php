@@ -107,18 +107,37 @@
                                 </div>
                                 @endif
                                 
-                                <div class="lw-modern-toggle-wrapper d-flex align-items-center" style="gap: 8px;">
-                                    <label for="lwShowUnreadOnlyContacts" class="mb-0 d-flex align-items-center" style="cursor: pointer; gap: 8px;">
-                                        <span class="lw-toggle-switch" @click="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; cursor: pointer; flex-shrink: 0;" >
-                                            <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
-                                        </span>
-                                        <span x-show="!showUnreadContactsOnly" style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">{{  __tr('Afficher tout') }}</span>
-                                        <span x-show="showUnreadContactsOnly" style="font-size: 0.8rem; color: #f97316; font-weight: 600; white-space: nowrap;">{{  __tr('Non lus uniquement') }}</span>
-                                    </label>
-                                    <abbr title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
+                                <div class="lw-modern-toggle-wrapper d-flex align-items-center" style="gap: 8px; cursor: pointer; user-select: none;"
+                                     @click.prevent="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });">
+                                    <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; cursor: pointer; flex-shrink: 0;" >
+                                        <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
+                                    </span>
+                                    <span x-show="!showUnreadContactsOnly" style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">{{  __tr('Afficher tout') }}</span>
+                                    <span x-show="showUnreadContactsOnly" style="font-size: 0.8rem; color: #f97316; font-weight: 600; white-space: nowrap;">{{  __tr('Non lus uniquement') }}</span>
+                                    <abbr @click.stop title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
                                 </div>
                                 <style>
                                     .lw-toggle-switch.active { background: #f97316 !important; }
+                                    @media (max-width: 767.98px) {
+                                        .lw-contacts-header {
+                                            overflow: hidden; /* Clearfix for the float */
+                                            padding: 15px 20px !important;
+                                            background-color: #fff !important;
+                                            border-bottom: 1px solid #e2e8f0;
+                                            margin-bottom: 0 !important;
+                                            height: auto !important;
+                                        }
+                                        .lw-contacts-header .btn {
+                                            margin-top: 5px;
+                                            margin-bottom: 5px;
+                                        }
+                                        .lw-contact-list-block {
+                                            background-color: #fff !important; /* solid white to avoid seeing chat behind */
+                                        }
+                                        .lw-modern-tabs {
+                                            margin: 15px 15px 5px 15px !important;
+                                        }
+                                    }
                                 </style>
                                 
                                 <div class="form-group lw-modern-search-wrapper">
@@ -1438,7 +1457,7 @@
         });
     };
     window.searchContacts = function(responseData, callbackParams) {
-        // / Find all checked inputs and retrieve their values
+        // Find all checked inputs and retrieve their values
         var selectedLabels = $('.lw-search-labels:checked').val();
         selectedLabels = selectedLabels ? selectedLabels : '';
         window.contactsPaginatePage = 1;
@@ -1446,7 +1465,12 @@
             contactsPaginatePage: 1,
             isLoadingContacts: true
         });
+        // Safety timeout: if request takes more than 8s, force reset loading state
+        var safetyTimer = setTimeout(function() {
+            __DataRequest.updateModels({ isLoadingContacts: false });
+        }, 8000);
         __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => '', 'search' => '','selected_labels' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&','selected_labels':'selected_labels='+ selectedLabels + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {
+            clearTimeout(safetyTimer);
             __DataRequest.updateModels({ isLoadingContacts: false });
         });
     };
