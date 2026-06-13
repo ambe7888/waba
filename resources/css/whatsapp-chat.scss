@@ -41,13 +41,12 @@
         .lw-contact-list-block,
         .lw-contact-crm-block {
             position: fixed;
-            height: 100%;
             width: 100vw;
-            z-index: 2;
-            margin: 0;
-            left: 0;
+            height: 100%;
             top: 0;
-            background-color: rgb(255 255 255 / 95%);
+            left: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 1060;
         }
         .lw-contact-crm-block {
             right: 0;
@@ -134,19 +133,26 @@
             display: flex;
             align-items: center;
             flex-shrink: 0;
-        }
-
-        .user-bar .actions.more {
-            margin: 0 12px 0 32px;
-        }
-
-        .user-bar .actions.attachment {
-            margin: 0 0 0 30px;
-        }
-
-        .user-bar .actions.attachment i {
-            display: block;
-            transform: rotate(-45deg);
+            
+            &.more {
+                margin: 0 12px 0 32px;
+            }
+            &.attachment {
+                margin: 0 0 0 30px;
+                i {
+                    display: block;
+                    transform: rotate(-45deg);
+                }
+            }
+            
+            .lw-whatsapp-bar-icon-btn {
+                transition: transform 0.15s ease, opacity 0.15s ease;
+                display: inline-block;
+                &:active {
+                    transform: scale(0.85);
+                    opacity: 0.7;
+                }
+            }
         }
 
         .user-bar .avatar {
