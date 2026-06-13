@@ -250,14 +250,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="page chat-container col-sm-12 col-md-6 col-lg-6 col-xl-6" :class="[(!contact) ? 'lw-disabled-block-content' : '', isContactListOpened ? 'd-none d-md-block' : '']" x-cloak>
+                    <div class="page chat-container col-sm-12 col-md-6 col-lg-6 col-xl-6 d-flex flex-column" :class="[(!contact) ? 'lw-disabled-block-content' : '', isContactListOpened ? 'd-none d-md-block' : '']" x-cloak>
                         {{-- <h2>{{ __tr('Chat') }}</h2> --}}
-                        <div class="marvel-device nexus5">
-                            <div class="screen">
-                                <div class="screen-container">
-                                    <div class="chat" id="lwChatWindowBox">
+                        <div class="marvel-device nexus5 flex-grow-1 d-flex flex-column w-100" style="height: auto !important;">
+                            <div class="screen flex-grow-1 d-flex flex-column" style="height: auto !important;">
+                                <div class="screen-container flex-grow-1 d-flex flex-column" style="height: auto !important;">
+                                    <div class="chat flex-grow-1 d-flex flex-column" id="lwChatWindowBox" style="height: auto !important;">
                                         {{-- <template x-if="contact"> --}}
-                                            <div class="d-flex flex-column h-100 w-100">
+                                            <div class="d-flex flex-column flex-grow-1 w-100">
                                                 <template x-if="contact">
                                                 <div class="user-bar">
                                                     <div class="back d-md-none flex-shrink-0" @click.prevent="isContactListOpened = true">
@@ -499,9 +499,9 @@
                                                                 data-confirm="#lwUnblockContact-template" title="{{ __tr('Click here to unblock.') }}" data-callback-params="{{ json_encode(['datatableId' => '#lwContactList']) }}" data-callback="appFuncs.modelSuccessCallback"><i class="fa fa-ban"></i> {{  __tr('Click here to unblock.') }}</a></strong>
                                                         </div>
                                                     </template>
-                                                    <div class="w-100" x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
+                                                    <div class="w-100 flex-shrink-0" x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
                                                     <x-lw.form data-event-stream-update="true" data-callback="window.chatFormReset" id="whatsAppMessengerForm"
-                                                        class="conversation-compose" data-show-processing="false"
+                                                        class="conversation-compose flex-shrink-0" data-show-processing="false"
                                                         :action="route('vendor.chat_message.send.process')"
                                                         @submit="cancelReply()" style="background-color: #ffffff; border-radius: 16px; padding: 10px 15px; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); margin: 0 5px 5px 5px;">
                                                         <input type="hidden" name="contact_uid" x-bind:value="contact?._uid">
