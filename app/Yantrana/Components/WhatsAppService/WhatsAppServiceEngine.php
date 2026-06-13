@@ -2742,6 +2742,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $messageBody = $request->message_body;
             $contactUid = $request->contact_uid;
             $fromPhoneNumberId = $request->from_phone_number_id;
+            if ($request->has('reply_to_message_wamid')) {
+                $options['messageWamid'] = $request->reply_to_message_wamid;
+            }
         }
         // options extend
         $options = array_merge([
