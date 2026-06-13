@@ -616,120 +616,453 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-12 col-md-3 col-lg-3 col-xl-3 mb-4 lw-contact-crm-block" :class="(!contact) ? 'lw-disabled-block-content' : ''" x-show="isContactCrmBlockOpened">
-                            <div class="row">
-                                <div class="col-12 text-right">
-                                    <span class="btn btn-light btn-sm float-right d-md-none" @click.prevent="isContactCrmBlockOpened = false"><i class="fa fa-arrow-left"></i></span>
-                                </div>
-                                <template x-if="contact">
-                                    <fieldset class="col-12 p-2 mt-0">
-                                        <legend>{{  __tr('Contact Info') }}</legend>
-                                        @if (hasVendorAccess('manage_contacts', 'add_edit_contacts'))
-                                        <div class="text-right mt--3">
-                                            <a data-pre-callback="appFuncs.clearContainer" title="{{  __tr('Edit') }}" class="lw-btn btn btn-sm btn-light lw-ajax-link-action" data-response-template="#lwEditContactBody" x-bind:href="__Utils.apiURL('{{ route('vendor.contact.read.update.data', [ 'contactIdOrUid']) }}', {'contactIdOrUid': contact._uid})"  data-toggle="modal" data-target="#lwEditContact"><i class="fa fa-user-edit"></i> {{  __tr('Edit') }}</a>
-                                        </div>
+                    <style>
+                        /* Sidebar block styling */
+                        .lw-contact-crm-block {
+                            background-color: #f8fafc !important;
+                            border-left: 1px solid #e2e8f0 !important;
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        }
+
+                        /* Card container for sections */
+                        .lw-crm-card {
+                            background: #ffffff;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 12px;
+                            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                            margin: 12px;
+                            padding: 18px;
+                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                            position: relative;
+                        }
+
+                        .lw-crm-card:hover {
+                            transform: translateY(-1px);
+                            box-shadow: 0 4px 12px -2px rgba(148, 163, 184, 0.12), 0 2px 6px -1px rgba(148, 163, 184, 0.08);
+                            border-color: #cbd5e1;
+                        }
+
+                        /* Profile specific card */
+                        .lw-crm-profile-card {
+                            text-align: center;
+                            padding: 24px 18px;
+                        }
+
+                        /* Avatar styling */
+                        .lw-crm-avatar {
+                            width: 96px;
+                            height: 96px;
+                            border-radius: 16px;
+                            font-size: 38px;
+                            font-weight: 700;
+                            background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+                            color: #ffffff;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 16px auto;
+                            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+                            letter-spacing: 1px;
+                        }
+
+                        .lw-crm-contact-name {
+                            font-size: 1.15rem;
+                            font-weight: 700;
+                            color: #0f172a;
+                            margin-bottom: 4px;
+                        }
+
+                        .lw-crm-contact-phone {
+                            font-size: 0.88rem;
+                            color: #64748b;
+                            font-weight: 500;
+                        }
+
+                        /* Section Headings with border-left accent */
+                        .lw-crm-section-header {
+                            border-left: 3px solid #0d9488;
+                            padding-left: 10px;
+                            font-size: 0.8rem;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 0.05em;
+                            color: #0f766e;
+                            margin-bottom: 16px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+
+                        .lw-crm-section-header a,
+                        .lw-crm-section-header button {
+                            text-transform: none;
+                            letter-spacing: normal;
+                        }
+
+                        /* Grid & Info Rows */
+                        .lw-crm-info-row {
+                            display: flex;
+                            align-items: center;
+                            margin-bottom: 12px;
+                        }
+
+                        .lw-crm-info-row:last-child {
+                            margin-bottom: 0;
+                        }
+
+                        .lw-crm-icon-badge {
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 8px;
+                            background-color: #f1f5f9;
+                            color: #64748b;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-right: 12px;
+                            font-size: 14px;
+                            flex-shrink: 0;
+                            transition: all 0.2s ease;
+                        }
+
+                        .lw-crm-info-row:hover .lw-crm-icon-badge {
+                            background-color: #e2e8f0;
+                            color: #0f172a;
+                        }
+
+                        .lw-crm-info-text {
+                            font-size: 0.92rem;
+                            color: #334155;
+                            font-weight: 500;
+                            word-break: break-all;
+                        }
+
+                        /* iOS Style Switch */
+                        .lw-ios-switch {
+                            position: relative;
+                            display: inline-block;
+                            width: 44px;
+                            height: 24px;
+                        }
+
+                        .lw-ios-switch input {
+                            opacity: 0;
+                            width: 0;
+                            height: 0;
+                        }
+
+                        .lw-ios-slider {
+                            position: absolute;
+                            cursor: pointer;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background-color: #e2e8f0;
+                            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+                            border-radius: 24px;
+                        }
+
+                        .lw-ios-slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 18px;
+                            width: 18px;
+                            left: 3px;
+                            bottom: 3px;
+                            background-color: white;
+                            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+                            border-radius: 50%;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                        }
+
+                        .lw-ios-switch input:checked + .lw-ios-slider {
+                            background-color: #0d9488;
+                        }
+
+                        .lw-ios-switch input:checked + .lw-ios-slider:before {
+                            transform: translateX(20px);
+                        }
+
+                        /* Edit profile floating icon button */
+                        .lw-crm-edit-btn {
+                            position: absolute;
+                            top: 14px;
+                            right: 14px;
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 50%;
+                            background-color: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            color: #64748b;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                            cursor: pointer;
+                        }
+
+                        .lw-crm-edit-btn:hover {
+                            background-color: #f1f5f9;
+                            color: #0d9488;
+                            transform: scale(1.05);
+                            border-color: #cbd5e1;
+                        }
+
+                        /* Round action button (e.g. plus button) */
+                        .lw-crm-btn-round {
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            background-color: #f1f5f9;
+                            border: 1px solid #e2e8f0;
+                            color: #64748b;
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                            cursor: pointer;
+                            font-size: 12px;
+                            text-decoration: none !important;
+                        }
+
+                        .lw-crm-btn-round:hover {
+                            background-color: #e2e8f0;
+                            color: #0d9488;
+                            transform: scale(1.05);
+                            border-color: #cbd5e1;
+                        }
+
+                        /* Interactive elements (Selectize) */
+                        .lw-crm-card select,
+                        .lw-crm-card textarea {
+                            font-size: 0.9rem !important;
+                        }
+
+                        .lw-crm-card .selectize-input {
+                            border: 1px solid #e2e8f0 !important;
+                            border-radius: 8px !important;
+                            background: #f8fafc !important;
+                            box-shadow: none !important;
+                            padding: 8px 12px !important;
+                            transition: all 0.2s ease;
+                        }
+
+                        .lw-crm-card .selectize-input.focus {
+                            border-color: #0d9488 !important;
+                            background: #ffffff !important;
+                            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+                        }
+
+                        /* Custom switch wa alignment wrapper */
+                        .lw-crm-switch-wrapper {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 16px;
+                        }
+
+                        .lw-crm-switch-wrapper:last-child {
+                            margin-bottom: 0;
+                        }
+
+                        /* Notes section styles */
+                        .lw-crm-notes-display {
+                            font-size: 0.92rem;
+                            color: #334155;
+                            line-height: 1.5;
+                            background: #f8fafc;
+                            border-radius: 8px;
+                            padding: 12px;
+                            border: 1px dashed #cbd5e1;
+                        }
+
+                        .lw-crm-action-link {
+                            color: #0d9488;
+                            font-weight: 600;
+                            transition: color 0.15s ease;
+                            cursor: pointer;
+                            text-decoration: none !important;
+                        }
+
+                        .lw-crm-action-link:hover {
+                            color: #0f766e;
+                        }
+                    </style>
+                    <div class="col-sm-12 col-md-3 col-lg-3 col-xl-3 lw-contact-crm-block p-0 m-0" :class="(!contact) ? 'lw-disabled-block-content' : ''" x-show="isContactCrmBlockOpened" style="overflow-y: auto; height: 100%;">
+                        <!-- Header with Back Button (Mobile) -->
+                        <div class="d-md-none bg-white p-3 border-bottom d-flex align-items-center mb-2" style="border-color: #e2e8f0 !important;">
+                            <span class="btn btn-light btn-sm mr-3" @click.prevent="isContactCrmBlockOpened = false"><i class="fa fa-arrow-left"></i></span>
+                            <span class="font-weight-bold text-dark" style="font-size: 1.1rem;">{{ __tr('Contact Info') }}</span>
+                        </div>
+                        
+                        <template x-if="contact">
+                            <div>
+                                <!-- Profile Section Card -->
+                                <div class="lw-crm-card lw-crm-profile-card">
+                                    @if (hasVendorAccess('manage_contacts', 'add_edit_contacts'))
+                                    <a data-pre-callback="appFuncs.clearContainer" title="{{  __tr('Edit') }}" class="lw-crm-edit-btn lw-ajax-link-action" data-response-template="#lwEditContactBody" x-bind:href="__Utils.apiURL('{{ route('vendor.contact.read.update.data', [ 'contactIdOrUid']) }}', {'contactIdOrUid': contact._uid})" data-toggle="modal" data-target="#lwEditContact">
+                                        <i class="fa fa-pencil-alt"></i>
+                                    </a>
+                                    @endif
+                                    
+                                    <!-- Avatar -->
+                                    <div class="lw-crm-avatar" x-text="contact.name_initials || 'C'"></div>
+                                    
+                                    <!-- Contact Info -->
+                                    <h2 class="lw-crm-contact-name" x-text="contact.full_name"></h2>
+                                    <div class="lw-crm-contact-phone">
+                                        @if(hasVendorAccess('hide_contact_phone_numbers'))
+                                            <span x-text="contact.wa_id"></span>
+                                        @else
+                                            <span x-text="__Utils.formatAsLocaleNumber(Number(contact.wa_id))"></span>
                                         @endif
-                                        <dl class="px-2">
-                                            <dt>{{  __tr('Name') }}</dt>
-                                            <dd x-text="contact.full_name"></dd>
-                                            <dt>{{  __tr('Phone') }}</dt>
-                                            @if(hasVendorAccess('hide_contact_phone_numbers'))
-                                                <dd x-text="contact.wa_id"></dd>
-                                            @else
-                                                <dd x-text="__Utils.formatAsLocaleNumber(Number(contact.wa_id))"></dd>
-                                            @endif
-                                            <dt>{{  __tr('Email') }}</dt>
-                                            <dd x-text="contact.email ? contact.email : '-'"></dd>
-                                            <dt>{{  __tr('Language') }}</dt>
-                                            <dd x-text="contact.language_code ? contact.language_code : '-'"></dd>
-                                        </dl>
-                                    </fieldset>
-                                </template>
-                                <div class="col-12 p-0">
+                                    </div>
+                                </div>
+
+                                <!-- About Section Card -->
+                                <div class="lw-crm-card">
+                                    <div class="lw-crm-section-header">
+                                        <span>{{ __tr('À propos') }}</span>
+                                    </div>
+                                    <div class="lw-crm-info-row">
+                                        <div class="lw-crm-icon-badge">
+                                            <i class="fa fa-envelope"></i>
+                                        </div>
+                                        <div class="lw-crm-info-text" x-text="contact.email ? contact.email : '-'"></div>
+                                    </div>
+                                    <div class="lw-crm-info-row">
+                                        <div class="lw-crm-icon-badge">
+                                            <i class="fa fa-globe"></i>
+                                        </div>
+                                        <div class="lw-crm-info-text" x-text="contact.language_code ? contact.language_code : '-'"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Settings & Assignment Card -->
+                                <div class="lw-crm-card">
+                                    <div class="lw-crm-section-header">
+                                        <span>{{ __tr('Paramètres et Assignation') }}</span>
+                                    </div>
                                     <x-lw.form id="lwAssignSystemUserForm" :action="route('vendor.chat.assign_user.process')" data-callback="window.assignTeamMember">
                                         <input type="hidden" name="contactIdOrUid" :value="contact?._uid">
-                                        {{-- Select messaging permitted team member to assign this contact chat --}}
-                                        <fieldset class="col-12 p-2">
-                                            <legend>{{  __tr('Assign Team Member') }}</legend>
-                                            
-                                                <div class="my-3">
-                                                    @if(isAiBotAvailable())                                                        
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="checkbox" x-model="isAiChatBotEnabled" id="lwEnableAiBot" value="1">
-                                                            <label class="form-check-label" for="lwEnableAiBot">{{ __tr('Enable AI Bot') }}</label>
-                                                            <input type="hidden" name="enable_ai_bot" :value="isAiChatBotEnabled ? '1' : ''">
-                                                        </div>
-                                                    @endif
-
-                                                    <div class="form-check form-check-inline">
-                                                        <input class="form-check-input" type="checkbox" x-model="isReplyBotEnable" id="lwEnableReplyBot" value="1">
-                                                        <label class="form-check-label" for="lwEnableReplyBot">{{ __tr('Enable Reply Bot') }}</label>
-                                                        <input type="hidden" name="enable_reply_bot" :value="isReplyBotEnable ? '1' : ''">
-                                                    </div>
+                                        
+                                        @if(isAiBotAvailable())
+                                        <div class="lw-crm-switch-wrapper">
+                                            <div class="d-flex align-items-center">
+                                                <div class="lw-crm-icon-badge">
+                                                    <i class="fa fa-robot"></i>
                                                 </div>
-                                            
-                                            <x-lw.input-field id="lwCurrentlyAssignedUserUid" type="selectize" data-form-group-class="mt--4" name="assigned_users_uid" class="custom-select"
-                                    data-selected="{{ $currentlyAssignedUserUid }}" x-model="currentlyAssignedUserUid">
-                                            <x-slot name="selectOptions">
-                                                <option value="">{{  __tr('Unassigned') }}</option>
-                                                <option value="no_one">{{  __tr('Unassigned') }}</option>
-                                                @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                                <option value="{{ $vendorMessagingUser->_uid }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
-                                                @endforeach
-                                            </x-slot>
-                                            </x-lw.input-field>
-                                            <div class="">
-                                                <button type="submit" class="btn btn-dark btn-sm mt--1 float-right">{{  __tr('Save') }}</button>
+                                                <span class="lw-crm-info-text">{{ __tr('Enable AI Bot') }}</span>
                                             </div>
-                                        </fieldset>
+                                            <label class="lw-ios-switch">
+                                                <input type="checkbox" x-model="isAiChatBotEnabled" id="lwEnableAiBot" value="1" @change="$el.closest('form').querySelector('button[type=submit]').click()">
+                                                <span class="lw-ios-slider"></span>
+                                                <input type="hidden" name="enable_ai_bot" :value="isAiChatBotEnabled ? '1' : ''">
+                                            </label>
+                                        </div>
+                                        @endif
+                                        
+                                        <div class="lw-crm-switch-wrapper">
+                                            <div class="d-flex align-items-center">
+                                                <div class="lw-crm-icon-badge">
+                                                    <i class="fa fa-reply-all"></i>
+                                                </div>
+                                                <span class="lw-crm-info-text">{{ __tr('Enable Reply Bot') }}</span>
+                                            </div>
+                                            <label class="lw-ios-switch">
+                                                <input type="checkbox" x-model="isReplyBotEnable" id="lwEnableReplyBot" value="1" @change="$el.closest('form').querySelector('button[type=submit]').click()">
+                                                <span class="lw-ios-slider"></span>
+                                                <input type="hidden" name="enable_reply_bot" :value="isReplyBotEnable ? '1' : ''">
+                                            </label>
+                                        </div>
+
+                                        <div class="mt-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="lw-crm-icon-badge">
+                                                    <i class="fa fa-user-tag"></i>
+                                                </div>
+                                                <span class="lw-crm-info-text" style="font-weight: 600;">{{ __tr('Assigné à') }}</span>
+                                            </div>
+                                            <div class="pl-0">
+                                                <x-lw.input-field id="lwCurrentlyAssignedUserUid" type="selectize" data-form-group-class="m-0" name="assigned_users_uid" class="custom-select custom-select-sm" data-selected="{{ $currentlyAssignedUserUid }}" x-model="currentlyAssignedUserUid" @change="$el.closest('form').querySelector('button[type=submit]').click()" style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; font-size: 15px; color: #1f2937; height: auto;">
+                                                    <x-slot name="selectOptions">
+                                                        <option value="">{{  __tr('Unassigned') }}</option>
+                                                        <option value="no_one">{{  __tr('Unassigned') }}</option>
+                                                        @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                                        <option value="{{ $vendorMessagingUser->_uid }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
+                                                        @endforeach
+                                                    </x-slot>
+                                                </x-lw.input-field>
+                                                <button type="submit" class="d-none"></button>
+                                            </div>
+                                        </div>
                                     </x-lw.form>
                                 </div>
-                                <template x-if="contact">
-                                    {{-- tags and labels --}}
-                                    <fieldset class="col-12 p-2">
-                                        {{-- <hr class="my-4"> --}}
-                                        <legend class="pb-0 pt-1">{{  __tr('Labels/Tags') }} <a data-pre-callback="appFuncs.clearContainer" title="{{  __tr('Manage Labels') }}" class="lw-btn btn btn-sm btn-link lw-ajax-link-action float-right pt-1" data-response-template="#lwManageContactLabelsBody" x-bind:href="__Utils.apiURL('{{ route('vendor.chat.contact_labels.read', [ 'contactUid']) }}', {'contactUid': contact._uid})"  data-toggle="modal" data-target="#lwManageContactLabels"><i class="fa fa-cog"></i></a></legend>
-                                        <x-lw.form data-callback="onUpdateLabels" id="lwAssignContactLabelsForm" :action="route('vendor.chat.assign_labels.process')">
-                                                <input type="hidden" name="contactUid" x-bind:value="contact._uid" />
-                                                <div x-show="labelsElement"></div>
-                                                <select class="border-0 lw-borderers-selectize" id="lwAssignLabelsField" data-form-group-class="" x-bind:data-selected="assignedLabelIds" name="contact_labels[]" multiple >
-                                                    <option value="">{{ __tr('Select Labels') }}</option>
-                                                        @foreach($allLabels as $label)
-                                                            <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
-                                                        @endforeach
-                                                </select>
-                                                <button type="submit" class="btn btn-dark btn-sm float-right">{{  __tr('Update') }}</button>
-                                        </x-lw.form>
-                                    </fieldset>
-                                </template>
-                                <template x-if="contact">
-                                    {{-- notes --}}
-                                    <fieldset class="col-12 p-2" x-data="{openNotesEdit:false,contactNotes:contact.__data?.contact_notes}">
-                                        {{-- <hr class="my-4"> --}}
-                                        <legend class="pb-0 pt-1" for="lwContactNotes">{{  __tr('Notes') }} <button class="btn btn-link btn-sm float-right pt-1" @click="openNotesEdit = true"><i class="fas fa-edit"></i></button></legend>
-                                        <div x-show="!openNotesEdit" class="lw-ws-pre-line px-2 pb-4" x-text="contact.__data?.contact_notes"></div>
-                                        <x-lw.form x-show="openNotesEdit" id="lwNotesForm" :action="route('vendor.chat.update_notes.process')" >
-                                            <input type="hidden" name="contactIdOrUid" :value="contact?._uid">
-                                            <div class="form-group mt-0">
-                                                <textarea name="contact_notes" id="lwContactNotes" class="form-control" x-bind:value="contact.__data?.contact_notes" x-model="contactNotes" rows="5"></textarea>
-                                            </div>
-                                            <div class="form-group">
-                                                <button type="submit" class="btn btn-dark btn-sm mt--2" @click="openNotesEdit = false; if(!contact['__data']) { contact['__data'] = {}} contact['__data']['contact_notes'] = contactNotes;">{!! __tr('Save & Close') !!}</button>
-                                            </div>
-                                        </x-lw.form>
-                                    </fieldset>
-                                </template>
-                                {{-- check if stack has content --}}
+
+                                <!-- Labels/Tags Card -->
+                                <div class="lw-crm-card" style="position: relative; z-index: 10; overflow: visible;">
+                                    <div class="lw-crm-section-header">
+                                        <span>{{ __tr('Étiquettes') }}</span>
+                                        <a data-pre-callback="appFuncs.clearContainer" title="{{ __tr('Manage Labels') }}" class="lw-crm-btn-round lw-ajax-link-action" data-response-template="#lwManageContactLabelsBody" x-bind:href="__Utils.apiURL('{{ route('vendor.chat.contact_labels.read', [ 'contactUid']) }}', {'contactUid': contact._uid})" data-toggle="modal" data-target="#lwManageContactLabels">
+                                            <i class="fa fa-plus"></i>
+                                        </a>
+                                    </div>
+                                    <x-lw.form data-callback="onUpdateLabels" id="lwAssignContactLabelsForm" :action="route('vendor.chat.assign_labels.process')">
+                                        <input type="hidden" name="contactUid" x-bind:value="contact._uid" />
+                                        <div class="mb-2 pl-0" x-show="labelsElement"></div>
+                                        <div>
+                                            <select class="border-0 lw-borderers-selectize" id="lwAssignLabelsField" data-form-group-class="m-0" x-bind:data-selected="assignedLabelIds" name="contact_labels[]" multiple @change="$el.closest('form').querySelector('button[type=submit]').click()">
+                                                <option value="">{{ __tr('Select Labels') }}</option>
+                                                @foreach($allLabels as $label)
+                                                    <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button type="submit" class="d-none"></button>
+                                        </div>
+                                    </x-lw.form>
+                                </div>
+
+                                <!-- Notes Card -->
+                                <div class="lw-crm-card" x-data="{openNotesEdit:false,contactNotes:contact.__data?.contact_notes}">
+                                    <div class="lw-crm-section-header">
+                                        <span>{{ __tr('Notes') }}</span>
+                                        <button type="button" class="lw-crm-btn-round shadow-none" @click="openNotesEdit = true" x-show="!openNotesEdit" title="{{ __tr('Edit') }}">
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </button>
+                                    </div>
+                                    <div x-show="!openNotesEdit" class="lw-ws-pre-line lw-crm-notes-display mb-0" x-text="contact.__data?.contact_notes || 'Aucune note.'"></div>
+                                    
+                                    <x-lw.form x-show="openNotesEdit" id="lwNotesForm" :action="route('vendor.chat.update_notes.process')" x-cloak>
+                                        <input type="hidden" name="contactIdOrUid" :value="contact?._uid">
+                                        <div class="form-group mb-2">
+                                            <textarea name="contact_notes" id="lwContactNotes" class="form-control" style="font-size: 14px; border: 1px solid #d1d7db; border-radius: 8px; box-shadow: none;" x-bind:value="contact.__data?.contact_notes" x-model="contactNotes" rows="4" placeholder="{{ __tr('Saisissez vos notes ici...') }}"></textarea>
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2" style="gap: 8px;">
+                                            <button type="button" class="btn btn-sm text-secondary" style="background: transparent; font-weight: 500;" @click="openNotesEdit = false; contactNotes = contact.__data?.contact_notes;">{{ __tr('Cancel') }}</button>
+                                            <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 24px; padding: 4px 16px; font-weight: 500;" @click="openNotesEdit = false; if(!contact['__data']) { contact['__data'] = {}} contact['__data']['contact_notes'] = contactNotes;">{!! __tr('Save') !!}</button>
+                                        </div>
+                                    </x-lw.form>
+                                </div>
+
+                                {{-- Additional Links and buttons Card --}}
                                 @if ($__env->yieldPushContent('chatRightSidebarAdditionalLinksAndButtons'))
-                                <fieldset class="col-12 p-2">
-                                    <legend>{{  __tr('Links and buttons') }}</legend>
-                                    @stack('chatRightSidebarAdditionalLinksAndButtons')
-                                </fieldset>
+                                <div class="lw-crm-card">
+                                    <div class="lw-crm-section-header">
+                                        <span>{{  __tr('Links and buttons') }}</span>
+                                    </div>
+                                    <div>
+                                        @stack('chatRightSidebarAdditionalLinksAndButtons')
+                                    </div>
+                                </div>
                                 @endif
-                                {{-- stack the items in right sidebar at bottom --}}
-                                @stack('chatRightSidebarFooter')
+                                
+                                <div class="pb-5 px-3">
+                                    @stack('chatRightSidebarFooter')
+                                </div>
                             </div>
-                     </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -799,51 +1132,100 @@
  @include('whatsapp.quick-reply-modal')
  @include('whatsapp.recording-modal')
  <!--/ Edit Contact Modal -->
- {{-- Manage labels Modal --}}
- <x-lw.modal id="lwManageContactLabels" :header="__tr('Manage Labels')" :hasForm="true">
+ <!-- Manage Labels Modal -->
+  <x-lw.modal id="lwManageContactLabels" :header="__tr('Gérer les étiquettes')" :hasForm="true">
         <!-- form body -->
         <div id="lwManageContactLabelsBody" class="lw-form-modal-body"></div>
         <script type="text/template" id="lwManageContactLabelsBody-template">
-            <fieldset class="pb-4 my-4">
-                {{-- <legend>{{  __tr('New Label') }}</legend> --}}
+            <fieldset class="pb-3 mb-3 border-bottom">
                 <x-lw.form data-callback="onNewLabelCreated" id="lwManageContactLabelsForm" :action="route('vendor.chat.label.create.write')">
-                    <div class="row">
-                        <x-lw.input-field type="text" id="lwLabelFieldTitle" data-form-group-class="col-12" :label="__tr('New Label')"  name="title"  required="true">
-                            <x-slot name="append">
-                            <input type="color" name="text_color" value="#ffffff" style="height: auto;" title="{{ __tr('Label Text Color') }}" class="lw-color-field">
-                            <input type="color" name="bg_color" value="#000000" style="height: auto;" title="{{ __tr('Label BG Color') }}" class="lw-color-field">
-                            <button type="submit" class="btn btn-primary">{{ __tr('Create') }}</button>
-                            </x-slot>
-                        </x-lw.input-field>
+                    <div class="d-flex flex-column" style="gap: 12px;">
+                        <h6 class="font-weight-bold text-dark m-0">{{ __tr('Nouvelle étiquette') }}</h6>
+                        
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            <!-- Label Title -->
+                            <input type="text" id="lwLabelFieldTitle" name="title" x-model="newLabelTitle" class="form-control form-control-sm flex-grow-1" placeholder="{{ __tr('Nom...') }}" required="true" style="border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: none;">
+                            
+                            <!-- Text Color -->
+                            <div class="d-flex align-items-center" style="gap: 4px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 6px; background: #fff;" title="{{ __tr('Couleur du texte') }}">
+                                <span class="text-muted" style="font-size: 0.65rem; font-weight: 700;">TXT</span>
+                                <input type="color" name="text_color" x-model="newLabelTextColor" style="width: 20px; height: 20px; padding: 0; border: none; cursor: pointer; background: none;">
+                            </div>
+                            
+                            <!-- BG Color -->
+                            <div class="d-flex align-items-center" style="gap: 4px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 6px; background: #fff;" title="{{ __tr('Couleur de fond') }}">
+                                <span class="text-muted" style="font-size: 0.65rem; font-weight: 700;">FOND</span>
+                                <input type="color" name="bg_color" x-model="newLabelBgColor" style="width: 20px; height: 20px; padding: 0; border: none; cursor: pointer; background: none;">
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn btn-dark btn-sm p-0" style="border-radius: 6px; height: 32px; width: 36px; display: flex; align-items: center; justify-content: center; background-color: #0f172a; border-color: #0f172a;">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Real-time Preview Box -->
+                        <div class="d-flex align-items-center" style="gap: 8px; margin-top: -4px;">
+                            <span class="text-muted" style="font-size: 0.75rem;">{{ __tr('Aperçu :') }}</span>
+                            <span class="px-2 py-1 font-weight-bold rounded-pill text-truncate shadow-sm d-inline-block"
+                                  x-text="newLabelTitle || '{{ __tr('Exemple') }}'"
+                                  :style="'background-color: ' + newLabelBgColor + '; color: ' + newLabelTextColor + '; font-size: 0.7rem; border: 1px solid rgba(0,0,0,0.1); max-width: 150px; line-height: 1;'">
+                            </span>
+                        </div>
                     </div>
                 </x-lw.form>
             </fieldset>
-            <fieldset>
-                <legend>{{  __tr('Labels') }}</legend>
-                    <ul class="list-group">
-                        <template x-for="labelItem in allLabels">
-                            <li x-bind:class="'lw-contact-label-'+labelItem._uid" class="list-group-item lw-list-group-border" >
-                                <x-lw.form data-callback="onUpdateContactDetails" class="w-100" :action="route('vendor.chat.label.update.write')" class="lw-contact-label-edit-form">
-                                    <div class="row">
-                                        <input type="hidden" name="labelUid" x-bind:value="labelItem._uid" />
-                                        <x-lw.input-field type="text" data-form-group-class="col-12" :label="__tr('Edit Label')"  name="title" x-bind:value="labelItem.title" required="true">
-                                            <x-slot name="append">
-                                            <input type="color" name="text_color" x-bind:value="labelItem.text_color" style="height: auto;" title="{{ __tr('Label Text Color') }}" class="lw-color-field">
-                                            <input type="color" name="bg_color" x-bind:value="labelItem.bg_color" style="height: auto;" title="{{ __tr('Label BG Color') }}" class="lw-color-field">
-                                            <button type="submit" class="btn btn-primary">{{ __tr('Save') }}</button>
-                                            <a class="btn btn-outline-danger lw-ajax-link-action" data-confirm="{{ __tr('Are you sure you want to delete this label?') }}"  data-callback="updateManageLabelsList" data-method="post" x-bind:href="__Utils.apiURL('{{ route('vendor.chat.label.delete.write', ['labelUid']) }}',{'labelUid': labelItem._uid})"><i class="fa fa-trash"></i></a>
-                                            </x-slot>
-                                        </x-lw.input-field>
+
+            <fieldset class="border-0">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="font-weight-bold text-dark m-0">{{  __tr('Étiquettes existantes') }}</h6>
+                    <span class="badge badge-light border text-muted" x-text="allLabels.length" style="border-radius: 10px;"></span>
+                </div>
+                
+                <div class="list-group" style="max-height: 280px; overflow-y: auto; padding-right: 4px; gap: 6px;">
+                    <template x-for="labelItem in allLabels">
+                        <div x-bind:class="'lw-contact-label-'+labelItem._uid" class="list-group-item p-2" style="border: 1px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc; transition: all 0.2s ease;">
+                            <x-lw.form data-callback="onUpdateContactDetails" class="w-100" :action="route('vendor.chat.label.update.write')">
+                                <input type="hidden" name="labelUid" x-bind:value="labelItem._uid" />
+                                
+                                <div class="d-flex align-items-center justify-content-between" style="gap: 8px;">
+                                    
+                                    <!-- Rendered Preview badge -->
+                                    <div style="flex: 0 0 85px; display: flex; justify-content: center;">
+                                        <span class="px-2 py-1 font-weight-bold rounded-pill text-truncate shadow-sm d-block text-center w-100"
+                                              x-text="labelItem.title || '{{ __tr('Nom') }}'"
+                                              :style="'background-color: ' + labelItem.bg_color + '; color: ' + labelItem.text_color + '; font-size: 0.7rem; border: 1px solid rgba(0,0,0,0.1); line-height: 1.2;'">
+                                        </span>
                                     </div>
-                                </x-lw.form>
-                            </li>
-                            </template>
-                    </ul>
+                                    
+                                    <!-- Label Title Edit -->
+                                    <input type="text" name="title" x-model="labelItem.title" class="form-control form-control-sm flex-grow-1" required="true" placeholder="{{ __tr('Nom...') }}" style="border-radius: 4px; border: 1px solid #cbd5e1; padding: 2px 6px; font-size: 0.8rem; height: 28px;">
+                                    
+                                    <!-- Text Color Picker -->
+                                    <input type="color" name="text_color" x-model="labelItem.text_color" title="{{ __tr('Texte') }}" style="border: 1px solid #cbd5e1; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; padding: 0; background: #fff; flex-shrink: 0;">
+                                    
+                                    <!-- BG Color Picker -->
+                                    <input type="color" name="bg_color" x-model="labelItem.bg_color" title="{{ __tr('Fond') }}" style="border: 1px solid #cbd5e1; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; padding: 0; background: #fff; flex-shrink: 0;">
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex align-items-center" style="gap: 4px; flex-shrink: 0;">
+                                        <button type="submit" class="btn btn-sm btn-light p-0 shadow-sm" title="{{ __tr('Enregistrer') }}" style="border-radius: 4px; border: 1px solid #cbd5e1; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: white;">
+                                            <i class="fa fa-save text-success" style="font-size: 0.8rem;"></i>
+                                        </button>
+                                        <a class="btn btn-sm btn-light p-0 shadow-sm lw-ajax-link-action" data-confirm="{{ __tr('Confirmer la suppression ?') }}" data-callback="updateManageLabelsList" data-method="post" x-bind:href="__Utils.apiURL('{{ route('vendor.chat.label.delete.write', ['labelUid']) }}',{'labelUid': labelItem._uid})" title="{{ __tr('Supprimer') }}" style="border-radius: 4px; border: 1px solid #cbd5e1; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: white;">
+                                            <i class="fa fa-trash text-danger" style="font-size: 0.8rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </x-lw.form>
+                        </div>
+                    </template>
+                </div>
             </fieldset>
     </script>
         <!-- form footer -->
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Close') }}</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" style="border-radius: 20px; padding: 6px 20px;">{{ __tr('Fermer') }}</button>
         </div>
     <!--/  Edit Contact Form -->
 </x-lw.modal>
@@ -883,6 +1265,9 @@
             isChatSearchOpened: false,
             search_labels: "",
             isLoadingContacts: true,
+            newLabelTitle: "",
+            newLabelTextColor: "#ffffff",
+            newLabelBgColor: "#00a884",
             
             // Lightbox state
             lightboxOpen: false,
@@ -1076,6 +1461,15 @@
     };
     window.onNewLabelCreated = function(responseData) {
         $('#lwLabelFieldTitle').val('');
+        var chatData = document.querySelector('[x-data="initialMessageData"]');
+        if (chatData) {
+            var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
+            if (alpineData) {
+                alpineData.newLabelTitle = '';
+                alpineData.newLabelTextColor = '#ffffff';
+                alpineData.newLabelBgColor = '#00a884';
+            }
+        }
     };
     window.updateManageLabelsList = function(responseData) {
         if(responseData.reaction == 1) {
