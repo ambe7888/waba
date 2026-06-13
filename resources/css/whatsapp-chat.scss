@@ -1104,3 +1104,63 @@
     margin-right: 5px;
     display: inline-block;
 }
+
+/* App-like Full Screen Chat on Mobile */
+@media (max-width: 767.98px) {
+    .chat-container.page {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 1050 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #efeae2 !important;
+        max-width: 100% !important;
+    }
+    .chat-container.page .marvel-device,
+    .chat-container.page .marvel-device .screen,
+    .chat-container.page .marvel-device .screen .chat {
+        height: 100% !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+    .chat-container.page .user-bar {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1051 !important;
+        border-radius: 0 !important;
+    }
+    .chat-container.page .conversation {
+        position: absolute !important;
+        top: 69px !important;
+        bottom: 60px !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+    .chat-container.page .conversation .conversation-container {
+        height: 100% !important;
+    }
+    .chat-container.page .conversation-compose {
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1051 !important;
+        border-radius: 0 !important;
+    }
+    .chat-container.page .user-bar .back {
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
