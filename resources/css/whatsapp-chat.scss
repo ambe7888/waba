@@ -7,9 +7,6 @@
     }
 }
 .card.lw-whatsapp-chat-block-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
     @media (max-width: 767px) {
         position: absolute;
         top: 0;
@@ -73,26 +70,23 @@
         }
     }
     .lw-whatsapp-chat-window {
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        > .row {
-            flex: 1;
-            min-height: 0;
-        }
         .marvel-device {
-            height: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             width: 100%;
             .screen {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
                 text-align: left;
-                height: 100%;
             }
         }
 
         .screen-container {
-            height: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Status Bar */
@@ -121,11 +115,14 @@
 
         /* Chat */
         .chat {
-            height: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .chat-container {
-            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         /* User Bar */
@@ -142,6 +139,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-shrink: 0;
         }
 
         .user-bar div {
@@ -397,6 +395,7 @@
             z-index: 2;
             padding: 10px 15px;
             background: transparent;
+            flex-shrink: 0;
         }
 
         .conversation-compose input {
