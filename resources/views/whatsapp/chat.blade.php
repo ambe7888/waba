@@ -28,7 +28,7 @@
                         {{-- <hr class="my-2"> --}}
                         <h2 class="lw-contacts-header"> <span class="btn btn-light btn-sm float-right d-md-none" @click.prevent="isContactListOpened = false"><i class="fa fa-arrow-left"></i> {{  __tr('Back to Chat') }}</span> </h2>
                         <nav>
-                            <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                            <div class="nav nav-tabs lw-modern-tabs" id="nav-tab" role="tablist">
                             @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
                               <a class="nav-link {{ ($assigned ?? null) ? '' : 'active' }}" href="{{ route('vendor.chat_message.contact.view') }}" id="lw-all-contacts-tab"  data-target="#lwAllContactsTab" type="button" role="tab" aria-controls="lwAllContactsTab" aria-selected="true">{{  __tr('All') }} <span x-cloak x-show="unreadMessagesCount" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="unreadMessagesCount"></span></a>
                             @endif
@@ -39,132 +39,208 @@
                               <a href="{{ route('vendor.chat_message.contact.view', [
                                 'assigned' => 'unassigned',
                               ]) }}" class="nav-link {{ ($assigned ?? null) == 'unassigned' ? 'active' : '' }}" id="lw-unassigned-tab"  data-target="#lwUnassignedTab" type="button" role="tab" aria-controls="lwUnassignedTab" aria-selected="false">{{  __tr('Unassigned') }} <span x-cloak x-show="myUnassignedUnreadMessagesCount" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="myUnassignedUnreadMessagesCount"></span></a>
-                             @if(!__isEmpty($vendorMessagingUsers) and ($vendorMessagingUsers->count() > 1))
-                             @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                @if($vendorMessagingUser->_uid != getUserUID())
-                                @if ((($assigned ?? null) == $vendorMessagingUser->_id) or ($vendorMessagingUsers->count() == 2))
-                                    <a href="{{ route('vendor.chat_message.contact.view', [
-                                'assigned' => $vendorMessagingUser->_id,
-                              ]) }}" class="nav-link {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
-                              @break
-                                @endif
-                              @endif
-                                @endforeach
-                                @if ($vendorMessagingUsers->count() > 2)
-                              <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-expanded="false">{{  __tr('Others') }}</a>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                  @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                @if($vendorMessagingUser->_uid != getUserUID())
-                                 @if (($assigned ?? null) == $vendorMessagingUser->_id)
-                                    @continue
+                              @if(!__isEmpty($vendorMessagingUsers) and ($vendorMessagingUsers->count() > 1))
+                              @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                 @if($vendorMessagingUser->_uid != getUserUID())
+                                 @if ((($assigned ?? null) == $vendorMessagingUser->_id) or ($vendorMessagingUsers->count() == 2))
+                                     <a href="{{ route('vendor.chat_message.contact.view', [
+                                 'assigned' => $vendorMessagingUser->_id,
+                               ]) }}" class="nav-link {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
+                               @break
                                  @endif
-                                <a href="{{ route('vendor.chat_message.contact.view', [
-                                'assigned' => $vendorMessagingUser->_id,
-                              ]) }}" class="dropdown-item {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}" id="lw-unassigned-tab"  data-target="#lwUnassignedTab" type="button" role="tab" aria-controls="lwUnassignedTab" aria-selected="false"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
-                              @endif
-                                @endforeach
-                                </div>
-                              </li>
-                              @endif
-                              @endif
-                            @endif
-                          </nav>
-                          <div class="tab-content lw-contact-list-header" id="nav-tabContent" x-cloak>
+                               @endif
+                                 @endforeach
+                                 @if ($vendorMessagingUsers->count() > 2)
+                               <li class="nav-item dropdown">
+                                 <a class="nav-link dropdown-toggle lw-others-dropdown" style="background-color: #f8fafc; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" data-toggle="dropdown" href="#" role="button" aria-expanded="false"><i class="fas fa-ellipsis-h mr-1 text-muted"></i> {{  __tr('Others') }}</a>
+                                 <div class="dropdown-menu dropdown-menu-right">
+                                   @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                 @if($vendorMessagingUser->_uid != getUserUID())
+                                  @if (($assigned ?? null) == $vendorMessagingUser->_id)
+                                     @continue
+                                  @endif
+                                 <a href="{{ route('vendor.chat_message.contact.view', [
+                                 'assigned' => $vendorMessagingUser->_id,
+                               ]) }}" class="dropdown-item {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}" id="lw-unassigned-tab"  data-target="#lwUnassignedTab" type="button" role="tab" aria-controls="lwUnassignedTab" aria-selected="false"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
+                               @endif
+                                 @endforeach
+                                 </div>
+                               </li>
+                               @endif
+                               @endif
+                             @endif
+                            </div>
+                        </nav>
+                        <div class="tab-content lw-contact-list-header" id="nav-tabContent" x-cloak>
                             <div class="tab-pane fade show active pl-2" id="lwAllContactsTab" role="tabpanel" aria-labelledby="lw-all-contacts-tab" x-data="{isExpandedLabels:false}">
                                 @if (isset($allLabels) && count($allLabels) > 0)
-                                <fieldset class="py-0 lw-labels-filter-fieldset">
-                                    <legend class="py-0"><small>
-                                        {{  __tr('Filter by labels') }}
-                                       <sup>
-                                        <a class="" href="#" x-show="!isExpandedLabels" @click="isExpandedLabels = !isExpandedLabels">{{  __tr('Expand') }}</a>
-                                        <a class="" href="#" x-show="isExpandedLabels" @click="isExpandedLabels = !isExpandedLabels">{{  __tr('Collapse') }}</a>
-                                       </sup>
-                                    </small>
-                                    </legend>
-                                <div @click="function(){
-                                    _.defer(function() {
-                                        window.searchContacts();
-                                    });
-                                }" class="btn-group-toggle my-1 lw-labels-selector-box" x-bind:class="isExpandedLabels ? 'lw-expanded-labels' : ''" data-toggle="buttons">
-                                    <label class="btn btn-outline-light btn-sm active">
-                                    <input class="lw-search-labels" type="radio" checked name="selected_label" value="" autocomplete="off"> <i class="fa fa-times ml-0"></i>
-                                  </label>
-                                    @foreach($allLabels as $label)
-                                    <label style="border-color: {{ $label['text_color'] }}!important;background: {{ $label['bg_color'] }}!important;color: {{ $label['text_color'] }}!important;" class="btn btn-outline-warning btn-sm my-1 lw-contact-list-label-tag">
-                                      <input class="lw-search-labels" type="radio" name="selected_label" value="{{ $label['_id'] }}" autocomplete="off"> {{ $label['title'] }}
+                                <div class="lw-labels-filter-section">
+                                    <div class="lw-section-title d-flex justify-content-between align-items-center mb-2">
+                                        <span><i class="fa fa-tags mr-1"></i> {{  __tr('Filter by labels') }}</span>
+                                        <span class="lw-expand-toggle">
+                                            <a href="#" x-show="!isExpandedLabels" x-on:click="isExpandedLabels = !isExpandedLabels">{{  __tr('Expand') }}</a>
+                                            <a href="#" x-show="isExpandedLabels" x-on:click="isExpandedLabels = !isExpandedLabels">{{  __tr('Collapse') }}</a>
+                                        </span>
+                                    </div>
+                                    <div x-on:click="function(){
+                                        _.defer(function() {
+                                            window.searchContacts();
+                                        });
+                                    }" class="btn-group-toggle my-1 lw-modern-labels-box" x-bind:class="isExpandedLabels ? 'lw-expanded-labels' : ''" data-toggle="buttons">
+                                        <label class="btn btn-outline-light btn-sm active">
+                                            <input class="lw-search-labels" type="radio" checked name="selected_label" value="" autocomplete="off"> <i class="fa fa-times ml-0"></i>
+                                        </label>
+                                        @foreach($allLabels as $label)
+                                        <label style="--lbl-bg: {{ $label['bg_color'] }}; --lbl-color: {{ $label['text_color'] }};" class="btn btn-sm my-1 lw-contact-list-label-tag">
+                                          <input class="lw-search-labels" type="radio" name="selected_label" value="{{ $label['_id'] }}" autocomplete="off"> {{ $label['title'] }}
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                                
+                                <div class="lw-modern-toggle-wrapper">
+                                    <label for="lwShowUnreadOnlyContacts">
+                                        <input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$watch('showUnreadContactsOnly', function(value) {
+                                            window.showUnreadContactsOnly = value;
+                                            _.defer(function() {
+                                                window.searchContacts();
+                                            });
+                                        })" class="custom-checkbox" id="lwShowUnreadOnlyContacts" type="checkbox" name="unread_only_contacts"> 
+                                        <span x-show="!showUnreadContactsOnly">{{  __tr('Show all') }}</span>
+                                        <span x-show="showUnreadContactsOnly">{{  __tr('Show unread only') }}</span>
                                     </label>
-                                     @endforeach
+                                    <abbr title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
                                 </div>
-                                </fieldset>
-                                @endif
-                                <div class="form-group m-0 my-2"><label for="lwShowUnreadOnlyContacts"><input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$watch('showUnreadContactsOnly', function(value) {
-                            window.showUnreadContactsOnly = value;
-                            _.defer(function() {
-                                window.searchContacts();
-                            });
-                        })" class="custom-checkbox" id="lwShowUnreadOnlyContacts" type="checkbox" name="unread_only_contacts" id=""> <span x-show="!showUnreadContactsOnly">{{  __tr('Show all') }}</span><span x-show="showUnreadContactsOnly">{{  __tr('Show unread only') }}</span></label>
-                     <abbr class="float-right" title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
-                    </div>
-                            <div class="form-group">
-                                <input x-model="search" x-on:keyup.debounce.500ms="function(value) {
-                                    window.searchValue = this.search;
-                                    window.searchContacts();
-                                }" x-ref="searchField" placeholder="{{ __tr('type to search') }}" type="search" class="form-control">
-                            </div>
+                                
+                                <div class="form-group lw-modern-search-wrapper">
+                                    <i class="fa fa-search lw-search-icon"></i>
+                                    <input x-model="search" x-on:keyup.debounce.500ms="function(value) {
+                                        window.searchValue = this.search;
+                                        window.searchContacts();
+                                    }" x-ref="searchField" placeholder="{{ __tr('type to search') }}" type="text" class="form-control lw-modern-search-input" style="padding-right: 30px !important;">
+                                    <i class="fa fa-times lw-clear-search-icon" x-show="search.length > 0" x-on:click="search = ''; window.searchValue = ''; window.searchContacts(); $refs.searchField.focus(); window.dispatchEvent(new CustomEvent('show-toast', { detail: { msg: '{{ __tr('Recherche effacée') }}', type: 'info' } }));" style="cursor: pointer; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; padding: 4px;" title="{{ __tr('Clear search') }}"></i>
+                                </div>
 
-                            <div class="list-group lw-contact-list shadow-lg list-group-flush" >
-                            <template x-for="contactItem in filteredContacts">
-                                @if (($assigned ?? null))
-                                {{-- <template x-if="contactItem.assigned_users__id == '{{ getUserId() }}'"> --}}
-                                @endif
-                                <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly" @click.prevent="isContactListOpened = false;contact = {};whatsappMessageLogs=[]" :data-messaged-at="contactItem.last_message?.messaged_at" @click="whatsappMessageLogs = [];messagePaginatePage = 0;contact.__data = {}; appFuncs.resetForm();"
-                                    :class="[(contact && (contact._uid == contactItem._uid)) ? 'lw-contact-list-item-selected' : '']"
-                                    :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
-                                    class="list-group-item list-group-item-action lw-contact lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
-                                    {{-- d-flex align-items-start --}}
-                                    <div class="ms-2 me-auto w-100 mt-1">
-                                        <div class="float-left">
-                                                <div class="lw-contact-avatar bg-primary text-white text-center align-content-center">
-                                                    <span x-text="contactItem.name_initials"></span>
+                                <div class="lw-modern-contact-list shadow-none" >
+                                    
+                                    <!-- Skeleton Loader -->
+                                    <template x-if="isLoadingContacts">
+                                        <div class="p-3">
+                                            <div class="d-flex align-items-center mb-4 skeleton-pulse">
+                                                <div class="rounded-circle" style="width: 48px; height: 48px; background-color: #e2e8f0;"></div>
+                                                <div class="ml-3 flex-grow-1">
+                                                    <div class="rounded mb-2" style="height: 14px; width: 60%; background-color: #e2e8f0;"></div>
+                                                    <div class="rounded" style="height: 12px; width: 40%; background-color: #e2e8f0;"></div>
                                                 </div>
+                                            </div>
+                                            <div class="d-flex align-items-center mb-4 skeleton-pulse">
+                                                <div class="rounded-circle" style="width: 48px; height: 48px; background-color: #e2e8f0;"></div>
+                                                <div class="ml-3 flex-grow-1">
+                                                    <div class="rounded mb-2" style="height: 14px; width: 70%; background-color: #e2e8f0;"></div>
+                                                    <div class="rounded" style="height: 12px; width: 50%; background-color: #e2e8f0;"></div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center skeleton-pulse">
+                                                <div class="rounded-circle" style="width: 48px; height: 48px; background-color: #e2e8f0;"></div>
+                                                <div class="ml-3 flex-grow-1">
+                                                    <div class="rounded mb-2" style="height: 14px; width: 50%; background-color: #e2e8f0;"></div>
+                                                    <div class="rounded" style="height: 12px; width: 30%; background-color: #e2e8f0;"></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="mt-2">
-                                            <h3>
-                                                <span x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
-                                                <span x-show="contactItem.full_name"> - </span>
-                                                @if(hasVendorAccess('hide_contact_phone_numbers'))
-                                                    <span x-text="contactItem.wa_id"></span>
-                                                @else
-                                                    <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
-                                                @endif
-                                            </h3>
-                                        </div>
-                                    </div>
-                                    <div class="mt-0 p-2" x-init="contactItem.label_string = ''; contactLabel = {}">
-                                    <template x-for="contactLabel in contactItem.labels">
-                                        <span class="mr-2"><small  x-init="contactItem.label_string = contactItem.label_string + ' ' + contactLabel.title" class="mr-0" x-bind:title="contactLabel.title"><i x-bind:style="'color:'+contactLabel.bg_color+';'" class="fa fa-tag"></i></small> <small x-text="contactLabel.title"></small></span>
                                     </template>
-                                </div>
-                                <hr class="my-0">
-                                <div class="text-right w-100 mb-2 px-2 small">
-                                        <small class="text-muted lw-last-message-at small"
-                                            x-text="contactItem.last_message?.formatted_message_ago_time"></small>
-                                        <span x-show="contactItem.unread_messages_count"
-                                            class="badge bg-success rounded-pill"
-                                            x-text="contactItem.unread_messages_count"></span>
+
+                                    <!-- Empty State -->
+                                    <template x-if="!isLoadingContacts && filteredContacts.length === 0">
+                                        <div class="text-center p-5 text-muted">
+                                            <i class="fa fa-users fa-3x mb-3" style="color: #cbd5e1;"></i>
+                                            <h5 style="color: #64748b; font-weight: 600;">{{ __tr('No Contacts Found') }}</h5>
+                                            <p style="font-size: 0.85rem;">{{ __tr('Try adjusting your search or filters.') }}</p>
+                                        </div>
+                                    </template>
+
+                                    <template x-show="!isLoadingContacts" x-for="contactItem in filteredContacts" :key="contactItem._uid">
+                                        @if (($assigned ?? null))
+                                        {{-- <template x-if="contactItem.assigned_users__id == '{{ getUserId() }}'"> --}}
+                                        @endif
+                                        <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly" 
+                                           :data-messaged-at="contactItem.last_message?.messaged_at" 
+                                           @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = { _uid: contactItem._uid }; appFuncs.resetForm();"
+                                           :class="[(contact && (contact._uid == contactItem._uid)) ? 'lw-contact-card-selected' : '']"
+                                           :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
+                                           class="lw-contact-card lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
+                                            
+                                            <div class="lw-contact-card-body">
+                                                <!-- Avatar -->
+                                                <div class="lw-contact-avatar-wrapper">
+                                                    <div class="lw-contact-avatar-modern text-white text-center">
+                                                        <span x-text="contactItem.name_initials"></span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Info -->
+                                                <div class="lw-contact-info">
+                                                    <!-- Row 1: Name -->
+                                                    <div class="lw-contact-title-row">
+                                                        <span class="lw-contact-name" x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
+                                                        <span class="lw-contact-name" x-show="!contactItem.full_name">
+                                                            @if(hasVendorAccess('hide_contact_phone_numbers'))
+                                                                <span x-text="contactItem.wa_id"></span>
+                                                            @else
+                                                                <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <!-- Row 2: Phone and Unread Badge -->
+                                                    <div class="lw-contact-meta-row">
+                                                        <span class="lw-contact-phone">
+                                                            <span x-show="contactItem.full_name">
+                                                                @if(hasVendorAccess('hide_contact_phone_numbers'))
+                                                                    <span x-text="contactItem.wa_id"></span>
+                                                                @else
+                                                                    <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
+                                                                @endif
+                                                            </span>
+                                                            <span x-show="!contactItem.full_name" class="lw-contact-phone-placeholder">&nbsp;</span>
+                                                        </span>
+                                                        <span x-show="contactItem.unread_messages_count"
+                                                              class="lw-contact-unread-badge"
+                                                              x-text="contactItem.unread_messages_count"></span>
+                                                    </div>
+                                                    
+                                                    <!-- Row 3: Labels -->
+                                                    <div class="lw-contact-labels-wrapper" style="margin-top: 4px;" x-show="contactItem.labels && contactItem.labels.length > 0">
+                                                        <template x-for="contactLabel in contactItem.labels">
+                                                            <span class="lw-contact-label-badge" :style="'background-color: ' + contactLabel.bg_color + '15; color: ' + contactLabel.bg_color + '; border: 1px solid ' + contactLabel.bg_color + '30;'" :title="contactLabel.title">
+                                                                <span class="lw-label-dot" :style="'background-color: ' + contactLabel.bg_color"></span>
+                                                                <span x-text="contactLabel.title"></span>
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                    
+                                                    <!-- Row 4: Time -->
+                                                    <div class="lw-contact-time-row" style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                                                        <span class="lw-contact-time" style="font-size: 0.72rem; color: #64748b; font-weight: 500;" x-text="contactItem.last_message?.formatted_message_ago_time"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        @if (($assigned ?? null))
+                                        {{-- </template> --}}
+                                        @endif
+                                    </template>
+                                    <div class="p-4" x-show="contactsPaginatePage">
+                                        <button x-cloak class="btn btn-sm btn-block btn-secondary d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px;">
+                                            <i class="fa fa-download" x-show="!isLoadingMoreContacts"></i>
+                                            <i class="fa fa-spinner fa-spin" x-show="isLoadingMoreContacts" x-cloak></i>
+                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Loading...') }}' : '{{ __tr('Load More') }}'"></span>
+                                        </button>
                                     </div>
-                                    </a>
-                                @if (($assigned ?? null))
-                                {{-- </template> --}}
-                                @endif
-                            </template>
-                            <div class="p-4" x-show="contactsPaginatePage">
-                                <button x-cloak class="btn btn-sm btn-block btn-secondary" @click="loadMoreContacts" ><i class="fa fa-download"></i> {{  __tr('Load More') }}</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    </div>
                     </div>
                     <div class="page col-sm-12 col-md-6 col-lg-6 col-xl-6 mb-4" :class="(!contact) ? 'lw-disabled-block-content' : ''" class="chat-container" x-cloak>
                         {{-- <h2>{{ __tr('Chat') }}</h2> --}}
@@ -179,24 +255,29 @@
                                                     <div class="back d-md-none" @click.prevent="isContactListOpened = true">
                                                         <i class="fa fa-users"></i>
                                                     </div>
-                                                    <div class="avatar d-none d-md-inline bg-primary text-white text-center align-content-center">
-                                                        <span x-text="contact.name_initials"></span>
+                                                    <div class="avatar d-none d-md-flex text-white text-center align-items-center justify-content-center" style="background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
+                                                        <span x-text="contact.name_initials" style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;"></span>
                                                     </div>
-                                                    <div class="name">
-                                                        <span><span x-text="contact.full_name"></span>
-                                                            <small> - 
+                                                    <div class="name d-flex flex-column justify-content-center" style="width: auto; max-width: 65%;">
+                                                        <div class="contact-name-main text-truncate" style="line-height: 1.2; letter-spacing: 0.3px;">
+                                                            <span style="font-size: 17px; font-weight: 600;" x-text="contact.full_name"></span>
+                                                            <span style="font-size: 14px; font-weight: 400; opacity: 0.85; margin-left: 6px;">
+                                                                <span x-show="contact.wa_id">- </span>
                                                                 @if(hasVendorAccess('hide_contact_phone_numbers'))
-                                                                    <small x-text="contact.wa_id"></small>
+                                                                    <span x-text="contact.wa_id"></span>
                                                                 @else
-                                                                    <a target="_blank" x-bind:href="'https://api.whatsapp.com/send?phone=' + contact.wa_id" x-text="contact.wa_id ? __Utils.formatAsLocaleNumber(Number(contact.wa_id)) : ''"></a>
+                                                                    <a target="_blank" class="text-white" style="text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" x-bind:href="'https://api.whatsapp.com/send?phone=' + contact.wa_id" x-text="contact.wa_id ? __Utils.formatAsLocaleNumber(Number(contact.wa_id)) : ''"></a>
                                                                 @endif
-                                                            </small>
-                                                        </span>
+                                                            </span>
+                                                        </div>
                                                         <template x-if="isDirectMessageDeliveryWindowOpened">
                                                             <span class="status text-success " x-text="directMessageDeliveryWindowOpenedTillMessage"></span>
                                                         </template>
                                                             <template x-if="!isDirectMessageDeliveryWindowOpened">
-                                                            <span class="status text-yellow " title="{{ __tr("As you may not received any response in last 24 hours, your direct message may not get delivered. However you can send template messages.") }}">{{  __tr('You can\'t reply, they needs to reply back to start conversion.') }}</span>
+                                                            <span class="status text-yellow " title="{{ __tr("As you may not received any response in last 24 hours, your direct message may not get delivered. However you can send template messages.") }}">
+                                                                <i class="fas fa-exclamation-triangle" style="color: #eab308; font-size: 14px;"></i> 
+                                                                <span>{{  __tr('You can\'t reply, they needs to reply back to start conversion.') }}</span>
+                                                            </span>
                                                              </template>
                                                     </div>
                                                     
@@ -220,7 +301,7 @@
                                                             </script>
 
                                                             <template x-if='contact && (_.isEmpty(contact?.wa_blocked_at))'>
-                                                                <span :title="isDirectMessageDeliveryWindowOpened == false ? '{{ __tr('Blocking is not allowed as no response has been received within the past 24 hours') }}' : ''">
+                                                                <span :title="isDirectMessageDeliveryWindowOpened == false ? '{!! addslashes(__tr('Blocking is not allowed as no response has been received within the past 24 hours')) !!}' : ''">
                                                                 <a x-cloak
                                                                     :class="{ 'disabled': isDirectMessageDeliveryWindowOpened == false }"
                                                                     :style="isDirectMessageDeliveryWindowOpened == false ? {
@@ -377,7 +458,13 @@
                                                                     </template>
                                                                 </div>
                                                             </template>
-                                                            <div class="w-100 px-4" id="lwEndOfChats">&shy; <button x-cloak x-show="messagePaginatePage" class="btn btn-sm btn-block btn-secondary" @click="loadEarlierMessages" ><i class="fa fa-download"></i> {{  __tr('Load earlier messages') }}</button></div>
+                                                            <div class="w-100 px-4 mb-2" id="lwEndOfChats">&shy; 
+                                                                <button x-cloak x-show="messagePaginatePage" class="btn btn-sm btn-block btn-secondary d-flex justify-content-center align-items-center" @click="loadEarlierMessages" x-bind:disabled="isLoadingEarlierMessages" style="gap: 8px;">
+                                                                    <i class="fa fa-download" x-show="!isLoadingEarlierMessages"></i>
+                                                                    <i class="fa fa-spinner fa-spin" x-show="isLoadingEarlierMessages" x-cloak></i>
+                                                                    <span x-text="isLoadingEarlierMessages ? '{{ __tr('Loading...') }}' : '{{ __tr('Load earlier messages') }}'"></span>
+                                                                </button>
+                                                            </div>
                                                     </div>
                                                     <template x-if="contact && (!_.isEmpty(contact?.wa_blocked_at))">
                                                         <div class="alert alert-light text-center align-content-center">
@@ -394,17 +481,18 @@
                                                         class="conversation-compose" data-show-processing="false"
                                                         :action="route('vendor.chat_message.send.process')">
                                                         <input type="hidden" name="contact_uid" x-bind:value="contact?._uid">
-                                                        {{-- emoji following blank tag as removing it may break input layout
-                                                        --}}
-                                                        <div class="emoji">
-                                                        </div>
-                                                        <textarea name="message_body" required class="input-msg lw-input-emoji" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
-                                                        <template x-if="contact">
-                                                          <div class="photo">
-                                                        <a title="{!! __tr('Record & Send') !!}" class="lw-ajax-link-action lw-whatsapp-bar-icon-btn" href="#" data-toggle="modal" data-target="#lwSendRecording"><i class="fa fa-microphone text-muted"></i> </a>
-                                                          </div>
-                                                        </template>
-                                                        <div class="photo dropup">
+                                                        <div class="lw-compose-pill d-flex align-items-center flex-grow-1 bg-white" style="border-radius: 30px; padding: 4px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; height: 50px;">
+                                                            {{-- emoji following blank tag as removing it may break input layout
+                                                            --}}
+                                                            <div class="emoji d-flex align-items-center justify-content-center" style="width: 30px;">
+                                                            </div>
+                                                            <textarea name="message_body" required class="input-msg lw-input-emoji flex-grow-1 border-0 bg-transparent m-0" style="resize: none; outline: none; font-size: 15px; padding-top: 8px; line-height: 1.5; min-width: 50px; height: 40px; box-shadow: none;" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
+                                                            <template x-if="contact">
+                                                                <div class="photo action-mic d-flex align-items-center justify-content-center ml-2" style="width: 30px;">
+                                                                    <a title="{!! __tr('Record & Send') !!}" class="lw-ajax-link-action lw-whatsapp-bar-icon-btn d-flex align-items-center justify-content-center" href="#" data-toggle="modal" data-target="#lwSendRecording"><i class="fa fa-microphone text-muted" style="font-size: 18px;"></i> </a>
+                                                                </div>
+                                                            </template>
+                                                            <div class="photo dropup action-attach d-flex align-items-center justify-content-center ml-2" style="width: 30px;">
                                                             <!-- Default dropup button -->
                                                             <a href="#" class="lw-whatsapp-bar-icon-btn" data-toggle="dropdown" aria-expanded="false">
                                                                 <i class=" fa fa-paperclip text-muted"></i>
@@ -446,8 +534,9 @@
                                                                     'mediaType' => 'audio']) }}"><i class="fa fa-headphones text-muted"></i> {{ __tr('Send Audio') }}
                                                                 </a>
                                                             </div>
+                                                            </div>
                                                         </div>
-                                                        <button class="send" type="submit">
+                                                        <button class="send ml-3" type="submit" style="background: transparent; border: none; outline: none; flex-shrink: 0;">
                                                             <div class="circle pl-2">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="1.5em"
                                                                     height="1.5em" viewBox="0 0 24 24">
@@ -702,6 +791,19 @@
     <!--/  Edit Contact Form -->
 </x-lw.modal>
  {{-- /Manage labels Modal --}}
+    <!-- Toasts Container -->
+    <div x-on:show-toast.window="toasts.push({ id: Date.now(), msg: $event.detail.msg, type: $event.detail.type || 'success' }); setTimeout(() => { toasts.shift() }, 3000)" class="position-fixed p-3" style="z-index: 9999; right: 0; bottom: 0;">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="toast show mb-2 shadow-lg border-0" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 10px; overflow: hidden; opacity: 0.95; min-width: 250px;">
+                <div class="toast-body d-flex align-items-center" :class="toast.type === 'success' ? 'bg-success text-white' : 'bg-dark text-white'">
+                    <i class="fa fa-check-circle mr-2" x-show="toast.type === 'success'"></i>
+                    <i class="fa fa-info-circle mr-2" x-show="toast.type === 'info'"></i>
+                    <span x-text="toast.msg" style="font-weight: 500;"></span>
+                </div>
+            </div>
+        </template>
+    </div>
+
 </div>
 <script>
      (function() {
@@ -721,10 +823,14 @@
             isReplyBotEnable: "{{ $isReplyBotEnable }}",
             search: "",
             search_labels: "",
+            isLoadingContacts: true,
+            isLoadingMoreContacts: false,
+            isLoadingEarlierMessages: false,
+            toasts: [],
             contacts: {},
             assignedLabelIds: [],
             allLabels: @json($allLabels),
-            filteredContacts: function () {
+            get filteredContacts() {
                 return _.reverse(_.sortBy(this.contacts, [function(o) { return o.last_message?.messaged_at; }]));
             },
             labelsElement : function() {
@@ -795,7 +901,10 @@
     window.searchValue = '';
     window.showUnreadContactsOnly = 0;
     window.loadEarlierMessages = function(responseData, callbackParams) {
-        __DataRequest.get(__Utils.apiURL('{!! route('vendor.chat_message.contact.view', ['contactUid', 'way' => 'prepend', 'page', 'assigned' => ($assigned ?? '')]) !!}',{'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.messagePaginatePage}),{}, function() {});
+        __DataRequest.updateModels({ isLoadingEarlierMessages: true });
+        __DataRequest.get(__Utils.apiURL('{!! route('vendor.chat_message.contact.view', ['contactUid', 'way' => 'prepend', 'page', 'assigned' => ($assigned ?? '')]) !!}',{'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.messagePaginatePage}),{}, function() {
+            __DataRequest.updateModels({ isLoadingEarlierMessages: false });
+        });
         if(callbackParams) {
             appFuncs.modelSuccessCallback(responseData, callbackParams);
         }
@@ -808,7 +917,10 @@
     };
     window.contactsPaginatePage = 1;
     window.loadMoreContacts = function(responseData, callbackParams) {
-        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => 'append', 'search' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {});
+        __DataRequest.updateModels({ isLoadingMoreContacts: true });
+        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => 'append', 'search' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {
+            __DataRequest.updateModels({ isLoadingMoreContacts: false });
+        });
     };
     window.searchContacts = function(responseData, callbackParams) {
         // / Find all checked inputs and retrieve their values
@@ -817,11 +929,17 @@
         window.contactsPaginatePage = 1;
         __DataRequest.updateModels({
             contactsPaginatePage: 1,
+            isLoadingContacts: true
         });
-        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => '', 'search' => '','selected_labels' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&','selected_labels':'selected_labels='+ selectedLabels + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {});
+        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => '', 'search' => '','selected_labels' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&','selected_labels':'selected_labels='+ selectedLabels + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {
+            __DataRequest.updateModels({ isLoadingContacts: false });
+        });
     };
     window.updateContactList = function(responseData, callbackParams) {
-        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&'}),{}, function() {});
+        __DataRequest.updateModels({ isLoadingContacts: true });
+        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&'}),{}, function() {
+            __DataRequest.updateModels({ isLoadingContacts: false });
+        });
     };
     window.updateContactInfo = function(responseData) {
         $('#lwCurrentlyAssignedUserUid')[0].selectize.setValue(responseData.data.currentlyAssignedUserUid);

@@ -7,7 +7,7 @@
 $modalDialogClass = $attributes->get('modal-dialog-class') ?? '';
 @endphp
 <!-- Modal -->
-<div x-data="{isModalExpanded:false, modalTitle: '{!! $header !!}'}" @set-modal-title.window="modalTitle = $event.detail" data-backdrop="static" tabindex="-1" aria-labelledby="{!! $header !!}" aria-hidden="true"
+<div x-data="{isModalExpanded:false, modalTitle: '{!! addslashes($header) !!}'}" @set-modal-title.window="modalTitle = $event.detail" data-backdrop="static" tabindex="-1" aria-labelledby="{!! $header !!}" aria-hidden="true"
     {{ $attributes->merge(['class' => 'modal ' . ($hasForm ? 'lw-has-form' : '')]) }}>
     <div class="modal-dialog {{ $modalSize }} {{ $modalDialogClass }}" :style="isModalExpanded ? 'max-width: 90vw;height: 90vh;' : ''">
         <div class="modal-content">

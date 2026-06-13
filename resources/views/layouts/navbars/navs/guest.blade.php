@@ -96,7 +96,7 @@ $currentAppTheme=getUserAppTheme();
                 @if(getAppSettings('enable_vendor_registration') or getAppSettings('message_for_disabled_registration'))
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('auth.register') }}">
-                        <span class="nav-link-inner--text text-danger fw-bold">{{ __tr('Register') }}</span>
+                        <span class="nav-link-inner--text">{{ __tr('Register') }}</span>
                     </a>
                 </li>
                 @endif
