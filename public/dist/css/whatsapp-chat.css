@@ -12,7 +12,7 @@
     margin-bottom: 16px;
     flex-wrap: nowrap;
     position: relative;
-    z-index: 1050;
+    z-index: 10;
 }
 .card.lw-whatsapp-chat-block-container .lw-modern-tabs::-webkit-scrollbar {
     display: none;
