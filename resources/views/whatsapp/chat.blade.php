@@ -12,9 +12,11 @@
 {{-- @if ($contact) --}}
 <div class="container-fluid lw-chat-main-container" x-data="{myAssignedUnreadMessagesCount:null,myUnassignedUnreadMessagesCount:null,showUnreadContactsOnly:false,usersUnreadMessagesCounts:{}}">
     <!-- Lightbox Overlay -->
-    <div x-show="lightboxOpen" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center;" @click="lightboxOpen = false" :style="lightboxOpen ? 'display:flex' : 'display:none'">
-        <span style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);" @click="lightboxOpen = false">&times;</span>
-        <img :src="lightboxImageSrc" style="max-width: 90%; max-height: 90%; box-shadow: 0 5px 25px rgba(0,0,0,0.5); border-radius: 8px;" @click.stop="">
+    <div x-cloak x-show="lightboxOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999;" @click="lightboxOpen = false">
+        <div style="display: flex; width: 100%; height: 100%; justify-content: center; align-items: center;">
+            <span style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 100000;" @click="lightboxOpen = false">&times;</span>
+            <img :src="lightboxImageSrc" style="max-width: 90%; max-height: 90%; box-shadow: 0 5px 25px rgba(0,0,0,0.5); border-radius: 8px; z-index: 100000;" @click.stop="">
+        </div>
     </div>
 
     <div class="">
