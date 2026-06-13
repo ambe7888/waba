@@ -223,6 +223,14 @@ class ContactModel extends BaseModel
     }
 
     /**
+     * Get all messages
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(WhatsAppMessageLogModel::class, 'contacts__id', '_id');
+    }
+
+    /**
      * Get Assigned User
      */
     public function assignedUser(): HasOne

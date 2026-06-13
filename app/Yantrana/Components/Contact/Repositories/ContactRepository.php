@@ -431,6 +431,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // BASE QUERY
         // -----------------------------------------
         $query = $this->primaryModel::query()
+            ->select('contacts.*')
             ->where('contacts.vendors__id', $vendorId);
 
         // -----------------------------------------
@@ -513,8 +514,21 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
 
             $query->where(function ($q) use ($like) {
                 $q->where(DB::raw('CONCAT(first_name, " ", last_name)'), 'LIKE', $like)
-                    ->orWhere('wa_id', 'LIKE', $like);
+                    ->orWhere('wa_id', 'LIKE', $like)
+                    ->orWhereHas('messages', function ($mq) use ($like) {
+                        $mq->where('message', 'LIKE', $like);
+                    });
             });
+
+            // Subquery to get the latest matched message text
+            $query->addSelect([
+                'matched_search_message' => DB::table('whatsapp_message_logs')
+                    ->select('message')
+                    ->whereColumn('contacts__id', 'contacts._id')
+                    ->where('message', 'LIKE', $like)
+                    ->orderBy('messaged_at', 'desc')
+                    ->limit(1)
+            ]);
         }
 
         // -----------------------------------------

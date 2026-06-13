@@ -217,6 +217,14 @@
                                                               class="lw-contact-unread-badge"
                                                               x-text="contactItem.unread_messages_count"></span>
                                                     </div>
+
+                                                    <!-- Row 2.5: Matched Search Message -->
+                                                    <template x-if="search && search.trim() !== '' && contactItem.matched_search_message">
+                                                        <div class="lw-contact-search-snippet" style="margin-top: 4px; font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic;">
+                                                            <i class="fa fa-search text-muted mr-1" style="font-size: 0.7rem;"></i> 
+                                                            <span x-html="contactItem.matched_search_message.replace(new RegExp('(' + search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + ')', 'gi'), '<strong class=\'text-dark bg-warning px-1 rounded\'>$1</strong>')"></span>
+                                                        </div>
+                                                    </template>
                                                     
                                                     <!-- Row 3: Labels -->
                                                     <div class="lw-contact-labels-wrapper" style="margin-top: 4px;" x-show="contactItem.labels && contactItem.labels.length > 0">
@@ -294,6 +302,9 @@
                                                         {{-- Whatsapp call button --}}
                                                         @stack('whatsappCallButton')
                                                         {{-- Whatsapp call button --}}
+                                                        <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="isChatSearchOpened = !isChatSearchOpened; if(isChatSearchOpened) { $nextTick(() => document.getElementById('chatSearchInput').focus()) }" title="Rechercher">
+                                                            <i class="fas fa-search text-white"></i>
+                                                        </a>
                                                         <a href="#" class="lw-whatsapp-bar-icon-btn" data-toggle="dropdown" aria-expanded="false">
                                                             <i class="fas fa-ellipsis-v text-white"></i>
                                                         </a>
@@ -343,12 +354,22 @@
                                                     </template>
                                                 </div>
                                                 </template>
+                                                <!-- Search Bar (hidden by default) -->
+                                                <div class="chat-search-bar px-3 py-2 bg-light border-bottom" x-show="isChatSearchOpened" x-transition x-cloak>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="text" id="chatSearchInput" class="form-control rounded-pill" placeholder="Rechercher dans cette discussion..." x-model="chatSearchText">
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-outline-secondary rounded-pill ml-2" type="button" @click="chatSearchText = ''; isChatSearchOpened = false"><i class="fas fa-times"></i></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="conversation">
                                                     <div class="conversation-container" id="lwConversionChatContainer">
                                                             <div class="w-100" id="lwEndOfChats">&shy;</div>
                                                             <template x-for="whatsappMessageLogItem in whatsappMessageLogs">
                                                                 <div class="lw-chat-message-item"
-                                                                    :id="whatsappMessageLogItem._uid">
+                                                                    :id="whatsappMessageLogItem._uid"
+                                                                    x-show="!chatSearchText || (whatsappMessageLogItem.message && whatsappMessageLogItem.message.toLowerCase().includes(chatSearchText.toLowerCase()))">
                                                                     <template
                                                                         x-if="whatsappMessageLogItem.is_incoming_message && !whatsappMessageLogItem.is_system_message">
                                                                         <div class="message received">
@@ -367,7 +388,7 @@
                                                                                     x-html="whatsappMessageLogItem.template_message">
                                                                                 </div>
                                                                             </template>
-                                                                            <div x-show="whatsappMessageLogItem.message && !whatsappMessageLogItem.__data?.interaction_message_data"><span class="lw-plain-message-text" x-html="whatsappMessageLogItem.message"></span></div>
+                                                                            <div x-show="whatsappMessageLogItem.message && !whatsappMessageLogItem.__data?.interaction_message_data"><span class="lw-plain-message-text" x-html="!chatSearchText ? whatsappMessageLogItem.message : whatsappMessageLogItem.message.replace(new RegExp('(' + chatSearchText.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + ')', 'gi'), '<strong class=\'text-dark bg-warning px-1 rounded\'>$1</strong>')"></span></div>
                                                                             <template
                                                                                 x-if="(whatsappMessageLogItem.whatsapp_message_error)">
                                                                                 <div class="p-1 mt-2">
@@ -378,7 +399,7 @@
                                                                                 </div>
                                                                             </template>
                                                                             <span class="metadata">
-                                                                                <span class="time" x-text="whatsappMessageLogItem.formatted_message_time"></span>
+                                                                                <span class="time" x-text="whatsappMessageLogItem.formatted_message_time_24h"></span>
                                                                                 <a href="#" @click.prevent="setReply(whatsappMessageLogItem)" class="text-muted ml-2 lw-reply-btn" title="{{ __tr('Reply to this message') }}">
                                                                                     <i class="fa fa-reply"></i>
                                                                                 </a>
@@ -420,7 +441,7 @@
                                                                                 </div>
                                                                             </template>
                                                                             <template x-if="whatsappMessageLogItem.message && !whatsappMessageLogItem.__data?.interaction_message_data">
-                                                                                <div class="lw-template-message" x-show="whatsappMessageLogItem.message"><span class="lw-plain-message-text" x-html="whatsappMessageLogItem.message"></span>
+                                                                                <div class="lw-template-message" x-show="whatsappMessageLogItem.message"><span class="lw-plain-message-text" x-html="!chatSearchText ? whatsappMessageLogItem.message : whatsappMessageLogItem.message.replace(new RegExp('(' + chatSearchText.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + ')', 'gi'), '<strong class=\'text-dark bg-warning px-1 rounded\'>$1</strong>')"></span>
                                                                                 </div>
                                                                             </template>
                                                                             <template
@@ -434,7 +455,7 @@
                                                                             </template>
                                                                             <span class="metadata">
                                                                                 <span class="time"
-                                                                                    x-text="whatsappMessageLogItem.formatted_message_time"></span>
+                                                                                    x-text="whatsappMessageLogItem.formatted_message_time_24h"></span>
                                                                                 <span class="tick">
                                                                                     <template
                                                                                         x-if="whatsappMessageLogItem.status == 'read'">
@@ -473,7 +494,7 @@
                                                                         <div>
                                                                             <div class="text-center align-content-center lw-system-message-container p-2">
                                                                                 <div class="text-center align-content-center lw-chat-history-container">
-                                                                                    <div class="lw-chat-history-message mb-1" x-html="whatsappMessageLogItem.message"></div>
+                                                                                    <div class="lw-chat-history-message mb-1" x-html="!chatSearchText ? whatsappMessageLogItem.message : whatsappMessageLogItem.message.replace(new RegExp('(' + chatSearchText.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + ')', 'gi'), '<strong class=\'text-dark bg-warning px-1 rounded\'>$1</strong>')"></div>
                                                                                 </div>
                                                                                 <small><small class="small text-muted mt-2" x-text="whatsappMessageLogItem.formatted_updated_time"></small></small>
                                                                             </div>
@@ -858,6 +879,8 @@
             isAiChatBotEnabled: "{{ $isAiChatBotEnabled }}",
             isReplyBotEnable: "{{ $isReplyBotEnable }}",
             search: "",
+            chatSearchText: "",
+            isChatSearchOpened: false,
             search_labels: "",
             isLoadingContacts: true,
             

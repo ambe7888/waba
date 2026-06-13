@@ -78,6 +78,7 @@ class WhatsAppMessageLogModel extends BaseModel
 
     protected $appends = [
         'formatted_message_time',
+        'formatted_message_time_24h',
         'formatted_message_ago_time',
         'whatsapp_message_error',
         'formatted_updated_time',
@@ -91,6 +92,14 @@ class WhatsAppMessageLogModel extends BaseModel
         return Attribute::make(
             get: fn(mixed $value, array $attributes) => isset($attributes['messaged_at']) ? formatDateTime($attributes['messaged_at'], null, $attributes['vendors__id']) : null,
         );
+    }
+
+    /**
+     * formatted message time in 24h
+     */
+    public function getFormattedMessageTime24hAttribute()
+    {
+        return isset($this->attributes['messaged_at']) ? formatDateTime($this->attributes['messaged_at'], 'l j F Y H:i:s', $this->attributes['vendors__id']) : null;
     }
 
     /**
