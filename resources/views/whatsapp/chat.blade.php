@@ -11,6 +11,12 @@
 <div x-data="initialMessageData" @chat-message-sent.window="cancelReply()"> 
 {{-- @if ($contact) --}}
 <div class="container-fluid lw-chat-main-container" x-data="{myAssignedUnreadMessagesCount:null,myUnassignedUnreadMessagesCount:null,showUnreadContactsOnly:false,usersUnreadMessagesCounts:{}}">
+    <!-- Lightbox Overlay -->
+    <div x-show="lightboxOpen" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center;" @click="lightboxOpen = false" :style="lightboxOpen ? 'display:flex' : 'display:none'">
+        <span style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);" @click="lightboxOpen = false">&times;</span>
+        <img :src="lightboxImageSrc" style="max-width: 90%; max-height: 90%; box-shadow: 0 5px 25px rgba(0,0,0,0.5); border-radius: 8px;" @click.stop="">
+    </div>
+
     <div class="">
         <div class="card lw-whatsapp-chat-block-container">
             @if (!getVendorSettings('current_phone_number_number'))
@@ -854,6 +860,38 @@
             search: "",
             search_labels: "",
             isLoadingContacts: true,
+            
+            // Lightbox state
+            lightboxOpen: false,
+            lightboxImageSrc: '',
+
+            init() {
+                // Watch for new messages to play sound
+                this.$watch('whatsappMessageLogs', (newValue, oldValue) => {
+                    if (oldValue && newValue.length > oldValue.length) {
+                        let latestMsg = newValue[newValue.length - 1];
+                        if (latestMsg && latestMsg.is_incoming_message == 1 && !latestMsg.is_read) {
+                            try {
+                                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                var oscillator = audioCtx.createOscillator();
+                                var gainNode = audioCtx.createGain();
+                                oscillator.connect(gainNode);
+                                gainNode.connect(audioCtx.destination);
+                                oscillator.type = 'sine';
+                                oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                                oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                                gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+                                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+                                oscillator.start(audioCtx.currentTime);
+                                oscillator.stop(audioCtx.currentTime + 0.2);
+                            } catch (e) {
+                                console.warn('Web Audio API not supported or blocked');
+                            }
+                        }
+                    }
+                });
+            },
             isLoadingMoreContacts: false,
             isLoadingEarlierMessages: false,
             toasts: [],
@@ -940,6 +978,26 @@
     window.messagePaginatePage = 1;
     window.searchValue = '';
     window.showUnreadContactsOnly = 0;
+
+    // Delegate click event for Lightbox
+    $(document).on('click', '.lw-chat-message-item img', function(e) {
+        // Exclude system icons and emoji
+        if ($(this).hasClass('emojionearea-emoji') || $(this).width() < 30) return;
+        e.preventDefault();
+        var src = $(this).attr('src');
+        if (src) {
+            var chatData = document.querySelector('[x-data="initialMessageData"]');
+            if (chatData && chatData.__x) {
+                chatData.__x.$data.lightboxImageSrc = src;
+                chatData.__x.$data.lightboxOpen = true;
+            } else {
+                // Alpine v3 way
+                Alpine.$data(chatData).lightboxImageSrc = src;
+                Alpine.$data(chatData).lightboxOpen = true;
+            }
+        }
+    });
+
     window.loadEarlierMessages = function(responseData, callbackParams) {
         __DataRequest.updateModels({ isLoadingEarlierMessages: true });
         __DataRequest.get(__Utils.apiURL('{!! route('vendor.chat_message.contact.view', ['contactUid', 'way' => 'prepend', 'page', 'assigned' => ($assigned ?? '')]) !!}',{'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.messagePaginatePage}),{}, function() {
