@@ -116,6 +116,17 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
         if ($options['full_name']) {
             $dataToUpdate['full_name'] = $options['full_name'];
         }
+        
+        if (isset($options['messageWamid']) && $options['messageWamid']) {
+            $repliedToMessageModel = $this->fetchIt([
+                'wamid' => $options['messageWamid'],
+                'vendors__id' => $vendorId,
+            ]);
+            if (!__isEmpty($repliedToMessageModel)) {
+                $dataToUpdate['replied_to_whatsapp_message_logs__uid'] = $repliedToMessageModel->_uid;
+            }
+        }
+
         if (__isEmpty($messageLogModel)) {
             $dataToUpdate['contacts__id'] = $contactId;
             $dataToUpdate['contact_wa_id'] = (string) $messageRecipientId;
