@@ -545,3 +545,111 @@
     }
 }
 
+/* --- Modern Chat Bubbles Overrides --- */
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .conversation {
+    background: #f8fafc; /* Sleek light gray/blue solid background */
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .conversation ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .conversation .conversation-container {
+    padding: 12px 20px;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message {
+    line-height: 1.5;
+    font-size: 0.95rem;
+    padding: 10px 16px;
+    margin: 6px 0;
+    max-width: 75%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata {
+    padding: 0 0 0 10px;
+    bottom: -2px;
+    display: flex;
+    align-items: center;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata .time {
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata .tick {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    height: 14px;
+    width: 14px;
+    top: auto;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata .tick img, 
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata .tick svg, 
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .metadata .tick i {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    position: static;
+    transform: none !important;
+}
+
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.received {
+    background: #ffffff;
+    border-radius: 18px 18px 18px 4px;
+    border: 1px solid #f1f5f9;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent {
+    background: #0d9488;
+    color: #ffffff;
+    border-radius: 18px 18px 4px 18px;
+    border: none;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-plain-message-text {
+    color: #ffffff;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .time {
+    color: rgba(255, 255, 255, 0.75);
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick img,
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick svg,
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick i {
+    filter: brightness(0) invert(1) opacity(0.85);
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-reply-btn {
+    color: rgba(255, 255, 255, 0.7) !important;
+    transition: opacity 0.2s;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-reply-btn:hover {
+    color: #ffffff !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .lw-highlight-replied-message {
+    background: rgba(13, 148, 136, 0.15) !important;
+    border: 1px solid rgba(13, 148, 136, 0.3) !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent.lw-highlight-replied-message {
+    background: #0f766e !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-system-message-container {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: transparent;
+}
+.card.lw-whatsapp-chat-block-container .lw-system-message-container .lw-chat-history-container {
+    background: rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    width: auto;
+    margin: 0;
+}
+.card.lw-whatsapp-chat-block-container .lw-system-message-container .lw-chat-history-message {
+    color: #64748b;
+    margin: 0;
+}
