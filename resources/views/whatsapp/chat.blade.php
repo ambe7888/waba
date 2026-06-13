@@ -107,23 +107,18 @@
                                 </div>
                                 @endif
                                 
-                                <div class="lw-modern-toggle-wrapper" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 4px 0;">
-                                    <label class="lw-custom-switch" style="display: flex; align-items: center; cursor: pointer; position: relative; margin: 0;">
-                                        <input x-model="showUnreadContactsOnly" x-init="$watch('showUnreadContactsOnly', function(value) {
+                                <div class="lw-modern-toggle-wrapper">
+                                    <label for="lwShowUnreadOnlyContacts">
+                                        <input data-lw-plugin="lwSwitchery" data-color="orange" data-size="small" x-model="showUnreadContactsOnly" x-init="$watch('showUnreadContactsOnly', function(value) {
                                             window.showUnreadContactsOnly = value;
                                             _.defer(function() {
                                                 window.searchContacts();
                                             });
-                                        })" id="lwShowUnreadOnlyContacts" type="checkbox" name="unread_only_contacts" style="opacity: 0; width: 0; height: 0; position: absolute;">
-                                        
-                                        <span class="lw-slider" style="position: relative; display: inline-block; width: 36px; height: 20px; border-radius: 20px; transition: .4s; margin-right: 8px;" x-bind:style="showUnreadContactsOnly ? 'background-color: #10b981;' : 'background-color: #cbd5e1;'">
-                                            <span class="lw-slider-knob" style="position: absolute; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; border-radius: 50%; transition: .4s;" x-bind:style="showUnreadContactsOnly ? 'transform: translateX(16px);' : ''"></span>
-                                        </span>
-                                        
-                                        <span x-show="!showUnreadContactsOnly" style="font-size: 13px; color: #64748b; font-weight: 500;">{{  __tr('Show all') }}</span>
-                                        <span x-show="showUnreadContactsOnly" x-cloak style="font-size: 13px; color: #10b981; font-weight: 600;">{{  __tr('Show unread only') }}</span>
+                                        })" class="custom-checkbox" id="lwShowUnreadOnlyContacts" type="checkbox" name="unread_only_contacts"> 
+                                        <span x-show="!showUnreadContactsOnly">{{  __tr('Show all') }}</span>
+                                        <span x-show="showUnreadContactsOnly">{{  __tr('Show unread only') }}</span>
                                     </label>
-                                    <abbr style="color: #94a3b8; cursor: help; border-bottom: none; text-decoration: none;" title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}"><i class="fa fa-info-circle"></i></abbr>
+                                    <abbr title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
                                 </div>
                                 
                                 <div class="form-group lw-modern-search-wrapper">
