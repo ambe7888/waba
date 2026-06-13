@@ -866,31 +866,40 @@
             // Lightbox state
             lightboxOpen: false,
             lightboxImageSrc: '',
+            lastProcessedMsgUid: null,
 
             init() {
                 // Watch for new messages to play sound
-                this.$watch('whatsappMessageLogs', (newValue, oldValue) => {
-                    if (oldValue && newValue.length > oldValue.length) {
+                this.$watch('whatsappMessageLogs', (newValue) => {
+                    if (newValue && newValue.length > 0) {
                         let latestMsg = newValue[newValue.length - 1];
-                        if (latestMsg && latestMsg.is_incoming_message == 1 && !latestMsg.is_read) {
-                            try {
-                                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                                var oscillator = audioCtx.createOscillator();
-                                var gainNode = audioCtx.createGain();
-                                oscillator.connect(gainNode);
-                                gainNode.connect(audioCtx.destination);
-                                oscillator.type = 'sine';
-                                oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-                                oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-                                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                                gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
-                                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
-                                oscillator.start(audioCtx.currentTime);
-                                oscillator.stop(audioCtx.currentTime + 0.2);
-                            } catch (e) {
-                                console.warn('Web Audio API not supported or blocked');
+                        
+                        // Check if this is a genuinely new message (different from the last one we saw)
+                        if (this.lastProcessedMsgUid && this.lastProcessedMsgUid !== latestMsg._uid) {
+                            if (latestMsg.is_incoming_message == 1 && !latestMsg.is_read) {
+                                try {
+                                    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                    var oscillator = audioCtx.createOscillator();
+                                    var gainNode = audioCtx.createGain();
+                                    oscillator.connect(gainNode);
+                                    gainNode.connect(audioCtx.destination);
+                                    
+                                    oscillator.type = 'triangle';
+                                    oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 note
+                                    oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+                                    
+                                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // Louder volume
+                                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                                    
+                                    oscillator.start(audioCtx.currentTime);
+                                    oscillator.stop(audioCtx.currentTime + 0.4);
+                                } catch (e) {
+                                    console.warn('Web Audio API not supported or blocked', e);
+                                }
                             }
                         }
+                        // Update the tracker
+                        this.lastProcessedMsgUid = latestMsg._uid;
                     }
                 });
             },
