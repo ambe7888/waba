@@ -257,7 +257,7 @@
                                 <div class="screen-container">
                                     <div class="chat" id="lwChatWindowBox">
                                         {{-- <template x-if="contact"> --}}
-                                            <div>
+                                            <div class="d-flex flex-column h-100 w-100">
                                                 <template x-if="contact">
                                                 <div class="user-bar">
                                                     <div class="back d-md-none flex-shrink-0" @click.prevent="isContactListOpened = true">
@@ -499,7 +499,7 @@
                                                                 data-confirm="#lwUnblockContact-template" title="{{ __tr('Click here to unblock.') }}" data-callback-params="{{ json_encode(['datatableId' => '#lwContactList']) }}" data-callback="appFuncs.modelSuccessCallback"><i class="fa fa-ban"></i> {{  __tr('Click here to unblock.') }}</a></strong>
                                                         </div>
                                                     </template>
-                                                    <span x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
+                                                    <div class="w-100" x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
                                                     <x-lw.form data-event-stream-update="true" data-callback="window.chatFormReset" id="whatsAppMessengerForm"
                                                         class="conversation-compose" data-show-processing="false"
                                                         :action="route('vendor.chat_message.send.process')"
@@ -586,7 +586,7 @@
                                                     <div data-form-id="#whatsAppMessengerForm"
                                                         class="lw-error-container-message_body p-2">
                                                     </div>
-                                                    </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         {{-- </template> --}}
