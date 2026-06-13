@@ -369,8 +369,12 @@
                                                                                             x-text="whatsappMessageLogItem.whatsapp_message_error"></em></small>
                                                                                 </div>
                                                                             </template>
-                                                                            <span class="metadata"><span class="time"
-                                                                                    x-text="whatsappMessageLogItem.formatted_message_time"></span></span>
+                                                                            <span class="metadata">
+                                                                                <span class="time" x-text="whatsappMessageLogItem.formatted_message_time"></span>
+                                                                                <a href="#" @click.prevent="setReply(whatsappMessageLogItem)" class="text-muted ml-2 lw-reply-btn" title="{{ __tr('Reply to this message') }}">
+                                                                                    <i class="fa fa-reply"></i>
+                                                                                </a>
+                                                                            </span>
                                                                         </div>
                                                                     </template>
                                                                     <template
@@ -443,6 +447,9 @@
                                                                                             class="far fa-clock text-muted"></i>
                                                                                     </template>
                                                                                 </span>
+                                                                                <a href="#" @click.prevent="setReply(whatsappMessageLogItem)" class="text-muted ml-2 lw-reply-btn" title="{{ __tr('Reply to this message') }}">
+                                                                                    <i class="fa fa-reply"></i>
+                                                                                </a>
                                                                             </span>
                                                                         </div>
                                                                     </template>
@@ -479,14 +486,28 @@
                                                     <span x-show="contact && (_.isEmpty(contact?.wa_blocked_at))">
                                                     <x-lw.form data-event-stream-update="true" data-callback="appFuncs.resetForm" id="whatsAppMessengerForm"
                                                         class="conversation-compose" data-show-processing="false"
-                                                        :action="route('vendor.chat_message.send.process')">
+                                                        :action="route('vendor.chat_message.send.process')"
+                                                        @submit="cancelReply()">
                                                         <input type="hidden" name="contact_uid" x-bind:value="contact?._uid">
-                                                        <div class="lw-compose-pill d-flex align-items-center flex-grow-1 bg-white" style="border-radius: 30px; padding: 4px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; height: 50px;">
-                                                            {{-- emoji following blank tag as removing it may break input layout
-                                                            --}}
-                                                            <div class="emoji d-flex align-items-center justify-content-center" style="width: 30px;">
-                                                            </div>
-                                                            <textarea name="message_body" required class="input-msg lw-input-emoji flex-grow-1 border-0 bg-transparent m-0" style="resize: none; outline: none; font-size: 15px; padding-top: 8px; line-height: 1.5; min-width: 50px; height: 40px; box-shadow: none;" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
+                                                        <input type="hidden" name="reply_to_message_wamid" x-bind:value="replyingToMessage ? replyingToMessage.wamid : ''">
+                                                        
+                                                        <div class="d-flex flex-column w-100">
+                                                            <template x-if="replyingToMessage">
+                                                                <div class="lw-reply-preview px-3 py-2 bg-light w-100 d-flex justify-content-between align-items-center" style="border-left: 4px solid var(--waba-primary); border-top-left-radius: 10px; border-top-right-radius: 10px; margin-bottom: 2px;">
+                                                                    <div class="text-truncate" style="max-width: 90%;">
+                                                                        <small class="text-muted d-block" style="font-weight: 600;" x-text="replyingToMessage.is_incoming_message ? contact.full_name : '{{ __tr('You') }}'"></small>
+                                                                        <span class="text-truncate d-block" x-html="replyingToMessage.message" style="font-size: 0.9em; opacity: 0.8;"></span>
+                                                                    </div>
+                                                                    <a href="#" @click.prevent="cancelReply()" class="text-muted" style="font-size: 1.2em;"><i class="fa fa-times"></i></a>
+                                                                </div>
+                                                            </template>
+                                                            
+                                                            <div class="lw-compose-pill d-flex align-items-center flex-grow-1 bg-white" style="border-radius: 30px; padding: 4px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; min-height: 50px;">
+                                                                {{-- emoji following blank tag as removing it may break input layout
+                                                                --}}
+                                                                <div class="emoji d-flex align-items-center justify-content-center" style="width: 30px;">
+                                                                </div>
+                                                                <textarea name="message_body" required class="input-msg lw-input-emoji flex-grow-1 border-0 bg-transparent m-0" style="resize: none; outline: none; font-size: 15px; padding-top: 8px; line-height: 1.5; min-width: 50px; height: 40px; box-shadow: none;" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
                                                             <template x-if="contact">
                                                                 <div class="photo action-mic d-flex align-items-center justify-content-center ml-2" style="width: 30px;">
                                                                     <a title="{!! __tr('Record & Send') !!}" class="lw-ajax-link-action lw-whatsapp-bar-icon-btn d-flex align-items-center justify-content-center" href="#" data-toggle="modal" data-target="#lwSendRecording"><i class="fa fa-microphone text-muted" style="font-size: 18px;"></i> </a>
@@ -534,6 +555,7 @@
                                                                     'mediaType' => 'audio']) }}"><i class="fa fa-headphones text-muted"></i> {{ __tr('Send Audio') }}
                                                                 </a>
                                                             </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <button class="send ml-3" type="submit" style="background: transparent; border: none; outline: none; flex-shrink: 0;">
@@ -830,6 +852,16 @@
             contacts: {},
             assignedLabelIds: [],
             allLabels: @json($allLabels),
+            replyingToMessage: null,
+            setReply: function(messageLog) {
+                this.replyingToMessage = messageLog;
+                setTimeout(function() {
+                    $('.lw-input-emoji')[0].emojioneArea.setFocus();
+                }, 100);
+            },
+            cancelReply: function() {
+                this.replyingToMessage = null;
+            },
             get filteredContacts() {
                 return _.reverse(_.sortBy(this.contacts, [function(o) { return o.last_message?.messaged_at; }]));
             },
