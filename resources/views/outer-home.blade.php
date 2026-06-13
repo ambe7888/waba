@@ -77,7 +77,7 @@ $appName = getAppSettings('name');
                                <!-- /pages -->
                         @if(!isLoggedIn())
                         @if(getAppSettings('enable_vendor_registration') or getAppSettings('message_for_disabled_registration'))
-                        <li class="nav-item"><a class="nav-link me-lg-3 text-danger fw-bold" href="{{ route('auth.register') }}">{{
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="{{ route('auth.register') }}">{{
                                 __tr('Register') }}</a></li>
                          @endif
                         <li class="nav-item"><a class="nav-link me-lg-3" href="{{ route('auth.login') }}">{{

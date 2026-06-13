@@ -131,7 +131,7 @@
                     @if (!isLoggedIn())
                         @if (getAppSettings('enable_vendor_registration') or getAppSettings('message_for_disabled_registration'))
                             <!-- Register -->
-                            <li class="nav-item"><a class="nav-link text-danger fw-bold"
+                            <li class="nav-item"><a class="nav-link"
                                     href="{{ route('auth.register') }}">{{ __tr('Register') }}</a></li>
                         @endif
                         <!-- /Register -->
