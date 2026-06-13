@@ -260,10 +260,10 @@
                                             <div>
                                                 <template x-if="contact">
                                                 <div class="user-bar">
-                                                    <div class="back d-md-none" @click.prevent="isContactListOpened = true">
+                                                    <div class="back d-md-none flex-shrink-0" @click.prevent="isContactListOpened = true">
                                                         <i class="fa fa-users"></i>
                                                     </div>
-                                                    <div class="avatar d-none d-md-flex text-white text-center align-items-center justify-content-center" style="background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
+                                                    <div class="avatar d-none d-md-flex text-white text-center align-items-center justify-content-center flex-shrink-0" style="background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3);">
                                                         <span x-text="contact.name_initials" style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;"></span>
                                                     </div>
                                                     <div class="name d-flex flex-column justify-content-center" style="width: auto; max-width: 65%;">
@@ -503,7 +503,7 @@
                                                     <x-lw.form data-event-stream-update="true" data-callback="window.chatFormReset" id="whatsAppMessengerForm"
                                                         class="conversation-compose" data-show-processing="false"
                                                         :action="route('vendor.chat_message.send.process')"
-                                                        @submit="cancelReply()">
+                                                        @submit="cancelReply()" style="background-color: #ffffff; border-radius: 16px; padding: 10px 15px; box-shadow: 0 -2px 15px rgba(0,0,0,0.05); margin: 0 5px 5px 5px;">
                                                         <input type="hidden" name="contact_uid" x-bind:value="contact?._uid">
                                                         <input type="hidden" name="reply_to_message_wamid" x-bind:value="replyingToMessage ? replyingToMessage.wamid : ''">
                                                         
@@ -518,7 +518,7 @@
                                                                 </div>
                                                             </template>
                                                             
-                                                            <div class="lw-compose-pill d-flex align-items-center flex-grow-1 bg-white" style="border-radius: 30px; padding: 4px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; min-height: 50px;">
+                                                            <div class="lw-compose-pill d-flex align-items-center flex-grow-1" style="min-height: 52px;">
                                                                 {{-- emoji following blank tag as removing it may break input layout
                                                                 --}}
                                                                 <div class="emoji d-flex align-items-center justify-content-center" style="width: 30px;">
@@ -574,12 +574,10 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <button class="send ml-3" type="submit" style="background: transparent; border: none; outline: none; flex-shrink: 0;">
-                                                            <div class="circle pl-2">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="1.5em"
-                                                                    height="1.5em" viewBox="0 0 24 24">
-                                                                    <path fill="currentColor"
-                                                                        d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
+                                                        <button class="send ml-3" type="submit" style="background: transparent; border: none; outline: none; flex-shrink: 0; padding: 0;">
+                                                            <div class="square-btn d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #25D366, #1da851); width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3); transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 14px rgba(37, 211, 102, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 10px rgba(37, 211, 102, 0.3)'">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="margin-right: 2px;">
+                                                                    <path fill="#ffffff" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
                                                                 </svg>
                                                             </div>
                                                         </button>
