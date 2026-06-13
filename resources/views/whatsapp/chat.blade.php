@@ -250,7 +250,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="page chat-container col-sm-12 col-md-6 col-lg-6 col-xl-6 mb-4" :class="[(!contact) ? 'lw-disabled-block-content' : '', isContactListOpened ? 'd-none d-md-block' : '']" x-cloak>
+                    <div class="page chat-container col-sm-12 col-md-6 col-lg-6 col-xl-6" :class="[(!contact) ? 'lw-disabled-block-content' : '', isContactListOpened ? 'd-none d-md-block' : '']" x-cloak>
                         {{-- <h2>{{ __tr('Chat') }}</h2> --}}
                         <div class="marvel-device nexus5">
                             <div class="screen">
