@@ -2,8 +2,14 @@
     height: calc(100vh - 120px);
     // height: 80vh;
     overflow: hidden;
+    > div {
+        height: 100%;
+    }
 }
 .card.lw-whatsapp-chat-block-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     @media (max-width: 767px) {
         position: absolute;
         top: 0;
@@ -67,6 +73,15 @@
         }
     }
     .lw-whatsapp-chat-window {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        > .row {
+            flex: 1;
+            min-height: 0;
+        }
         .marvel-device {
             height: 100%;
             width: 100%;
