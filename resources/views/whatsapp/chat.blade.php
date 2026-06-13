@@ -152,7 +152,7 @@
                                 <div class="lw-modern-contact-list shadow-none" >
                                     
                                     <!-- Skeleton Loader -->
-                                    <template x-if="isLoadingContacts">
+                                    <template x-if="isLoadingContacts && filteredContacts.length === 0">
                                         <div class="p-3">
                                             <div class="d-flex align-items-center mb-4 skeleton-pulse">
                                                 <div class="rounded-circle" style="width: 48px; height: 48px; background-color: #e2e8f0;"></div>
@@ -179,7 +179,7 @@
                                     </template>
 
                                     <!-- Empty State -->
-                                    <template x-if="!isLoadingContacts && filteredContacts.length === 0">
+                                    <template x-if="filteredContacts.length === 0 && !isLoadingContacts">
                                         <div class="text-center p-5 text-muted">
                                             <i class="fa fa-users fa-3x mb-3" style="color: #cbd5e1;"></i>
                                             <h5 style="color: #64748b; font-weight: 600;">{{ __tr('No Contacts Found') }}</h5>
@@ -187,7 +187,7 @@
                                         </div>
                                     </template>
 
-                                    <template x-show="!isLoadingContacts" x-for="contactItem in filteredContacts" :key="contactItem._uid">
+                                    <template x-for="contactItem in filteredContacts" :key="contactItem._uid">
                                         @if (($assigned ?? null))
                                         {{-- <template x-if="contactItem.assigned_users__id == '{{ getUserId() }}'"> --}}
                                         @endif
@@ -1283,7 +1283,7 @@
             chatSearchText: "",
             isChatSearchOpened: false,
             search_labels: "",
-            isLoadingContacts: true,
+            isLoadingContacts: false,
             newLabelTitle: "",
             newLabelTextColor: "#ffffff",
             newLabelBgColor: "#00a884",
@@ -1463,22 +1463,11 @@
         window.contactsPaginatePage = 1;
         __DataRequest.updateModels({
             contactsPaginatePage: 1,
-            isLoadingContacts: true
         });
-        // Safety timeout: if request takes more than 8s, force reset loading state
-        var safetyTimer = setTimeout(function() {
-            __DataRequest.updateModels({ isLoadingContacts: false });
-        }, 8000);
-        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => '', 'search' => '','selected_labels' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&','selected_labels':'selected_labels='+ selectedLabels + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {
-            clearTimeout(safetyTimer);
-            __DataRequest.updateModels({ isLoadingContacts: false });
-        });
+        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'way' => '', 'search' => '','selected_labels' => '', 'unread_only' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&', 'search':'search='+ window.searchValue + '&','selected_labels':'selected_labels='+ selectedLabels + '&', 'unread_only':'unread_only='+ window.showUnreadContactsOnly + '&'}),{}, function() {});
     };
     window.updateContactList = function(responseData, callbackParams) {
-        __DataRequest.updateModels({ isLoadingContacts: true });
-        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&'}),{}, function() {
-            __DataRequest.updateModels({ isLoadingContacts: false });
-        });
+        __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&'}),{}, function() {});
     };
     window.updateContactInfo = function(responseData) {
         $('#lwCurrentlyAssignedUserUid')[0].selectize.setValue(responseData.data.currentlyAssignedUserUid);
