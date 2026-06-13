@@ -174,7 +174,7 @@
                                         @endif
                                         <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly" 
                                            :data-messaged-at="contactItem.last_message?.messaged_at" 
-                                           @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = { _uid: contactItem._uid }; appFuncs.resetForm(); window.history.pushState({}, '', '{{ route('vendor.chat_message.contact.view') }}/' + contactItem._uid);"
+                                           @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = contactItem; appFuncs.resetForm(); window.history.pushState({}, '', '{{ route('vendor.chat_message.contact.view') }}/' + contactItem._uid);"
                                            :class="[(contact && (contact._uid == contactItem._uid)) ? 'lw-contact-card-selected' : '']"
                                            :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
                                            class="lw-contact-card lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
