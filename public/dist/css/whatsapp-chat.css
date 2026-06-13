@@ -600,35 +600,36 @@
     border: 1px solid #f1f5f9;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent {
-    background: #0d9488;
-    color: #ffffff;
+    background: #f0fdf4;
+    color: #1e293b;
     border-radius: 18px 18px 4px 18px;
-    border: none;
+    border: 1px solid #86efac;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-plain-message-text {
-    color: #ffffff;
+    color: #1e293b;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .time {
-    color: rgba(255, 255, 255, 0.75);
+    color: #64748b;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick img,
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick svg,
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .metadata .tick i {
-    filter: brightness(0) invert(1) opacity(0.85);
+    filter: none;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-reply-btn {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: #94a3b8 !important;
     transition: opacity 0.2s;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-reply-btn:hover {
-    color: #ffffff !important;
+    color: #1e293b !important;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .lw-highlight-replied-message {
     background: rgba(13, 148, 136, 0.15) !important;
     border: 1px solid rgba(13, 148, 136, 0.3) !important;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent.lw-highlight-replied-message {
-    background: #0f766e !important;
+    background: #dcfce7 !important;
+    border: 1px solid #4ade80 !important;
 }
 .card.lw-whatsapp-chat-block-container .lw-system-message-container {
     margin: 20px 0;
@@ -652,4 +653,43 @@
 .card.lw-whatsapp-chat-block-container .lw-system-message-container .lw-chat-history-message {
     color: #64748b;
     margin: 0;
+}
+
+/* --- Fix Template Messages inside Bubbles --- */
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-template-message .card,
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-template-message .card-header,
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-template-message .card-footer {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-template-message .card-body {
+    padding: 8px 0 0 0 !important;
+    color: inherit !important;
+    text-align: left !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-template-message .card-img-top,
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message .lw-whatsapp-header-image {
+    border-radius: 12px !important;
+    margin-bottom: 8px;
+    max-height: 300px;
+    object-fit: cover !important;
+    width: 100%;
+    background-color: transparent !important;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-template-message .lw-plain-message-text {
+    color: #1e293b !important;
+    white-space: pre-line;
+    word-break: break-word;
+    text-align: left !important;
+    display: block;
+}
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.received .lw-template-message .lw-plain-message-text {
+    color: #1e293b !important;
+    text-align: left !important;
+}
+/* Ensure the template bubble has no weird white gaps */
+.card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-template-message {
+    background-color: transparent !important;
 }
