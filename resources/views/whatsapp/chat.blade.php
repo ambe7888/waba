@@ -317,10 +317,12 @@
                                                     </div>
                                                     
                                                     <template x-if="contact">
-                                                    <div class="actions more lw-user-new-actions" x-data="{isAiChatBotEnabled:!contact.disable_ai_bot}" x-cloak>
-                                                        {{-- Whatsapp call button --}}
-                                                        @stack('whatsappCallButton')
-                                                        {{-- Whatsapp call button --}}
+                                                    <div class="actions more lw-user-new-actions" x-data="{isAiChatBotEnabled:!contact.disable_ai_bot}" x-cloak>                                                         {{-- Whatsapp call button --}}
+                                                         @stack('whatsappCallButton')
+                                                         @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
+                                                             @include('WhatsJetCallingAddon::call-button')
+                                                         @endif
+                                                         {{-- Whatsapp call button --}}
                                                         <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="isChatSearchOpened = !isChatSearchOpened; if(isChatSearchOpened) { $nextTick(() => document.getElementById('chatSearchInput').focus()) }" title="Rechercher">
                                                             <i class="fas fa-search text-white"></i>
                                                         </a>
@@ -674,7 +676,7 @@
                             border-radius: 16px;
                             font-size: 38px;
                             font-weight: 700;
-                            background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+                            background: #1B6F20;
                             color: #ffffff;
                             display: flex;
                             align-items: center;
@@ -699,13 +701,13 @@
 
                         /* Section Headings with border-left accent */
                         .lw-crm-section-header {
-                            border-left: 3px solid #0d9488;
+                            border-left: 3px solid #1B6F20;
                             padding-left: 10px;
                             font-size: 0.8rem;
                             font-weight: 700;
                             text-transform: uppercase;
                             letter-spacing: 0.05em;
-                            color: #0f766e;
+                            color: #1B6F20;
                             margin-bottom: 16px;
                             display: flex;
                             justify-content: space-between;
@@ -796,7 +798,7 @@
                         }
 
                         .lw-ios-switch input:checked + .lw-ios-slider {
-                            background-color: #0d9488;
+                            background-color: #1B6F20;
                         }
 
                         .lw-ios-switch input:checked + .lw-ios-slider:before {
@@ -823,7 +825,7 @@
 
                         .lw-crm-edit-btn:hover {
                             background-color: #f1f5f9;
-                            color: #0d9488;
+                            color: #1B6F20;
                             transform: scale(1.05);
                             border-color: #cbd5e1;
                         }
@@ -847,7 +849,7 @@
 
                         .lw-crm-btn-round:hover {
                             background-color: #e2e8f0;
-                            color: #0d9488;
+                            color: #1B6F20;
                             transform: scale(1.05);
                             border-color: #cbd5e1;
                         }
@@ -868,9 +870,9 @@
                         }
 
                         .lw-crm-card .selectize-input.focus {
-                            border-color: #0d9488 !important;
+                            border-color: #1B6F20 !important;
                             background: #ffffff !important;
-                            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+                            box-shadow: 0 0 0 3px rgba(27, 111, 32, 0.15) !important;
                         }
 
                         /* Custom switch wa alignment wrapper */
@@ -897,7 +899,7 @@
                         }
 
                         .lw-crm-action-link {
-                            color: #0d9488;
+                            color: #1B6F20;
                             font-weight: 600;
                             transition: color 0.15s ease;
                             cursor: pointer;
@@ -905,7 +907,7 @@
                         }
 
                         .lw-crm-action-link:hover {
-                            color: #0f766e;
+                            color: #114b15;
                         }
                     </style>
                     <div class="col-sm-12 col-md-3 col-lg-3 col-xl-3 lw-contact-crm-block p-0 m-0" :class="(!contact) ? 'lw-disabled-block-content' : ''" x-show="isContactCrmBlockOpened" style="overflow-y: auto; height: 100%;">
@@ -1387,11 +1389,20 @@
     });
 })();
 </script>
+@if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
+    @include('WhatsJetCallingAddon::call-panel')
+@endif
 @push('head')
     {!! __yesset('dist/emojionearea/emojionearea.min.css', true) !!}
+    @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
+        <link rel="stylesheet" href="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.css']) }}">
+    @endif
 @endpush
 @push('appScripts')
 {!! __yesset('dist/emojionearea/emojionearea.min.js', true) !!}
+@if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
+    <script src="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.js']) }}"></script>
+@endif
 
 <!-- Contact block template -->
 <script type="text/template" id="lwBlockContact-template">

@@ -3894,6 +3894,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         $messageBody = $this->jsonToListRecursive($nfmReply);
                     }
                 }
+                if (!$messageBody && Arr::get($messageObject, '0.interactive.type') == 'call_permission_reply') {
+                    $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.decision');
+                    $messageBody = __tr('Réponse à la demande d\'appel: __decision__', ['__decision__' => ucfirst($decision)]);
+                }
             } elseif (in_array($messageType, [
                 'button',
             ])) {
@@ -3983,6 +3987,28 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     return false;
                 }
             }
+
+            // Check for call permission reply in interactive message
+            if ($messageType === 'interactive' && Arr::get($messageObject, '0.interactive.type') === 'call_permission_reply') {
+                $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.decision');
+                $contactData = $contact->__data ?? [];
+                if ($decision === 'accepted') {
+                    $contactData['call_permission_status'] = 'granted';
+                    $contactData['call_permission_granted_at'] = now()->toDateTimeString();
+                } else {
+                    $contactData['call_permission_status'] = 'declined';
+                    $contactData['call_permission_granted_at'] = null;
+                }
+                $contact = $this->contactRepository->updateIt($contact, [
+                    '__data' => $contactData
+                ], $vendorId);
+
+                // Broadcast updated contact to frontend
+                updateModelsViaVendorBroadcast($vendorUid, [
+                    'contact' => $contact
+                ]);
+            }
+
             $contactUid = $contact->_uid;
             $hasLogEntryOfMessage = false;
             if ($messageWamid) {
