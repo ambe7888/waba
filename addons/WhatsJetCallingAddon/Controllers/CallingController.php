@@ -159,6 +159,7 @@ class CallingController extends BaseController
         // Call Meta graph calling endpoint
         $response = Http::withToken($accessToken)
             ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls", [
+                'messaging_product' => 'whatsapp',
                 'to' => $contact->wa_id,
                 'direction' => 'outbound',
                 'sdp' => $sdp
@@ -202,6 +203,7 @@ class CallingController extends BaseController
         // Send accept SDP to Meta API
         $response = Http::withToken($accessToken)
             ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/accept", [
+                'messaging_product' => 'whatsapp',
                 'sdp' => $sdp
             ]);
 
@@ -237,7 +239,9 @@ class CallingController extends BaseController
         $phoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
 
         $response = Http::withToken($accessToken)
-            ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/terminate");
+            ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/terminate", [
+                'messaging_product' => 'whatsapp'
+            ]);
 
         if ($response->failed()) {
             \Log::error('Meta Call terminate failed', [
