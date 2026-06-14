@@ -40,7 +40,51 @@
                                 activeChatData.contact = updatedContact;
                             }
                         }
+
+                        // Handle call signaling events (SDP answer from webhook)
+                        if (data.callEvent) {
+                            this.handleCallEvent(data.callEvent);
+                        }
                     });
+            }
+        }
+
+        /**
+         * Handle incoming call signaling events from webhook via Echo broadcast
+         */
+        async handleCallEvent(callEvent) {
+            console.log('Call event received via Echo:', callEvent);
+
+            const { call_id, action, sdp, sdp_type } = callEvent;
+
+            // Only process events for the current active call
+            if (!this.callId || call_id !== this.callId) {
+                console.log('Ignoring call event - not for current call. Expected:', this.callId, 'Got:', call_id);
+                return;
+            }
+
+            // Handle SDP answer received from Meta via webhook
+            if (sdp && sdp_type === 'answer' && this.peerConnection) {
+                try {
+                    console.log('Setting remote SDP answer from webhook...');
+                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
+                        type: 'answer',
+                        sdp: sdp
+                    }));
+                    console.log('Remote SDP answer set successfully.');
+                    document.getElementById('lw-call-status-text').innerText = "Connecté";
+                } catch (err) {
+                    console.error('Failed to set remote SDP answer:', err);
+                    this.endCall();
+                    showErrorMessage("Erreur lors de la négociation WebRTC : " + err.message);
+                }
+            }
+
+            // Handle call termination from remote side
+            if (action === 'terminate') {
+                console.log('Call terminated by remote side.');
+                this.endCallLocally();
+                showSuccessMessage("L'appel a été terminé.");
             }
         }
 
@@ -168,18 +212,12 @@
                 const resData = await response.json();
                 if (resData.reaction === 1) {
                     this.callId = resData.data.call_id;
-                    const answerSdp = resData.data.sdp;
-                    console.log("Call initiated. Call ID:", this.callId, "SDP Answer:", answerSdp);
+                    console.log("Call initiated. Call ID:", this.callId);
+                    console.log("Waiting for SDP answer from Meta via webhook/Echo...");
 
-                    if (!answerSdp) {
-                        throw new Error("L'offre SDP de réponse (answer) renvoyée par Meta est vide.");
-                    }
-
-                    // Set remote answer from Meta
-                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
-                        type: 'answer',
-                        sdp: answerSdp
-                    }));
+                    // The SDP answer will arrive asynchronously via the calls webhook,
+                    // broadcasted through Echo. handleCallEvent() will process it.
+                    document.getElementById('lw-call-status-text').innerText = "Sonnerie...";
                 } else {
                     this.endCallLocally();
                     showErrorMessage(resData.message || "Meta a rejeté la requête d'appel.");
