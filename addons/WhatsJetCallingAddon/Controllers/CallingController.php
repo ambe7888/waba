@@ -163,7 +163,8 @@ class CallingController extends BaseController
                 'to' => $contact->wa_id,
                 'direction' => 'outbound',
                 'session' => [
-                    'sdp' => $sdp
+                    'sdp' => $sdp,
+                    'sdp_type' => 'offer'
                 ]
             ]);
 
@@ -207,7 +208,8 @@ class CallingController extends BaseController
             ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/accept", [
                 'messaging_product' => 'whatsapp',
                 'session' => [
-                    'sdp' => $sdp
+                    'sdp' => $sdp,
+                    'sdp_type' => 'answer'
                 ]
             ]);
 
