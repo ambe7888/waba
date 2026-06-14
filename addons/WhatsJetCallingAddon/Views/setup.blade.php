@@ -25,7 +25,7 @@
                             <x-lw.input-field type="text" 
                                 id="lwCallingTemplateName" 
                                 name="calling_template_name" 
-                                value="{{ getAppSettings('whatsjet_calling_template_name', 'call_permission_request') }}" 
+                                value="{{ \App\Yantrana\Components\Configuration\Models\ConfigurationModel::where('name', 'whatsjet_calling_template_name')->first()?->value ?? 'call_permission_request' }}" 
                                 :label="__tr('Nom du modèle de permission (Meta Template Name)')" 
                                 placeholder="ex: call_permission_request" />
                             <small class="text-muted">
@@ -37,7 +37,7 @@
                             <x-lw.input-field type="text" 
                                 id="lwCallingTemplateLang" 
                                 name="calling_template_lang" 
-                                value="{{ getAppSettings('whatsjet_calling_template_lang', 'fr') }}" 
+                                value="{{ \App\Yantrana\Components\Configuration\Models\ConfigurationModel::where('name', 'whatsjet_calling_template_lang')->first()?->value ?? 'fr' }}" 
                                 :label="__tr('Code de langue du modèle (Language Code)')" 
                                 placeholder="ex: fr" />
                         </div>
