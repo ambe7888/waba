@@ -19,12 +19,12 @@
     }">
         <!-- Green phone button for granted call permission -->
         <a href="#" x-show="callPermission === 'granted'" class="lw-whatsapp-bar-icon-btn mr-2 btn-call-active" @click.prevent="window.WhatsJetCalling.startCall(contact._uid)" title="{{ __tr('Lancer un appel voix') }}">
-            <i class="fas fa-phone text-success" style="color: #1B6F20 !important;"></i>
+            <i class="fas fa-phone text-white"></i>
         </a>
         
         <!-- Gray phone button for none/expired/declined/requested permission -->
         <a href="#" x-show="callPermission !== 'granted'" class="lw-whatsapp-bar-icon-btn mr-2 btn-call-inactive" @click.prevent="window.WhatsJetCalling.requestCallPermission(contact._uid)" :title="callPermission === 'requested' ? '{{ addslashes(__tr('Demande en cours... Cliquez pour renvoyer')) }}' : '{{ addslashes(__tr('Demander l\'autorisation d\'appel (Modèle Meta)')) }}'">
-            <i class="fas fa-phone text-muted" x-bind:class="callPermission === 'requested' ? 'text-warning' : ''"></i>
+            <i class="fas fa-phone" :style="callPermission === 'requested' ? 'color: #ffc107 !important;' : 'color: rgba(255, 255, 255, 0.4) !important;'"></i>
         </a>
     </div>
 </template>

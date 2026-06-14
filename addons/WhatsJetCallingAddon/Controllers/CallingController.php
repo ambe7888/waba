@@ -100,7 +100,15 @@ class CallingController extends BaseController
             ]);
 
         if ($response->failed()) {
-            $errorMsg = $response->json('error.message', __tr('Erreur inconnue lors de l\'envoi.'));
+            \Log::error('Meta Call Permission Request failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            $errorData = $response->json();
+            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur Meta (Code __status__): __body__', [
+                '__status__' => $response->status(),
+                '__body__' => substr($response->body(), 0, 150)
+            ]);
             return $this->processResponse(2, [], ['message' => $errorMsg], true);
         }
 
@@ -157,7 +165,15 @@ class CallingController extends BaseController
             ]);
 
         if ($response->failed()) {
-            $errorMsg = $response->json('error.message', __tr('Erreur d\'appel Meta.'));
+            \Log::error('Meta Call initiation failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            $errorData = $response->json();
+            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur d\'appel Meta (Code __status__): __body__', [
+                '__status__' => $response->status(),
+                '__body__' => substr($response->body(), 0, 150)
+            ]);
             return $this->processResponse(2, [], ['message' => $errorMsg], true);
         }
 
@@ -190,7 +206,16 @@ class CallingController extends BaseController
             ]);
 
         if ($response->failed()) {
-            return $this->processResponse(2, [], ['message' => $response->json('error.message')], true);
+            \Log::error('Meta Call accept failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            $errorData = $response->json();
+            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur Meta (Code __status__): __body__', [
+                '__status__' => $response->status(),
+                '__body__' => substr($response->body(), 0, 150)
+            ]);
+            return $this->processResponse(2, [], ['message' => $errorMsg], true);
         }
 
         return $this->processResponse(1, [], [], true);
@@ -215,7 +240,16 @@ class CallingController extends BaseController
             ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/terminate");
 
         if ($response->failed()) {
-            return $this->processResponse(2, [], ['message' => $response->json('error.message')], true);
+            \Log::error('Meta Call terminate failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            $errorData = $response->json();
+            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur Meta (Code __status__): __body__', [
+                '__status__' => $response->status(),
+                '__body__' => substr($response->body(), 0, 150)
+            ]);
+            return $this->processResponse(2, [], ['message' => $errorMsg], true);
         }
 
         return $this->processResponse(1, [], [], true);
