@@ -21,32 +21,10 @@
                 ]
             };
 
-            this.initEchoListener();
-        }
-
-        /**
-         * Initialize Echo listener to handle call state transitions dynamically
-         */
-        initEchoListener() {
-            if (window.Echo && window.appConfig && window.appConfig.vendorUid) {
-                window.Echo.private(`vendor-channel.${window.appConfig.vendorUid}`)
-                    .listen('.VendorChannelBroadcast', (data) => {
-                        // If call permission is updated for current contact, reload or trigger UI updates
-                        if (data.eventModelUpdate && data.eventModelUpdate.contact) {
-                            const updatedContact = data.eventModelUpdate.contact;
-                            const activeChatData = this.getActiveContactAlpineData();
-                            if (activeChatData && activeChatData.contact && activeChatData.contact._uid === updatedContact._uid) {
-                                // Update Alpine.js contact details reactive state
-                                activeChatData.contact = updatedContact;
-                            }
-                        }
-
-                        // Handle call signaling events (SDP answer from webhook)
-                        if (data.callEvent) {
-                            this.handleCallEvent(data.callEvent);
-                        }
-                    });
-            }
+            // NOTE: Echo listener is NOT created here to avoid duplicate channel subscription.
+            // app.blade.php already subscribes to vendor-channel.{vendorUid}.
+            // call events are routed here via window.WhatsJetCalling.handleCallEvent()
+            // from the @push('vendorChannelBroadcastStack') in the chat view.
         }
 
         /**
