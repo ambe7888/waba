@@ -77,8 +77,11 @@ class CallingController extends BaseController
         $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
         $phoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
         
-        $templateName = getAppSettings('whatsjet_calling_template_name', 'call_permission_request');
-        $templateLang = getAppSettings('whatsjet_calling_template_lang', 'fr');
+        $templateSetting = \App\Yantrana\Components\Configuration\Models\ConfigurationModel::where('name', 'whatsjet_calling_template_name')->first();
+        $templateName = $templateSetting ? $templateSetting->value : 'call_permission_request';
+
+        $langSetting = \App\Yantrana\Components\Configuration\Models\ConfigurationModel::where('name', 'whatsjet_calling_template_lang')->first();
+        $templateLang = $langSetting ? $langSetting->value : 'fr';
 
         if (!$accessToken || !$phoneNumberId) {
             return $this->processResponse(2, [], ['message' => __tr('Paramètres WhatsApp Cloud API non configurés.')], true);

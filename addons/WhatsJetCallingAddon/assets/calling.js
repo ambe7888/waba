@@ -178,7 +178,15 @@
             } catch (err) {
                 console.error("Failed to start WebRTC Call", err);
                 this.endCallLocally();
-                showErrorMessage("Impossible de démarrer l'appel (vérifiez les autorisations de votre micro).");
+                let errMsg = "Impossible de démarrer l'appel.";
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errMsg += " L'accès au microphone a été refusé par le navigateur.";
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    errMsg += " Aucun microphone n'a été détecté.";
+                } else {
+                    errMsg += " Erreur WebRTC / Réseau : " + err.message;
+                }
+                showErrorMessage(errMsg);
             }
         }
 
