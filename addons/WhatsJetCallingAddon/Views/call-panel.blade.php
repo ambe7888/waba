@@ -41,3 +41,10 @@
     <!-- Remote audio element for WebRTC playback -->
     <audio id="lw-call-remote-audio" autoplay></audio>
 </div>
+
+@push('vendorChannelBroadcastStack')
+// Route callEvent from the main Echo listener (app.blade.php) to WhatsJetCalling
+if (data.callEvent && window.WhatsJetCalling) {
+    window.WhatsJetCalling.handleCallEvent(data.callEvent);
+}
+@endpush
