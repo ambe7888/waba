@@ -2552,7 +2552,15 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'whatsappCallingData' => data_get($messageData, 'webhook_responses')
             ])->render();
         } elseif (!__isEmpty(data_get($messageData, 'webhook_responses.incoming.0.changes.0.value.messages.0.interactive.type')) and data_get($messageData, 'webhook_responses.incoming.0.changes.0.value.messages.0.interactive.type') == 'call_permission_reply') {
-            return configItem('call_request_actions', data_get($messageData, 'webhook_responses.incoming.0.changes.0.value.messages.0.interactive.call_permission_reply.response'));
+            $decision = data_get($messageData, 'webhook_responses.incoming.0.changes.0.value.messages.0.interactive.call_permission_reply.decision');
+            if (empty($decision)) {
+                $decision = data_get($messageData, 'webhook_responses.incoming.0.changes.0.value.messages.0.interactive.call_permission_reply.response');
+            }
+            $key = 'reject';
+            if ($decision === 'accepted' || $decision === 'accept') {
+                $key = 'accept';
+            }
+            return configItem('call_request_actions', $key);
         }
 
 
@@ -3991,8 +3999,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             // Check for call permission reply in interactive message
             if ($messageType === 'interactive' && Arr::get($messageObject, '0.interactive.type') === 'call_permission_reply') {
                 $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.decision');
+                if (empty($decision)) {
+                    $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.response');
+                }
                 $contactData = $contact->__data ?? [];
-                if ($decision === 'accepted') {
+                if ($decision === 'accepted' || $decision === 'accept') {
                     $contactData['call_permission_status'] = 'granted';
                     $contactData['call_permission_granted_at'] = now()->toDateTimeString();
                 } else {
