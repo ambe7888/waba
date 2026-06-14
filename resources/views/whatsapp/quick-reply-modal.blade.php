@@ -31,6 +31,32 @@
                         }
                     } 
                 }">
+                <div x-effect="onBotChange()"></div>
+
+                <!-- Quick Preview Cards -->
+                <% if (!_.isEmpty(__tData.bot_replies)) { %>
+                    <div class="mb-4">
+                        <label style="font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 8px;">{{ __tr('Réponses suggérées') }}</label>
+                        <div class="d-flex flex-wrap" style="gap: 10px;">
+                            <% _.forEach(_.sampleSize(__tData.bot_replies, 6), function (botReply) { %>
+                                <div @click="
+                                        bot_id = '<%- botReply._id %>'; 
+                                        if($('#lwSelectBot')[0] && $('#lwSelectBot')[0].selectize) {
+                                            $('#lwSelectBot')[0].selectize.setValue('<%- botReply._id %>');
+                                        }
+                                     " 
+                                     class="p-2 border rounded" 
+                                     :class="bot_id == '<%- botReply._id %>' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-light text-dark'"
+                                     style="cursor: pointer; flex: 1 1 calc(33.333% - 10px); min-width: 140px; transition: all 0.2s ease;">
+                                    <div style="font-weight: 600; font-size: 0.85rem;" class="text-truncate" title="<%- botReply.name %>">
+                                        <%- botReply.name %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                <% } %>
+
                 <x-lw.input-field type="selectize" x-model="bot_id" data-lw-plugin="lwSelectize" id="lwSelectBot"
                     data-form-group-class="" data-selected=" " :label="__tr('Select Bot')" name="bot_id" required="true">
                     <x-slot name="selectOptions">
@@ -40,9 +66,8 @@
                         <% }) %>
                     </x-slot>
                 </x-lw.input-field>
-                <div x-effect="onBotChange()"></div>
             
-                <fieldset x-show="bot_id" class="lw-dynamic-template-container">
+                <fieldset x-show="bot_id" class="lw-dynamic-template-container mt-3">
                     <legend>{{  __tr('Message Preview') }}</legend>
                     <div id="lwBotPreviewContent"></div>
                 </fieldset>

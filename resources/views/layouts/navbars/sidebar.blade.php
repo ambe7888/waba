@@ -330,9 +330,14 @@ $currentAppTheme=getUserAppTheme();
                 <li class="nav-item">
                     <a class="nav-link {{ markAsActiveLink('vendor.chat_message.contact.view') }}"
                         href="{{ route('vendor.chat_message.contact.view') }}">
-                        <span x-cloak x-show="unreadMessagesCount" class="badge badge-success rounded-pill ml--2"
-                            x-text="unreadMessagesCount"></span><i class="fa fa-comments mr-2"></i> <span
-                            class="ml--2">{{ __tr('WhatsApp Chat') }}</span>
+                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
+                            <i class="fa fa-comments m-0" style="font-size: 1rem; line-height: 1.5rem;"></i> 
+                            <span x-cloak x-show="unreadMessagesCount" 
+                                  class="badge badge-success rounded-pill shadow-sm" 
+                                  style="position: absolute; top: -5px; left: -5px; font-size: 0.55rem; padding: 0.25em 0.4em; z-index: 10;"
+                                  x-text="unreadMessagesCount"></span>
+                        </div>
+                        <span class="ml--2">{{ __tr('WhatsApp Chat') }}</span>
                     </a>
                 </li>
                 @endif
