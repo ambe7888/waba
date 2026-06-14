@@ -162,7 +162,9 @@ class CallingController extends BaseController
                 'messaging_product' => 'whatsapp',
                 'to' => $contact->wa_id,
                 'direction' => 'outbound',
-                'sdp' => $sdp
+                'session' => [
+                    'sdp' => $sdp
+                ]
             ]);
 
         if ($response->failed()) {
@@ -180,7 +182,7 @@ class CallingController extends BaseController
 
         return $this->processResponse(1, [
             'call_id' => $response->json('call_id'),
-            'sdp' => $response->json('sdp')
+            'sdp' => $response->json('session.sdp') ?: $response->json('sdp')
         ], [], true);
     }
 
@@ -204,7 +206,9 @@ class CallingController extends BaseController
         $response = Http::withToken($accessToken)
             ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/accept", [
                 'messaging_product' => 'whatsapp',
-                'sdp' => $sdp
+                'session' => [
+                    'sdp' => $sdp
+                ]
             ]);
 
         if ($response->failed()) {
