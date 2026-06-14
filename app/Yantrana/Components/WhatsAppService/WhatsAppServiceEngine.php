@@ -4010,9 +4010,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     $contactData['call_permission_status'] = 'declined';
                     $contactData['call_permission_granted_at'] = null;
                 }
-                $contact = $this->contactRepository->updateIt($contact, [
-                    '__data' => $contactData
-                ], $vendorId);
+                $contact->__data = $contactData;
+                $contact->save();
 
                 // Broadcast updated contact to frontend
                 updateModelsViaVendorBroadcast($vendorUid, [
