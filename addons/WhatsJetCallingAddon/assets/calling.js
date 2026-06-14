@@ -128,6 +128,37 @@
         }
 
         /**
+         * Wait for ICE gathering to complete (max 5 seconds timeout).
+         * This is critical for Meta's ice-lite mode: we must send a complete
+         * SDP Offer with all candidates, not an empty one.
+         */
+        waitForIceGathering() {
+            return new Promise((resolve) => {
+                // Already complete (happens in trickle ICE scenarios)
+                if (this.peerConnection.iceGatheringState === 'complete') {
+                    resolve();
+                    return;
+                }
+
+                const timeout = setTimeout(() => {
+                    console.warn('ICE gathering timed out after 5s, sending SDP anyway.');
+                    this.peerConnection.removeEventListener('icegatheringstatechange', onGatheringStateChange);
+                    resolve();
+                }, 5000);
+
+                const onGatheringStateChange = () => {
+                    if (this.peerConnection.iceGatheringState === 'complete') {
+                        clearTimeout(timeout);
+                        this.peerConnection.removeEventListener('icegatheringstatechange', onGatheringStateChange);
+                        resolve();
+                    }
+                };
+
+                this.peerConnection.addEventListener('icegatheringstatechange', onGatheringStateChange);
+            });
+        }
+
+        /**
          * Start Outbound Call via WebRTC
          */
         async startCall(contactUid) {
@@ -188,9 +219,20 @@
                 const offer = await this.peerConnection.createOffer();
                 await this.peerConnection.setLocalDescription(offer);
 
-                // 4. Send Offer to Backend (Meta Graph API)
+                // 4. Wait for ICE gathering to complete BEFORE sending to Meta.
+                // Meta uses ice-lite (a=setup:passive): it only has ONE fixed candidate.
+                // The browser must include ALL its own candidates in the SDP Offer
+                // so Meta knows how to route UDP audio back to the browser.
+                // Sending the SDP before gathering is complete = NO audio.
+                document.getElementById('lw-call-status-text').innerText = "Préparation réseau...";
+                await this.waitForIceGathering();
+
+                const finalSdp = this.peerConnection.localDescription.sdp;
+                console.log('ICE gathering complete. SDP Offer with candidates:\n', finalSdp);
+
+                // 5. Send complete SDP Offer (with ICE candidates) to Meta
                 document.getElementById('lw-call-status-text').innerText = "Appel en cours...";
-                
+
                 const csrfToken = this.getCsrfToken();
                 const response = await fetch(`/vendor-console/calling/initiate/${contactUid}`, {
                     method: 'POST',
@@ -199,7 +241,7 @@
                         'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({
-                        sdp: this.peerConnection.localDescription.sdp
+                        sdp: finalSdp
                     })
                 });
 
