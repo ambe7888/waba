@@ -184,9 +184,14 @@ class CallingController extends BaseController
             return $this->processResponse(2, [], ['message' => $errorMsg], true);
         }
 
+        \Log::info('Meta Call initiation success response', [
+            'status' => $response->status(),
+            'body' => $response->json(),
+        ]);
+
         return $this->processResponse(1, [
             'call_id' => $response->json('call_id'),
-            'sdp' => $response->json('session.sdp') ?: $response->json('sdp')
+            'sdp' => $response->json('session.sdp_response.sdp') ?: ($response->json('session.sdp') ?: $response->json('sdp'))
         ], [], true);
     }
 
