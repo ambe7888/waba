@@ -192,8 +192,9 @@ class CallingController extends BaseController
         // Meta does NOT return SDP answer synchronously.
         // The SDP answer will arrive asynchronously via the "calls" webhook.
         // We only return call_id here; the frontend will wait for SDP via Echo broadcast.
+        // Meta response format: {"calls":[{"id":"wacid.xxx"}],"success":true}
         return $this->processResponse(1, [
-            'call_id' => $response->json('call_id'),
+            'call_id' => $response->json('calls.0.id'),
         ], [], true);
     }
 

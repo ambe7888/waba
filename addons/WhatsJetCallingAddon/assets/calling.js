@@ -53,38 +53,54 @@
          * Handle incoming call signaling events from webhook via Echo broadcast
          */
         async handleCallEvent(callEvent) {
-            console.log('Call event received via Echo:', callEvent);
+            console.log('Call event received via Echo:', JSON.stringify(callEvent));
 
-            const { call_id, action, sdp, sdp_type } = callEvent;
+            const { call_id, event: callEventType, sdp, sdp_type, status } = callEvent;
 
-            // Only process events for the current active call
-            if (!this.callId || call_id !== this.callId) {
-                console.log('Ignoring call event - not for current call. Expected:', this.callId, 'Got:', call_id);
+            // If we have no active call, ignore
+            if (!this.callId) {
+                console.log('No active call, ignoring call event.');
                 return;
             }
 
-            // Handle SDP answer received from Meta via webhook
-            if (sdp && sdp_type === 'answer' && this.peerConnection) {
+            // Handle status updates (RINGING, ACCEPTED)
+            if (callEventType === 'status' && status) {
+                console.log('Call status update:', status);
+                if (status === 'RINGING') {
+                    document.getElementById('lw-call-status-text').innerText = "Sonnerie...";
+                } else if (status === 'ACCEPTED') {
+                    document.getElementById('lw-call-status-text').innerText = "Accepté, connexion...";
+                }
+                return;
+            }
+
+            // Handle "connect" event with SDP answer from Meta
+            if (callEventType === 'connect' && sdp && this.peerConnection) {
                 try {
-                    console.log('Setting remote SDP answer from webhook...');
+                    const sdpTypeToUse = sdp_type === 'offer' ? 'offer' : 'answer';
+                    console.log(`Setting remote SDP (${sdpTypeToUse}) from webhook...`);
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
-                        type: 'answer',
+                        type: sdpTypeToUse,
                         sdp: sdp
                     }));
-                    console.log('Remote SDP answer set successfully.');
+                    console.log('Remote SDP set successfully. Call connected!');
                     document.getElementById('lw-call-status-text').innerText = "Connecté";
+                    document.getElementById('lw-call-status-text').style.color = "#1B6F20";
+                    this.startTimer();
                 } catch (err) {
-                    console.error('Failed to set remote SDP answer:', err);
+                    console.error('Failed to set remote SDP:', err);
                     this.endCall();
                     showErrorMessage("Erreur lors de la négociation WebRTC : " + err.message);
                 }
+                return;
             }
 
             // Handle call termination from remote side
-            if (action === 'terminate') {
+            if (callEventType === 'terminate') {
                 console.log('Call terminated by remote side.');
                 this.endCallLocally();
                 showSuccessMessage("L'appel a été terminé.");
+                return;
             }
         }
 
