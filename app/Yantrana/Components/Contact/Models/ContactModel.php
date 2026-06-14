@@ -72,7 +72,10 @@ class ContactModel extends BaseModel
             'contact_notes' => 'string',
             'contact_metadata' => 'array:extend',
             'is_blocked' => 'boolean',
-            'past_ai_summary' => 'string'
+            'past_ai_summary' => 'string',
+            'call_permission_status' => 'string',
+            'call_permission_granted_at' => 'string',
+            'call_permission_requested_at' => 'string'
         ]
     ];
 

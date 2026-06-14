@@ -3904,6 +3904,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 }
                 if (!$messageBody && Arr::get($messageObject, '0.interactive.type') == 'call_permission_reply') {
                     $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.decision');
+                    if (empty($decision)) {
+                        $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.response');
+                    }
                     $messageBody = __tr('Réponse à la demande d\'appel: __decision__', ['__decision__' => ucfirst($decision)]);
                 }
             } elseif (in_array($messageType, [
