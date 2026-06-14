@@ -1395,13 +1395,13 @@
 @push('head')
     {!! __yesset('dist/emojionearea/emojionearea.min.css', true) !!}
     @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
-        <link rel="stylesheet" href="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.css']) }}">
+        <link rel="stylesheet" href="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.css']) }}?v={{ time() }}">
     @endif
 @endpush
 @push('appScripts')
 {!! __yesset('dist/emojionearea/emojionearea.min.js', true) !!}
 @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
-    <script src="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.js']) }}"></script>
+    <script src="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.js']) }}?v={{ time() }}"></script>
 @endif
 
 <!-- Contact block template -->
