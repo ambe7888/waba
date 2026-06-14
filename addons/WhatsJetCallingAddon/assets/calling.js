@@ -117,6 +117,11 @@
             document.getElementById('lw-call-btn-mute-icon').className = 'fas fa-microphone';
 
             try {
+                // Check if browser secure context or media devices API is available
+                if (!window.isSecureContext || !navigator.mediaDevices) {
+                    throw new Error("L'accès au microphone nécessite une connexion sécurisée (HTTPS). Veuillez vérifier que votre site utilise HTTPS.");
+                }
+
                 // 1. Get audio device permissions and stream
                 this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
@@ -164,6 +169,11 @@
                 if (resData.reaction === 1) {
                     this.callId = resData.data.call_id;
                     const answerSdp = resData.data.sdp;
+                    console.log("Call initiated. Call ID:", this.callId, "SDP Answer:", answerSdp);
+
+                    if (!answerSdp) {
+                        throw new Error("L'offre SDP de réponse (answer) renvoyée par Meta est vide.");
+                    }
 
                     // Set remote answer from Meta
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
@@ -177,7 +187,7 @@
 
             } catch (err) {
                 console.error("Failed to start WebRTC Call", err);
-                this.endCallLocally();
+                this.endCall();
                 let errMsg = "Impossible de démarrer l'appel.";
                 if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
                     errMsg += " L'accès au microphone a été refusé par le navigateur.";
