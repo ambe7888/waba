@@ -1507,7 +1507,23 @@
     };
     window.onUpdateLabels = function(responseData) {
         if(responseData.reaction == 1) {
-            // Updated automatically via client_models
+            // Updated automatically via client_models for the top-level contact
+            // But we also need to update it in the contacts array
+            if (responseData.client_models && responseData.client_models.contact) {
+                var updatedContact = responseData.client_models.contact;
+                var chatData = document.querySelector('[x-data="initialMessageData"]');
+                if (chatData) {
+                    var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
+                    if (alpineData && alpineData.contacts) {
+                        var index = alpineData.contacts.findIndex(function(c) {
+                            return c._uid === updatedContact._uid;
+                        });
+                        if (index !== -1) {
+                            alpineData.contacts.splice(index, 1, updatedContact);
+                        }
+                    }
+                }
+            }
         }
     };
     window.updateContactList();
