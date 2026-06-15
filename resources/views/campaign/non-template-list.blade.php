@@ -68,6 +68,112 @@
                     <strong>{{  __tr('Please note:') }}</strong> {{ __tr('Preset Messages are reusable messages that can be used in campaigns as templates. You can create and manage your preset messages here. Preset messages can only be delivered to 24 hours service window opened contacts.') }}
                 </div>
             </div>
+            {{-- Visual Preset Message Types Cards --}}
+            @if(hasVendorAccess('manage_templates', 'add_edit_templates'))
+            <div class="mt-4 mb-2">
+                <h3 class="font-weight-bold text-dark" style="font-size: 1.15rem; letter-spacing: 0.3px;">
+                    <i class="fas fa-eye text-success mr-2"></i>{{ __tr('Aperçu des modèles et types de messages') }}
+                </h3>
+                <p class="text-muted text-xs mb-0">
+                    {{ __tr('Choisissez le type de message prédéfini qui correspond le mieux à votre besoin pour commencer sa création.') }}
+                </p>
+            </div>
+            <div class="row mb-4">
+                <!-- Simple Preset Card -->
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius: 12px !important; transition: transform 0.2s; background: white;">
+                        <div class="card-body d-flex flex-column p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="icon-shape bg-soft-primary text-primary rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(43, 172, 50, 0.1) !important; color: #2bac32 !important;">
+                                    <i class="fas fa-comment-alt" style="font-size: 1.2rem;"></i>
+                                </div>
+                                <h3 class="font-weight-bold text-dark mb-0" style="font-size: 1rem;">{{ __tr('Message Simple') }}</h3>
+                            </div>
+                            <p class="text-muted text-xs mb-3 flex-grow-1" style="line-height: 1.5;">
+                                {{ __tr('Message texte standard idéal pour relancer une conversation, demander un retour, ou saluer vos clients.') }}
+                            </p>
+                            <!-- Visual Mockup -->
+                            <div class="p-3 mb-3" style="background: #efeae2; border-radius: 8px; font-size: 0.75rem; border: 1px solid #e2ddd5;">
+                                <div class="bg-white p-2 text-dark shadow-sm position-relative" style="border-radius: 6px; max-width: 90%;">
+                                    {{ __tr('Bonjour ! Comment avez-vous trouvé nos échanges aujourd\'hui ? Avez-vous bien reçu votre colis ? 😊') }}
+                                    <small class="text-muted d-block text-right mt-1" style="font-size: 0.6rem;">12:00</small>
+                                </div>
+                            </div>
+                            <a type="button" @click="isAdvanceBot = 'simple'" data-response-template="#lwAddBotReplyBody" class="btn btn-success btn-block text-white font-weight-bold shadow-sm lw-ajax-link-action mt-auto" href="{{ route('vendor.ping_pong.read')}}" data-toggle="modal" data-target="#lwAddNewAdvanceBotReply" style="border-radius: 8px !important;">
+                                <i class="fas fa-plus mr-1"></i> {{ __tr('Créer') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Media Preset Card -->
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius: 12px !important; transition: transform 0.2s; background: white;">
+                        <div class="card-body d-flex flex-column p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="icon-shape bg-soft-success text-success rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(43, 172, 50, 0.1) !important; color: #2bac32 !important;">
+                                    <i class="fas fa-file-image" style="font-size: 1.2rem;"></i>
+                                </div>
+                                <h3 class="font-weight-bold text-dark mb-0" style="font-size: 1rem;">{{ __tr('Message Média') }}</h3>
+                            </div>
+                            <p class="text-muted text-xs mb-3 flex-grow-1" style="line-height: 1.5;">
+                                {{ __tr('Envoyez des images (reçus, preuves d\'envoi) ou des catalogues PDF pour faire un suivi de commande.') }}
+                            </p>
+                            <!-- Visual Mockup -->
+                            <div class="p-3 mb-3" style="background: #efeae2; border-radius: 8px; font-size: 0.75rem; border: 1px solid #e2ddd5;">
+                                <div class="bg-white p-2 text-dark shadow-sm position-relative" style="border-radius: 6px; max-width: 90%;">
+                                    <div class="text-center bg-light p-2 mb-1 text-muted" style="border-radius: 4px; border: 1px dashed #ccc;">
+                                        <i class="fas fa-image" style="font-size: 1rem;"></i><br><small>{{ __tr('[📷 Photo du colis / Reçu]') }}</small>
+                                    </div>
+                                    {{ __tr('Bonjour, voici la photo de votre colis en cours d\'expédition. Est-il conforme ?') }}
+                                    <small class="text-muted d-block text-right mt-1" style="font-size: 0.6rem;">12:00</small>
+                                </div>
+                            </div>
+                            <a type="button" @click="isAdvanceBot = 'media'" data-response-template="#lwAddBotReplyBody" class="btn btn-success btn-block text-white font-weight-bold shadow-sm lw-ajax-link-action mt-auto" href="{{ route('vendor.ping_pong.read')}}" data-toggle="modal" data-target="#lwAddNewAdvanceBotReply" style="border-radius: 8px !important;">
+                                <i class="fas fa-plus mr-1"></i> {{ __tr('Créer') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Preset Card -->
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius: 12px !important; transition: transform 0.2s; background: white;">
+                        <div class="card-body d-flex flex-column p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="icon-shape bg-soft-info text-info rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(43, 172, 50, 0.1) !important; color: #2bac32 !important;">
+                                    <i class="fas fa-tasks" style="font-size: 1.2rem;"></i>
+                                </div>
+                                <h3 class="font-weight-bold text-dark mb-0" style="font-size: 1rem;">{{ __tr('Interactif Avancé') }}</h3>
+                            </div>
+                            <p class="text-muted text-xs mb-3 flex-grow-1" style="line-height: 1.5;">
+                                {{ __tr('Ajoutez des boutons rapides (ex: Oui/Non, Programmer) et des médias pour obtenir des confirmations instantanées de vos clients.') }}
+                            </p>
+                            <!-- Visual Mockup -->
+                            <div class="p-3 mb-3" style="background: #efeae2; border-radius: 8px; font-size: 0.75rem; border: 1px solid #e2ddd5;">
+                                <div class="bg-white p-2 text-dark shadow-sm position-relative mb-1" style="border-radius: 6px; max-width: 90%;">
+                                    <div class="text-center bg-light p-2 mb-1 text-muted" style="border-radius: 4px; border: 1px dashed #ccc;">
+                                        <i class="fas fa-image" style="font-size: 0.9rem;"></i><br><small style="font-size: 0.6rem;">{{ __tr('[Média optionnel]') }}</small>
+                                    </div>
+                                    {{ __tr('Votre commande a été expédiée. Souhaitez-vous être livré aujourd\'hui ?') }}
+                                    <small class="text-muted d-block text-right mt-1" style="font-size: 0.6rem;">12:00</small>
+                                </div>
+                                <div class="text-center bg-white py-1 px-2 text-primary shadow-sm mb-1" style="border-radius: 6px; font-size: 0.7rem; border: 1px solid #eee; font-weight: bold; cursor: default;">
+                                    🚚 {{ __tr('Oui, livrer aujourd\'hui') }}
+                                </div>
+                                <div class="text-center bg-white py-1 px-2 text-primary shadow-sm" style="border-radius: 6px; font-size: 0.7rem; border: 1px solid #eee; font-weight: bold; cursor: default;">
+                                    🗓️ {{ __tr('Choisir un autre jour') }}
+                                </div>
+                            </div>
+                            <a type="button" @click="isAdvanceBot = 'interactive'" data-response-template="#lwAddBotReplyBody" class="btn btn-success btn-block text-white font-weight-bold shadow-sm lw-ajax-link-action mt-auto" href="{{ route('vendor.ping_pong.read')}}" data-toggle="modal" data-target="#lwAddNewAdvanceBotReply" style="border-radius: 8px !important;">
+                                <i class="fas fa-plus mr-1"></i> {{ __tr('Créer') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <x-lw.datatable data-page-length="100" id="lwBotReplyList" :url="route('vendor.campaign.read.non_template_message_preset_list', ['status' => $status])">
                 <th data-orderable="true" data-name="name">{{ __tr('Name') }}</th>
                 <th data-name="bot_type">{{ __tr('Message Type') }}</th>
