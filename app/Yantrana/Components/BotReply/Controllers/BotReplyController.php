@@ -544,4 +544,28 @@ class BotReplyController extends BaseController
         // get back to controller with engine response
         return $this->processResponse($processReaction, [], [], true);
     }
+
+    /**
+     * BotReply toggle status process
+     *
+     * @param  object BaseRequest $request
+     * @param  mix $botReplyIdOrUid
+     *
+     * @return  json object
+     *---------------------------------------------------------------- */
+    public function processToggleBotReplyStatus(BaseRequest $request, $botReplyIdOrUid)
+    {
+        validateVendorAccess('manage_bot_replies', 'add_edit_bot_replies');
+
+        if (isDemo() and isDemoVendorAccount()) {
+            return $this->processResponse(22, [
+                22 => __tr('Functionality is disabled in this demo.')
+            ], [], true);
+        }
+
+        // ask engine to process the request
+        $processReaction = $this->botReplyEngine->processToggleBotReplyStatus($botReplyIdOrUid);
+        // get back to controller with engine response
+        return $this->processResponse($processReaction, [], [], true);
+    }
 }

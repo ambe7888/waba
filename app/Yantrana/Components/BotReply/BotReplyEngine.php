@@ -189,6 +189,12 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
                 }
                 return Arr::get($orderStatuses, $key['status']);
             },
+            'status_code' => function ($rowData) {
+                if ($rowData['status'] === null) {
+                    return 1; // active
+                }
+                return (int) $rowData['status'];
+            },
             'bot_type' => function ($rowData) {
                 $botReplyType = __tr('Simple');
                 if ($rowData['__data']['media_message'] ?? null) {
@@ -906,5 +912,43 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
                 'vendors__id' => $vendorId
             ])
         ];
+    }
+
+    /**
+     * Process toggle bot reply status
+     *
+     * @param  mix $botReplyIdOrUid
+     *
+     * @return  EngineResponse
+     *---------------------------------------------------------------- */
+    public function processToggleBotReplyStatus($botReplyIdOrUid)
+    {
+        $vendorId = getVendorId();
+        // fetch the record
+        $botReply = $this->botReplyRepository->fetchIt([
+            '_uid' => $botReplyIdOrUid,
+            'vendors__id' => $vendorId,
+        ]);
+        // Check if the record exists
+        if (__isEmpty($botReply)) {
+            return $this->engineResponse(18, null, __tr('Bot Reply not found.'));
+        }
+        // demo bot edit protection
+        if (isDemo() and in_array($botReply->_id, explode(',', config('__misc.demo_protected_bots')))) {
+            return $this->engineResponse(2, null, __tr('Your are not allowed to edit this bot in DEMO.'));
+        }
+
+        // Toggle status: 1 = Active, 2 = Inactive
+        $newStatus = ($botReply->status == 1) ? 2 : 1;
+
+        if ($this->botReplyRepository->updateIt($botReply, [
+            'status' => $newStatus
+        ])) {
+            return $this->engineSuccessResponse([
+                'status' => $newStatus
+            ], __tr('Status updated successfully.'));
+        }
+
+        return $this->engineResponse(2, null, __tr('Failed to update status.'));
     }
 }
