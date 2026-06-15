@@ -2483,7 +2483,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      * @param  string|null  $assigned
      * @return EngineResponse
      */
-    protected function singleAsContactsData($contactUid, $assigned = null)
+    public function singleAsContactsData($contactUid, $assigned = null)
     {
         $vendorId = getVendorId();
         if (is_string($contactUid)) {

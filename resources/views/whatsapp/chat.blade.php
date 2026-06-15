@@ -1033,13 +1033,15 @@
                                         <input type="hidden" name="contactUid" x-bind:value="contact._uid" />
                                         <div class="mb-2 pl-0" x-show="labelsElement"></div>
                                         <div>
-                                            <select class="border-0 lw-borderers-selectize" id="lwAssignLabelsField" data-form-group-class="m-0" x-bind:data-selected="assignedLabelIds" name="contact_labels[]" multiple @change="$el.closest('form').querySelector('button[type=submit]').click()">
+                                            <select class="border-0 lw-borderers-selectize" id="lwAssignLabelsField" data-form-group-class="m-0" x-bind:data-selected="assignedLabelIds" name="contact_labels[]" multiple>
                                                 <option value="">{{ __tr('Select Labels') }}</option>
                                                 @foreach($allLabels as $label)
                                                     <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                                 @endforeach
                                             </select>
-                                            <button type="submit" class="d-none"></button>
+                                            <div class="d-flex justify-content-end mt-2">
+                                                <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 24px; padding: 4px 16px; font-weight: 500;">{{ __tr('Valider') }}</button>
+                                            </div>
                                         </div>
                                     </x-lw.form>
                                 </div>
@@ -1502,7 +1504,7 @@
     };
     window.onUpdateLabels = function(responseData) {
         if(responseData.reaction == 1) {
-            window.updateContactList();
+            // Updated automatically via client_models
         }
     };
     window.updateContactList();

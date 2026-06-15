@@ -2025,9 +2025,28 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
             }
         }
         if ($isUpdated) {
+            $updatedContact = $this->contactRepository->getVendorContact($contact->_uid, $vendorId);
+            $updatedContact->wa_id = maskString($updatedContact->wa_id, 'phone');
+            $updatedContact->email = maskString($updatedContact->email, 'email');
+
+            $singleContactData = $this->whatsAppServiceEngine->singleAsContactsData($contact->_uid)->data('contacts');
+            if (!__isEmpty($singleContactData)) {
+                foreach ($singleContactData as $contactDetails) {
+                    $contactDetails->wa_id = maskString($contactDetails->wa_id, 'phone');
+                    $contactDetails->email = maskString($contactDetails->email, 'email');
+                    if (!__isEmpty($contactDetails->lastMessage)) {
+                        $contactDetails->lastMessage->contact_wa_id = maskString($contactDetails->lastMessage->contact_wa_id, 'phone');
+                    }
+                }
+            }
+
             // Update chat history on chat container
             updateClientModels([
                 'whatsappMessageLogs' => $this->whatsAppServiceEngine->contactChatData($contact->_id)->data('whatsappMessageLogs'),
+                'assignedLabelIds' => $updatedContact->labels->pluck('_id')->toArray() ?? [],
+                'contacts' => $singleContactData,
+                'contact' => $updatedContact,
+                '@contacts' => 'extend',
             ], 'prepend');
 
             return $this->engineSuccessResponse([], __tr('Labels updated'));
