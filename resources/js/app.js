@@ -32,10 +32,14 @@ window.appFuncs = {
     },
     resetForm: function (data, $element) {
         var $targetForm = $('#whatsAppMessengerForm');
-        $targetForm[0].reset();
-        var validator = $targetForm.validate();
-        validator.resetForm();
-        if (jQuery().emojioneArea) {
+        if ($targetForm.length) {
+            $targetForm[0].reset();
+            var validator = $targetForm.validate();
+            if (validator) {
+                validator.resetForm();
+            }
+        }
+        if (jQuery().emojioneArea && window.lwMessengerEmojiArea && window.lwMessengerEmojiArea.length && window.lwMessengerEmojiArea[0].emojioneArea) {
             window.lwMessengerEmojiArea[0].emojioneArea.setText('');
         }
     },
