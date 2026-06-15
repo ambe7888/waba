@@ -1489,5 +1489,3 @@ Route::post('yoomoney/yoomoney-webhook-order-payment', [
     ManualSubscriptionController::class,
     'handleOrderPaymentYoomoneyWebhook'
 ])->name('yoomoney-webhook');
-
-
