@@ -689,7 +689,38 @@
     color: #1e293b !important;
     text-align: left !important;
 }
-/* Ensure the template bubble has no weird white gaps */
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .message.sent .lw-template-message {
     background-color: transparent !important;
+}
+
+/* --- Mobile Menu Visibility Fix --- */
+@media (max-width: 767.98px) {
+    /* Push the contact list block below the top mobile navbar */
+    .card.lw-whatsapp-chat-block-container .lw-contact-list-block {
+        top: 60px !important;
+        height: calc(100% - 60px) !important;
+        z-index: 1020 !important;
+    }
+    
+    /* Push the active chat window below the top mobile navbar */
+    .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .chat-container.page {
+        top: 60px !important;
+        height: calc(100vh - 60px) !important;
+        height: calc(100dvh - 60px) !important;
+        z-index: 1010 !important;
+    }
+    
+    /* Push the contact CRM details block below the top mobile navbar */
+    .card.lw-whatsapp-chat-block-container .lw-contact-crm-block {
+        top: 60px !important;
+        height: calc(100% - 60px) !important;
+        z-index: 1020 !important;
+    }
+    
+    /* Adjust main card position on mobile to start below navbar */
+    .card.lw-whatsapp-chat-block-container {
+        top: 60px !important;
+        height: calc(100vh - 60px) !important;
+        height: calc(100dvh - 60px) !important;
+    }
 }
