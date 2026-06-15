@@ -227,6 +227,17 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalMessagesProcessed' => $this->whatsAppMessageLogRepository->countIt(
                 array_merge($vendorWhereClause, ['is_system_message' => null])
             ),
+            'activeContacts24h' => \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->whereHas('lastIncomingMessage', function($query) {
+                    $query->where('messaged_at', '>', now()->subHours(24));
+                })
+                ->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
+                ->get(),
+            'activeContacts24hCount' => \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->whereHas('lastIncomingMessage', function($query) {
+                    $query->where('messaged_at', '>', now()->subHours(24));
+                })
+                ->count(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId)
         ]);
     }

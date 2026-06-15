@@ -134,6 +134,93 @@ $vendorViewBySuperAdmin = false;
             <!-- Card stats -->
             <div class="row">
                 <div class="col-12">
+                    {{-- Banner Conversations Actives --}}
+                    @if (hasVendorAccess('manage_campaigns'))
+                    <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px !important; background: linear-gradient(135deg, #e8f5e9, #c8e6c9) !important; border-left: 6px solid #2dce89 !important;">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="icon icon-shape bg-success text-white rounded-circle shadow pulsing-green-icon">
+                                        <i class="fas fa-gift text-white" style="font-size: 1.4rem;"></i>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <h3 class="text-success font-weight-bold mb-1" style="font-size: 1.15rem; letter-spacing: 0.5px;">
+                                        {{ __tr('Campagne Gratuite Disponible !') }} 
+                                        <span class="badge badge-success ml-2 font-weight-normal px-2 py-1" style="font-size: 0.75rem; border-radius: 6px;">
+                                            {{ __tr('__count__ client(s) actif(s) en ce moment', ['__count__' => $activeContacts24hCount ?? 0]) }}
+                                        </span>
+                                    </h3>
+                                    <p class="text-dark-50 mb-0 text-sm" style="line-height: 1.5; color: #1e4620 !important;">
+                                        <strong>{{ __tr('Astuce pour économiser :') }}</strong> {{ __tr('WhatsApp vous autorise à envoyer des messages gratuitement (sans payer les frais de modèle Meta) aux clients qui vous ont écrit au cours des dernières 24 heures.') }}
+                                        <br>
+                                        {{ __tr('Profitez-en pour leur envoyer une diffusion instantanée (campagne de messages prédéfinis) et relancer vos ventes à 0 FCFA !') }}
+                                    </p>
+                                </div>
+                                @if(!$vendorViewBySuperAdmin)
+                                <div class="col-xl-auto col-12 mt-3 mt-xl-0 text-right">
+                                    <button type="button" class="btn btn-outline-success text-success font-weight-bold mr-2 px-4 py-2 border-success" data-toggle="modal" data-target="#lwActiveContactsModal" style="border-radius: 8px !important; background-color: transparent;">
+                                        <i class="fas fa-users mr-2"></i> {{ __tr('Voir les contacts') }}
+                                    </button>
+                                    <a href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}" class="btn btn-success text-white font-weight-bold px-4 py-2 shadow" style="border-radius: 8px !important;">
+                                        <i class="fas fa-paper-plane mr-2"></i> {{ __tr('Créer ma campagne gratuite') }}
+                                    </a>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal for Active Contacts -->
+                    <x-lw.modal id="lwActiveContactsModal" :header="__tr('Contacts Actifs (Dernières 24h)')" modalSize="modal-md">
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            @if(isset($activeContacts24h) && !$activeContacts24h->isEmpty())
+                                <div class="list-group list-group-flush">
+                                    @foreach($activeContacts24h as $activeContact)
+                                        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar bg-success text-white rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #2dce89 !important;">
+                                                    <span class="font-weight-bold" style="font-size: 0.9rem;">{{ $activeContact->name_initials }}</span>
+                                                </div>
+                                                <div>
+                                                    <h4 class="mb-0 text-sm font-weight-bold text-dark">{{ $activeContact->full_name }}</h4>
+                                                    <small class="text-muted">+{{ $activeContact->wa_id }}</small>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{{ route('vendor.chat_message.contact.view', ['contactUid' => $activeContact->_uid]) }}" class="btn btn-sm btn-success text-white" title="{{ __tr('Ouvrir la discussion') }}" style="border-radius: 6px !important;">
+                                                    <i class="fas fa-comments"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-center py-5 px-3">
+                                    <i class="fas fa-users text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mb-0">{{ __tr('Aucun contact actif au cours des dernières 24 heures.') }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    </x-lw.modal>
+                    <style>
+                    @keyframes pulse-green {
+                        0% {
+                            box-shadow: 0 0 0 0 rgba(45, 206, 137, 0.7);
+                        }
+                        70% {
+                            box-shadow: 0 0 0 10px rgba(45, 206, 137, 0);
+                        }
+                        100% {
+                            box-shadow: 0 0 0 0 rgba(45, 206, 137, 0);
+                        }
+                    }
+                    .pulsing-green-icon {
+                        animation: pulse-green 2s infinite;
+                    }
+                    </style>
+                    @endif
+                    {{-- /Banner Conversations Actives --}}
+
                     <div class="row mb-2">
                         @if (hasVendorAccess('manage_contacts'))
                         {{-- total contacts --}}
