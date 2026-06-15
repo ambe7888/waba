@@ -353,7 +353,7 @@ $currentAppTheme ='';
                 }
                 @if(isDemo())
                 // prevent for other demo numbers to process
-                    if(!arrayContains(demoNumbers, data.contactWaId)) {
+                    if(data.contactWaId && !arrayContains(demoNumbers, data.contactWaId)) {
                         return true;
                     }
                 @endif
