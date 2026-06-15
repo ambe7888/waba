@@ -193,7 +193,7 @@
                                         @endif
                                         <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly" 
                                            :data-messaged-at="contactItem.last_message?.messaged_at" 
-                                           @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = contactItem; appFuncs.resetForm(); window.history.pushState({}, '', '{{ route('vendor.chat_message.contact.view') }}/' + contactItem._uid);"
+                                           @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = contactItem; assignedLabelIds = (contactItem.labels || []).map(function(l) { return l._id; }); appFuncs.resetForm(); window.history.pushState({}, '', '{{ route('vendor.chat_message.contact.view') }}/' + contactItem._uid);"
                                            :class="[(contact && (contact._uid == contactItem._uid)) ? 'lw-contact-card-selected' : '']"
                                            :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
                                            class="lw-contact-card lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
@@ -1331,6 +1331,21 @@
                         this.lastProcessedMsgUid = latestMsg._uid;
                     }
                 });
+
+                // Watch for labels changes to keep Selectize widget updated
+                this.$watch('assignedLabelIds', (newValue) => {
+                    var selectizeEl = $('#lwAssignLabelsField');
+                    if (selectizeEl.length && selectizeEl[0].selectize) {
+                        var selectizeInstance = selectizeEl[0].selectize;
+                        var currentValue = selectizeInstance.getValue();
+                        var expectedValue = _.values(newValue);
+                        if (_.difference(currentValue, expectedValue).length > 0 || _.difference(expectedValue, currentValue).length > 0) {
+                            selectizeInstance.clear(true);
+                            selectizeInstance.setValue(['']);
+                            selectizeInstance.setValue(expectedValue);
+                        }
+                    }
+                });
             },
             isLoadingMoreContacts: false,
             isLoadingEarlierMessages: false,
@@ -1352,40 +1367,51 @@
                 return _.reverse(_.sortBy(this.contacts, [function(o) { return o.last_message?.messaged_at; }]));
             },
             labelsElement : function() {
-                // reset the selectize
-               var $labelsElement =  $('#lwAssignLabelsField').selectize({
-                    maxItems: null,
-                    items: _.values(this.assignedLabelIds),
-                    valueField: '_id',
-                    labelField: 'title',
-                    searchField: 'title',
-                    options: this.allLabels,
-                    create: false,
-                    closeAfterSelect: true,
-                    render: {
-                        item: function (item, escape) {
-                            return (
-                            '<div class="" style="color:'+item.text_color+';background-color:'+item.bg_color+';" >' +
-                            (item.title
-                                ? '<span>' + escape(item.title) + "</span>"
-                                : "") +
-                            "</div>"
-                            );
-                        },
-                        option: function (item, escape) {
-                            return (
-                            '<div class="p-1 rounded m-2" style="color:'+item.text_color+';background-color:'+item.bg_color+';">' +
-                            '<span>' +
-                            escape(item.title) +
-                            "</span>" +
-                            "</div>"
-                            );
-                        },
-                    }
-                });
-                $labelsElement[0].selectize.clear(true);
-                $labelsElement[0].selectize.setValue(['']);
-                $labelsElement[0].selectize.setValue(_.values(this.assignedLabelIds));
+                var selectizeEl = $('#lwAssignLabelsField');
+                if (!selectizeEl.length) return;
+                
+                var selectizeInstance = selectizeEl[0].selectize;
+                if (!selectizeInstance) {
+                    var $labelsElement = selectizeEl.selectize({
+                        maxItems: null,
+                        items: _.values(this.assignedLabelIds),
+                        valueField: '_id',
+                        labelField: 'title',
+                        searchField: 'title',
+                        options: this.allLabels,
+                        create: false,
+                        closeAfterSelect: true,
+                        render: {
+                            item: function (item, escape) {
+                                return (
+                                '<div class="" style="color:'+item.text_color+';background-color:'+item.bg_color+';" >' +
+                                (item.title
+                                    ? '<span>' + escape(item.title) + "</span>"
+                                    : "") +
+                                "</div>"
+                                );
+                            },
+                            option: function (item, escape) {
+                                return (
+                                '<div class="p-1 rounded m-2" style="color:'+item.text_color+';background-color:'+item.bg_color+';">' +
+                                '<span>' +
+                                escape(item.title) +
+                                "</span>" +
+                                "</div>"
+                                );
+                            },
+                        }
+                    });
+                    selectizeInstance = $labelsElement[0].selectize;
+                }
+                
+                var currentValue = selectizeInstance.getValue();
+                var expectedValue = _.values(this.assignedLabelIds);
+                if (_.difference(currentValue, expectedValue).length > 0 || _.difference(expectedValue, currentValue).length > 0) {
+                    selectizeInstance.clear(true);
+                    selectizeInstance.setValue(['']);
+                    selectizeInstance.setValue(expectedValue);
+                }
             }
         }));
     });
@@ -1508,18 +1534,23 @@
     window.onUpdateLabels = function(responseData) {
         if(responseData.reaction == 1) {
             // Updated automatically via client_models for the top-level contact
-            // But we also need to update it in the contacts array
+            // But we also need to update it in the contacts array/object
             if (responseData.client_models && responseData.client_models.contact) {
                 var updatedContact = responseData.client_models.contact;
                 var chatData = document.querySelector('[x-data="initialMessageData"]');
                 if (chatData) {
                     var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
                     if (alpineData && alpineData.contacts) {
-                        var index = alpineData.contacts.findIndex(function(c) {
-                            return c._uid === updatedContact._uid;
-                        });
-                        if (index !== -1) {
-                            alpineData.contacts.splice(index, 1, updatedContact);
+                        if (Array.isArray(alpineData.contacts)) {
+                            var index = alpineData.contacts.findIndex(function(c) {
+                                return c._uid === updatedContact._uid;
+                            });
+                            if (index !== -1) {
+                                alpineData.contacts.splice(index, 1, updatedContact);
+                            }
+                        } else {
+                            alpineData.contacts[updatedContact._uid] = updatedContact;
+                            alpineData.contacts = Object.assign({}, alpineData.contacts);
                         }
                     }
                 }
