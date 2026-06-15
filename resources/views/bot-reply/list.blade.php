@@ -49,7 +49,7 @@
                 <th data-name="bot_type">{{ __tr('Bot Type') }}</th>
                 <th data-orderable="true" data-name="trigger_type">{{ __tr('Trigger Type') }}</th>
                 <th data-orderable="true" data-name="reply_trigger">{{ __tr('Trigger Subject') }}</th>
-                <th data-orderable="true" data-name="status">{{ __tr('Status') }}</th>
+                <th data-template="#botReplyStatusColumnTemplate" data-orderable="true" data-name="status">{{ __tr('Status') }}</th>
                 <th data-orderable="true" data-name="created_at">{{ __tr('Created At') }}</th>
                 <th data-template="#botReplyActionColumnTemplate" name="null">{{ __tr('Action') }}</th>
             </x-lw.datatable>
@@ -73,6 +73,15 @@
             @endif
         </script>
         <!-- /action template -->
+
+        <!-- status template -->
+        <script type="text/template" id="botReplyStatusColumnTemplate">
+            <label class="custom-toggle">
+                <input class="lw-toggle-status-switch" data-uid="<%= __tData._uid %>" type="checkbox" <%= __tData.status_code === 1 ? 'checked' : '' %>>
+                <span class="custom-toggle-slider rounded-circle"></span>
+            </label>
+        </script>
+        <!-- /status template -->
 
         <!-- Bot Reply delete template -->
         <script type="text/template" id="lwDeleteBotReply-template">
@@ -100,5 +109,19 @@
             window.dispatchEvent(new Event('reset-modal'));
         });
 
+        // Toggle bot reply status process
+        $(document).on('change', '.lw-toggle-status-switch', function() {
+            var $checkbox = $(this);
+            var botReplyUid = $checkbox.data('uid');
+            var isChecked = $checkbox.is(':checked');
+            var toggleUrl = __Utils.apiURL("{{ route('vendor.bot_reply.write.toggle_status', ['botReplyIdOrUid']) }}", {'botReplyIdOrUid': botReplyUid});
+            
+            __DataRequest.post(toggleUrl, {}, function(response) {
+                if (response.reaction !== 1) {
+                    // Revert the check state on failure
+                    $checkbox.prop('checked', !isChecked);
+                }
+            });
+        });
     </script>
 @endpush

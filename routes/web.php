@@ -923,6 +923,12 @@ Route::middleware([
                     'processBotQuickReply'
                 ])->name('vendor.bot_reply.write.quick-reply');
 
+                // BotReply toggle status process
+                Route::post("/{botReplyIdOrUid}/toggle-status-process", [
+                    BotReplyController::class,
+                    'processToggleBotReplyStatus'
+                ])->name('vendor.bot_reply.write.toggle_status');
+
                 // BotFlow Routes Group Start
                 Route::prefix('/bot-flows')->group(function () {
                     // BotFlow list view
