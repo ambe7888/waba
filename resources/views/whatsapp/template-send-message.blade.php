@@ -202,7 +202,7 @@
                                     {!! $template !!}
                                 </div>
                                 <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
-                                <h2 class="mt-5 text-warning">{{  __tr('Step 2') }}</h2>
+                                <h2 class="mt-3 text-warning">{{  __tr('Step 2') }}</h2>
                                <fieldset class="w-100">
                                 <legend>{{  __tr('Contacts and Schedule') }}</legend>
                                 <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('Campaign Title')" name="title" x-model="campaignTitle" required="required">
@@ -245,11 +245,9 @@
                                            {!! __tr('Restrict by Language Code - Send only to the contacts whose language code matches with template language code.') !!}
                                         </label>
                                     </div>
-                                    @if(!$isNonTemplateCampaign)
                                     <strong class="m-2">
                                         {{ __tr('Total Targeted Contacts: ') }} <span x-text="contactCount"></span>
                                     </strong>
-                                    @endif
                                  </fieldset>
                                     <fieldset x-data="{scheduleNow:true}">
                                         <legend>{{  __tr('Schedule') }}</legend>
