@@ -1483,7 +1483,10 @@
         __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid', 'page' => '', 'assigned' => ($assigned ?? '')]) !!}", {'contactUid': $('#lwWhatsAppChatWindow').attr('data-contact-uid'),'page':'page='+ window.contactsPaginatePage + '&'}),{}, function() {});
     };
     window.updateContactInfo = function(responseData) {
-        $('#lwCurrentlyAssignedUserUid')[0].selectize.setValue(responseData.data.currentlyAssignedUserUid);
+        var assignUserEl = $('#lwCurrentlyAssignedUserUid');
+        if(assignUserEl.length && assignUserEl[0].selectize && responseData.data && responseData.data.currentlyAssignedUserUid !== undefined) {
+            assignUserEl[0].selectize.setValue(responseData.data.currentlyAssignedUserUid);
+        }
     };
     window.onNewLabelCreated = function(responseData) {
         $('#lwLabelFieldTitle').val('');
