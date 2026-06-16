@@ -390,6 +390,16 @@ Route::group([
             CampaignController::class,
             'campaignStatusView',
         ])->name('app_api.vendor.campaign.read.dashboard_status');
+
+        // Info materials api list & download
+        Route::get('/info-materials', [
+            \App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class,
+            'apiList',
+        ])->name('app_api.vendor.info_materials.list');
+        Route::get('/info-materials/{uid}/download', [
+            \App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class,
+            'apiDownload',
+        ])->name('app_api.vendor.info_materials.download');
     });
 
     // logout

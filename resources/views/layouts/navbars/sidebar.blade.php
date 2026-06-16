@@ -2,6 +2,21 @@
 @php
 //user current theme
 $currentAppTheme=getUserAppTheme();
+
+// Count for support ticket notifications
+$supportTicketBadgeCount = 0;
+if (\Illuminate\Support\Facades\Auth::check()) {
+    if (hasCentralAccess()) {
+        $supportTicketBadgeCount = \App\Yantrana\Components\SupportTicket\Models\TicketModel::where('status', 1)->count();
+    } else {
+        $vendorId = getVendorId();
+        if ($vendorId) {
+            $supportTicketBadgeCount = \App\Yantrana\Components\SupportTicket\Models\TicketModel::where('vendors__id', $vendorId)
+                ->where('status', 2)
+                ->count();
+        }
+    }
+}
 @endphp
 
 <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-white lw-sidebar-container"
@@ -212,6 +227,20 @@ $currentAppTheme=getUserAppTheme();
                 <li class="nav-item ">
                     <a class="nav-link {{ markAsActiveLink('page.list') }}" href="{{ route('page.list') }}">
                         <i class="fas fa-file"></i> {{ __tr('Pages') }}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ markAsActiveLink('support_ticket.index') }}" href="{{ route('support_ticket.index') }}">
+                        <i class="fas fa-ticket-alt" style="position: relative;">
+                            @if($supportTicketBadgeCount > 0)
+                                <span class="badge badge-danger" style="position: absolute; top: -6px; right: -8px; padding: 2px 4px; font-size: 8px; border-radius: 50%; line-height: 1; font-family: sans-serif !important; font-style: normal !important; font-weight: bold !important; z-index: 10;">{{ $supportTicketBadgeCount }}</span>
+                            @endif
+                        </i> {{ __tr('Support Tickets') }}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ markAsActiveLink('info_material.index') }}" href="{{ route('info_material.index') }}">
+                        <i class="fas fa-book"></i> {{ __tr('Resource Library') }}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -431,6 +460,24 @@ $currentAppTheme=getUserAppTheme();
                         href="{{ route('vendor.user.read.list_view') }}">
                         <i class="fa fa-users"></i>
                         {{ __tr('Team Members') }}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ markAsActiveLink('support_ticket.index') }}"
+                        href="{{ route('support_ticket.index') }}">
+                        <i class="fas fa-ticket-alt" style="position: relative;">
+                            @if($supportTicketBadgeCount > 0)
+                                <span class="badge badge-danger" style="position: absolute; top: -6px; right: -8px; padding: 2px 4px; font-size: 8px; border-radius: 50%; line-height: 1; font-family: sans-serif !important; font-style: normal !important; font-weight: bold !important; z-index: 10;">{{ $supportTicketBadgeCount }}</span>
+                            @endif
+                        </i>
+                        {{ __tr('Support Tickets') }}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ markAsActiveLink('info_material.index') }}"
+                        href="{{ route('info_material.index') }}">
+                        <i class="fas fa-book"></i>
+                        {{ __tr('Resource Library') }}
                     </a>
                 </li>
                 <li class="nav-item">

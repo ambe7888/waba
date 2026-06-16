@@ -162,12 +162,14 @@ Route::middleware([
                 'createStripeWebhook',
             ])->name('manage.configuration.create_stripe_webhook');
 
+
+
             Route::get('/vendors', function () {
                 return view('vendors.list');
             })->name('central.vendors');
 
             Route::get('/{vendorIdOrUid}/details', [
-                vendorController::class,
+                VendorController::class,
                 'vendorDetails',
             ])->name('central.vendor.details');
 
@@ -1405,6 +1407,28 @@ Route::middleware([
             });
             // Contact Routes Group End
         });
+
+    Route::middleware(['web', 'auth'])->prefix('support-tickets')->group(function () {
+        Route::get('/', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'index'])->name('support_ticket.index');
+        Route::get('/create', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'create'])->name('support_ticket.create');
+        Route::post('/store', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'store'])->name('support_ticket.store');
+        Route::get('/download-attachment/{type}/{uid}', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'downloadAttachment'])->name('support_ticket.download_attachment');
+        Route::get('/{uid}', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'show'])->name('support_ticket.show');
+        Route::post('/{uid}/reply', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'reply'])->name('support_ticket.reply');
+        Route::post('/{uid}/status', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'updateStatus'])->name('support_ticket.update_status');
+        Route::post('/{uid}/priority', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'updatePriority'])->name('support_ticket.update_priority');
+        Route::post('/{uid}/assign', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'assignTicket'])->name('support_ticket.assign');
+        Route::post('/{uid}/labels', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'updateLabels'])->name('support_ticket.update_labels');
+    });
+
+    Route::middleware(['web', 'auth'])->prefix('info-materials')->group(function () {
+        Route::get('/', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'index'])->name('info_material.index');
+        Route::get('/create', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'create'])->name('info_material.create');
+        Route::post('/store', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'store'])->name('info_material.store');
+        Route::post('/{uid}/delete', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'destroy'])->name('info_material.destroy');
+        Route::get('/{uid}/download', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'download'])->name('info_material.download');
+    });
+
 });
 // subscription payment webhook for stripe
 Route::post(
@@ -1495,3 +1519,4 @@ Route::post('yoomoney/yoomoney-webhook-order-payment', [
     ManualSubscriptionController::class,
     'handleOrderPaymentYoomoneyWebhook'
 ])->name('yoomoney-webhook');
+

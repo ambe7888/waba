@@ -57,4 +57,12 @@ class VendorUserModel extends BaseModel
      */
     protected $fillable = [
     ];
+
+    /**
+     * Get the actual user model associated
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Yantrana\Components\Auth\Models\AuthModel::class, 'users__id', '_id');
+    }
 }

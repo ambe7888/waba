@@ -83,15 +83,7 @@
                         <label for="lwReplyTextField">{{ __tr('Reply Text') }}</label>
                         <textarea cols="10" rows="3" id="lwAdvanceBotReplyTextField" class="lw-form-field form-control"
                             placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"></textarea>
-                        
-                        <div class="form-group text-right mt-2 mb-0">
-                            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('*', 'lwAdvanceBotReplyTextField')"> <i class="fa fa-bold"></i></button>
-                            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('_', 'lwAdvanceBotReplyTextField')"> <i class="fa fa-italic"></i></button>
-                            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('~', 'lwAdvanceBotReplyTextField')"> <i class="fa fa-strikethrough"></i></button>
-                            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('```', 'lwAdvanceBotReplyTextField')"> <i class="fa fa-code"></i></button>
-                        </div>
-
-                        <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+                            <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                     </div>
                     <!-- /Reply_Text -->
                     <div x-show="isAdvanceBot == 'interactive' || isAdvanceBot == 'media'">
@@ -493,14 +485,6 @@
         <div class="form-group">
         <label for="lwReplyTextEditField">{{ __tr('Reply Text') }}</label>
         <textarea cols="10" rows="3" id="lwReplyTextEditField" value="<%- __tData.reply_text %>" class="lw-form-field form-control" placeholder="{{ __tr('Reply Text') }}" name="reply_text"  required="true"><%- __tData.reply_text %></textarea>
-
-        <div class="form-group text-right mt-2 mb-0">
-            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('*', 'lwReplyTextEditField')"> <i class="fa fa-bold"></i></button>
-            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('_', 'lwReplyTextEditField')"> <i class="fa fa-italic"></i></button>
-            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('~', 'lwReplyTextEditField')"> <i class="fa fa-strikethrough"></i></button>
-            <button type="button" class="btn btn-light btn-sm" onclick="formatBotReplyText('```', 'lwReplyTextEditField')"> <i class="fa fa-code"></i></button>
-        </div>
-
         <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
             </div>
             <% } %>
@@ -844,25 +828,6 @@
     <!--/  Edit Bot Reply Form -->
 </x-lw.modal>
 <!--/ Edit Bot Reply Modal -->
-
-<script>
-    function formatBotReplyText(char, textareaId) {
-        var textarea = document.getElementById(textareaId);
-        if (!textarea) return;
-        var start = textarea.selectionStart;
-        var end = textarea.selectionEnd;
-        var text = textarea.value;
-        var before = text.substring(0, start);
-        var selected = text.substring(start, end);
-        var after = text.substring(end, text.length);
-        
-        textarea.value = before + char + selected + char + after;
-        textarea.selectionStart = start + char.length;
-        textarea.selectionEnd = start + char.length + selected.length;
-        textarea.focus();
-        textarea.dispatchEvent(new Event('input'));
-    }
-</script>
 
 @push('appScripts')
 <?= __yesset([

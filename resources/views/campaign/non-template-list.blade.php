@@ -43,14 +43,6 @@
                 @endif
             </div>
         </div>
-        <div class="col-xl-12 mb-3">
-            <div class="float-right">
-                <x-lw.help-modal :subject="__tr('What are Preset Messages?')">
-                    <h3>{{  __tr('About Preset Messages') }}</h3>
-                    <p>{{  __tr('Preset Messages are reusable messages that can be used in campaigns as templates. You can create and manage your preset messages here. Preset messages can only be delivered to 24 hours service window opened contacts.') }}</p>
-                </x-lw.help-modal>
-            </div>
-        </div>
         @if(!hasVendorAccess('manage_templates', 'add_edit_templates') and !hasVendorAccess('manage_campaigns'))
             <div class="col-xl-12 mb-3"></div>
         @endif
@@ -71,6 +63,11 @@
             </li>
         </ul>
         <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body">
+                    <strong>{{  __tr('Please note:') }}</strong> {{ __tr('Preset Messages are reusable messages that can be used in campaigns as templates. You can create and manage your preset messages here. Preset messages can only be delivered to 24 hours service window opened contacts.') }}
+                </div>
+            </div>
             {{-- Visual Preset Message Types Cards --}}
             @if(hasVendorAccess('manage_templates', 'add_edit_templates'))
             <div class="mt-4 mb-2">
@@ -98,7 +95,7 @@
                             <!-- Visual Mockup -->
                             <div class="p-3 mb-3" style="background: #efeae2; border-radius: 8px; font-size: 0.75rem; border: 1px solid #e2ddd5;">
                                 <div class="bg-white p-2 text-dark shadow-sm position-relative" style="border-radius: 6px; max-width: 90%;">
-                                    {{ __tr('Bonsoir, comment avez vous trouvez nos echange aujoudhui, ou est ce uqe vous avez reçu vote colis, etc.....') }}
+                                    {{ __tr('Bonjour ! Comment avez-vous trouvé nos échanges aujourd\'hui ? Avez-vous bien reçu votre colis ? 😊') }}
                                     <small class="text-muted d-block text-right mt-1" style="font-size: 0.6rem;">12:00</small>
                                 </div>
                             </div>
