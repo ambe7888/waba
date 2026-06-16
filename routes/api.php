@@ -249,6 +249,36 @@ Route::group([
             'sendChatMessage',
         ])->name('app_api.vendor.chat_message.send.process');
 
+        // Get WhatsApp templates
+        Route::get('/whatsapp/templates', function () {
+            validateVendorAccess('messaging');
+            $repository = app(App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppTemplateRepository::class);
+            $whatsAppApprovedTemplates = $repository->getApprovedTemplatesByNewest();
+            return response()->json([
+                'reaction' => 1,
+                'data' => [
+                    'templates' => $whatsAppApprovedTemplates
+                ]
+            ]);
+        })->name('app_api.vendor.whatsapp.templates');
+
+        // Send WhatsApp template message
+        Route::post('/whatsapp/contact/send-template-message', function (Illuminate\Http\Request $request) {
+            validateVendorAccess('messaging');
+            $request->validate([
+                'template_uid' => 'required',
+                'contact_uid' => 'required',
+            ]);
+            $engine = app(App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+            $processReaction = $engine->processSendMessageForContact($request);
+            return response()->json([
+                'reaction' => $processReaction->reaction(),
+                'message' => $processReaction->message(),
+                'data' => $processReaction->data()
+            ]);
+        })->name('app_api.vendor.chat_template_message.send.process');
+
+
         // Contact get labels and team members data
         Route::get('/whatsapp/contact/chat-box-data/{contactUid}', [
             ContactController::class,

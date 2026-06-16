@@ -28,6 +28,7 @@ class TicketModel extends BaseModel
         'priority',
         'vendor_users__id',
         'assigned_users__id',
+        'contacts__id',
         '__data'
     ];
 
