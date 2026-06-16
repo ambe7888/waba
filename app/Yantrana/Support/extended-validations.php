@@ -87,7 +87,7 @@ Validator::extend('check_disposable_email', function ($attribute, $value, $param
  *---------------------------------------------------------------- */
 Validator::extend('unique_email', function ($attribute, $value, $parameters) {
     $email = strtolower($value);
-    $user = App\Yantrana\Components\User\Models\User::where('email', $email)->count();
+    $user = App\Yantrana\Components\Auth\Models\AuthModel::where('email', $email)->count();
     // Check if user exist in account
     if ($user <= 0) {
         return false;
@@ -276,13 +276,16 @@ Validator::extend('old_password', function ($attribute, $value, $parameters, $va
 Validator::extend('verfy_authenticator_code', function ($attribute, $value, $parameters) {
     $email = \Request::input('email');
 
-    $twoFactorAuthKey = App\Yantrana\Components\User\Models\UserModel::where('email', $email)->pluck('2fa_enabled')->toArray();
+    $user = App\Yantrana\Components\Auth\Models\AuthModel::where('email', $email)->first();
 
-    if ($twoFactorAuthKey) {
+    if ($user && $user->two_factor_secret) {
         $google2fa = new PragmaRX\Google2FA\Google2FA();
-
-        // Verify Code
-        if (! $google2fa->verifyKey(array_first($twoFactorAuthKey), $value)) {
+        try {
+            $secret = decrypt($user->two_factor_secret);
+            if (! $google2fa->verifyKey($secret, $value)) {
+                return false;
+            }
+        } catch (\Exception $e) {
             return false;
         }
     }
