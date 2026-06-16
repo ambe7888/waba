@@ -35,6 +35,19 @@ use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppTemplateControll
 |
 */
 
+Route::get('/run-db-migrations', function () {
+    try {
+        $path = 'database/migrations/2026_06_16_034721_make_contacts_id_nullable_in_tickets_table.php';
+        Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--path' => $path,
+            '--force' => true,
+        ]);
+        return "Migration completed successfully!<br><pre>" . Illuminate\Support\Facades\Artisan::output() . "</pre>";
+    } catch (\Exception $e) {
+        return "Migration failed: " . $e->getMessage();
+    }
+});
+
 Route::get('/', [
     HomeController::class,
     'homePageView',
