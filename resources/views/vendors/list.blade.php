@@ -9,7 +9,7 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-xl-12 mb-3 mt-md--5">
+        <div class="col-xl-8 offset-xl-4 col-lg-9 offset-lg-3 col-md-12 mb-3 mt-md--5">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center bg-white p-3 rounded shadow-sm mb-3">
                 <div class="form-inline mb-2 mb-md-0">
                     <label class="mr-2 font-weight-bold text-muted small text-uppercase" for="lwSubscriptionStatusFilter"><?= __tr('Filter by Subscription') ?></label>
