@@ -72,6 +72,7 @@ class MediaController extends BaseController
      *---------------------------------------------------------------- */
     public function uploadTempMedia(Request $request, $uploadItem = 'all')
     {
+        \Log::info('uploadTempMedia input:', ['input' => $request->all(), 'files' => $request->allFiles(), 'item' => $uploadItem]);
         $processReaction = $this->mediaEngine
             ->processUploadTempMedia($request->all(), $uploadItem);
 

@@ -28,11 +28,16 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
-.agent
-.agents
+
 /whatsapp_business
 Echange WABA.md
 whatsjet_mobile
 envweb
 translations_modifie.xlsx
 scratch_schema.php
+test.php
+scratch_license.php
+scratch_license.php
+composer.lock
+scratch_license.php
+scratch_license.php

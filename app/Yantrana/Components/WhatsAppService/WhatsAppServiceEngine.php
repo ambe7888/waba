@@ -2421,7 +2421,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      */
     public function contactChatData(string|int $contactIdOrUid)
     {
-        $contactId = is_string($contactIdOrUid) ? $this->contactRepository->getVendorContact($contactIdOrUid)->_id : $contactIdOrUid;
+        $contact = is_string($contactIdOrUid)
+            ? $this->contactRepository->getVendorContact($contactIdOrUid)
+            : $this->contactRepository->fetchIt($contactIdOrUid);
+
+        if ($contact) {
+            $this->markAsReadProcess($contact, getVendorId());
+            $contactId = $contact->_id;
+        } else {
+            $contactId = $contactIdOrUid;
+        }
 
         return $this->engineSuccessResponse([
             'whatsappMessageLogs' => $this->getContactMessagesForChatBox($contactId, true),
