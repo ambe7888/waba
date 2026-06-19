@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "113075015395",
+    "project_id": "whatsclick-d5204",
+    "storage_bucket": "whatsclick-d5204.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113075015395:android:d3ad010f607d722d",
+        "android_client_info": {
+          "package_name": "com.whatsclick.whatsjet_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "dummy_api_key_for_compilation_please_replace"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
