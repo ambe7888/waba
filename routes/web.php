@@ -848,6 +848,11 @@ Route::middleware([
                         'createNewTemplate',
                     ])->name('vendor.whatsapp_service.templates.read.new_view');
 
+                    Route::get('/create-wizard', [
+                        WhatsAppTemplateController::class,
+                        'createNewTemplateWizard',
+                    ])->name('vendor.whatsapp_service.templates.read.new_wizard_view');
+
                     Route::post('/create-process', [
                         WhatsAppTemplateController::class,
                         'createNewTemplateProcess',
