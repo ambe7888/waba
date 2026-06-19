@@ -91,6 +91,23 @@ class WhatsAppTemplateController extends BaseController
     }
 
     /**
+     * Create new template wizard view
+     *
+     * @return view
+     */
+    public function createNewTemplateWizard()
+    {
+        validateVendorAccess('manage_templates', 'add_edit_templates');
+
+        $languages = include app_path('Yantrana/Support/languages.php');
+
+        // load the view
+        return $this->loadView('whatsapp-service.templates.new-template-wizard', [
+            'languages' => $languages
+        ]);
+    }
+
+    /**
      * New Template creation process
      *
      * @param BaseRequestTwo $request
