@@ -470,7 +470,7 @@
                             <div class="form-group">
                                 <label for="lwTemplateBody" class="font-weight-600 text-dark">{{ __tr('Body Text') }} <span class="text-danger">*</span></label>
                                 <textarea name="template_body" id="lwTemplateBody" class="form-control" rows="8" 
-                                          placeholder="Bonjour {{1}}, voici votre code de réduction de {{2}}%..." 
+                                          placeholder="Bonjour @{{1}}, voici votre code de réduction de @{{2}}%..." 
                                           x-model="text_body" @input="updateBodyVariables()" required></textarea>
                             </div>
 

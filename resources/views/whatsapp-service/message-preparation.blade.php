@@ -6,7 +6,7 @@ if ($pageType == 'show-only-preview') {
 @endphp
 <div class="row" x-cloak>
     @if(!$onlyTemplatePreview)
-    <div class="col-sm-12 col-md-8 col-lg-6 lw-template-structure-form">
+    <div class="col-12 lw-template-structure-form">
         <input type="hidden" name="template_uid" value="{{ $template->_uid }}">
         <fieldset>
             <legend>{{ __tr('Template') }} <template x-if="selectedTemplate">
@@ -211,8 +211,8 @@ if ($pageType == 'show-only-preview') {
         {{-- Is it marketing template --}}
     </div>
     {{-- Message Preview --}}
-    <div class="col-sm-12 col-md-8 col-lg-6">
-        <fieldset class="w-100 lw-position-block">
+    <div class="col-12 lw-preview-column" id="lwPreviewColumnContent">
+        <fieldset class="w-100">
             <legend>{{ __tr('Message Preview') }}</legend>
             <div class="card">
                 <div class="card-body">
