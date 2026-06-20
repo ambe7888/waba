@@ -48,3 +48,13 @@ design template create wizard/FireShot Capture 004 - WhatsCRM - Chatbot, Flow Bu
 design template create wizard/FireShot Capture 006 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
 new-data-schema.sql
 composer.phar
+
+carousel_steps.html
+carousel_steps_generator.py
+design template create wizard/
+temp_alpine.js
+temp_script.js
+temp_test.js
+update_alpine.py
+update_preview.py
+__pycache__/
