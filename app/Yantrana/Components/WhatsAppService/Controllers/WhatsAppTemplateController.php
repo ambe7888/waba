@@ -85,7 +85,7 @@ class WhatsAppTemplateController extends BaseController
         $languages = include app_path('Yantrana/Support/languages.php');
 
         // load the view
-        return $this->loadView('whatsapp-service.templates.new-template', [
+        return $this->loadView('whatsapp-service.templates.new-template-wizard', [
             'languages' => $languages
         ]);
     }
