@@ -120,7 +120,7 @@
             @endif
             <div class="card-body">
                 <div class="row">
-                    <div class="{{ $isNonTemplateCampaign ? 'col-lg-7 col-md-8 col-sm-12' : 'col-sm-12 col-md-8 col-lg-6' }}">
+                    <div class="{{ $isNonTemplateCampaign ? 'col-lg-7 col-md-8 col-sm-12' : 'col-sm-12 col-md-7 col-lg-7' }}">
                     @if (!$contact)
                     <h2 class="text-warning">{{  __tr('Step 1') }}</h2>
                     @endif
@@ -353,6 +353,13 @@
                             </div>
                         </div>
                     </div>
+                    @else
+                    <!-- Template Preview Sidebar on the right -->
+                    <div class="col-sm-12 col-md-5 col-lg-5 mb-4">
+                        <div id="lwTemplatePreviewContainer" class="lw-whatsapp-template-create-preview">
+                            <!-- Preview will be moved here -->
+                        </div>
+                    </div>
                     @endif
                 </div>
             </div>
@@ -377,6 +384,12 @@
             window.onTemplateChangeProcess = function(responseData) {
                 if (responseData.reaction == 1) {
                     _.defer(function() {
+                        // Move the preview into the right container
+                        var previewContent = $('#lwPreviewColumnContent');
+                        if (previewContent.length) {
+                            $('#lwTemplatePreviewContainer').empty().append(previewContent);
+                        }
+
                         window.lwPluginsInit();
                         const lwCreateNewCampaignContainer = document.getElementById('lwCreateNewCampaignContainer');
                         var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
