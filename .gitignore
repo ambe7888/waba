@@ -58,3 +58,5 @@ temp_test.js
 update_alpine.py
 update_preview.py
 __pycache__/
+PROJECT_LOG.md
+update.md

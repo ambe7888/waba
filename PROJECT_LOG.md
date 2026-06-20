@@ -22,6 +22,7 @@ Ce document sert de mémoire centrale pour le projet. Tout agent IA intervenant 
   - Correction de la signature : La signature a été générée en utilisant l'hôte `127.0.0.1:8000` et chiffrée avec la fonction `encrypt()` de Laravel pour passer la validation de `AppApiAuthenticateMiddleware` et `ConfigurationEngine`.
 - [x] **Créateur de Modèles WhatsApp (Wizard UI) :** Implémentation d'un assistant de création en 6 étapes pour les modèles standard avec aperçu mobile en temps réel sous `/vendor-console/whatsapp/templates/create-wizard` (Blade + Alpine.js). Résolution de l'erreur d'authentification vendeur via l'ajout des rôles `Vendor Admin` (ID 2) et `Vendor Agent` (ID 3) manquants dans `user_roles`.
 
+- [x] **Refonte des Modèles (Carrousel & Wizard) :** Remplacement de la page officielle par la nouvelle interface avec aperçu en direct et support complet des boutons individuels par carte pour les Carrousels.
 ## 4. Tâches Prévues / En Réflexion (Next Steps)
 - [ ] **Développement de Modules Personnalisés :** Création d'extensions non-officielles pour contrer la concurrence. Les pistes discutées incluent :
   - *Reseller System* (Système multi-niveaux de revendeurs)

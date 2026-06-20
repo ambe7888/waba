@@ -2,6 +2,15 @@
 
 Ce fichier liste l'historique des modifications apportées au projet.
 
+## [Validé] - Nouvel Assistant de Création de Templates (Wizard UI)
+- **Interface par Étapes (Wizard)** : Remplacement de l'ancienne page complexe par un assistant clair et guidé (4 à 6 étapes selon le type).
+- **Aperçu Mobile en Temps Réel** : Ajout d'une prévisualisation dynamique type smartphone affichant instantanément le rendu final du template.
+- **Support Avancé des Carrousels** : 
+  - Gestion indépendante des cartes du carrousel avec sélection de médias modernisée.
+  - Configuration des boutons d'action (URL, Téléphone, Quick Reply) propre à **chaque carte** (jusqu'à 2 boutons par carte), respectant l'architecture Meta.
+- **Design Moderne & Premium** : Adoption du code couleur de la marque (Teal), utilisation d'Alpine.js pour une réactivité parfaite sans rechargement, animations fluides et interfaces épurées.
+
+
 ## [Validé] - Redesign du bloc d'informations du contact (SaaS CRM Moderne)
 - **Structure en Cartes Épurées** : Chaque section d'informations (Profil, À propos, Paramètres et Assignation, Étiquettes, Notes) est organisée sous forme de carte individuelle blanche avec des angles légèrement arrondis (`12px`) et une ombre très fine.
 - **Redesign du Modal des Étiquettes (Amélioré)** : Refonte complète de la fenêtre popup de gestion des étiquettes pour lever toute confusion sur les couleurs :

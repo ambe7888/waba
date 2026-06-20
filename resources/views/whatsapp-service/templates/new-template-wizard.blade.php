@@ -258,6 +258,13 @@
             },
             step: 1,
 
+            changeTemplateType(type) {
+                this.templateType = type;
+                if (type === 'carousel' && this.step > 5) this.step = 5;
+                if (type === 'header' && this.step > 6) this.step = 6;
+                this.analyzeTemplateQuality();
+            },
+
             quickTemplates: {
                 MARKETING: [
                     { name: 'Promo Flash', text: '🔥 Promo Flash ! Profitez de @{{1}}% de réduction sur tout le site avec le code @{{2}}. Offre valable jusqu\'à ce soir !' },
@@ -304,40 +311,72 @@
                 let score = 90; // Start at 90 to indicate Meta is never 100% guaranteed
                 let messages = [];
                 
-                if (!this.text_body || this.text_body.trim() === '') {
-                    this.metaScore = 0;
-                    this.metaScoreMessage = 'Rédigez votre message';
-                    this.metaScoreColor = 'bg-secondary';
-                    return;
-                }
-
-                if (this.text_body.length < 10) {
-                    score -= 20;
-                    messages.push("Texte un peu court.");
-                }
-
-                if ((this.text_body.match(/!{2,}/g) || []).length > 0) {
-                    score -= 30;
-                    messages.push("Évitez les points d'exclamation multiples.");
-                }
-
-                if (this.text_body.match(/\{\{\d+\}\}\s*\{\{\d+\}\}/g)) {
-                    score -= 40;
-                    messages.push("Interdit d'enchaîner deux variables sans texte.");
-                }
-                
-                if (this.category === 'UTILITY') {
-                    const promoWords = ['promo', 'offre', 'gratuit', 'réduction', '%', 'soldes'];
-                    const lowerText = this.text_body.toLowerCase();
-                    if (promoWords.some(w => lowerText.includes(w))) {
-                        score -= 50;
-                        messages.push("Attention : Mots promotionnels risqués en Utilitaire.");
+                if (this.templateType === 'header') {
+                    if (!this.text_body || this.text_body.trim() === '') {
+                        this.metaScore = 0;
+                        this.metaScoreMessage = 'Rédigez votre message';
+                        this.metaScoreColor = 'bg-secondary';
+                        return;
                     }
-                }
-                
-                if (this.customButtons.length === 0) {
-                    score -= 10;
-                    messages.push("Astuce: Un bouton augmente l'interaction.");
+
+                    if (this.text_body.length < 10) {
+                        score -= 20;
+                        messages.push("Texte un peu court.");
+                    }
+
+                    if ((this.text_body.match(/!{2,}/g) || []).length > 0) {
+                        score -= 30;
+                        messages.push("Évitez les points d'exclamation multiples.");
+                    }
+
+                    if (this.text_body.match(/\{\{\d+\}\}\s*\{\{\d+\}\}/g)) {
+                        score -= 40;
+                        messages.push("Interdit d'enchaîner deux variables sans texte.");
+                    }
+                    
+                    if (this.category === 'UTILITY') {
+                        const promoWords = ['promo', 'offre', 'gratuit', 'réduction', '%', 'soldes'];
+                        const lowerText = this.text_body.toLowerCase();
+                        if (promoWords.some(w => lowerText.includes(w))) {
+                            score -= 50;
+                            messages.push("Attention : Mots promotionnels risqués en Utilitaire.");
+                        }
+                    }
+                    
+                    if (this.customButtons.length === 0) {
+                        score -= 10;
+                        messages.push("Astuce: Un bouton augmente l'interaction.");
+                    }
+                } else {
+                    if (!this.carousel_body_text || this.carousel_body_text.trim() === '') {
+                        this.metaScore = 0;
+                        this.metaScoreMessage = 'Rédigez le message principal';
+                        this.metaScoreColor = 'bg-secondary';
+                        return;
+                    }
+                    
+                    if (this.carouselTemplateContainer.length === 0) {
+                        score -= 40;
+                        messages.push("Ajoutez au moins une carte au carrousel.");
+                    } else if (this.carouselTemplateContainer.length < 2) {
+                        score -= 10;
+                        messages.push("Un carrousel avec une seule carte est peu utile.");
+                    }
+
+                    if (this.category === 'UTILITY') {
+                        const promoWords = ['promo', 'offre', 'gratuit', 'réduction', '%', 'soldes'];
+                        const lowerText = this.carousel_body_text.toLowerCase();
+                        if (promoWords.some(w => lowerText.includes(w))) {
+                            score -= 50;
+                            messages.push("Attention : Mots promotionnels risqués en Utilitaire.");
+                        }
+                    }
+
+                    let hasButtons = this.carouselTemplateContainer.some(c => c.buttons && c.buttons.length > 0);
+                    if (!hasButtons) {
+                        score -= 10;
+                        messages.push("Astuce: Ajoutez des boutons à vos cartes pour plus d'interaction.");
+                    }
                 }
 
                 this.metaScore = Math.max(0, score);
@@ -368,12 +407,11 @@
                     headerType: 'image',
                     bodyText: '',
                     variablesInputs: {},
-                    variablesData: {}
+                    variablesData: {},
+                    buttons: []
                 }
             ],
             
-            carouselCustomButtons: [],
-
             templateName: '',
             languageCode: 'fr',
             category: 'MARKETING',
@@ -460,7 +498,7 @@
                         if (this.step === 3) {
                             // Check cards
                             if (this.carouselTemplateContainer.length === 0) {
-                                alert('Veuillez ajouter au moins une fiche.');
+                                alert('Veuillez ajouter au moins une carte.');
                                 return;
                             }
                             let invalidCard = this.carouselTemplateContainer.some((card, idx) => {
@@ -472,7 +510,7 @@
                                 return emptyVar;
                             });
                             if (invalidCard) {
-                                alert('Veuillez remplir le texte et toutes les variables pour chaque fiche.');
+                                alert('Veuillez remplir le texte et toutes les variables pour chaque carte.');
                                 return;
                             }
                         }
@@ -653,6 +691,143 @@ sanitizeInput() {
                 }
             },
 
+            updateCarouselBodyVariables() {
+                const regex = /\{\{(\d+)\}\}/g;
+                let match;
+                let variables = [];
+                while ((match = regex.exec(this.carousel_body_text)) !== null) {
+                    let num = parseInt(match[1]);
+                    if (!variables.includes(num)) variables.push(num);
+                }
+                variables.sort((a, b) => a - b);
+                let newFields = {};
+                variables.forEach((num, index) => {
+                    newFields[index] = {
+                        num: num,
+                        varName: '{' + '{' + num + '}' + '}',
+                        value: this.carouselBodyVariablesData[index] || ''
+                    };
+                });
+                this.newCarouselBodyTextInputFields = newFields;
+                this.analyzeTemplateQuality();
+            },
+            
+            wrapCarouselBodyText(symbol) {
+                const textarea = document.getElementById('lwCarouselTemplateBody');
+                if (!textarea) return;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const selected = text.substring(start, end);
+                const replacement = symbol + selected + symbol;
+                this.carousel_body_text = text.substring(0, start) + replacement + text.substring(end);
+                this.updateCarouselBodyVariables();
+                this.$nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = start + symbol.length;
+                    textarea.selectionEnd = start + symbol.length + selected.length;
+                });
+            },
+            
+            addCarouselBodyPlaceholder() {
+                const textarea = document.getElementById('lwCarouselTemplateBody');
+                if (!textarea) return;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const regex = /\{\{(\d+)\}\}/g;
+                let match;
+                let maxNum = 0;
+                while ((match = regex.exec(text)) !== null) {
+                    let num = parseInt(match[1]);
+                    if (num > maxNum) maxNum = num;
+                }
+                const nextVar = maxNum + 1;
+                const placeholder = '{' + '{' + nextVar + '}' + '}';
+                this.carousel_body_text = text.substring(0, start) + placeholder + text.substring(end);
+                this.updateCarouselBodyVariables();
+                this.$nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+                });
+            },
+            
+            addNewCard() {
+                if (this.carouselTemplateContainer.length >= 10) return;
+                const newId = 'card_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                this.carouselTemplateContainer.push({
+                    id: newId,
+                    headerType: 'image',
+                    bodyText: '',
+                    variablesData: {},
+                    variablesInputs: {},
+                    buttons: []
+                });
+                this.analyzeTemplateQuality();
+                this.$nextTick(() => {
+                    if (window.lwPluginsInit) {
+                        window.lwPluginsInit('#' + newId + ' ');
+                    }
+                });
+            },
+            
+            deleteCard(index) {
+                this.carouselTemplateContainer.splice(index, 1);
+                this.analyzeTemplateQuality();
+            },
+            
+            updateCardVariables(index) {
+                const card = this.carouselTemplateContainer[index];
+                if (!card) return;
+                const regex = /\{\{(\d+)\}\}/g;
+                let match;
+                let variables = [];
+                while ((match = regex.exec(card.bodyText)) !== null) {
+                    let num = parseInt(match[1]);
+                    if (!variables.includes(num)) variables.push(num);
+                }
+                variables.sort((a, b) => a - b);
+                let newFields = {};
+                variables.forEach((num, vIndex) => {
+                    newFields[vIndex] = {
+                        num: num,
+                        varName: '{' + '{' + num + '}' + '}',
+                        value: card.variablesData[vIndex] || ''
+                    };
+                });
+                card.variablesInputs = newFields;
+                this.analyzeTemplateQuality();
+            },
+            
+            addCardButton(cardIndex, type) {
+                let card = this.carouselTemplateContainer[cardIndex];
+                if (!card.buttons) card.buttons = [];
+                if (card.buttons.length >= 2) return;
+                
+                card.buttons.push({
+                    id: 'btn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    type: type,
+                    text: '',
+                    phone_number: '',
+                    url: '',
+                    example: ''
+                });
+                this.analyzeTemplateQuality();
+            },
+            
+            deleteCardButton(cardIndex, buttonIndex) {
+                this.carouselTemplateContainer[cardIndex].buttons.splice(buttonIndex, 1);
+                this.analyzeTemplateQuality();
+            },
+            
+            changeCardButtonType(cardIndex, buttonIndex, newType) {
+                let btn = this.carouselTemplateContainer[cardIndex].buttons[buttonIndex];
+                btn.type = newType;
+                btn.text = '';
+                btn.phone_number = '';
+                btn.url = '';
+                this.analyzeTemplateQuality();
+            },
             
             formatCarouselBodyPreview(text) {
                 if (!text) return '';
@@ -789,11 +964,11 @@ sanitizeInput() {
                         </div>
                         <div class="step-item" :class="{ 'active': step == 4, 'completed': step > 4 }">
                             <div class="step-circle" @click="goToStep(4)">4</div>
-                            <small class="d-none d-md-block" :class="step == 4 ? 'font-weight-bold text-primary' : 'text-muted'" x-text="templateType == 'header' ? '{{ __tr('Pied de page') }}' : '{{ __tr('Boutons') }}'"></small>
+                            <small class="d-none d-md-block" :class="step == 4 ? 'font-weight-bold text-primary' : 'text-muted'" x-text="templateType == 'header' ? '{{ __tr('Pied de page') }}' : '{{ __tr('Revue') }}'"></small>
                         </div>
-                        <div class="step-item" :class="{ 'active': step == 5, 'completed': step > 5 }">
+                        <div class="step-item" x-show="templateType == 'header'" :class="{ 'active': step == 5, 'completed': step > 5 }">
                             <div class="step-circle" @click="goToStep(5)">5</div>
-                            <small class="d-none d-md-block" :class="step == 5 ? 'font-weight-bold text-primary' : 'text-muted'" x-text="templateType == 'header' ? '{{ __tr('Boutons') }}' : '{{ __tr('Revue') }}'"></small>
+                            <small class="d-none d-md-block" :class="step == 5 ? 'font-weight-bold text-primary' : 'text-muted'">{{ __tr('Boutons') }}</small>
                         </div>
                         <div class="step-item" x-show="templateType == 'header'" :class="{ 'active': step == 6 }">
                             <div class="step-circle" @click="goToStep(6)">6</div>
@@ -867,7 +1042,7 @@ sanitizeInput() {
                                         <div class="lw-option-card" :class="{ 'selected': templateType == 'carousel' }" @click="changeTemplateType('carousel')">
                                             <i class="fas fa-images"></i>
                                             <div class="lw-option-card-title">{{ __tr('Carousel') }}</div>
-                                            <div class="text-xs text-muted mt-1">{{ __tr('Fiches défilantes') }}</div>
+                                            <div class="text-xs text-muted mt-1">{{ __tr('Cartes défilantes') }}</div>
                                         </div>
                                         <input type="radio" class="d-none" name="template_type" value="carousel" x-model="templateType">
                                     </div>
@@ -1342,7 +1517,7 @@ sanitizeInput() {
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-white border-bottom-0 pb-0">
                             <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 2: Corps Général') }}</h3>
-                            <p class="text-muted text-sm mt-1">{{ __tr('Ce texte apparaîtra au-dessus du carrousel de fiches.') }}</p>
+                            <p class="text-muted text-sm mt-1">{{ __tr('Ce texte apparaîtra au-dessus du carrousel de cartes.') }}</p>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
@@ -1386,20 +1561,20 @@ sanitizeInput() {
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-white border-bottom-0 pb-0 d-flex justify-content-between align-items-center">
                             <div>
-                                <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 3: Fiches du Carrousel') }}</h3>
-                                <p class="text-muted text-sm mt-1 mb-0">{{ __tr("Ajoutez jusqu'à 10 fiches défilantes. Chaque fiche nécessite une image/vidéo et un texte.") }}</p>
+                                <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 3: Cartes du Carrousel') }}</h3>
+                                <p class="text-muted text-sm mt-1 mb-0">{{ __tr("Ajoutez jusqu'à 10 cartes défilantes. Chaque carte nécessite une image/vidéo et un texte.") }}</p>
                             </div>
                             <span class="badge badge-primary badge-pill px-3 py-2 text-sm">
-                                <span x-text="carouselTemplateContainer.length"></span> / 10 fiches
+                                <span x-text="carouselTemplateContainer.length"></span> / 10 cartes
                             </span>
                         </div>
                         <div class="card-body bg-white">
                             <template x-for="(card, index) in carouselTemplateContainer" :key="card.id">
-                                <div class="card shadow-none border mb-4">
+                                <div class="card shadow-none border mb-4" :id="card.id">
                                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                         <h4 class="font-weight-bold text-dark mb-0">
                                             <span class="badge badge-dark mr-2" x-text="index + 1"></span>
-                                            {{ __tr('Fiche') }} <span x-text="index + 1"></span>
+                                            {{ __tr('Carte') }} <span x-text="index + 1"></span>
                                         </h4>
                                         <button x-show="index > 0" type="button" class="btn btn-sm btn-outline-danger" @click="deleteCard(index)">
                                             <i class="fa fa-trash mr-1"></i> {{ __tr('Supprimer') }}
@@ -1408,36 +1583,38 @@ sanitizeInput() {
                                     <div class="card-body">
                                         <!-- Header Type -->
                                         <div class="form-group mb-4">
-                                            <label class="font-weight-600 text-dark">{{ __tr('Média de la fiche') }}</label>
-                                            <div class="d-flex mb-3">
-                                                <div class="custom-control custom-radio mr-4">
-                                                    <input type="radio" :id="'headerImg' + index" :name="'carousel_templates['+index+'][header_type]'" value="image" class="custom-control-input" x-model="card.headerType">
-                                                    <label class="custom-control-label" :for="'headerImg' + index">{{ __tr('Image') }}</label>
+                                            <label class="font-weight-600 text-dark">{{ __tr('Média de la carte') }} <span class="text-danger">*</span></label>
+                                            <div class="border rounded p-3 bg-light mt-2">
+                                                <div class="d-flex mb-3">
+                                                    <div class="custom-control custom-radio mr-4">
+                                                        <input type="radio" :id="'headerImg' + index" :name="'carousel_templates['+index+'][header_type]'" value="image" class="custom-control-input" x-model="card.headerType">
+                                                        <label class="custom-control-label font-weight-normal" :for="'headerImg' + index"><i class="fa fa-image text-muted mr-1"></i> {{ __tr('Image') }}</label>
+                                                    </div>
+                                                    <div class="custom-control custom-radio">
+                                                        <input type="radio" :id="'headerVid' + index" :name="'carousel_templates['+index+'][header_type]'" value="video" class="custom-control-input" x-model="card.headerType">
+                                                        <label class="custom-control-label font-weight-normal" :for="'headerVid' + index"><i class="fa fa-video text-muted mr-1"></i> {{ __tr('Vidéo') }}</label>
+                                                    </div>
                                                 </div>
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" :id="'headerVid' + index" :name="'carousel_templates['+index+'][header_type]'" value="video" class="custom-control-input" x-model="card.headerType">
-                                                    <label class="custom-control-label" :for="'headerVid' + index">{{ __tr('Vidéo') }}</label>
+                                                <!-- Media Uploaders -->
+                                                <div x-show="card.headerType == 'image'">
+                                                    <input :id="'lwCardImageMediaFilepond'+index" type="file" data-allow-revert="true"
+                                                        data-label-idle="<i class='fa fa-cloud-upload-alt mr-2'></i>{{ __tr('Upload Image') }}" class="" data-lw-plugin="lwUploader"
+                                                        data-instant-upload="true" data-action="<?= route('media.upload_temp_media', 'whatsapp_image') ?>"
+                                                        :data-file-input-element="'#lwCardMediaFileName'+index" data-allowed-media='<?= getMediaRestriction('whatsapp_image') ?>'/>
                                                 </div>
+                                                <div x-show="card.headerType == 'video'">
+                                                    <input :id="'lwCardVideoMediaFilepond'+index" type="file" data-allow-revert="true"
+                                                        data-label-idle="<i class='fa fa-cloud-upload-alt mr-2'></i>{{ __tr('Upload Vidéo') }}" class="" data-lw-plugin="lwUploader"
+                                                        data-instant-upload="true" data-action="<?= route('media.upload_temp_media', 'whatsapp_video') ?>"
+                                                        :data-file-input-element="'#lwCardMediaFileName'+index" data-allowed-media='<?= getMediaRestriction('whatsapp_video') ?>'/>
+                                                </div>
+                                                <input :id="'lwCardMediaFileName'+index" type="hidden" value="" :name="'carousel_templates['+index+'][uploaded_media_file_name]'" />
                                             </div>
-                                            <!-- Media Uploaders -->
-                                            <div x-show="card.headerType == 'image'">
-                                                <input :id="'lwCardImageMediaFilepond'+index" type="file" data-allow-revert="true"
-                                                    data-label-idle="{{ __tr('Sélectionnez une Image') }}" class="" data-lw-plugin="lwUploader"
-                                                    data-instant-upload="true" data-action="<?= route('media.upload_temp_media', 'whatsapp_image') ?>"
-                                                    :data-file-input-element="'#lwCardMediaFileName'+index" data-allowed-media='<?= getMediaRestriction('whatsapp_image') ?>'/>
-                                            </div>
-                                            <div x-show="card.headerType == 'video'">
-                                                <input :id="'lwCardVideoMediaFilepond'+index" type="file" data-allow-revert="true"
-                                                    data-label-idle="{{ __tr('Sélectionnez une Vidéo') }}" class="" data-lw-plugin="lwUploader"
-                                                    data-instant-upload="true" data-action="<?= route('media.upload_temp_media', 'whatsapp_video') ?>"
-                                                    :data-file-input-element="'#lwCardMediaFileName'+index" data-allowed-media='<?= getMediaRestriction('whatsapp_video') ?>'/>
-                                            </div>
-                                            <input :id="'lwCardMediaFileName'+index" type="hidden" value="" :name="'carousel_templates['+index+'][uploaded_media_file_name]'" />
                                         </div>
 
                                         <!-- Card Body -->
                                         <div class="form-group">
-                                            <label :for="'lwCarouselCardBody' + index" class="font-weight-600 text-dark">{{ __tr('Texte de la fiche') }} <span class="text-danger">*</span></label>
+                                            <label :for="'lwCarouselCardBody' + index" class="font-weight-600 text-dark">{{ __tr('Texte de la carte') }} <span class="text-danger">*</span></label>
                                             <textarea :name="'carousel_templates['+index+'][carousel_card_body]'" :id="'lwCarouselCardBody' + index" class="form-control" rows="3" x-model="card.bodyText" @input="updateCardVariables(index)" required></textarea>
                                         </div>
                                         
@@ -1460,13 +1637,64 @@ sanitizeInput() {
                                                 </div>
                                             </template>
                                         </div>
+
+                                        <!-- Card Buttons -->
+                                        <div class="mt-4 pt-3 border-top">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <label class="font-weight-600 text-dark mb-0">{{ __tr('Buttons (Max 2)') }}</label>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" @click.prevent="addCardButton(index, 'QUICK_REPLY')" :disabled="card.buttons && card.buttons.length >= 2">
+                                                    <i class="fa fa-plus"></i> {{ __tr('Ajouter') }}
+                                                </button>
+                                            </div>
+                                            
+                                            <div x-show="card.buttons && card.buttons.length > 0">
+                                                <template x-for="(btn, bIndex) in card.buttons" :key="btn.id">
+                                                    <div class="border rounded p-3 mb-3 bg-white shadow-sm position-relative">
+                                                        <div class="d-flex justify-content-between mb-3 align-items-center">
+                                                            <div class="d-flex flex-wrap align-items-center" style="gap: 15px;">
+                                                                <div class="custom-control custom-radio">
+                                                                    <input type="radio" :id="'btnQR_'+index+'_'+bIndex" class="custom-control-input" value="QUICK_REPLY" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][type]'" x-model="btn.type" @change="changeCardButtonType(index, bIndex, 'QUICK_REPLY')">
+                                                                    <label class="custom-control-label font-weight-normal text-sm" :for="'btnQR_'+index+'_'+bIndex"><i class="fa fa-reply text-muted mr-1"></i> Quick Reply</label>
+                                                                </div>
+                                                                <div class="custom-control custom-radio">
+                                                                    <input type="radio" :id="'btnURL_'+index+'_'+bIndex" class="custom-control-input" value="URL_BUTTON" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][type]'" x-model="btn.type" @change="changeCardButtonType(index, bIndex, 'URL_BUTTON')">
+                                                                    <label class="custom-control-label font-weight-normal text-sm" :for="'btnURL_'+index+'_'+bIndex"><i class="fa fa-link text-muted mr-1"></i> URL</label>
+                                                                </div>
+                                                                <div class="custom-control custom-radio">
+                                                                    <input type="radio" :id="'btnPhone_'+index+'_'+bIndex" class="custom-control-input" value="PHONE_NUMBER" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][type]'" x-model="btn.type" @change="changeCardButtonType(index, bIndex, 'PHONE_NUMBER')">
+                                                                    <label class="custom-control-label font-weight-normal text-sm" :for="'btnPhone_'+index+'_'+bIndex"><i class="fa fa-phone-alt text-muted mr-1"></i> Phone</label>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-link text-danger p-0 ml-2" @click="deleteCardButton(index, bIndex)">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        <div class="row">
+                                                            <div class="col-md-6 mb-2 mb-md-0">
+                                                                <input type="text" class="form-control form-control-sm" placeholder="Button text..." maxlength="25" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][text]'" x-model="btn.text" @input="analyzeTemplateQuality()" required>
+                                                                <div class="text-right text-muted" style="font-size: 11px;"><span x-text="btn.text ? btn.text.length : 0"></span>/25</div>
+                                                            </div>
+                                                            <div class="col-md-6" x-show="btn.type == 'URL_BUTTON'">
+                                                                <input type="url" class="form-control form-control-sm" placeholder="https://example.com" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][url]'" x-model="btn.url" @input="analyzeTemplateQuality()" :required="btn.type == 'URL_BUTTON'">
+                                                            </div>
+                                                            <div class="col-md-6" x-show="btn.type == 'PHONE_NUMBER'">
+                                                                <input type="tel" class="form-control form-control-sm" placeholder="+1234567890" :name="'carousel_templates['+index+'][message_buttons]['+bIndex+'][phone_number]'" x-model="btn.phone_number" @input="analyzeTemplateQuality()" :required="btn.type == 'PHONE_NUMBER'">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <!-- Hidden input to pass the count of buttons to backend -->
+                                            <input type="hidden" :name="'carousel_templates['+index+'][message_buttons_count]'" :value="card.buttons ? card.buttons.length : 0">
+                                        </div>
                                     </div>
                                 </div>
                             </template>
                             
                             <div class="text-center mt-4 mb-2">
                                 <button type="button" class="btn btn-dark" @click="addNewCard()" :disabled="carouselTemplateContainer.length >= 10">
-                                    <i class="fa fa-plus mr-1"></i> {{ __tr('Ajouter une fiche') }}
+                                    <i class="fa fa-plus mr-1"></i> {{ __tr('Ajouter une carte') }}
                                 </button>
                             </div>
                         </div>
@@ -1477,100 +1705,11 @@ sanitizeInput() {
                     </div>
                 </div>
 
-                <!-- Step 4: Carousel Buttons -->
+                <!-- Step 4: Carousel Review -->
                 <div x-show="step == 4 && templateType == 'carousel'">
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-white border-bottom-0 pb-0">
-                            <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 4: Boutons du Carrousel') }}</h3>
-                            <p class="text-muted text-sm mt-1">{{ __tr("Les boutons créés ici s'appliqueront de manière identique à TOUTES les fiches du carrousel.") }}</p>
-                        </div>
-                        <div class="card-body">
-                            <!-- Duplicate hidden inputs for ALL cards to satisfy the backend -->
-                            <template x-for="(card, cardIndex) in carouselTemplateContainer" :key="'card_btn_' + card.id">
-                                <div>
-                                    <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons_count]'" :value="carouselCustomButtons.length">
-                                    <template x-for="(btn, btnIndex) in carouselCustomButtons" :key="'btn_' + btnIndex + '_' + card.id">
-                                        <div>
-                                            <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons]['+btnIndex+'][type]'" :value="btn.type">
-                                            <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons]['+btnIndex+'][text]'" :value="btn.text">
-                                            <template x-if="btn.type == 'PHONE_NUMBER'">
-                                                <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons]['+btnIndex+'][phone_number]'" :value="btn.phone_number">
-                                            </template>
-                                            <template x-if="btn.type == 'URL_BUTTON' || btn.type == 'DYNAMIC_URL_BUTTON'">
-                                                <div>
-                                                    <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons]['+btnIndex+'][url]'" :value="btn.url">
-                                                    <template x-if="btn.type == 'DYNAMIC_URL_BUTTON'">
-                                                        <input type="hidden" :name="'carousel_templates['+cardIndex+'][message_buttons]['+btnIndex+'][example]'" :value="btn.example">
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-
-                            <div class="lw-buttons-container mb-4">
-                                <template x-for="(btn, index) in carouselCustomButtons" :key="btn.id">
-                                    <div class="card shadow-none border mb-3">
-                                        <div class="card-header p-2 bg-white border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="font-weight-bold text-sm text-primary">
-                                                <i class="fas fa-circle mr-1 text-xs"></i> <span x-text="getButtonTypeText(btn.type)"></span>
-                                            </span>
-                                            <button type="button" class="btn btn-link text-danger p-1 m-0" @click="deleteCarouselButton(index)"><i class="fa fa-trash"></i></button>
-                                        </div>
-                                        <div class="card-body p-3">
-                                            <div class="form-group mb-2">
-                                                <label class="font-weight-600 text-xs text-dark mb-1">{{ __tr('Texte du bouton') }} <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control form-control-sm" required maxlength="25" x-model="btn.text">
-                                            </div>
-                                            <div x-show="btn.type == 'PHONE_NUMBER'" class="form-group mb-2">
-                                                <label class="font-weight-600 text-xs text-dark mb-1">{{ __tr('Numéro') }} <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control form-control-sm" x-model="btn.phone_number" :required="btn.type == 'PHONE_NUMBER'">
-                                            </div>
-                                            <div x-show="btn.type == 'URL_BUTTON'" class="form-group mb-2">
-                                                <label class="font-weight-600 text-xs text-dark mb-1">{{ __tr('URL') }} <span class="text-danger">*</span></label>
-                                                <input type="url" class="form-control form-control-sm" x-model="btn.url" :required="btn.type == 'URL_BUTTON'">
-                                            </div>
-                                            <div x-show="btn.type == 'DYNAMIC_URL_BUTTON'">
-                                                <div class="form-group mb-2">
-                                                    <label class="font-weight-600 text-xs text-dark mb-1">{{ __tr('URL') }} <span class="text-danger">*</span></label>
-                                                    <div class="input-group input-group-sm">
-                                                        <input type="url" class="form-control" x-model="btn.url" :required="btn.type == 'DYNAMIC_URL_BUTTON'">
-                                                        <div class="input-group-append"><span class="input-group-text font-weight-bold">@{{1}}</span></div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group mb-2">
-                                                    <label class="font-weight-600 text-xs text-dark mb-1">{{ __tr('Exemple variable URL') }} <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control form-control-sm" x-model="btn.example" :required="btn.type == 'DYNAMIC_URL_BUTTON'">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <div class="mt-3 p-3 border rounded bg-white">
-                                <h4 class="font-weight-600 text-dark mb-2 text-sm">{{ __tr('Ajouter un bouton (Max 2)') }}</h4>
-                                <div class="d-flex flex-wrap gap-2" style="gap: 8px;">
-                                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" :disabled="carouselCustomButtons.length >= 2 || hasCarouselButtonType('QUICK_REPLY')" @click="addCarouselButton('QUICK_REPLY')"><i class="fa fa-reply mr-1"></i> {{ __tr('Quick Reply') }}</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" :disabled="carouselCustomButtons.length >= 2 || hasCarouselButtonType('PHONE_NUMBER')" @click="addCarouselButton('PHONE_NUMBER')"><i class="fa fa-phone-alt mr-1"></i> {{ __tr('Call Phone') }}</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" :disabled="carouselCustomButtons.length >= 2 || hasCarouselButtonType('URL_BUTTON')" @click="addCarouselButton('URL_BUTTON')"><i class="fa fa-link mr-1"></i> {{ __tr('Website Link') }}</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm mb-2" :disabled="carouselCustomButtons.length >= 2 || hasCarouselButtonType('DYNAMIC_URL_BUTTON')" @click="addCarouselButton('DYNAMIC_URL_BUTTON')"><i class="fa fa-link mr-1"></i> {{ __tr('Dynamic Link') }}</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white d-flex justify-content-between">
-                            <button type="button" class="btn btn-secondary" @click="goToStep(3)"><i class="fa fa-arrow-left mr-1"></i> {{ __tr('Précédent') }}</button>
-                            <button type="button" class="btn btn-primary" @click="goToStep(5)">{{ __tr('Suivant') }} <i class="fa fa-arrow-right ml-1"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 5: Carousel Review -->
-                <div x-show="step == 5 && templateType == 'carousel'">
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-white border-bottom-0 pb-0">
-                            <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 5: Revue & Soumission') }}</h3>
+                            <h3 class="font-weight-bold text-dark mb-0">{{ __tr('Étape 4: Revue & Soumission') }}</h3>
                             <p class="text-muted text-sm mt-1">{{ __tr('Vérifiez les paramètres de votre carrousel avant de le soumettre.') }}</p>
                         </div>
                         <div class="card-body">
@@ -1578,8 +1717,7 @@ sanitizeInput() {
                                 <tbody>
                                     <tr><td class="font-weight-bold w-50">{{ __tr('Nom') }}</td><td x-text="templateName"></td></tr>
                                     <tr><td class="font-weight-bold">{{ __tr('Catégorie') }}</td><td x-text="category"></td></tr>
-                                    <tr><td class="font-weight-bold">{{ __tr('Fiches') }}</td><td x-text="carouselTemplateContainer.length"></td></tr>
-                                    <tr><td class="font-weight-bold">{{ __tr('Boutons') }}</td><td x-text="carouselCustomButtons.length"></td></tr>
+                                    <tr><td class="font-weight-bold">{{ __tr('Cartes') }}</td><td x-text="carouselTemplateContainer.length"></td></tr>
                                 </tbody>
                             </table>
                             <div class="alert alert-warning mt-4 text-sm">
@@ -1587,7 +1725,7 @@ sanitizeInput() {
                             </div>
                         </div>
                         <div class="card-footer bg-white d-flex justify-content-between">
-                            <button type="button" class="btn btn-secondary" @click="goToStep(4)"><i class="fa fa-arrow-left mr-1"></i> {{ __tr('Précédent') }}</button>
+                            <button type="button" class="btn btn-secondary" @click="goToStep(3)"><i class="fa fa-arrow-left mr-1"></i> {{ __tr('Précédent') }}</button>
                             <button type="submit" class="btn btn-success"><i class="fa fa-paper-plane mr-1"></i> {{ __tr('Submit') }}</button>
                         </div>
                     </div>
@@ -1691,10 +1829,10 @@ sanitizeInput() {
                                     <i class="fa fa-video text-muted" x-show="card.headerType == 'video'"></i>
                                 </div>
                                 <!-- Card Body -->
-                                <div class="lw-wa-body-text" x-html="formatCardBodyPreview(index) || '<em>Texte de la fiche...</em>'"></div>
+                                <div class="lw-wa-body-text" x-html="formatCardBodyPreview(index) || '<em>Texte de la carte...</em>'"></div>
                                 <!-- Buttons -->
-                                <div class="lw-wa-buttons-area mt-2" x-show="carouselCustomButtons.length > 0">
-                                    <template x-for="btn in carouselCustomButtons" :key="btn.id">
+                                <div class="lw-wa-buttons-area mt-2" x-show="card.buttons && card.buttons.length > 0">
+                                    <template x-for="btn in card.buttons" :key="btn.id">
                                         <div class="lw-wa-btn">
                                             <i class="fa fa-reply" x-show="btn.type == 'QUICK_REPLY'"></i>
                                             <i class="fa fa-phone-alt" x-show="btn.type == 'PHONE_NUMBER'"></i>
