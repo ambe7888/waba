@@ -81,8 +81,9 @@
                     <!-- Reply_Text -->
                     <div class="form-group" x-show="isAdvanceBot == 'simple' || isAdvanceBot == 'interactive'">
                         <label for="lwReplyTextField">{{ __tr('Reply Text') }}</label>
-                        <textarea cols="10" rows="3" id="lwAdvanceBotReplyTextField" class="lw-form-field form-control"
-                            placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"></textarea>
+                            <textarea cols="10" rows="3" id="lwAdvanceBotReplyTextField" class="lw-form-field form-control"
+                                placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"></textarea>
+                            <x-whatsapp-format-buttons inputId="lwAdvanceBotReplyTextField" />
                             <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                     </div>
                     <!-- /Reply_Text -->
@@ -146,6 +147,7 @@
                             <div x-show="(isAdvanceBot == 'media') && headerType && (headerType != 'audio')">
                             <label for="lwMediaCaptionText">{{  __tr('Caption/Text') }}</label>
                             <textarea name="caption" id="lwCaptionField" class="form-control" rows="2"></textarea>
+                            <x-whatsapp-format-buttons inputId="lwCaptionField" />
                             <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for caption, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                         </div>
                             <div x-show="headerType == 'text'">
@@ -485,6 +487,7 @@
         <div class="form-group">
         <label for="lwReplyTextEditField">{{ __tr('Reply Text') }}</label>
         <textarea cols="10" rows="3" id="lwReplyTextEditField" value="<%- __tData.reply_text %>" class="lw-form-field form-control" placeholder="{{ __tr('Reply Text') }}" name="reply_text"  required="true"><%- __tData.reply_text %></textarea>
+        <x-whatsapp-format-buttons inputId="lwReplyTextEditField" />
         <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
             </div>
             <% } %>
@@ -553,7 +556,8 @@
                 <% if(__tData.__data?.media_message.header_type != 'audio') { %>
                 <div class="form-group">
                     <label for="lwMediaCaptionText">{{  __tr('Caption/Text') }}</label>
-                    <textarea name="caption" id="lwCaptionField" class="form-control" rows="2"><%- __tData.__data?.media_message.caption %></textarea>
+                    <textarea name="caption" id="lwCaptionFieldEdit" class="form-control" rows="2"><%- __tData.__data?.media_message.caption %></textarea>
+                    <x-whatsapp-format-buttons inputId="lwCaptionFieldEdit" />
                     <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for caption, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                 </div>
                 <% } %>
@@ -774,6 +778,24 @@
                     <!-- /Promotional -->
 
                     <!-- ai_bot -->
+                    @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                    @php 
+                        $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
+                    @endphp
+                    @if($dripCampaigns->count())
+                    <fieldset>
+                        <legend>{{  __tr('Drip Campaign Subscription') }}</legend>
+                        <select id="lwDripCampaign" class="form-control" name="addon_drip_campaigns__id">
+                            <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
+                            @foreach ($dripCampaigns as $dripCampaign)
+                                <option <%= __tData.addon_drip_campaigns__id == "{{ $dripCampaign->_id }}" ? 'selected' : '' %> value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">{{ __tr("When this bot is triggered, the contact will be subscribed to the selected Drip Campaign.") }}</small>
+                    </fieldset>
+                    @endif
+                    @endif
+                    
                     <fieldset>
                         <legend>{{  __tr('AI Bot') }}</legend>
                         <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">

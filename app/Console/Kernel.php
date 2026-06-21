@@ -39,6 +39,12 @@ class Kernel extends ConsoleKernel
                 ->withoutOverlapping(2) // Prevent overlapping executions
             ;
         }
+
+        // Process Drip Campaigns every minute for precise scheduling
+        $schedule->command('drip:process')
+            ->everyMinute()
+            ->name('process_drip_campaigns_via_cron')
+            ->withoutOverlapping();
     }
 
     /**

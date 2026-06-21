@@ -22,6 +22,11 @@
             <div class="float-right">
                 <a class="lw-btn btn btn-primary" href="{{ route('vendor.campaign.new.view') }}">{{ __tr('Create New Campaign') }}</a>
                 <a class="lw-btn btn btn-secondary " href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}">{{ __tr('Create New Non-Template Campaign') }}</a>
+                @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                <a class="lw-btn btn btn-success" href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}">
+                    <i class="fas fa-clock"></i> {{ __tr('Drip Campaigns') }}
+                </a>
+                @endif
             </div>
         </div>
         <!--/ button -->

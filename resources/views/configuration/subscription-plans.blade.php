@@ -41,9 +41,10 @@
                                 <div class="row pl-3">
                                     @if (!__isEmpty($freeFeatures))
                                         @foreach ($freeFeatures as $featureKey => $feature)
-                                        @php
+                                            @php
                                             $structureFeature = $freePlanStructure['features'][$featureKey];
-                                        @endphp
+                                            $feature = $freePlan['features'][$featureKey] ?? $structureFeature;
+                                            @endphp
                                             <fieldset class="col-xl-3 mr-4 float-left">
                                                 <legend>{{ $structureFeature['description'] }}</legend>
                                                 <!-- Description -->
@@ -110,7 +111,7 @@
                                         @foreach ($features as $featureKey => $feature)
                                             @php
                                                 $structureFeature = $feature;
-                                                $feature = $savedPlan['features'][$featureKey];
+                                                $feature = $savedPlan['features'][$featureKey] ?? $structureFeature;
                                             @endphp
                                             <fieldset class="col-xl-3 mr-4 float-left">
                                                 <legend>{{ $structureFeature['description'] }}</legend>

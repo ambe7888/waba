@@ -17,6 +17,10 @@ return [
                 'description' => __tr('Campaigns'),
                 'limit' => 10, // 0 for none, -1 for unlimited
             ],
+            'drip_campaigns' => [
+                'description' => __tr('Drip Campaigns (Automated Sequences)'),
+                'limit' => 1, // 0 for none, -1 for unlimited
+            ],
             'bot_replies' => [
                 'description' => __tr('Bot Replies'),
                 'limit' => 10, // 0 for none, -1 for unlimited
@@ -62,6 +66,10 @@ return [
                     'limit_duration_title' => __tr('Per Month'),
                     'description' => __tr('Campaigns'),
                     'limit' => 10, // 0 for none, -1 for unlimited
+                ],
+                'drip_campaigns' => [
+                    'description' => __tr('Drip Campaigns (Automated Sequences)'),
+                    'limit' => 5, // 0 for none, -1 for unlimited
                 ],
                 'bot_replies' => [
                     'description' => __tr('Bot Replies'),
@@ -122,6 +130,10 @@ return [
                     'description' => __tr('Campaigns'),
                     'limit' => 10, // 0 for none, -1 for unlimited
                 ],
+                'drip_campaigns' => [
+                    'description' => __tr('Drip Campaigns (Automated Sequences)'),
+                    'limit' => 15, // 0 for none, -1 for unlimited
+                ],
                 'bot_replies' => [
                     'description' => __tr('Bot Replies'),
                     'limit' => 10, // 0 for none, -1 for unlimited
@@ -179,6 +191,10 @@ return [
                     'limit_duration' => 'monthly',
                     'limit_duration_title' => __tr('Per Month'),
                     'description' => __tr('Campaigns'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'drip_campaigns' => [
+                    'description' => __tr('Drip Campaigns (Automated Sequences)'),
                     'limit' => -1, // 0 for none, -1 for unlimited
                 ],
                 'bot_replies' => [

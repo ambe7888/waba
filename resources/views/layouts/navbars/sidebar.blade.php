@@ -372,11 +372,31 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                 @endif
                 @if (hasVendorAccess('manage_campaigns'))
                 <li class="nav-item">
-                    <a class="nav-link {{ markAsActiveLink('vendor.campaign.read.list_view') }}"
-                        href="{{ route('vendor.campaign.read.list_view') }}">
-                        <i class="fa fa-bullhorn"></i>
-                        {{ __tr('Campaigns') }}
+                    <a class="nav-link" href="#vendorCampaignSubmenuNav" data-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="vendorCampaignSubmenuNav">
+                        <i class="fa fa-bullhorn text-dark"></i>
+                        <span class="">{{ __tr('Campaigns') }}</span>
                     </a>
+                    <div class="collapse lw-expandable-nav" id="vendorCampaignSubmenuNav">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {{ markAsActiveLink('vendor.campaign.read.list_view') }}"
+                                    href="{{ route('vendor.campaign.read.list_view') }}">
+                                    <i class="fa fa-bullhorn text-primary"></i>
+                                    {{ __tr('Standard Campaigns') }}
+                                </a>
+                            </li>
+                            @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                            <li class="nav-item">
+                                <a class="nav-link {{ markAsActiveLink('addon.WhatsJetDripCampaignAddon.index') }}"
+                                    href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}">
+                                    <i class="fas fa-clock text-success"></i>
+                                    {{ __tr('Drip Campaigns') }}
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
                 </li>
                 @endif
                 @if (hasVendorAccess('manage_contacts'))
