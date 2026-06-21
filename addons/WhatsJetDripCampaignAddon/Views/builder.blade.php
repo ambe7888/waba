@@ -46,12 +46,34 @@
                                 <p class="text-muted mb-0">
                                     @if($step->template)
                                         <i class="fa fa-whatsapp text-success"></i> {{ __tr('Template:') }} <strong>{{ $step->template->template_name }}</strong>
+                                        @php
+                                            $templateData = $step->template->__data ?? [];
+                                            $bodyText = '';
+                                            if(!empty($templateData) && isset($templateData['components'])) {
+                                                foreach($templateData['components'] as $component) {
+                                                    if($component['type'] == 'BODY' && isset($component['text'])) {
+                                                        $bodyText = $component['text'];
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+                                        @if($bodyText)
+                                        <div class="mt-2 p-2 bg-light rounded text-sm text-dark border">
+                                            <em>{!! nl2br(e($bodyText)) !!}</em>
+                                        </div>
+                                        @endif
                                     @elseif($step->custom_message)
                                         <i class="fa fa-comment text-info"></i> {{ __tr('Custom Message') }}
+                                        <div class="mt-2 p-2 bg-light rounded text-sm text-dark border">
+                                            <em>{!! nl2br(e($step->custom_message)) !!}</em>
+                                        </div>
                                     @endif
                                 </p>
                             </div>
-                            <div>
+                            <div class="d-flex align-items-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary mr-2" data-toggle="modal" data-target="#editStepModal{{ $step->_uid }}">
+                                    <i class="fa fa-edit"></i> {{ __tr('Edit') }}
+                                </button>
                                 <form action="{{ route('addon.WhatsJetDripCampaignAddon.delete_step', $step->_uid) }}" method="POST" onsubmit="return confirm('{{ __tr('Delete this step?') }}');">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -60,6 +82,68 @@
                                 </form>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Edit Step Modal -->
+                <div class="modal fade" id="editStepModal{{ $step->_uid }}" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <form action="{{ route('addon.WhatsJetDripCampaignAddon.update_step', $step->_uid) }}" method="POST">
+                            @csrf
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">{{ __tr('Edit Campaign Step') }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label>{{ __tr('Wait') }} <small class="text-danger">*</small></label>
+                                                <input type="number" min="0" name="delay_value" class="form-control" required value="{{ $step->delay_value }}">
+                                                <small class="text-muted">{{ __tr('0 = Send immediately.') }}</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label>{{ __tr('Time Unit') }} <small class="text-danger">*</small></label>
+                                                <select name="delay_type" class="form-control" required>
+                                                    <option value="minutes" {{ $step->delay_type == 'minutes' ? 'selected' : '' }}>{{ __tr('Minutes') }}</option>
+                                                    <option value="hours" {{ $step->delay_type == 'hours' ? 'selected' : '' }}>{{ __tr('Hours') }}</option>
+                                                    <option value="days" {{ $step->delay_type == 'days' ? 'selected' : '' }}>{{ __tr('Days') }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mt-3">
+                                        <label>{{ __tr('Send WhatsApp Template') }}</label>
+                                        <select name="whatsapp_templates__id" class="form-control">
+                                            <option value="">{{ __tr('-- Select Template --') }}</option>
+                                            @foreach($templates as $template)
+                                                <option value="{{ $template->_id }}" {{ $step->whatsapp_templates__id == $template->_id ? 'selected' : '' }}>{{ $template->template_name }} ({{ $template->language }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group text-center">
+                                        <span class="text-muted">{{ __tr('OR') }}</span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>{{ __tr('Custom Text Message') }}</label>
+                                        <textarea id="lwDripCustomMessage{{ $step->_uid }}" name="custom_message" class="form-control" rows="3">{{ $step->custom_message }}</textarea>
+                                        <x-whatsapp-format-buttons inputId="lwDripCustomMessage{{ $step->_uid }}" />
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Cancel') }}</button>
+                                    <button type="submit" class="btn btn-primary">{{ __tr('Save Changes') }}</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
                 @empty

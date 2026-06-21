@@ -79,6 +79,11 @@ class WhatsJetDripCampaignAddonServiceProvider extends ServiceProvider
                 \Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class,
                 'deleteStep'
             ])->name('addon.WhatsJetDripCampaignAddon.delete_step');
+
+            Route::post('/drip-campaigns/step/{stepUid}/update', [
+                \Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class,
+                'updateStep'
+            ])->name('addon.WhatsJetDripCampaignAddon.update_step');
             
         });
 

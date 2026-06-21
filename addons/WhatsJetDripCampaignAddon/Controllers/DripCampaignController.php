@@ -129,6 +129,34 @@ class DripCampaignController extends Controller
         
         return back()->with('success', __tr('Step deleted successfully.'));
     }
+
+    /**
+     * Update a Step
+     */
+    public function updateStep(Request $request, $stepUid)
+    {
+        $request->validate([
+            'delay_value' => 'required|integer|min:0',
+            'delay_type' => 'required|in:minutes,hours,days',
+            'whatsapp_templates__id' => 'nullable|integer',
+            'custom_message' => 'nullable|string',
+        ]);
+
+        $step = DripStep::where('_uid', $stepUid)->firstOrFail();
+        
+        $campaign = DripCampaign::where('_id', $step->addon_drip_campaigns__id)
+            ->where('vendors__id', getVendorId())
+            ->firstOrFail();
+
+        $step->update([
+            'delay_value' => $request->delay_value,
+            'delay_type' => $request->delay_type,
+            'whatsapp_templates__id' => $request->whatsapp_templates__id,
+            'custom_message' => $request->custom_message,
+        ]);
+
+        return back()->with('success', __tr('Step updated successfully.'));
+    }
     
     /**
      * Delete a Campaign
