@@ -327,6 +327,12 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                     <i class="fas fa-puzzle-piece text-danger"></i> {{ __tr('Addons') }}
                                 </a>
                             </li>
+                            <li class="nav-item ">
+                                <a class="nav-link {{ markAsActiveLink('central.mobile.app.configuration') }}"
+                                    href="{{ route('central.mobile.app.configuration') }}">
+                                    <i class="fas fa-mobile-alt text-primary"></i> {{ __tr('Mobile App Settings') }}
+                                </a>
+                            </li>
                             @stack('centralSidebarSettingsLinks')
                             <li
                                 class="nav-item <?= Request::fullUrl() == route('manage.configuration.read', ['pageType' => 'licence-information']) ? 'active' : '' ?>">

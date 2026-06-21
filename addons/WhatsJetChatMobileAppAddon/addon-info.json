@@ -1,0 +1,6 @@
+{
+    "title": "WhatsJet Chat Mobile Apps",
+    "description": "Application mobile intégrée pour WhatsJet. Connecte votre application Flutter au système.",
+    "version": "1.0.0",
+    "identifier": "WhatsJetChatMobileApp"
+}
