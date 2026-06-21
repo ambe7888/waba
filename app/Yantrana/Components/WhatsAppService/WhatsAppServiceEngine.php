@@ -3466,6 +3466,28 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                             }
                         }
 
+                        // Check for Drip Campaign Subscription
+                        if ($botReply->addon_drip_campaigns__id && class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber')) {
+                            $existingSub = \Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber::where('addon_drip_campaigns__id', $botReply->addon_drip_campaigns__id)
+                                ->where('contacts__id', $contact->_id)
+                                ->first();
+                                
+                            if (!$existingSub) {
+                                \Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber::create([
+                                    'addon_drip_campaigns__id' => $botReply->addon_drip_campaigns__id,
+                                    'contacts__id' => $contact->_id,
+                                    'start_date' => now(),
+                                    'status' => 1
+                                ]);
+                            } elseif ($existingSub->status != 1) {
+                                // Reactivate
+                                $existingSub->status = 1;
+                                $existingSub->start_date = now();
+                                $existingSub->last_step_id = null;
+                                $existingSub->save();
+                            }
+                        }
+
                         $isBotMatched = true;
                         if ($replyText) {
                             $replyText = $this->dynamicValuesReplacement($replyText, $contact, [

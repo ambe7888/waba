@@ -1,0 +1,10 @@
+{
+    "name": "whatsjet/drip-campaign",
+    "description": "Drip Campaign Addon for WhatsJet",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Addons\\WhatsJetDripCampaignAddon\\": ""
+        }
+    }
+}

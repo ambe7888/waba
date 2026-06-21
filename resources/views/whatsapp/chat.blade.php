@@ -565,7 +565,7 @@
                                                                 --}}
                                                                 <div class="emoji d-flex align-items-center justify-content-center" style="width: 30px;">
                                                                 </div>
-                                                                <textarea name="message_body" required class="input-msg lw-input-emoji flex-grow-1 border-0 bg-transparent m-0" style="resize: none; outline: none; font-size: 15px; padding-top: 8px; line-height: 1.5; min-width: 50px; height: 40px; box-shadow: none;" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
+                                                                <textarea id="lwChatWindowMessageBody" name="message_body" required class="input-msg lw-input-emoji flex-grow-1 border-0 bg-transparent m-0" style="resize: none; outline: none; font-size: 15px; padding-top: 8px; line-height: 1.5; min-width: 50px; height: 40px; box-shadow: none;" placeholder="{{ __tr('Type a message') }}" autocomplete="off" autofocus></textarea>
                                                             <template x-if="contact">
                                                                 <div class="photo action-mic d-flex align-items-center justify-content-center ml-2" style="width: 30px;">
                                                                     <a title="{!! __tr('Record & Send') !!}" class="lw-ajax-link-action lw-whatsapp-bar-icon-btn d-flex align-items-center justify-content-center" href="#" data-toggle="modal" data-target="#lwSendRecording"><i class="fa fa-microphone text-muted" style="font-size: 18px;"></i> </a>
@@ -624,6 +624,13 @@
                                                             </div>
                                                         </button>
                                                     </x-lw.form>
+                                                    
+                                                    <!-- Format Buttons for Chat -->
+                                                    <div class="px-3 pb-2 pt-1">
+                                                        <x-whatsapp-format-buttons inputId="lwChatWindowMessageBody" />
+                                                    </div>
+                                                    <!-- /Format Buttons for Chat -->
+
                                                     {{-- error container --}}
                                                     <div data-form-id="#whatsAppMessengerForm"
                                                         class="lw-error-container-message_body p-2">

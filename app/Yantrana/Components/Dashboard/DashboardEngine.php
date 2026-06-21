@@ -274,6 +274,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'bot_flows' => $this->botFlowRepository->countIt($vendorWhereClause),
             'contact_custom_fields' => $this->contactCustomFieldRepository->countIt($vendorWhereClause),
             'system_users' => $this->userRepository->countIt($vendorWhereClause),
+            'drip_campaigns' => class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign') ? \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', $vendorId)->count() : 0,
         ];
         foreach ($planDetails['features'] as $planFeatureKey => $planFeature) {
             if(isset($usagesCountCollection[$planFeatureKey])) {

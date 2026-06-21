@@ -177,6 +177,7 @@ class BotReplyRepository extends BaseRepository implements BotReplyRepositoryInt
             'bot_flows__id',
             'status',
             '__data',
+            'addon_drip_campaigns__id',
         ];
         return $this->storeIt($inputData, $keyValues);
     }

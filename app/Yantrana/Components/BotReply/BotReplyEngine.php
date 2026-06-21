@@ -457,6 +457,8 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
             ]);
         }
 
+        $inputData['addon_drip_campaigns__id'] = request('addon_drip_campaigns__id') ?: null;
+
         // ask to add record
         $engineResponse = $this->botReplyRepository->processTransaction(function () use (&$inputData, &$vendorId) {
             if ($botReply = $this->botReplyRepository->storeBotReply($inputData)) {
@@ -587,6 +589,7 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
         $updateData = [
             'name' => $inputData['name'],
             'reply_text' => $isTemplateMessage ? '__IGNORE__' : $inputData['reply_text'] ?? '',
+            'addon_drip_campaigns__id' => $request->addon_drip_campaigns__id ?: null,
         ];
         if (!$botFlowId) {
             $updateData['trigger_type'] = $request->trigger_type;
