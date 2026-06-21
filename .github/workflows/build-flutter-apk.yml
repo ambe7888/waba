@@ -26,6 +26,12 @@ jobs:
       working-directory: whatsjet_mobile
       run: flutter pub get
 
+    - name: Patch outdated plugins
+      run: |
+        find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.compileSdkVersion/34/g' {} +
+        find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.minSdkVersion/21/g' {} +
+        find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.targetSdkVersion/34/g' {} +
+
     - name: Build APK
       working-directory: whatsjet_mobile
       run: flutter build apk --release
