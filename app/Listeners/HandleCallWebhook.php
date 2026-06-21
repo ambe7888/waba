@@ -38,13 +38,27 @@ class HandleCallWebhook
 
             $value = Arr::get($change, 'value', []);
 
-            // Process "calls" array entries (connect, terminate events with SDP)
+            // Meta can send 'calls' as an array OR directly inside 'value'
             $calls = Arr::get($value, 'calls', []);
+            if (empty($calls) && isset($value['id']) && isset($value['event'])) {
+                $calls = [$value]; // wrap direct object into array
+            }
+
             foreach ($calls as $call) {
                 $callId = Arr::get($call, 'id');
                 $callEvent = Arr::get($call, 'event'); // "connect" or "terminate"
                 $sessionSdp = Arr::get($call, 'session.sdp');
                 $sessionSdpType = Arr::get($call, 'session.sdp_type');
+
+                // Sanitize SDP to ensure it has proper \r\n line endings (WebRTC requirement)
+                if (!empty($sessionSdp)) {
+                    $lines = preg_split('/\r\n|\r|\n/', $sessionSdp);
+                    $clean = [];
+                    foreach ($lines as $line) {
+                        $clean[] = $line;
+                    }
+                    $sessionSdp = implode("\r\n", $clean) . "\r\n";
+                }
 
                 Log::info('HandleCallWebhook: call event parsed', [
                     'vendor_uid' => $vendorUid,
@@ -67,6 +81,10 @@ class HandleCallWebhook
 
             // Process "statuses" array entries (RINGING, ACCEPTED status updates)
             $statuses = Arr::get($value, 'statuses', []);
+            if (empty($statuses) && isset($value['id']) && isset($value['status'])) {
+                $statuses = [$value]; // wrap direct object
+            }
+
             foreach ($statuses as $status) {
                 $callId = Arr::get($status, 'id');
                 $callStatus = Arr::get($status, 'status'); // "RINGING", "ACCEPTED"
