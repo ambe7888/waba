@@ -48,7 +48,15 @@ class HandleCallWebhook
                 $callId = Arr::get($call, 'id');
                 $callEvent = Arr::get($call, 'event'); // "connect" or "terminate"
                 $sessionSdp = Arr::get($call, 'session.sdp');
+                if (empty($sessionSdp)) {
+                    $sessionSdp = Arr::get($call, 'connection.webrtc.sdp');
+                }
+                
                 $sessionSdpType = Arr::get($call, 'session.sdp_type');
+                if (empty($sessionSdpType)) {
+                    // if not provided, assume answer since Meta responds to our offer
+                    $sessionSdpType = 'answer';
+                }
 
                 // Sanitize SDP to ensure it has proper \r\n line endings (WebRTC requirement)
                 if (!empty($sessionSdp)) {
