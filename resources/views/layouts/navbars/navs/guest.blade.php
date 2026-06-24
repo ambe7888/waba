@@ -1,10 +1,108 @@
 
+
+    <style>
+        /* Transparent containers inside navbar to fix white blocks */
+        #mainNav .container,
+        #mainNav .navbar-collapse,
+        #mainNav .navbar-nav {
+            background: transparent !important;
+        }
+
+        /* Modern Glassmorphic Navbar - Light Mode */
+        html[data-theme='light'] nav#mainNav,
+        html[lw-theme-mode='light'] nav#mainNav,
+        nav#mainNav {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.3s ease;
+        }
+        
+        html[data-theme='light'] #mainNav .navbar-nav .nav-item .nav-link,
+        html[lw-theme-mode='light'] #mainNav .navbar-nav .nav-item .nav-link,
+        #mainNav .navbar-nav .nav-item .nav-link {
+            color: #374151 !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        html[data-theme='light'] #mainNav .navbar-nav .nav-item .nav-link:hover,
+        html[lw-theme-mode='light'] #mainNav .navbar-nav .nav-item .nav-link:hover,
+        #mainNav .navbar-nav .nav-item .nav-link:hover {
+            color: #198754 !important;
+            background: rgba(25, 135, 84, 0.08);
+            transform: translateY(-1px);
+        }
+
+        html[data-theme='light'] #mainNav .navbar-nav .nav-item a[href*="register"],
+        html[lw-theme-mode='light'] #mainNav .navbar-nav .nav-item a[href*="register"],
+        #mainNav .navbar-nav .nav-item a[href*="register"] {
+            background: #198754;
+            color: white !important;
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2);
+            font-weight: 600;
+        }
+
+        html[data-theme='light'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover,
+        html[lw-theme-mode='light'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover,
+        #mainNav .navbar-nav .nav-item a[href*="register"]:hover {
+            background: #157347;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(25, 135, 84, 0.3);
+        }
+
+        /* Modern Glassmorphic Navbar - Dark Mode */
+        html[data-theme='dark'] nav#mainNav,
+        html[lw-theme-mode='dark'] nav#mainNav {
+            background: rgba(23, 24, 44, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        html[data-theme='dark'] #mainNav .navbar-nav .nav-item .nav-link,
+        html[lw-theme-mode='dark'] #mainNav .navbar-nav .nav-item .nav-link {
+            color: #e5e7eb !important;
+        }
+
+        html[data-theme='dark'] #mainNav .navbar-nav .nav-item .nav-link:hover,
+        html[lw-theme-mode='dark'] #mainNav .navbar-nav .nav-item .nav-link:hover {
+            color: #34d399 !important;
+            background: rgba(52, 211, 153, 0.1);
+        }
+        
+        html[data-theme='dark'] #mainNav .navbar-nav .nav-item a[href*="register"],
+        html[lw-theme-mode='dark'] #mainNav .navbar-nav .nav-item a[href*="register"] {
+            background: #10b981;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            color: white !important;
+        }
+
+        html[data-theme='dark'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover,
+        html[lw-theme-mode='dark'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover {
+            background: #059669;
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+
+
 <!-- theme Menu -->
 @php
 //user current theme
 $currentAppTheme=getUserAppTheme();
 @endphp
-<nav class="navbar navbar-top navbar-horizontal navbar-expand-md shadow-sm">
+<nav class="navbar navbar-top navbar-horizontal navbar-expand-md shadow-sm" id="mainNav">
     <div class="container px-5">
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapse-main"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
