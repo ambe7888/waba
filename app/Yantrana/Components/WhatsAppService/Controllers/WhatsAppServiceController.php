@@ -195,6 +195,50 @@ class WhatsAppServiceController extends BaseController
             ));
     }
 
+    public function generateAiCampaignMessage(BaseRequestTwo $request)
+    {
+        validateVendorAccess('manage_campaigns');
+        $request->validate([
+            'prompt' => 'required|string|max:1000',
+        ]);
+
+        $vendorId = getVendorId();
+        
+        $accessKey = getVendorSettings('open_ai_access_key', null, null, $vendorId);
+        $orgKey = getVendorSettings('open_ai_organization_id', null, null, $vendorId);
+        $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
+
+        if (!$accessKey) {
+            return $this->processResponse(2, [
+                2 => __tr("La clé API OpenAI n'est pas configurée dans les paramètres de votre compte (Paramètres AI).")
+            ], [], true);
+        }
+
+        config([
+            'openai.api_key' => $accessKey,
+            'openai.organization' => $orgKey,
+        ]);
+
+        try {
+            $response = \OpenAI\Laravel\Facades\OpenAI::chat()->create([
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => "Tu es un expert en marketing digital sur WhatsApp. Rédige un message court, percutant, avec des emojis, adapté pour une campagne WhatsApp basée sur les instructions de l'utilisateur. Ne rajoute pas d'introduction ni de conclusion, donne directement le contenu du message."],
+                    ['role' => 'user', 'content' => $request->prompt]
+                ],
+                'temperature' => 0.7,
+                'max_tokens' => 500,
+            ]);
+
+            $messageText = trim($response['choices'][0]['message']['content']);
+            return $this->responseAction($this->processResponse(1, [], ['message' => $messageText]));
+        } catch (\Exception $e) {
+            return $this->responseAction($this->processResponse(2, [
+                2 => __tr("Erreur lors de la génération avec l'IA : ") . $e->getMessage()
+            ], [], true));
+        }
+    }
+
     /**
      * Check if has API feature enabled in plan or abort
      *

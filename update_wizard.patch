@@ -1,0 +1,158 @@
+--- resources/views/whatsapp/template-send-message.blade.php
++++ resources/views/whatsapp/template-send-message.blade.php
+@@ -28,6 +28,29 @@
+     scheduleAt: '',
+     expireAt: '',
+     contactCount: 0,
++    currentStep: 1,
++    averageCostPerMessage: 0.08,
++    get estimatedCost() {
++        return (this.contactCount * this.averageCostPerMessage).toFixed(2);
++    },
++    nextStep: function() {
++        if (this.currentStep === 1) {
++            if (!this.selectedTemplate && !this.selectedNonTemplatePresetMessage) {
++                alert('{{ __tr('Veuillez sélectionner un modèle ou un message prédéfini avant de continuer.') }}');
++                return;
++            }
++            if (!this.campaignTitle) {
++                this.generateCampaignTitle();
++            }
++        }
++        if (this.currentStep < 4) {
++            this.currentStep++;
++        }
++    },
++    prevStep: function() {
++        if (this.currentStep > 1) {
++            this.currentStep--;
++        }
++    },
+     restrictByLanguageChange: function() {
+ 
+         const el = this.$refs.lwRestrictLanguageSwitch;
+@@ -121,6 +144,30 @@
+             @endif
+             <div class="card-body">
++                <!-- Stepper UI -->
++                @if (!$contact)
++                <div class="d-flex justify-content-between mb-4 position-relative">
++                    <div class="progress position-absolute" style="top: 50%; left: 0; width: 100%; height: 4px; z-index: 0; transform: translateY(-50%);">
++                        <div class="progress-bar bg-success" role="progressbar" :style="'width: ' + ((currentStep - 1) * 33.33) + '%'" :aria-valuenow="(currentStep - 1) * 33.33" aria-valuemin="0" aria-valuemax="100"></div>
++                    </div>
++                    <div class="text-center position-relative" style="z-index: 1;">
++                        <button class="btn btn-sm rounded-circle" :class="currentStep >= 1 ? 'btn-success' : 'btn-light'" style="width: 35px; height: 35px;" @click="currentStep = 1">1</button>
++                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 1 ? 'text-success' : 'text-muted'">Message</div>
++                    </div>
++                    <div class="text-center position-relative" style="z-index: 1;">
++                        <button class="btn btn-sm rounded-circle" :class="currentStep >= 2 ? 'btn-success' : 'btn-light'" style="width: 35px; height: 35px;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 2">2</button>
++                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 2 ? 'text-success' : 'text-muted'">Audience</div>
++                    </div>
++                    <div class="text-center position-relative" style="z-index: 1;">
++                        <button class="btn btn-sm rounded-circle" :class="currentStep >= 3 ? 'btn-success' : 'btn-light'" style="width: 35px; height: 35px;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 3">3</button>
++                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 3 ? 'text-success' : 'text-muted'">Planification</div>
++                    </div>
++                    <div class="text-center position-relative" style="z-index: 1;">
++                        <button class="btn btn-sm rounded-circle" :class="currentStep >= 4 ? 'btn-success' : 'btn-light'" style="width: 35px; height: 35px;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 4">4</button>
++                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 4 ? 'text-success' : 'text-muted'">Résumé</div>
++                    </div>
++                </div>
++                @endif
+                 <div class="row">
+                     <div class="{{ $isNonTemplateCampaign ? 'col-lg-7 col-md-8 col-sm-12' : 'col-sm-12 col-md-7 col-lg-7' }}">
+-                    @if (!$contact)
+-                    <h2 class="text-warning">{{  __tr('Step 1') }}</h2>
+-                    @endif
++                    
++                    <!-- STEP 1: Message -->
++                    <div x-show="currentStep === 1 || '{{ $contact != null }}' == '1'">
+                     @if ($campaignType != 'non-template')
+                     <x-lw.form lwSubmitOnChange data-event-callback="lwPrepareUploadPlugIn"
+@@ -201,13 +248,34 @@
+                                 <div x-show="selectedTemplate" id="lwTemplateStructureContainer">
+                                     {!! $template !!}
+                                 </div>
++                                
++                                @if (!$contact)
++                                <div class="mt-4 text-right">
++                                    <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
++                                </div>
++                                @endif
++                    </div>
++                    <!-- /STEP 1 -->
++                    
++                    @if (!$contact)
++                    <!-- STEP 2: Audience -->
++                    <div x-show="currentStep === 2" x-cloak>
+                                 <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
+-                                <h2 class="mt-5 text-warning">{{  __tr('Step 2') }}</h2>
+-                               <fieldset class="w-100">
+-                                <legend>{{  __tr('Contacts and Schedule') }}</legend>
+                                 <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('Campaign Title')" name="title" x-model="campaignTitle" required="required">
+                                     <x-slot name="append">
+                                         <button class="btn btn-outline-success font-weight-bold" type="button" @click="generateCampaignTitle()" title="{{ __tr('Générer un nom de campagne automatique') }}">
+@@ -249,8 +317,16 @@
+                                     @endif
+-                                 </fieldset>
++                                
++                                <div class="mt-4 d-flex justify-content-between">
++                                    <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
++                                    <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
++                                </div>
++                    </div>
++                    <!-- /STEP 2 -->
++
++                    <!-- STEP 3: Planification -->
++                    <div x-show="currentStep === 3" x-cloak>
+                                     <fieldset x-data="{scheduleNow:true}">
+                                         <legend>{{  __tr('Schedule') }}</legend>
+@@ -291,12 +367,46 @@
+                                         </template>
+                                     </fieldset>
+-                               </fieldset>
+                                @include('whatsapp.from-phone-number')
+-                               <div class="my-4">
+-                                <button type="submit" class="btn btn-primary">{{ __tr('Schedule Campaign') }}</button>
+-                               </div>
++                               
++                                <div class="mt-4 d-flex justify-content-between">
++                                    <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
++                                    <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
++                                </div>
++                    </div>
++                    <!-- /STEP 3 -->
++
++                    <!-- STEP 4: Résumé & Estimation -->
++                    <div x-show="currentStep === 4" x-cloak>
++                        <div class="card bg-light border-0 shadow-sm mb-4">
++                            <div class="card-body">
++                                <h3 class="font-weight-bold text-dark mb-4"><i class="fas fa-clipboard-check text-success mr-2"></i> {{ __tr('Résumé de la Campagne') }}</h3>
++                                
++                                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
++                                    <span class="text-muted">{{ __tr('Titre :') }}</span>
++                                    <strong x-text="campaignTitle"></strong>
++                                </div>
++                                
++                                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
++                                    <span class="text-muted">{{ __tr('Contacts Ciblés :') }}</span>
++                                    <strong><span x-text="contactCount"></span> {{ __tr('contacts') }}</strong>
++                                </div>
++                                
++                                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
++                                    <span class="text-muted">{{ __tr('Coût Estimé (WhatsApp Meta) :') }}</span>
++                                    <strong class="text-success"><span x-text="estimatedCost"></span> €</strong>
++                                </div>
++                                <div class="text-xs text-muted mt-1 text-right">
++                                    * {{ __tr("Estimation basée sur un coût moyen de 0.08€ par message. Le coût final dépend de la destination et du type de template.") }}
++                                </div>
++                            </div>
++                        </div>
++
++                        <div class="mt-4 d-flex justify-content-between">
++                            <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
++                            <button type="submit" class="btn btn-success btn-lg font-weight-bold shadow-sm"><i class="fas fa-paper-plane mr-2"></i> {{ __tr('Lancer la Campagne') }}</button>
++                        </div>
++                    </div>
++                    <!-- /STEP 4 -->
++                    @endif
+                             </x-lw.form>

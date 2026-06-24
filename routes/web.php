@@ -626,6 +626,11 @@ Route::middleware([
               
 
                 Route::prefix('/campaign')->group(function () {
+                    
+                    Route::post('/generate-ai-message', [
+                        WhatsAppServiceController::class,
+                        'generateAiCampaignMessage',
+                    ])->name('vendor.campaign.generate_ai_message.write');
 
                     Route::get('/new/{campaignType?}', [
                         WhatsAppServiceController::class,
