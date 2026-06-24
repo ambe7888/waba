@@ -37,6 +37,8 @@
     contactCount: 0,
     currentStep: 1,
     maxStepReached: 1,
+    scheduleNow: true,
+    expiryOn: false,
     averageCostPerMessage: 0.0225,
     get estimatedCost() {
         return (this.contactCount * this.averageCostPerMessage).toFixed(2);
@@ -52,8 +54,26 @@
             }
         }
         if (this.currentStep === 2) {
-            if (this.contactCount <= 0 && !'{{ $isNonTemplateCampaign }}') {
-                if(!confirm('Aucun contact sélectionné. Voulez-vous continuer ?')) return;
+            if (!this.campaignTitle || !this.campaignTitle.trim()) {
+                alert('Veuillez entrer un titre pour la campagne.');
+                return;
+            }
+            if (!this.contactGroupIds || this.contactGroupIds.length === 0) {
+                alert('Veuillez sélectionner au moins un groupe de contacts.');
+                return;
+            }
+            if (this.contactCount <= 0) {
+                if(!confirm('Aucun contact ciblé trouvé. Voulez-vous continuer ?')) return;
+            }
+        }
+        if (this.currentStep === 3) {
+            if (!this.scheduleNow && !this.scheduleAt) {
+                alert('Veuillez sélectionner une date et heure de planification.');
+                return;
+            }
+            if (this.expiryOn && !this.expireAt) {
+                alert('Veuillez sélectionner une date et heure d\'expiration.');
+                return;
             }
         }
         if (this.currentStep < 4) {
@@ -77,16 +97,12 @@
         }
     },
     getTargetedContactCount: function() {
-        if ('{{ $isNonTemplateCampaign }}') {
-            return false;
-        }
-
         var self = this;
         __DataRequest.post('{{ route('vendor.campaign.read.targeted_contact_count') }}', {
                 'group_contact_ids': this.contactGroupIds,
                 'label_ids': this.labelTagIds,
                 'restrict_by_language': this.restrictByTemplatedContactLanguage,
-                'template_id': this.selectedTemplate
+                'template_id': this.selectedTemplate || ''
             }, function(responseData) {
                 self.contactCount = responseData.data.totalContacts;
             }
@@ -331,7 +347,7 @@
 
                                 <!-- STEP 3 -->
                                 <div x-show="currentStep === 3" x-cloak>
-                                    <fieldset x-data="{scheduleNow:true}">
+                                    <fieldset>
                                         <legend>{{  __tr('Schedule') }}</legend>
                                         <div class="form-group pt-3">
                                             <label for="lwNowCampaign">
@@ -355,7 +371,7 @@
                                             </div>
                                         </template>
                                     </fieldset>
-                                    <fieldset x-data="{expiryOn:false}">
+                                    <fieldset>
                                         <legend>{{  __tr('Expiry') }}</legend>
                                         <div class="alert alert-danger">
                                             {{  __tr("Messages will be set as expired if delayed in sending and won't be sent for the further processing.") }}
