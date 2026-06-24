@@ -185,6 +185,28 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         <i class="fa fa-store"></i> {{ __tr('Vendors') }}
                     </a>
                 </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="#saasMenu" data-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="saasMenu">
+                        <i class="fa fa-robot text-success"></i>
+                        <span class="nav-link-text">{{ __tr('Gestion SaaS') }}</span>
+                    </a>
+                    <div class="collapse {{ (request('pageType') == 'saas-automation' || request()->routeIs('central.vendors.broadcast.*')) ? 'show' : '' }} lw-expandable-nav" id="saasMenu">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item {{ request('pageType') == 'saas-automation' ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('manage.configuration.read', ['pageType' => 'saas-automation']) }}">
+                                    <i class="fa fa-cogs"></i> {{ __tr('Automatisation (Cron)') }}
+                                </a>
+                            </li>
+                            <li class="nav-item {{ markAsActiveLink('central.vendors.broadcast.view') }}">
+                                <a class="nav-link" href="{{ route('central.vendors.broadcast.view') }}">
+                                    <i class="fa fa-paper-plane text-success"></i> {{ __tr('Diffusion Manuelle') }}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#lwSubscriptionSubMenu" data-toggle="collapse" role="button"
                         aria-expanded="true" aria-controls="lwSubscriptionSubMenu">
@@ -321,6 +343,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                     {!! __tr('WhatsApp Onboarding') !!}
                                 </a>
                             </li>
+
                             <li class="nav-item ">
                                 <a class="nav-link {{ markAsActiveLink('central.addons.read.list') }}"
                                     href="{{ route('central.addons.read.list') }}">

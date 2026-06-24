@@ -1480,6 +1480,32 @@ return [
                 'default'       => '',
                 'ignore_empty' => true
             ]
+        ],
+        'saas-automation' => [
+            'saas_admin_vendor_id' => [
+                'key' => 'saas_admin_vendor_id',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
+            'saas_welcome_template' => [
+                'key' => 'saas_welcome_template',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
+            'saas_expiry_reminder_template' => [
+                'key' => 'saas_expiry_reminder_template',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
+            'saas_expired_template' => [
+                'key' => 'saas_expired_template',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
         ]
     ],
 ];

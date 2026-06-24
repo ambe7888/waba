@@ -195,8 +195,6 @@ class WhatsAppServiceController extends BaseController
             ));
     }
 
-
-
     /**
      * Check if has API feature enabled in plan or abort
      *

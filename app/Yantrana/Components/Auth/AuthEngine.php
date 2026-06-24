@@ -315,7 +315,37 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                 if (getAppSettings('send_welcome_email')) {
                     $this->userWelcomeNotifyMail($newUser);
                 }
-                    return $this->authRepository->transactionResponse(1, array_merge(['show_message' => true], $newUser->toArray()), __tr('Your account created successfully.'));
+
+                // SaaS Automation: Welcome WhatsApp Template
+                $saasAdminVendorId = getAppSettings('saas_admin_vendor_id');
+                $saasWelcomeTemplate = getAppSettings('saas_welcome_template');
+                
+                if (!empty($saasAdminVendorId) && !empty($saasWelcomeTemplate) && !empty($newUser->mobile_number)) {
+                    try {
+                        $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+                        $waId = preg_replace('/[^0-9]/', '', $newUser->mobile_number);
+                        
+                        if (!empty($waId)) {
+                            // Fetch template definition to construct proforma (fallback if name is just string)
+                            $waEngine->sendActualWhatsAppTemplateMessage(
+                                (int)$saasAdminVendorId, // Vendor ID of Super Admin
+                                0, // Contact ID (0 for unregistered contact)
+                                $waId, // To phone number
+                                '', // Contact UID
+                                $saasWelcomeTemplate, // Template Name
+                                'fr', // Template Language
+                                ['name' => $saasWelcomeTemplate, 'language' => 'fr'], // template proforma
+                                [], // template components
+                                [], // message components
+                                null // campaign ID
+                            );
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("SaaS Automation Welcome Message Failed: " . $e->getMessage());
+                    }
+                }
+
+                return $this->authRepository->transactionResponse(1, array_merge(['show_message' => true], $newUser->toArray()), __tr('Your account created successfully.'));
             }
 
             // Send failed server error message
