@@ -322,16 +322,17 @@
                             @else
                             {{-- Campaign Creation --}}
                             <x-lw.form x-show="selectedTemplate || selectedNonTemplatePresetMessage" :action="route('vendor.campaign.schedule.process')" data-confirm="#lwScheduleMessageConfirmation">
-                                <div x-show="selectedTemplate" id="lwTemplateStructureContainer">
-                                    {!! $template !!}
+                                <div x-show="currentStep === 1 || '{{ $contact != null }}' == '1'">
+                                    <div x-show="selectedTemplate" id="lwTemplateStructureContainer">
+                                        {!! $template !!}
+                                    </div>
+                                    <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
+                                    @if (!$contact)
+                                    <div class="mt-4 text-right">
+                                        <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
+                                    </div>
+                                    @endif
                                 </div>
-                                <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
-                                @if (!$contact)
-                                <div class="mt-4 text-right">
-                                    <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
-                                </div>
-                                @endif
-                            </div>
                             
                             @if (!$contact)
                             <!-- STEP 2 -->
