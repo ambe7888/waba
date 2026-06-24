@@ -12,6 +12,14 @@
 // 'class' => 'col-lg-7'
 ])
 
+
+<style>
+    /* Fix Selectize rendering when initialized inside a hidden x-show container */
+    .selectize-control {
+        width: 100% !important;
+    }
+</style>
+
 <div class="container-fluid mt-lg--6" x-data="{
     fromPhoneNumberId: '{{ getVendorSettings('current_phone_number_id') }}',
     phoneNumber: '{{ $contact->wa_id ?? '' }}',
@@ -266,21 +274,24 @@
                             @if (!$contact)
                             <!-- STEP 2 -->
                             <div x-show="currentStep === 2" x-cloak>
-                                <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('Campaign Title')" name="title" x-model="campaignTitle" required="required">
+                                <h4 class="font-weight-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-users text-primary mr-2"></i> {{ __tr('Audience & Paramétrage') }}</h4>
+                                
+                                <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('1. Nommez votre campagne')" name="title" x-model="campaignTitle" required="required" placeholder="{{ __tr('Ex: Offre Spéciale Juin') }}">
                                     <x-slot name="append">
-                                        <button class="btn btn-outline-success font-weight-bold" type="button" @click="generateCampaignTitle()" title="{{ __tr('Générer un nom de campagne automatique') }}">
+                                        <button class="btn btn-outline-success font-weight-bold" type="button" @click="generateCampaignTitle()" title="{{ __tr('Générer un nom automatique') }}">
                                             <i class="fas fa-magic mr-1"></i> {{ __tr('Générer') }}
                                         </button>
                                     </x-slot>
                                 </x-lw.input-field>
-                                 <fieldset class="shadow-none">
-                                    <legend>{{  __tr('Target Contacts') }}</legend>
+                                
+                                 <fieldset class="shadow-none mt-4">
+                                    <legend class="text-sm font-weight-bold">{{  __tr('2. À qui souhaitez-vous envoyer ce message ?') }}</legend>
                                     {{-- select group --}}
                                  <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectGroupsField"
-                                 data-form-group-class="" data-selected=" " :label="__tr('Groups/Contact')" name="contact_group[]" multiple>
+                                 data-form-group-class="" data-selected=" " :label="__tr('Groupes de contacts (Sélectionnez un ou plusieurs)')" name="contact_group[]" multiple>
                                  <x-slot name="selectOptions">
-                                     <option value="">{{ __tr('Select Contacts Group') }}</option>
-                                     <option value="all_contacts">{{ __tr('All Contacts') }}</option>
+                                     <option value="">{{ __tr('Rechercher ou sélectionner un groupe...') }}</option>
+                                     <option value="all_contacts">{{ __tr('Tous les contacts') }}</option>
                                      @foreach($vendorContactGroups as $vendorContactGroup)
                                      <option value="{{ $vendorContactGroup['_id'] }}">{{ $vendorContactGroup['title'] }}</option>
                                      @endforeach
@@ -289,24 +300,25 @@
                              <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
                                      {{-- /select group --}}
                                      @if (isset($allLabels) && count($allLabels) > 0)
-                                     <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="" name="contact_labels[]" multiple >
+                                     <x-lw.input-field :label="__tr('Filtrer par étiquettes / mots-clés (Optionnel)')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="mt-3" name="contact_labels[]" multiple >
                                         <x-slot name="selectOptions">
-                                        <option value="">{{ __tr('Select Labels') }}</option>
+                                        <option value="">{{ __tr('Sélectionnez des étiquettes (labels)') }}</option>
                                             @foreach($allLabels as $label)
                                                 <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                             @endforeach
                                         </x-slot>
                                     </x-lw.input-field>
                                      @endif
+                                     
+                                    @if(!$isNonTemplateCampaign)
                                       <!-- Restrict by Template Language field -->
                                     <div class="form-group pt-3">
                                         <label for="lwOnlyForTemplateLanguageMatchingContact">
                                             <input type="checkbox" id="lwOnlyForTemplateLanguageMatchingContact" data-lw-plugin="lwSwitchery" data-color="#ff0000" 
                                             @click="restrictByLanguageChange()" x-ref="lwRestrictLanguageSwitch" name="restrict_by_templated_contact_language">
-                                           {!! __tr('Restrict by Language Code - Send only to the contacts whose language code matches with template language code.') !!}
+                                           {!! __tr('Restreindre par Code Langue - Envoyer uniquement aux contacts dont la langue correspond à celle du modèle.') !!}
                                         </label>
                                     </div>
-                                    @if(!$isNonTemplateCampaign)
                                     <strong class="m-2">
                                         {{ __tr('Total Targeted Contacts: ') }} <span x-text="contactCount"></span>
                                     </strong>
