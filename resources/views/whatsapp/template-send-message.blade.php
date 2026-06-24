@@ -28,6 +28,7 @@
     expireAt: '',
     contactCount: 0,
     currentStep: 1,
+    maxStepReached: 1,
     averageCostPerMessage: 0.0225,
     get estimatedCost() {
         return (this.contactCount * this.averageCostPerMessage).toFixed(2);
@@ -49,6 +50,7 @@
         }
         if (this.currentStep < 4) {
             this.currentStep++;
+            this.maxStepReached = Math.max(this.maxStepReached, this.currentStep);
         }
     },
     prevStep: function() {
@@ -153,21 +155,21 @@
                     <div class="progress position-absolute" style="top: 35%; left: 10%; width: 80%; height: 4px; z-index: 0; transform: translateY(-50%);">
                         <div class="progress-bar bg-success" role="progressbar" :style="'width: ' + ((currentStep - 1) * 33.33) + '%'" :aria-valuenow="(currentStep - 1) * 33.33" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
-                    <div class="text-center position-relative" style="z-index: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 1 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="currentStep = 1">1</button>
-                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 1 ? 'text-success' : 'text-muted'">Message</div>
+                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
+                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 1 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(1 <= maxStepReached) currentStep = 1">1</button>
+                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 1 ? 'text-success' : 'text-muted'">Message</div>
                     </div>
-                    <div class="text-center position-relative" style="z-index: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 2 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 2">2</button>
-                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 2 ? 'text-success' : 'text-muted'">Audience</div>
+                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
+                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 2 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(2 <= maxStepReached) currentStep = 2" :disabled="2 > maxStepReached">2</button>
+                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 2 ? 'text-success' : 'text-muted'">Audience</div>
                     </div>
-                    <div class="text-center position-relative" style="z-index: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 3 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 3">3</button>
-                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 3 ? 'text-success' : 'text-muted'">Planification</div>
+                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
+                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 3 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(3 <= maxStepReached) currentStep = 3" :disabled="3 > maxStepReached">3</button>
+                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 3 ? 'text-success' : 'text-muted'">Planification</div>
                     </div>
-                    <div class="text-center position-relative" style="z-index: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 4 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(selectedTemplate || selectedNonTemplatePresetMessage) currentStep = 4">4</button>
-                        <div class="mt-2 text-sm font-weight-bold" :class="currentStep >= 4 ? 'text-success' : 'text-muted'">Résumé</div>
+                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
+                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 4 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(4 <= maxStepReached) currentStep = 4" :disabled="4 > maxStepReached">4</button>
+                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 4 ? 'text-success' : 'text-muted'">Résumé</div>
                     </div>
                 </div>
                 @endif
