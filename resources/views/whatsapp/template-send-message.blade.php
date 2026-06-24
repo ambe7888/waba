@@ -411,6 +411,7 @@
                             @endif
                         </div>
                     </div>
+                    </div> <!-- Fix: Closing the col-lg-7 div so the next column goes to the right side -->
 
                     @if ($isNonTemplateCampaign)
                      <!-- Help Sidebar on the right -->
