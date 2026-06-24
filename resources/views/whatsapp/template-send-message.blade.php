@@ -56,49 +56,6 @@
             this.currentStep--;
         }
     },
-    aiPrompt: '',
-    aiResult: '',
-    isAiLoading: false,
-    showAiAssistant: false,
-    generateAiMessage: function() {
-        if (!this.aiPrompt) return;
-        this.isAiLoading = true;
-        this.aiResult = '';
-        var self = this;
-        __DataRequest.post('{{ route('vendor.campaign.generate_ai_message.write') }}', {
-            'prompt': this.aiPrompt
-        }, function(responseData) {
-            self.isAiLoading = false;
-            if (responseData.reaction == 1) {
-                self.aiResult = responseData.data.message;
-            } else {
-                alert(responseData.message || 'Erreur lors de la génération avec l\'IA.');
-            }
-        });
-    },
-    saveAiMessageAsPreset: function() {
-        if (!this.aiResult) return;
-        var self = this;
-        this.isAiLoading = true;
-        
-        var presetName = 'AI Message - ' + new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
-        
-        __DataRequest.post('{{ route('vendor.bot_reply.write.create') }}', {
-            'trigger_type': 'NT_CAMPAIGN_MESSAGE',
-            'name': presetName,
-            'message_type': 'simple',
-            'reply_text': this.aiResult,
-            'nt_campaign_preset_message': 'yes'
-        }, function(responseData) {
-            self.isAiLoading = false;
-            if (responseData.reaction == 1) {
-                // Refresh the page or redirect to reload the preset messages list
-                window.location.reload();
-            } else {
-                alert(responseData.message || 'Erreur lors de la sauvegarde du message.');
-            }
-        });
-    },
     restrictByLanguageChange: function() {
 
         const el = this.$refs.lwRestrictLanguageSwitch;
@@ -271,36 +228,6 @@
                                         @endforeach
                                     </x-slot>
                                 </x-lw.input-field>
-                                
-                                <!-- AI Assistant UI -->
-                                <div class="mt-4 border-top pt-4">
-                                    <button type="button" class="btn btn-outline-primary btn-block shadow-sm" style="border-radius: 8px; border-style: dashed;" @click="showAiAssistant = !showAiAssistant">
-                                        <i class="fas fa-magic mr-2"></i> {{ __tr('Générer un message avec l\'IA') }}
-                                    </button>
-                                    
-                                    <div x-show="showAiAssistant" x-cloak class="mt-3 p-4 bg-white border rounded shadow-sm" style="border-radius: 12px !important;">
-                                        <h5 class="text-primary font-weight-bold mb-3"><i class="fas fa-robot mr-2"></i> {{ __tr('Assistant IA Marketing') }}</h5>
-                                        <div class="form-group">
-                                            <label class="text-sm font-weight-bold">{{ __tr('Sujet de la campagne') }}</label>
-                                            <textarea class="form-control" rows="2" x-model="aiPrompt" placeholder="{{ __tr('Ex: Rédige un message court avec des emojis pour offrir 20% de réduction sur notre boutique jusqu\'à vendredi.') }}"></textarea>
-                                        </div>
-                                        <div class="text-right mb-3">
-                                            <button type="button" class="btn btn-primary btn-sm" @click="generateAiMessage()" :disabled="isAiLoading || !aiPrompt">
-                                                <span x-show="isAiLoading"><i class="fas fa-spinner fa-spin mr-1"></i> {{ __tr('Génération...') }}</span>
-                                                <span x-show="!isAiLoading"><i class="fas fa-bolt mr-1"></i> {{ __tr('Générer') }}</span>
-                                            </button>
-                                        </div>
-                                        
-                                        <div x-show="aiResult" class="form-group border-top pt-3">
-                                            <label class="text-sm font-weight-bold text-success"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Résultat (Vous pouvez modifier le texte)') }}</label>
-                                            <textarea class="form-control mb-3" rows="4" x-model="aiResult"></textarea>
-                                            <button type="button" class="btn btn-success btn-block" @click="saveAiMessageAsPreset()" :disabled="isAiLoading">
-                                                <i class="fas fa-save mr-2"></i> {{ __tr('Sauvegarder et Utiliser ce message') }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- /AI Assistant UI -->
 
                             @endif
                         </div>
