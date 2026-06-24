@@ -355,4 +355,88 @@ class VendorController extends BaseController
               : 'home')
         );
     }
+
+    /**
+     * Show SaaS Broadcast View
+     *
+     * @return view
+     */
+    public function saasBroadcastView()
+    {
+        $saasAdminVendorId = getAppSettings('saas_admin_vendor_id');
+        $templates = collect();
+        $vendors = collect();
+
+        if (!empty($saasAdminVendorId)) {
+            $templates = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $saasAdminVendorId)
+                ->where('status', 'approved')
+                ->get();
+        }
+
+        $vendors = \App\Yantrana\Components\Vendor\Models\VendorModel::where('status', 1)->get();
+
+        return $this->loadView('vendors.broadcast', [
+            'saasAdminVendorId' => $saasAdminVendorId,
+            'templates' => $templates,
+            'vendors' => $vendors
+        ]);
+    }
+
+    /**
+     * Process SaaS Broadcast
+     *
+     * @param CommonRequest $request
+     * @return json object
+     */
+    public function processSaasBroadcast(CommonRequest $request)
+    {
+        $request->validate([
+            'template_name' => 'required|string',
+            'vendors' => 'required|array',
+        ]);
+
+        $saasAdminVendorId = getAppSettings('saas_admin_vendor_id');
+        if (empty($saasAdminVendorId)) {
+            return $this->processResponse(2, [2 => 'Le compte expéditeur SaaS n\'est pas configuré.'], [], true);
+        }
+
+        $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+        $templateName = $request->template_name;
+        $vendorIds = $request->vendors;
+
+        $vendorAdmins = \App\Models\User::whereIn('vendors__id', $vendorIds)
+            ->whereNotNull('mobile_number')
+            ->where('mobile_number', '!=', '')
+            ->get();
+
+        $successCount = 0;
+        foreach ($vendorAdmins as $admin) {
+            $waId = preg_replace('/[^0-9]/', '', $admin->mobile_number);
+            if (!empty($waId)) {
+                try {
+                    $waEngine->sendActualWhatsAppTemplateMessage(
+                        (int)$saasAdminVendorId, 
+                        0, 
+                        $waId, 
+                        '', 
+                        $templateName, 
+                        'fr', 
+                        ['name' => $templateName, 'language' => 'fr'], 
+                        [], 
+                        [], 
+                        null 
+                    );
+                    $successCount++;
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("SaaS Broadcast Error: " . $e->getMessage());
+                }
+            }
+        }
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Diffusion envoyée avec succès à __count__ contact(s).', [
+                '__count__' => $successCount
+            ])
+        ], true);
+    }
 }

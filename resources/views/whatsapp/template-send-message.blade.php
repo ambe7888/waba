@@ -12,14 +12,6 @@
 // 'class' => 'col-lg-7'
 ])
 
-
-<style>
-    /* Fix Selectize rendering when initialized inside a hidden x-show container */
-    .selectize-control {
-        width: 100% !important;
-    }
-</style>
-
 <div class="container-fluid mt-lg--6" x-data="{
     fromPhoneNumberId: '{{ getVendorSettings('current_phone_number_id') }}',
     phoneNumber: '{{ $contact->wa_id ?? '' }}',
@@ -35,57 +27,6 @@
     scheduleAt: '',
     expireAt: '',
     contactCount: 0,
-    currentStep: 1,
-    maxStepReached: 1,
-    scheduleNow: true,
-    expiryOn: false,
-    averageCostPerMessage: 0.0225,
-    get estimatedCost() {
-        return (this.contactCount * this.averageCostPerMessage).toFixed(2);
-    },
-    nextStep: function() {
-        if (this.currentStep === 1) {
-            if (!this.selectedTemplate && !this.selectedNonTemplatePresetMessage) {
-                alert('Veuillez sélectionner un modèle ou un message prédéfini avant de continuer.');
-                return;
-            }
-            if (!this.campaignTitle) {
-                this.generateCampaignTitle();
-            }
-        }
-        if (this.currentStep === 2) {
-            if (!this.campaignTitle || !this.campaignTitle.trim()) {
-                alert('Veuillez entrer un titre pour la campagne.');
-                return;
-            }
-            if (!this.contactGroupIds || this.contactGroupIds.length === 0) {
-                alert('Veuillez sélectionner au moins un groupe de contacts.');
-                return;
-            }
-            if (this.contactCount <= 0) {
-                if(!confirm('Aucun contact ciblé trouvé. Voulez-vous continuer ?')) return;
-            }
-        }
-        if (this.currentStep === 3) {
-            if (!this.scheduleNow && !this.scheduleAt) {
-                alert('Veuillez sélectionner une date et heure de planification.');
-                return;
-            }
-            if (this.expiryOn && !this.expireAt) {
-                alert('Veuillez sélectionner une date et heure d\'expiration.');
-                return;
-            }
-        }
-        if (this.currentStep < 4) {
-            this.currentStep++;
-            this.maxStepReached = Math.max(this.maxStepReached, this.currentStep);
-        }
-    },
-    prevStep: function() {
-        if (this.currentStep > 1) {
-            this.currentStep--;
-        }
-    },
     restrictByLanguageChange: function() {
 
         const el = this.$refs.lwRestrictLanguageSwitch;
@@ -97,12 +38,16 @@
         }
     },
     getTargetedContactCount: function() {
+        if ('{{ $isNonTemplateCampaign }}') {
+            return false;
+        }
+
         var self = this;
         __DataRequest.post('{{ route('vendor.campaign.read.targeted_contact_count') }}', {
                 'group_contact_ids': this.contactGroupIds,
                 'label_ids': this.labelTagIds,
                 'restrict_by_language': this.restrictByTemplatedContactLanguage,
-                'template_id': this.selectedTemplate || ''
+                'template_id': this.selectedTemplate
             }, function(responseData) {
                 self.contactCount = responseData.data.totalContacts;
             }
@@ -174,32 +119,11 @@
                 @endif
             @endif
             <div class="card-body">
-                @if (!$contact)
-                <div class="d-flex justify-content-between mb-4 position-relative" x-cloak>
-                    <div class="progress position-absolute" style="top: 35%; left: 10%; width: 80%; height: 4px; z-index: 0; transform: translateY(-50%);">
-                        <div class="progress-bar bg-success" role="progressbar" :style="'width: ' + ((currentStep - 1) * 33.33) + '%'" :aria-valuenow="(currentStep - 1) * 33.33" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 1 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(1 <= maxStepReached) currentStep = 1">1</button>
-                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 1 ? 'text-success' : 'text-muted'">Message</div>
-                    </div>
-                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 2 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(2 <= maxStepReached) currentStep = 2" :disabled="2 > maxStepReached">2</button>
-                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 2 ? 'text-success' : 'text-muted'">Audience</div>
-                    </div>
-                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 3 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(3 <= maxStepReached) currentStep = 3" :disabled="3 > maxStepReached">3</button>
-                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 3 ? 'text-success' : 'text-muted'">Planification</div>
-                    </div>
-                    <div class="text-center position-relative" style="z-index: 1; flex: 1;">
-                        <button type="button" class="btn btn-sm rounded-circle shadow-sm" :class="currentStep >= 4 ? 'btn-success' : 'btn-light'" style="width: 40px; height: 40px; font-size: 1.1rem;" @click="if(4 <= maxStepReached) currentStep = 4" :disabled="4 > maxStepReached">4</button>
-                        <div class="mt-2 text-xs font-weight-bold" :class="currentStep >= 4 ? 'text-success' : 'text-muted'">Résumé</div>
-                    </div>
-                </div>
-                @endif
                 <div class="row">
                     <div class="{{ $isNonTemplateCampaign ? 'col-lg-7 col-md-8 col-sm-12' : 'col-sm-12 col-md-7 col-lg-7' }}">
-                    <div x-show="currentStep === 1 || '{{ $contact != null }}' == '1'">
+                    @if (!$contact)
+                    <h2 class="text-warning">{{  __tr('Step 1') }}</h2>
+                    @endif
                     @if ($campaignType != 'non-template')
                     <x-lw.form lwSubmitOnChange data-event-callback="lwPrepareUploadPlugIn"
                         :action="route('vendor.request.template.view', ['page_type' => $pageType])" data-pre-callback="clearTemplateContainer" data-callback="onTemplateChangeProcess">
@@ -254,7 +178,6 @@
                                         @endforeach
                                     </x-slot>
                                 </x-lw.input-field>
-
                             @endif
                         </div>
                         @endif
@@ -275,39 +198,28 @@
                             @else
                             {{-- Campaign Creation --}}
                             <x-lw.form x-show="selectedTemplate || selectedNonTemplatePresetMessage" :action="route('vendor.campaign.schedule.process')" data-confirm="#lwScheduleMessageConfirmation">
-                                <div x-show="currentStep === 1 || '{{ $contact != null }}' == '1'">
-                                    <div x-show="selectedTemplate" id="lwTemplateStructureContainer">
-                                        {!! $template !!}
-                                    </div>
-                                    <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
-                                    @if (!$contact)
-                                    <div class="mt-4 text-right">
-                                        <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
-                                    </div>
-                                    @endif
+                                <div x-show="selectedTemplate" id="lwTemplateStructureContainer">
+                                    {!! $template !!}
                                 </div>
-                            
-                            @if (!$contact)
-                            <!-- STEP 2 -->
-                            <div x-show="currentStep === 2" x-cloak>
-                                <h4 class="font-weight-bold text-dark mb-4 border-bottom pb-2"><i class="fas fa-users text-primary mr-2"></i> {{ __tr('Audience & Paramétrage') }}</h4>
-                                
-                                <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('1. Nommez votre campagne')" name="title" x-model="campaignTitle" required="required" placeholder="{{ __tr('Ex: Offre Spéciale Juin') }}">
+                                <input type="hidden" name="selected_preset_message_uid" :value="selectedNonTemplatePresetMessage">
+                                <h2 class="mt-5 text-warning">{{  __tr('Step 2') }}</h2>
+                               <fieldset class="w-100">
+                                <legend>{{  __tr('Contacts and Schedule') }}</legend>
+                                <x-lw.input-field type="text" id="lwCampaignTitle" data-form-group-class="" :label="__tr('Campaign Title')" name="title" x-model="campaignTitle" required="required">
                                     <x-slot name="append">
-                                        <button class="btn btn-outline-success font-weight-bold" type="button" @click="generateCampaignTitle()" title="{{ __tr('Générer un nom automatique') }}">
+                                        <button class="btn btn-outline-success font-weight-bold" type="button" @click="generateCampaignTitle()" title="{{ __tr('Générer un nom de campagne automatique') }}">
                                             <i class="fas fa-magic mr-1"></i> {{ __tr('Générer') }}
                                         </button>
                                     </x-slot>
                                 </x-lw.input-field>
-                                
-                                 <fieldset class="shadow-none mt-4">
-                                    <legend class="text-sm font-weight-bold">{{  __tr('2. À qui souhaitez-vous envoyer ce message ?') }}</legend>
+                                 <fieldset class="shadow-none">
+                                    <legend>{{  __tr('Target Contacts') }}</legend>
                                     {{-- select group --}}
                                  <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectGroupsField"
-                                 data-form-group-class="" data-selected=" " :label="__tr('Groupes de contacts (Sélectionnez un ou plusieurs)')" name="contact_group[]" multiple>
+                                 data-form-group-class="" data-selected=" " :label="__tr('Groups/Contact')" name="contact_group[]" multiple>
                                  <x-slot name="selectOptions">
-                                     <option value="">{{ __tr('Rechercher ou sélectionner un groupe...') }}</option>
-                                     <option value="all_contacts">{{ __tr('Tous les contacts') }}</option>
+                                     <option value="">{{ __tr('Select Contacts Group') }}</option>
+                                     <option value="all_contacts">{{ __tr('All Contacts') }}</option>
                                      @foreach($vendorContactGroups as $vendorContactGroup)
                                      <option value="{{ $vendorContactGroup['_id'] }}">{{ $vendorContactGroup['title'] }}</option>
                                      @endforeach
@@ -316,38 +228,30 @@
                              <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
                                      {{-- /select group --}}
                                      @if (isset($allLabels) && count($allLabels) > 0)
-                                     <x-lw.input-field :label="__tr('Filtrer par étiquettes / mots-clés (Optionnel)')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="mt-3" name="contact_labels[]" multiple >
+                                     <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="" name="contact_labels[]" multiple >
                                         <x-slot name="selectOptions">
-                                        <option value="">{{ __tr('Sélectionnez des étiquettes (labels)') }}</option>
+                                        <option value="">{{ __tr('Select Labels') }}</option>
                                             @foreach($allLabels as $label)
                                                 <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                             @endforeach
                                         </x-slot>
                                     </x-lw.input-field>
                                      @endif
-                                     
-                                    @if(!$isNonTemplateCampaign)
                                       <!-- Restrict by Template Language field -->
                                     <div class="form-group pt-3">
                                         <label for="lwOnlyForTemplateLanguageMatchingContact">
                                             <input type="checkbox" id="lwOnlyForTemplateLanguageMatchingContact" data-lw-plugin="lwSwitchery" data-color="#ff0000" 
                                             @click="restrictByLanguageChange()" x-ref="lwRestrictLanguageSwitch" name="restrict_by_templated_contact_language">
-                                           {!! __tr('Restreindre par Code Langue - Envoyer uniquement aux contacts dont la langue correspond à celle du modèle.') !!}
+                                           {!! __tr('Restrict by Language Code - Send only to the contacts whose language code matches with template language code.') !!}
                                         </label>
                                     </div>
+                                    @if(!$isNonTemplateCampaign)
                                     <strong class="m-2">
                                         {{ __tr('Total Targeted Contacts: ') }} <span x-text="contactCount"></span>
                                     </strong>
                                     @endif
-                                    <div class="mt-4 d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
-                                        <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
-                                    </div>
-                                </div>
-
-                                <!-- STEP 3 -->
-                                <div x-show="currentStep === 3" x-cloak>
-                                    <fieldset>
+                                 </fieldset>
+                                    <fieldset x-data="{scheduleNow:true}">
                                         <legend>{{  __tr('Schedule') }}</legend>
                                         <div class="form-group pt-3">
                                             <label for="lwNowCampaign">
@@ -371,7 +275,7 @@
                                             </div>
                                         </template>
                                     </fieldset>
-                                    <fieldset>
+                                    <fieldset x-data="{expiryOn:false}">
                                         <legend>{{  __tr('Expiry') }}</legend>
                                         <div class="alert alert-danger">
                                             {{  __tr("Messages will be set as expired if delayed in sending and won't be sent for the further processing.") }}
@@ -391,44 +295,9 @@
                                     </fieldset>
                                </fieldset>
                                @include('whatsapp.from-phone-number')
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
-                                    <button type="button" class="btn btn-primary" @click="nextStep()">{{ __tr('Étape Suivante') }} <i class="fas fa-arrow-right ml-2"></i></button>
-                                </div>
-                                </div>
-
-                                <!-- STEP 4 -->
-                                <div x-show="currentStep === 4" x-cloak>
-                                    <div class="card bg-light border-0 shadow-sm mb-4">
-                                        <div class="card-body">
-                                            <h3 class="font-weight-bold text-dark mb-4"><i class="fas fa-clipboard-check text-success mr-2"></i> {{ __tr('Résumé de la Campagne') }}</h3>
-                                            
-                                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                <span class="text-muted">{{ __tr('Titre :') }}</span>
-                                                <strong x-text="campaignTitle"></strong>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                <span class="text-muted">{{ __tr('Contacts Ciblés :') }}</span>
-                                                <strong><span x-text="contactCount"></span> {{ __tr('contacts') }}</strong>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                <span class="text-muted">{{ __tr('Coût Estimé (WhatsApp Meta) :') }}</span>
-                                                <strong class="text-success"><span x-text="estimatedCost"></span> €</strong>
-                                            </div>
-                                            <div class="text-xs text-muted mt-1 text-right">
-                                                * {{ __tr("Estimation basée sur un coût moyen de 0.0225€ (tarif Marketing Afrique) par message. Le coût final dépend de la destination.") }}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-4 d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary" @click="prevStep()"><i class="fas fa-arrow-left mr-2"></i> {{ __tr('Précédent') }}</button>
-                                        <button type="submit" class="btn btn-success btn-lg font-weight-bold shadow-sm"><i class="fas fa-paper-plane mr-2"></i> {{ __tr('Lancer la Campagne') }}</button>
-                                    </div>
-                                </div>
-                                @endif
+                               <div class="my-4">
+                                <button type="submit" class="btn btn-primary">{{ __tr('Schedule Campaign') }}</button>
+                               </div>
                             </x-lw.form>
                             <template type="text/template" id="lwScheduleMessageConfirmation">
                                 <h3>{{  __tr('Are you sure?') }}</h3>
@@ -441,7 +310,6 @@
                             @endif
                         </div>
                     </div>
-                    </div> <!-- Fix: Closing the col-lg-7 div so the next column goes to the right side -->
 
                     @if ($isNonTemplateCampaign)
                      <!-- Help Sidebar on the right -->

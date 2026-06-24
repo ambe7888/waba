@@ -180,6 +180,16 @@ Route::middleware([
             Route::get('/vendors', function () {
                 return view('vendors.list');
             })->name('central.vendors');
+            
+            Route::get('/saas-broadcast', [
+                VendorController::class,
+                'saasBroadcastView',
+            ])->name('central.vendors.broadcast.view');
+            
+            Route::post('/saas-broadcast/send', [
+                VendorController::class,
+                'processSaasBroadcast',
+            ])->name('central.vendors.broadcast.send');
 
             Route::get('/{vendorIdOrUid}/details', [
                 VendorController::class,

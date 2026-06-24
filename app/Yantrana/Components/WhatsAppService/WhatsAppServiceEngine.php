@@ -592,13 +592,13 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $contactGroup = [];
         $vendorId = getVendorId();
 
-        if (__isEmpty($contactGroupIds)) {
+        if (__isEmpty($inputData['template_id']) or __isEmpty($contactGroupIds)) {
             return $this->engineSuccessResponse([
                 'totalContacts' => 0,
             ]);
         }
 
-        $templateId = data_get($inputData, 'template_id');
+        $whatsAppTemplate = $this->whatsAppTemplateRepository->fetchIt($inputData['template_id']);
 
         if (!__isEmpty($contactGroupIds) and !in_array('all_contacts', $contactGroupIds)) {
             $contactGroup = $this->contactGroupRepository->fetchItAll($contactGroupIds, [], '_id', [
@@ -624,17 +624,12 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             'contacts.vendors__id' => $vendorId
         ];
 
-        if (!__isEmpty($templateId)) {
-            $whatsAppTemplate = $this->whatsAppTemplateRepository->fetchIt($templateId);
-            if (!__isEmpty($whatsAppTemplate)) {
-                if ($whatsAppTemplate->category == 'MARKETING') {
-                    $contactsWhereClause['contacts.whatsapp_opt_out'] = null;
-                }
+        if ($whatsAppTemplate->category == 'MARKETING') {
+            $contactsWhereClause['contacts.whatsapp_opt_out'] = null;
+        }
 
-                if (data_get($inputData, 'restrict_by_language') == 'on') {
-                    $contactsWhereClause['contacts.language_code'] = $whatsAppTemplate->language;
-                }
-            }
+        if (data_get($inputData, 'restrict_by_language') == 'on') {
+            $contactsWhereClause['contacts.language_code'] = $whatsAppTemplate->language;
         }
 
         $contactCount = $this->contactRepository->countContactsForCampaign($contactsWhereClause, $groupContactIds, $labelIds);
