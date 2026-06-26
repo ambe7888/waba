@@ -1,30 +1,37 @@
-const CACHE_NAME = 'whatsjet-pwa-cache-v1';
+const CACHE_NAME = 'whatsclick-pwa-cache-v2';
 const urlsToCache = [
-  '/',
-  '/console',
   '/manifest.json'
 ];
 
 self.addEventListener('install', function(event) {
-  // Perform install steps
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
 self.addEventListener('fetch', function(event) {
+  // Ignorer les requêtes non-GET (POST, PUT, DELETE) pour éviter de bloquer la connexion et CSRF
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Network First strategy
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(function(response) {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
+        // Cache la nouvelle réponse
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      })
+      .catch(function() {
+        // En cas d'échec réseau, utiliser le cache
+        return caches.match(event.request);
       })
   );
 });
