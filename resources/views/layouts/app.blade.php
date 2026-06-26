@@ -28,6 +28,12 @@ $currentAppTheme ='';
     <title> {!! (isset($title) and $title) ? $title : __tr('Welcome') !!} - {{ getAppSettings('name') }}</title>
     <!-- Light Theme Favicon -->
     <link href="{{getAppSettings('favicon_image_url') }}" rel="icon">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+    <meta name="theme-color" content="#2dce89">
+    <link rel="apple-touch-icon" href="{{ getAppSettings('favicon_image_url') }}">
+
     <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -446,6 +452,19 @@ $currentAppTheme ='';
     @if(isLoggedIn())
     {!! getAppSettings('page_footer_code_logged_user_only') !!}
     @endif
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                console.log('PWA ServiceWorker registration successful with scope: ', registration.scope);
+            }, function(err) {
+                console.log('PWA ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+    </script>
 </body>
 
 </html>

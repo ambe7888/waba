@@ -21,7 +21,7 @@
     </dd>
     <dt>{{  __tr('Step 4:') }}</dt>
     <dd>{!!  __tr('Now in __appName__ click on __reSyncBtn__ button to get updated Marketing Message onboarding status.', [
-            '__appName__' => '<strong>WhatsJet</strong>',
+            '__appName__' => '<strong>WhatsClick</strong>',
             '__reSyncBtn__' => '<code>Re-sync Phone Numbers</code>',
     ]) !!}</dd>
     <dd>

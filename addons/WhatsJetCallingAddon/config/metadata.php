@@ -1,6 +1,6 @@
 <?php
 return [
-    'title' => 'WhatsJet Calling Addon',
+    'title' => 'WhatsClick Calling Addon',
     'identifier' => 'WhatsJetCallingAddon',
     'description' => 'Permet de passer et recevoir des appels voix via l\'API WhatsApp Cloud.',
     'version' => '1.0.0',

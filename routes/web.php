@@ -52,6 +52,12 @@ Route::get('/', [
     HomeController::class,
     'homePageView',
 ])->name('landing_page');
+
+// PWA Manifest Route
+Route::get('/manifest.json', [
+    VendorController::class,
+    'pwaManifest',
+])->name('pwa.manifest');
 // user console
 Route::get('/console', function () {
     return hasCentralAccess() ? Redirect::route('central.console') : Redirect::route('vendor.console');
