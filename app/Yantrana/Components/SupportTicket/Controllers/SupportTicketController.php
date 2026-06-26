@@ -61,6 +61,48 @@ class SupportTicketController extends BaseController
     }
 
     /**
+     * API: Display a listing of the resource for Mobile App.
+     */
+    public function apiIndex(Request $request)
+    {
+        // For superadmin, show all tickets. For vendor, show only their tickets.
+        $query = TicketModel::with(['vendor', 'vendorUser.user', 'assignedUser', 'labels']);
+
+        if (hasCentralAccess()) {
+            // Central Admin sees all tickets
+        } else {
+            $vendorId = getVendorId();
+            $query->where('vendors__id', $vendorId);
+        }
+
+        // Apply Search/Filters
+        if ($request->filled('status')) {
+            $query->where('status', intval($request->status));
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        if ($request->filled('search')) {
+            $search = '%' . $request->search . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('subject', 'like', $search)
+                  ->orWhere('description', 'like', $search)
+                  ->orWhere('_uid', 'like', $search);
+            });
+        }
+
+        $tickets = $query->orderBy('updated_at', 'desc')->paginate(20)->withQueryString();
+
+        return $this->processResponse(1, [], [
+            'tickets' => $tickets->items(),
+            'current_page' => $tickets->currentPage(),
+            'last_page' => $tickets->lastPage(),
+        ]);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

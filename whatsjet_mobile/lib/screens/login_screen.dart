@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
-import 'home_screen.dart';
+import 'main_layout_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -114,16 +114,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     if (success) {
       await _saveCredentials();
-      // Initialize FCM token registration in background
-      FcmService().init().catchError((e) {
-        debugPrint('FCM Init Error: $e');
-      });
+      // Initialize FCM after successful login
+      try {
+        await FcmService().init();
+      } catch (e) {
+        debugPrint('FCM Init Error after login: $e');
+      }
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainLayoutScreen()),
         );
       }
     } else {
