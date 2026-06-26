@@ -2121,7 +2121,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      * @param array|null $contactsData
      * @return EngineResponse
      */
-    protected function sendActualWhatsAppTemplateMessage(
+    public function sendActualWhatsAppTemplateMessage(
         int $vendorId,
         int $contactId,
         int|string $contactWhatsappNumber,
