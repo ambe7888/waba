@@ -33,6 +33,10 @@ $currentAppTheme ='';
     <link rel="manifest" href="{{ route('pwa.manifest') }}">
     <meta name="theme-color" content="#2dce89">
     <link rel="apple-touch-icon" href="{{ getAppSettings('favicon_image_url') }}">
+    <!-- iOS/Safari PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="{{ getAppSettings('name') }}">
 
     <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -310,8 +314,8 @@ $currentAppTheme ='';
         if (!Push.Permission.has()) {
             Push.Permission.request();
         }
-        // register service worker for push notifications
-        navigator.serviceWorker.register("{{ asset('dist/push-js/serviceWorker.min.js') }}");
+        // register service worker for push notifications (unified with PWA sw.js)
+        navigator.serviceWorker.register('/sw.js');
         // check if the window tab is active
         var isWindowTabActive = true;
         $(window).on("blur focus", function(e) {

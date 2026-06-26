@@ -120,13 +120,6 @@ class VendorController extends BaseController
         ))->header('Content-Type', 'application/manifest+json');
     }
 
-    public function pwaServiceWorker()
-    {
-        return response($this->loadView(
-            'vendors.pwa-service-worker-js'
-        ))->header('Content-Type', 'text/javascript');
-    }
-
     public function infoPage($vendorSlug, $pageSlug)
     {
         return $this->loadView(
