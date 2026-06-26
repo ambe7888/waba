@@ -403,6 +403,74 @@ class VendorController extends BaseController
         $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
         $templateName = $request->template_name;
         $vendorIds = $request->vendors;
+        $variables = $request->input('variables', []);
+
+        // Construction du tableau messageComponents pour l'API Meta
+        $messageComponents = [];
+
+        // 1. Header Media Variables
+        if (isset($variables['header_media']) && is_array($variables['header_media'])) {
+            $mediaFormat = array_key_first($variables['header_media']); // image, video, document
+            $mediaLink = $variables['header_media'][$mediaFormat];
+            $messageComponents[] = [
+                'type' => 'header',
+                'parameters' => [
+                    [
+                        'type' => $mediaFormat,
+                        $mediaFormat => ['link' => $mediaLink]
+                    ]
+                ]
+            ];
+        }
+
+        // 2. Header Text Variables
+        if (isset($variables['header']) && is_array($variables['header'])) {
+            $headerParams = [];
+            ksort($variables['header']);
+            foreach ($variables['header'] as $val) {
+                $headerParams[] = ['type' => 'text', 'text' => $val];
+            }
+            // Si on a déjà un header (cas peu probable avec les règles Meta mais au cas où) on le complète, sinon on le crée
+            $existingHeaderKey = array_search('header', array_column($messageComponents, 'type'));
+            if ($existingHeaderKey !== false) {
+                $messageComponents[$existingHeaderKey]['parameters'] = array_merge($messageComponents[$existingHeaderKey]['parameters'], $headerParams);
+            } else {
+                $messageComponents[] = [
+                    'type' => 'header',
+                    'parameters' => $headerParams
+                ];
+            }
+        }
+
+        // 3. Body Text Variables
+        if (isset($variables['body']) && is_array($variables['body'])) {
+            $bodyParams = [];
+            ksort($variables['body']); // Ordonner par clé (1, 2, 3...)
+            foreach ($variables['body'] as $val) {
+                $bodyParams[] = ['type' => 'text', 'text' => $val];
+            }
+            $messageComponents[] = [
+                'type' => 'body',
+                'parameters' => $bodyParams
+            ];
+        }
+
+        // 4. Button Variables
+        if (isset($variables['buttons']) && is_array($variables['buttons'])) {
+            $btnIndex = 0;
+            ksort($variables['buttons']);
+            foreach ($variables['buttons'] as $key => $val) {
+                $messageComponents[] = [
+                    'type' => 'button',
+                    'sub_type' => 'url',
+                    'index' => (int)$key, // Les boutons nécessitent un index
+                    'parameters' => [
+                        ['type' => 'text', 'text' => $val]
+                    ]
+                ];
+                $btnIndex++;
+            }
+        }
 
         $vendorAdmins = \App\Models\User::whereIn('vendors__id', $vendorIds)
             ->whereNotNull('mobile_number')
@@ -423,7 +491,7 @@ class VendorController extends BaseController
                         'fr', 
                         ['name' => $templateName, 'language' => 'fr'], 
                         [], 
-                        [], 
+                        $messageComponents, 
                         null 
                     );
                     $successCount++;

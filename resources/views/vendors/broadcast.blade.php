@@ -36,9 +36,12 @@
                                             @endforeach
                                         </select>
                                         <small class="form-text text-muted">
-                                            {{ __tr("Seuls les templates approuvés de votre compte expéditeur SaaS sont listés. Choisissez de préférence des templates sans variables dynamiques.") }}
+                                            {{ __tr("Seuls les templates approuvés de votre compte expéditeur SaaS sont listés.") }}
                                         </small>
                                     </div>
+
+                                    <!-- Conteneur Variables Dynamiques -->
+                                    <div id="dynamic-variables-container" class="mt-3"></div>
                                     
                                     <!-- Sélection des Vendeurs (Destinataires) -->
                                     <div class="form-group mt-4">
@@ -112,6 +115,48 @@
             if (!$(this).is(':checked')) {
                 $('#selectAllVendors').prop('checked', false);
             }
+        });
+
+        // Dynamic Variables Logic
+        const templates = {!! json_encode($templates->toArray()) !!};
+        $('#templateName').on('change', function() {
+            let tplName = $(this).val();
+            let tpl = templates.find(t => t.template_name === tplName);
+            let html = '';
+            
+            if (tpl && tpl.__data && tpl.__data.template && tpl.__data.template.components) {
+                tpl.__data.template.components.forEach(comp => {
+                    // Header Media Variables
+                    if (comp.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(comp.format)) {
+                        let icon = comp.format === 'IMAGE' ? 'image' : (comp.format === 'VIDEO' ? 'video' : 'file');
+                        html += `
+                            <div class="form-group border-left border-primary pl-3">
+                                <label class="font-weight-bold"><i class="fa fa-${icon}"></i> Lien URL (${comp.format}) - Entête</label>
+                                <input type="url" name="variables[header_media][${comp.format.toLowerCase()}]" class="form-control" placeholder="https://..." required>
+                                <small class="form-text text-muted">{{ __tr('Saisissez le lien public direct vers le média.') }}</small>
+                            </div>
+                        `;
+                    }
+                    
+                    // Text Variables (Body, Header, Buttons)
+                    let text = comp.text || '';
+                    let matches = text.match(/\{\{(\d+)\}\}/g);
+                    if (matches) {
+                        // Unique matches to avoid duplicate inputs if a variable is used twice
+                        matches = [...new Set(matches)];
+                        matches.forEach(m => {
+                            let num = m.replace(/[{}]/g, '');
+                            html += `
+                                <div class="form-group border-left border-primary pl-3">
+                                    <label class="font-weight-bold">Variable ${m} (${comp.type})</label>
+                                    <input type="text" name="variables[${comp.type.toLowerCase()}][${num}]" class="form-control" placeholder="Valeur pour ${m}" required>
+                                </div>
+                            `;
+                        });
+                    }
+                });
+            }
+            $('#dynamic-variables-container').html(html);
         });
     })();
 </script>
