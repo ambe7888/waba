@@ -309,6 +309,8 @@ class TranslationEngine extends BaseEngine implements TranslationEngineInterface
                 base_path('resources'),
                 // config folder
                 base_path('config'),
+                // addons folder
+                base_path('addons'),
         ];
 
         $translationSourceFolders = array_merge($translationSourceFolders, config('__misc.translation_source_folders', []));
