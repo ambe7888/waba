@@ -143,9 +143,19 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                 'uaid' => $user->user_authority_id,
             ]);
 
+            // Generate Firebase Custom Token for mobile app
+            $firebaseCustomToken = \App\Services\FirebaseCustomTokenService::createCustomToken(
+                (string) $user->_uid,
+                [
+                    'email' => $user->email,
+                    'name'  => $user->first_name . ' ' . $user->last_name,
+                ]
+            );
+
             return $this->engineReaction(1, [
                 'auth_info' => getUserAuthInfo(1),
                 'access_token' => $authToken,
+                'firebase_custom_token' => $firebaseCustomToken,
                 'two_factor_auth_enabled' => false,
             ], __tr('Welcome, you are logged in successfully.'));
         }

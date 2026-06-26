@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -9,7 +10,9 @@ import 'api_service.dart';
 /// Top-level handler for background FCM messages (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {}
   await FcmService._showLocalNotification(message);
 }
 
@@ -21,6 +24,14 @@ class FcmService {
   FirebaseMessaging? _firebaseMessaging;
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  // Track whether Firebase was initialized successfully
+  bool _isFirebaseAvailable = false;
+  bool get isFirebaseAvailable => _isFirebaseAvailable;
+
+  void setFirebaseAvailable(bool value) {
+    _isFirebaseAvailable = value;
+  }
 
   // Broadcast stream for incoming foreground messages
   final _messageStreamController = StreamController<RemoteMessage>.broadcast();
@@ -110,17 +121,13 @@ class FcmService {
   }
 
   Future<void> init() async {
-    try {
-      // Ensure Firebase is initialized
-      try {
-        if (Firebase.apps.isEmpty) {
-          await Firebase.initializeApp();
-        }
-      } catch (e) {
-        if (kDebugMode) print('Firebase initialization failed inside FcmService: $e');
-        return;
-      }
+    // Skip FCM initialization if Firebase is not available
+    if (!_isFirebaseAvailable) {
+      if (kDebugMode) print('⚠️ FCM skipped: Firebase is not available');
+      return;
+    }
 
+    try {
       _firebaseMessaging = FirebaseMessaging.instance;
 
       // Request permissions (important for Android 13+ and iOS)
@@ -189,3 +196,4 @@ class FcmService {
     }
   }
 }
+

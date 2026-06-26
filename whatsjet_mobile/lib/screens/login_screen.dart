@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import 'home_screen.dart';
@@ -110,26 +111,46 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _errorMessage = null;
     });
 
-    final success = await ApiService().login(email, password);
+    try {
+      final result = await ApiService().login(email, password);
 
-    if (success) {
-      await _saveCredentials();
-      // Initialize FCM token registration in background
-      FcmService().init().catchError((e) {
-        debugPrint('FCM Init Error: $e');
-      });
-      if (mounted) {
+      if (result['success'] == true) {
+        await _saveCredentials();
+
+        // Sign in to Firebase with the custom token from the server
+        final firebaseToken = result['firebase_custom_token'] as String?;
+        if (firebaseToken != null) {
+          try {
+            await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+            debugPrint('✅ Firebase Auth: signed in with custom token');
+          } catch (e) {
+            // Firebase sign-in failed but API login succeeded — continue anyway
+            debugPrint('⚠️ Firebase custom token sign-in failed: $e');
+          }
+        }
+
+        // Initialize FCM token registration in background
+        FcmService().init().catchError((e) {
+          debugPrint('FCM Init Error: $e');
+        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } else {
         setState(() {
           _isLoading = false;
+          _errorMessage = 'Identifiants incorrects ou erreur serveur.';
         });
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
       }
-    } else {
+    } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Identifiants incorrects ou erreur serveur.';
+        _errorMessage = 'Une erreur inattendue est survenue.';
       });
     }
   }
