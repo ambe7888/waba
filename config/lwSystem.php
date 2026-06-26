@@ -6,7 +6,7 @@ return [
     'product_uid' => 'wa0e2ee6-e08b-491f-b9c0-fff206b774da',
     'your_email' => '',
     'registration_id' => '',
-    'name' => 'WhatsJet',
+    'name' => 'WhatsClick',
     'version' => '7.2.5',
     'app_update_url' => env('APP_UPDATE_URL', 'https://product-central.livelyworks.net'),
 ];
