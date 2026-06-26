@@ -50,7 +50,8 @@ class ApiService {
   }
 
   /// Authenticate the user and save the token
-  Future<bool> login(String email, String password) async {
+  /// Returns a map with 'success' (bool) and optionally 'firebase_custom_token' (String)
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('${baseApiUrl}user/login-process');
     try {
       final response = await http.post(
@@ -69,14 +70,17 @@ class ApiService {
           final token = body['data']['access_token'];
           if (token != null) {
             await _saveToken(token);
-            return true;
+            return {
+              'success': true,
+              'firebase_custom_token': body['data']['firebase_custom_token'],
+            };
           }
         }
       }
-      return false;
+      return {'success': false};
     } catch (e) {
       if (debug) debugPrint('Login Error: $e');
-      return false;
+      return {'success': false};
     }
   }
 

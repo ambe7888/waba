@@ -1,4 +1,4 @@
-package com.whatsclick.whatsjet_mobile
+package com.whatsclick.app
 
 import io.flutter.embedding.android.FlutterActivity
 

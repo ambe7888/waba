@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
 import 'screens/login_screen.dart';
@@ -9,14 +12,39 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize local notifications plugin
-  await FcmService.initializeLocalNotifications();
+  // 1. Initialize Firebase — wrapped in try-catch so the app starts
+  //    even if google-services.json has invalid keys
+  bool firebaseReady = false;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    firebaseReady = true;
+    if (kDebugMode) print('✅ Firebase initialized successfully');
+  } catch (e) {
+    if (kDebugMode) print('⚠️ Firebase initialization failed: $e');
+    // App will continue without push notifications
+  }
 
-  // Initialize API service and load session token
-  final apiService = ApiService();
-  await apiService.init();
+  // 2. Initialize local notifications (independent of Firebase)
+  try {
+    await FcmService.initializeLocalNotifications();
+  } catch (e) {
+    if (kDebugMode) print('⚠️ Local notifications init failed: $e');
+  }
 
-  // Set system UI overlay style for premium feel
+  // 3. Store Firebase availability for FCM service
+  FcmService().setFirebaseAvailable(firebaseReady);
+
+  // 4. Initialize API service and load session token
+  try {
+    final apiService = ApiService();
+    await apiService.init();
+  } catch (e) {
+    if (kDebugMode) print('⚠️ API service init failed: $e');
+  }
+
+  // 5. Set system UI overlay style for premium feel
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,

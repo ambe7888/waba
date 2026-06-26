@@ -33,6 +33,16 @@ use Illuminate\Support\Arr;
 class WhatsAppMessageLogModel extends BaseModel
 {
     /**
+     * Boot function from Laravel.
+     */
+    protected static function booted()
+    {
+        static::saved(function ($model) {
+            \App\Jobs\SyncMessageToFirestoreJob::dispatch($model->_id);
+        });
+    }
+
+    /**
      * @var string - The database table used by the model.
      */
     protected $table = 'whatsapp_message_logs';
