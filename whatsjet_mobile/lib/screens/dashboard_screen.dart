@@ -101,7 +101,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Text(_error!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onSelected: _fetchDashboardStats,
                         onPressed: _fetchDashboardStats,
                         child: const Text('Réessayer'),
                       ),
