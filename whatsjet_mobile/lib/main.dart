@@ -4,7 +4,7 @@ import 'services/api_service.dart';
 import 'services/fcm_service.dart';
 import 'services/theme_service.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_layout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeService.themeMode,
           theme: ThemeService.lightTheme,
           darkTheme: ThemeService.darkTheme,
-          home: ApiService().isAuthenticated ? const HomeScreen() : const LoginScreen(),
+          home: ApiService().isAuthenticated ? const MainLayoutScreen() : const LoginScreen(),
         );
       },
     );
