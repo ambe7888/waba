@@ -40,7 +40,15 @@
                                     @if($step->delay_value == 0)
                                         {{ __tr('Immediately') }}
                                     @else
-                                        {{ __tr('After :value :type', ['value' => $step->delay_value, 'type' => __tr($step->delay_type)]) }}
+                                        @php
+                                            $delayTypes = [
+                                                'minutes' => __tr('Minutes'),
+                                                'hours' => __tr('Hours'),
+                                                'days' => __tr('Days'),
+                                            ];
+                                            $delayTypeTranslated = $delayTypes[$step->delay_type] ?? $step->delay_type;
+                                        @endphp
+                                        {{ __tr('After :value :type', ['value' => $step->delay_value, 'type' => $delayTypeTranslated]) }}
                                     @endif
                                 </h5>
                                 <p class="text-muted mb-0">
