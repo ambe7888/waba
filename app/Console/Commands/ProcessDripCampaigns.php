@@ -71,7 +71,7 @@ class ProcessDripCampaigns extends Command
                             $templateData,
                             $components,
                             null,
-                            false
+                            null
                         );
                     } elseif ($step->custom_message) {
                         // Send custom message (non-template)

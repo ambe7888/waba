@@ -63,12 +63,12 @@
                             <div class="card col-lg-4 col-xl-3 col-md-6 col-sm-12 shadow-none p-2 text-center mr-4 mb-4">
                                 <img src="{{ $addonInfo['thumbnail'] ?: $addonInfo['local_thumbnail_url'] }}" class="card-img-top" alt="{{ $addonInfo['title'] ?? '' }}">
                                 <h1 class="card-header text-primary">
-                                    {{ $addonInfo['title'] ?? '' }}
+                                    {{ __tr($addonInfo['title'] ?? '') }}
                                 </h1>
                                 <div class="card-body">
                                     @if(($addonInfo['highlighted_text'] ?? ''))
                                     <h2 class="text-warning">
-                                        {{ $addonInfo['highlighted_text'] }}
+                                        {{ __tr($addonInfo['highlighted_text']) }}
                                     </h2>
                                     @endif
                                     @if (($addonInfo['version'] ?? ''))
@@ -81,7 +81,7 @@
                                             </h4>
                                         @endif
                                     @endif
-                                    <p class="card-text">{{ $addonInfo['description'] ?? '' }}</p>
+                                    <p class="card-text">{{ __tr($addonInfo['description'] ?? '') }}</p>
                                 </div>
                                 @if (($addonInfo['price'] ?? '') and (isDemo() || !($addonInfo['installed_version'] ?? null)))
                                 <div class="card-footer">

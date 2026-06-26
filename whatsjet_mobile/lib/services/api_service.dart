@@ -111,6 +111,42 @@ class ApiService {
     }
   }
 
+  /// Fetch dashboard stats
+  Future<Map<String, dynamic>?> fetchDashboardStats() async {
+    final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats');
+    try {
+      final response = await http.get(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return body['data'];
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Dashboard Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch support tickets
+  Future<Map<String, dynamic>?> fetchSupportTickets({int page = 1}) async {
+    final url = Uri.parse('${baseApiUrl}vendor/support-tickets?page=$page');
+    try {
+      final response = await http.get(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return body['data'];
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Tickets Error: $e');
+      return null;
+    }
+  }
+
   /// Fetch chat messages for a specific contact
   Future<List<ChatMessage>?> fetchMessages(String contactUid) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');

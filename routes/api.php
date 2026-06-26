@@ -249,6 +249,18 @@ Route::group([
             'sendChatMessage',
         ])->name('app_api.vendor.chat_message.send.process');
 
+        // Dashboard Stats
+        Route::get('/dashboard-stats', [
+            \App\Yantrana\Components\Dashboard\Controllers\DashboardController::class,
+            'apiVendorDashboardStats',
+        ])->name('app_api.vendor.dashboard.stats');
+
+        // Support Tickets
+        Route::get('/support-tickets', [
+            \App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class,
+            'apiIndex',
+        ])->name('app_api.vendor.support_tickets.read');
+
         // Get WhatsApp templates
         Route::get('/whatsapp/templates', function () {
             validateVendorAccess('messaging');

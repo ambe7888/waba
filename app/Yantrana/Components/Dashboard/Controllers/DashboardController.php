@@ -72,6 +72,16 @@ class DashboardController extends BaseController
     }
 
     /**
+     * Dashboard Data API for Mobile App
+     *
+     * @return json object
+     */
+    public function apiVendorDashboardStats()
+    {
+        return $this->processResponse(1, [], $this->dashboardEngine->prepareVendorDashboardData());
+    }
+
+    /**
      * Dashboard Stats Data Filter
      *
      *

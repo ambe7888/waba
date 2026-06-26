@@ -1508,42 +1508,41 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
         $systemMessageActions = [];
         if (!$request->assigned_users_uid or ($request->assigned_users_uid == 'no_one')) {
 
-            // Check if AI bot is enable / disable from whatsapp chat
-            if ($enableAiBot == $contactDetails->disable_ai_bot) {
-                // Check if AI bot is enable
-                if (__isEmpty($enableAiBot)) {
-                    $systemMessageActions[] = [
-                        'action' => 'DISABLE_AI_BOT'
-                    ];
-                } else {
-                    $systemMessageActions[] = [
-                        'action' => 'ENABLE_AI_BOT'
-                    ];
-                }
+            $isCurrentlyAiBotEnabled = !$contactDetails->disable_ai_bot;
+            $isNewAiBotEnabled = !empty($enableAiBot);
+
+            if ($request->has('enable_ai_bot') && $isCurrentlyAiBotEnabled !== $isNewAiBotEnabled) {
+                $systemMessageActions[] = [
+                    'action' => $isNewAiBotEnabled ? 'ENABLE_AI_BOT' : 'DISABLE_AI_BOT',
+                    'dynamicValue' => ''
+                ];
             }
 
-            // Check if Reply bot is enable / disable from whatsapp chat
-            if ($enableReplyBot == $contactDetails->disable_reply_bot) {
-                // Check if AI bot is enable
-                if (__isEmpty($enableReplyBot)) {
-                    $systemMessageActions[] = [
-                        'action' => 'DISABLE_REPLY_BOT'
-                    ];
-                } else {
-                    $systemMessageActions[] = [
-                        'action' => 'ENABLE_REPLY_BOT'
-                    ];
-                }
+            $isCurrentlyReplyBotEnabled = !$contactDetails->disable_reply_bot;
+            $isNewReplyBotEnabled = !empty($enableReplyBot);
+
+            if ($request->has('enable_reply_bot') && $isCurrentlyReplyBotEnabled !== $isNewReplyBotEnabled) {
+                $systemMessageActions[] = [
+                    'action' => $isNewReplyBotEnabled ? 'ENABLE_REPLY_BOT' : 'DISABLE_REPLY_BOT',
+                    'dynamicValue' => ''
+                ];
+            }
+
+            $updateData = [
+                'assigned_users__id' => null,
+            ];
+            
+            if ($request->has('enable_ai_bot')) {
+                $updateData['disable_ai_bot'] = $isNewAiBotEnabled ? null : 1;
+            }
+            if ($request->has('enable_reply_bot')) {
+                $updateData['disable_reply_bot'] = $isNewReplyBotEnabled ? null : 1;
             }
 
             if ($this->contactRepository->updateIt([
                 '_uid' => $request->contactIdOrUid,
                 'vendors__id' => $vendorId,
-            ], [
-                'assigned_users__id' => null,
-                'disable_ai_bot' => $enableAiBot ? null : 1,
-                'disable_reply_bot' => $enableReplyBot ? null : 1
-            ])) {
+            ], $updateData)) {
 
                 if ($contactDetails->assigned_users__id != null) {
 
@@ -1596,46 +1595,41 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
             return $this->engineFailedResponse([], __tr('Failed to assign user'));
         }
         $systemMessageActions = [];
-        // Check if AI bot is enable / disable from whatsapp chat
-        if ($enableAiBot == $contactDetails->disable_ai_bot) {
-            // Check if AI bot is enable
-            if (__isEmpty($enableAiBot)) {
-                $systemMessageActions[] = [
-                    'action' => 'DISABLE_AI_BOT',
-                    'dynamicValue' => ''
-                ];
-            } else {
-                $systemMessageActions[] = [
-                    'action' => 'ENABLE_AI_BOT',
-                    'dynamicValue' => ''
-                ];
-            }
+        $isCurrentlyAiBotEnabled = !$contactDetails->disable_ai_bot;
+        $isNewAiBotEnabled = !empty($enableAiBot);
+
+        if ($request->has('enable_ai_bot') && $isCurrentlyAiBotEnabled !== $isNewAiBotEnabled) {
+            $systemMessageActions[] = [
+                'action' => $isNewAiBotEnabled ? 'ENABLE_AI_BOT' : 'DISABLE_AI_BOT',
+                'dynamicValue' => ''
+            ];
         }
 
-        // Check if Reply bot is enable / disable from whatsapp chat
-        if ($enableReplyBot == $contactDetails->disable_reply_bot) {
-            // Check if AI bot is enable
-            if (__isEmpty($enableReplyBot)) {
-                $systemMessageActions[] = [
-                    'action' => 'DISABLE_REPLY_BOT',
-                    'dynamicValue' => ''
-                ];
-            } else {
-                $systemMessageActions[] = [
-                    'action' => 'ENABLE_REPLY_BOT',
-                    'dynamicValue' => ''
-                ];
-            }
+        $isCurrentlyReplyBotEnabled = !$contactDetails->disable_reply_bot;
+        $isNewReplyBotEnabled = !empty($enableReplyBot);
+
+        if ($request->has('enable_reply_bot') && $isCurrentlyReplyBotEnabled !== $isNewReplyBotEnabled) {
+            $systemMessageActions[] = [
+                'action' => $isNewReplyBotEnabled ? 'ENABLE_REPLY_BOT' : 'DISABLE_REPLY_BOT',
+                'dynamicValue' => ''
+            ];
+        }
+
+        $updateData = [
+            'assigned_users__id' => $user->_id,
+        ];
+        
+        if ($request->has('enable_ai_bot')) {
+            $updateData['disable_ai_bot'] = $isNewAiBotEnabled ? null : 1;
+        }
+        if ($request->has('enable_reply_bot')) {
+            $updateData['disable_reply_bot'] = $isNewReplyBotEnabled ? null : 1;
         }
 
         if ($this->contactRepository->updateIt([
             '_uid' => $request->contactIdOrUid,
             'vendors__id' => $vendorId,
-        ], [
-            'assigned_users__id' => $user->_id,
-            'disable_ai_bot' => $enableAiBot ? null : 1,
-            'disable_reply_bot' => $enableReplyBot ? null : 1
-        ])) {
+        ], $updateData)) {
 
             if ($user->_id != $contactDetails->assigned_users__id) {
                 $systemMessageActions[] = [
