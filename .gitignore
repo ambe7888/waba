@@ -61,3 +61,4 @@ __pycache__/
 PROJECT_LOG.md
 update.md
 campagne.sql
+storage/firebase/firebase-service-account.json
