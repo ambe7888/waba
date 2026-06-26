@@ -3467,7 +3467,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         }
 
                         // Check for Drip Campaign Subscription
-                        if ($botReply->addon_drip_campaigns__id && class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber')) {
+                        if ($botReply->addon_drip_campaigns__id && class_exists('Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber')) {
                             $existingSub = \Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber::where('addon_drip_campaigns__id', $botReply->addon_drip_campaigns__id)
                                 ->where('contacts__id', $contact->_id)
                                 ->first();
