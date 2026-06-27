@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../models/contact.dart';
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 400),
     );
     _loadContacts();
+    _checkUpdate();
     _searchController.addListener(_applyFilters);
     
 
@@ -68,6 +70,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       const Duration(seconds: pollingIntervalSeconds),
       (_) => _loadContacts(silent: true),
     );
+  }
+
+  Future<void> _checkUpdate() async {
+    try {
+      final updateInfo = await ApiService().checkForUpdate();
+      if (updateInfo != null && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.system_update_rounded, color: Colors.teal),
+                SizedBox(width: 8),
+                Text('Mise à jour dispo ! 🚀'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Une nouvelle version (${updateInfo['version']}) de WhatsClick est disponible.',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  if (updateInfo['change_log'].toString().isNotEmpty) ...[
+                    const Text('Nouveautés :', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(updateInfo['change_log']),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Plus tard'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final url = Uri.parse(updateInfo['apk_url']);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Mettre à jour'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadContacts({bool silent = false}) async {
