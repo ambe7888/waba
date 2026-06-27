@@ -261,6 +261,11 @@ Route::group([
             'apiIndex',
         ])->name('app_api.vendor.support_tickets.read');
 
+        Route::post('/support-tickets/store', [
+            \App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class,
+            'apiStore',
+        ])->name('app_api.vendor.support_tickets.store');
+
         // Get WhatsApp templates
         Route::get('/whatsapp/templates', function () {
             validateVendorAccess('messaging');
@@ -422,6 +427,11 @@ Route::group([
             CampaignController::class,
             'prepareCampaignList',
         ])->name('app_api.vendor.campaign.read.list');
+        // Campaign list for mobile app (clean JSON)
+        Route::get('/campaign-list', [
+            CampaignController::class,
+            'apiGetCampaignList',
+        ])->name('app_api.vendor.campaign.read.mobile_list');
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
             CampaignController::class,

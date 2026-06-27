@@ -41,8 +41,19 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   // Design constants
   static const _primaryColor = Color(0xFF0D9488);
   static const _accentColor = Color(0xFF2DD4BF);
-  static const _surfaceDark = Color(0xFF0F172A);
-  static const _surfaceCard = Color(0xFF1E293B);
+
+  void _showDrawerNotice(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: const Color(0xFFE5E7EB),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -147,6 +158,19 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     return null;
   }
 
+  Future<void> _saveBotSettings() async {
+    final success = await ApiService().updateContactDetails(
+      widget.contact.uid,
+      enableAiBot: _enableAiBot,
+      enableReplyBot: _enableReplyBot,
+    );
+    if (mounted) {
+      _showDrawerNotice(success
+          ? 'Paramètres des bots mis à jour.'
+          : 'Erreur lors de la mise à jour des bots.');
+    }
+  }
+
   Future<void> _saveContactDetails() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -174,12 +198,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Informations mises à jour avec succès.' : 'Erreur de mise à jour.'),
-          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
-        ),
-      );
+      _showDrawerNotice(success ? 'Informations mises à jour avec succès.' : 'Erreur de mise à jour.');
       if (success && widget.onUpdate != null) {
         widget.onUpdate!();
       }
@@ -201,12 +220,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Notes mises à jour.' : 'Erreur de mise à jour des notes.'),
-          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
-        ),
-      );
+      _showDrawerNotice(success ? 'Notes mises à jour.' : 'Erreur de mise à jour des notes.');
       if (success && widget.onUpdate != null) {
         widget.onUpdate!();
       }
@@ -233,14 +247,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success 
-              ? (_isBlocked ? 'Contact bloqué.' : 'Contact débloqué.')
-              : 'Erreur de modification du statut de blocage.'),
-          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
-        ),
-      );
+      _showDrawerNotice(success
+          ? (_isBlocked ? 'Contact bloqué.' : 'Contact débloqué.')
+          : 'Erreur de modification du statut de blocage.');
       if (success && widget.onUpdate != null) {
         widget.onUpdate!();
       }
@@ -263,12 +272,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Agent assigné avec succès.' : 'Erreur lors de l\'assignation de l\'agent.'),
-          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
-        ),
-      );
+      _showDrawerNotice(success ? 'Agent assigné avec succès.' : 'Erreur lors de l\'assignation de l\'agent.');
       if (success && widget.onUpdate != null) {
         widget.onUpdate!();
       }
@@ -306,12 +310,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
     if (mounted) {
       if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la mise à jour des étiquettes.'),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
+        _showDrawerNotice('Erreur lors de la mise à jour des étiquettes.');
       } else {
         if (widget.onUpdate != null) {
           widget.onUpdate!();
@@ -340,7 +339,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
           Text(
             title,
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
@@ -351,18 +350,20 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   }
 
   InputDecoration _inputDecoration(String label) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final cardColor = Theme.of(context).colorScheme.surface;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
+      labelStyle: TextStyle(color: onSurface.withOpacity(0.5), fontSize: 13),
       filled: true,
-      fillColor: Colors.white.withAlpha(8),
+      fillColor: cardColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withAlpha(20)),
+        borderSide: BorderSide(color: onSurface.withOpacity(0.15)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withAlpha(20)),
+        borderSide: BorderSide(color: onSurface.withOpacity(0.15)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -374,18 +375,20 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.85,
-      backgroundColor: _surfaceDark,
+      backgroundColor: scaffoldBg,
       child: Scaffold(
-        backgroundColor: _surfaceDark,
+        backgroundColor: scaffoldBg,
         appBar: AppBar(
           title: Text(
             'Options du Contact',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
-          backgroundColor: _surfaceDark,
-          foregroundColor: Colors.white,
+          backgroundColor: scaffoldBg,
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.close_rounded),
@@ -405,9 +408,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       Container(
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: _surfaceCard,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withAlpha(10)),
+                          border: Border.all(color: onSurface.withOpacity(0.1)),
                         ),
                         child: Column(
                           children: [
@@ -428,7 +431,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                   widget.contact.name.isNotEmpty
                                       ? widget.contact.name[0].toUpperCase()
                                       : 'C',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 24,
@@ -442,14 +445,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
-                                color: Colors.white,
+                                color: onSurface,
                               ),
                               textAlign: TextAlign.center,
                             ),
                             SizedBox(height: 4),
                             Text(
                               widget.contact.phoneNumber,
-                              style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
+                              style: TextStyle(color: onSurface.withOpacity(0.5), fontSize: 13),
                             ),
                           ],
                         ),
@@ -460,9 +463,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _surfaceCard,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withAlpha(10)),
+                          border: Border.all(color: onSurface.withOpacity(0.1)),
                         ),
                         child: _isSavingAgent
                             ? Center(
@@ -473,12 +476,12 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                               )
                             : DropdownButtonFormField<String>(
                                 value: _assignedUserUid,
-                                dropdownColor: _surfaceCard,
-                                style: TextStyle(color: Colors.white, fontSize: 14),
-                                decoration: const InputDecoration(
+                                dropdownColor: cardColor,
+                                style: TextStyle(color: onSurface, fontSize: 14),
+                                decoration: InputDecoration(
                                   border: InputBorder.none,
                                   hintText: 'Sélectionner un agent',
-                                  hintStyle: TextStyle(color: Colors.white54),
+                                  hintStyle: TextStyle(color: onSurface.withOpacity(0.4)),
                                 ),
                                 items: [
                                   const DropdownMenuItem<String>(
@@ -492,28 +495,50 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                     );
                                   }),
                                 ],
-                                onChanged: (val) => _assignAgent(val),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _assignedUserUid = val;
+                                  });
+                                },
                               ),
+                      ),
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: _isSavingAgent ? null : () => _assignAgent(_assignedUserUid),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: _isSavingAgent
+                            ? SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text('Appliquer l\'agent', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                       ),
 
                       // Details Section
                       _buildSectionHeader('Détails de base', Icons.info_outline_rounded),
                       TextFormField(
                         controller: _firstNameController,
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: onSurface, fontSize: 14),
                         decoration: _inputDecoration('Prénom'),
                       ),
                       SizedBox(height: 12),
                       TextFormField(
                         controller: _lastNameController,
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: onSurface, fontSize: 14),
                         decoration: _inputDecoration('Nom'),
                       ),
                       SizedBox(height: 12),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: onSurface, fontSize: 14),
                         decoration: _inputDecoration('Email'),
                       ),
 
@@ -527,7 +552,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                             padding: EdgeInsets.only(bottom: 12.0),
                             child: TextFormField(
                               controller: _customFieldControllers[uid],
-                              style: TextStyle(color: Colors.white, fontSize: 14),
+                              style: TextStyle(color: onSurface, fontSize: 14),
                               decoration: _inputDecoration(title),
                             ),
                           );
@@ -538,33 +563,31 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       _buildSectionHeader('Configurations des robots', Icons.smart_toy_rounded),
                       Container(
                         decoration: BoxDecoration(
-                          color: _surfaceCard,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withAlpha(10)),
+                          border: Border.all(color: onSurface.withOpacity(0.1)),
                         ),
                         child: Column(
                           children: [
                             SwitchListTile(
-                              title: Text('Chatbot IA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                              subtitle: Text('Réponses automatiques IA', style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(80))),
+                              title: Text('Chatbot IA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
+                              subtitle: Text('Réponses automatiques IA', style: TextStyle(fontSize: 11, color: onSurface.withOpacity(0.5))),
                               value: _enableAiBot,
                               activeColor: _primaryColor,
                               onChanged: (val) {
-                                setState(() {
-                                  _enableAiBot = val;
-                                });
+                                setState(() { _enableAiBot = val; });
+                                _saveBotSettings();
                               },
                             ),
-                            Divider(color: Colors.white.withAlpha(10), height: 1),
+                            Divider(color: onSurface.withOpacity(0.1), height: 1),
                             SwitchListTile(
-                              title: Text('Bot Réponse', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-                              subtitle: Text('Réponses automatiques configurées', style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(80))),
+                              title: Text('Bot Réponse', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
+                              subtitle: Text('Réponses automatiques configurées', style: TextStyle(fontSize: 11, color: onSurface.withOpacity(0.5))),
                               value: _enableReplyBot,
                               activeColor: _primaryColor,
                               onChanged: (val) {
-                                setState(() {
-                                  _enableReplyBot = val;
-                                });
+                                setState(() { _enableReplyBot = val; });
+                                _saveBotSettings();
                               },
                             ),
                           ],
@@ -595,7 +618,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       TextFormField(
                         controller: _notesController,
                         maxLines: 4,
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: onSurface, fontSize: 14),
                         decoration: _inputDecoration('Saisir une note...'),
                       ),
                       SizedBox(height: 12),
@@ -640,7 +663,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                     label: Text(
                                       title,
                                       style: TextStyle(
-                                        color: isSelected ? Colors.white : Colors.white.withAlpha(160),
+                                        color: isSelected ? Colors.white : onSurface.withOpacity(0.7),
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12,
                                       ),
@@ -648,9 +671,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                     selected: isSelected,
                                     selectedColor: labelColor.withAlpha(120),
                                     checkmarkColor: Colors.white,
-                                    backgroundColor: _surfaceCard,
+                                    backgroundColor: cardColor,
                                     side: BorderSide(
-                                      color: isSelected ? labelColor : Colors.white.withAlpha(20),
+                                      color: isSelected ? labelColor : onSurface.withOpacity(0.15),
                                       width: 1,
                                     ),
                                     shape: RoundedRectangleBorder(
@@ -666,7 +689,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
                       // Block Contact
                       SizedBox(height: 24),
-                      Divider(color: Colors.white.withAlpha(15)),
+                      Divider(color: onSurface.withOpacity(0.1)),
                       SizedBox(height: 12),
                       ElevatedButton.icon(
                         onPressed: _isTogglingBlock ? null : _toggleBlockStatus,
@@ -680,9 +703,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                         label: Text(_isBlocked ? 'Débloquer le contact' : 'Bloquer le contact'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _isBlocked
-                              ? Colors.white.withAlpha(15)
+                              ? onSurface.withOpacity(0.08)
                               : Color(0xFFEF4444).withAlpha(30),
-                          foregroundColor: _isBlocked ? Colors.white.withAlpha(160) : Color(0xFFFCA5A5),
+                          foregroundColor: _isBlocked ? onSurface.withOpacity(0.6) : Color(0xFFEF4444),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,

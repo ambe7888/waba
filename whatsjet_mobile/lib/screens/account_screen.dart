@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'support_tickets_screen.dart';
+import 'resource_list_screen.dart';
 import 'login_screen.dart';
 import 'qr_code_screen.dart';
 
@@ -63,7 +65,26 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Compte'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: ThemeService.primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.person_rounded, color: ThemeService.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Compte',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
       ),
       body: ListView(
         padding: EdgeInsets.all(16),
@@ -103,6 +124,28 @@ class _AccountScreenState extends State<AccountScreen> {
                   title: Text('Mon Code QR'),
                   trailing: Icon(Icons.chevron_right),
                   onTap: _showQrCode,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.folder_shared_rounded, color: Colors.teal),
+                  title: Text('Ressources partagées'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ResourceListScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.support_agent_rounded, color: Colors.deepPurple),
+                  title: Text('Assistance'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SupportTicketsScreen()),
+                    );
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(

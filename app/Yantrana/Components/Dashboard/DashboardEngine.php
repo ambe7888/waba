@@ -330,6 +330,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
 
         $vendorDashboardData['whatsappSetupStatusMessage'] = $whatsappSetupStatusMessage;
         $vendorDashboardData['whatsappSetupStatus'] = $whatsappSetupStatus;
+        $vendorDashboardData['whatsapp_phone_number'] = getVendorSettings('whatsapp_phone_number_from_whatsapp', null, null, $vendorIdOrUid);
+        if (empty($vendorDashboardData['whatsapp_phone_number'])) {
+            $vendorDashboardData['whatsapp_phone_number'] = getVendorSettings('whatsapp_phone_number', null, null, $vendorIdOrUid);
+        }
+
         
         updateClientModels([
             'quickViewData' => $vendorDashboardData

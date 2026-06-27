@@ -695,10 +695,16 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
         }
         // extract exiting group ids
         $existingGroupIds = $contact->groups->pluck('_id')->toArray();
-        // prepare group ids needs to be assign to the contact
-        $groupsToBeAddedIds = array_diff($inputData['contact_groups'] ?? [], $existingGroupIds);
-        // prepare group ids needs to be remove from the contact
-        $groupsToBeDeleted = array_diff($existingGroupIds, $inputData['contact_groups'] ?? []);
+        // Only process group changes if contact_groups is explicitly provided in the request
+        if (array_key_exists('contact_groups', $inputData)) {
+            // prepare group ids needs to be assign to the contact
+            $groupsToBeAddedIds = array_diff($inputData['contact_groups'] ?? [], $existingGroupIds);
+            // prepare group ids needs to be remove from the contact
+            $groupsToBeDeleted = array_diff($existingGroupIds, $inputData['contact_groups'] ?? []);
+        } else {
+            $groupsToBeAddedIds = [];
+            $groupsToBeDeleted = [];
+        }
         $isUpdated = false;
         // process to delete if needed
         if (! empty($groupsToBeDeleted)) {

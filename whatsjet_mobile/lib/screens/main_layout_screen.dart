@@ -4,7 +4,7 @@ import '../services/theme_service.dart';
 import 'home_screen.dart';
 import 'dashboard_screen.dart';
 import 'contacts_screen.dart';
-import 'support_tickets_screen.dart';
+import 'campaign_list_screen.dart';
 import 'account_screen.dart';
 
 class MainLayoutScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     const DashboardScreen(),
     const HomeScreen(), // Discussions
     const ContactsScreen(),
-    const SupportTicketsScreen(),
+    const CampaignListScreen(),
     const AccountScreen(),
   ];
 
@@ -87,9 +87,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                   label: 'Contacts',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.support_agent_outlined),
-                  activeIcon: Icon(Icons.support_agent_rounded),
-                  label: 'Assistance',
+                  icon: Icon(Icons.campaign_outlined),
+                  activeIcon: Icon(Icons.campaign_rounded),
+                  label: 'Campagnes',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.person_outline_rounded),
