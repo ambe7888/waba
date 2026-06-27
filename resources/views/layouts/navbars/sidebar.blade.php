@@ -384,12 +384,6 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         {{ __tr('QR Code') }}
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url('downloads/whatsclick.apk') }}" download>
-                        <i class="fab fa-android text-success"></i>
-                        {{ __tr('Application Android') }}
-                    </a>
-                </li>
                 @if (hasVendorAccess('messaging'))
                 <li class="nav-item">
                     <a class="nav-link {{ markAsActiveLink('vendor.chat_message.contact.view') }}"
@@ -596,6 +590,12 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </div>
                 </li>
                 @endif
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url('downloads/whatsclick.apk') }}" download>
+                        <i class="fab fa-android text-success"></i>
+                        {{ __tr('Application Android') }}
+                    </a>
+                </li>
                 @endif
             </ul>
         </div>
