@@ -1461,6 +1461,8 @@ Route::middleware([
         Route::post('/store', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'store'])->name('info_material.store');
         Route::post('/{uid}/delete', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'destroy'])->name('info_material.destroy');
         Route::get('/{uid}/download', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'download'])->name('info_material.download');
+        Route::get('/{uid}/edit', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'edit'])->name('info_material.edit');
+        Route::post('/{uid}/update', [App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class, 'update'])->name('info_material.update');
     });
 
 });

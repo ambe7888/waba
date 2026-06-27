@@ -46,6 +46,8 @@
                                             <i class="fa fa-eye"></i> {{ __tr('View') }}
                                         </button>
                                         @if(hasCentralAccess())
+                                        <a href="{{ route('info_material.edit', ['uid' => $material->_uid]) }}" class="btn btn-primary btn-sm"><i class="fa fa-edit"></i> {{ __tr('Edit') }}</a>
+                                        
                                         <form action="{{ route('info_material.destroy', ['uid' => $material->_uid]) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('{{ __tr('Are you sure you want to delete this material?') }}');">
                                             @csrf
                                             <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i> {{ __tr('Delete') }}</button>
