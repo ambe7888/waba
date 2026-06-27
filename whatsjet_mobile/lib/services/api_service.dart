@@ -679,5 +679,27 @@ class ApiService {
       return [];
     }
   }
+
+  /// Check if a new version is available on the server
+  Future<Map<String, dynamic>?> checkForUpdate() async {
+    final url = Uri.parse('${baseUrl}downloads/version.json');
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final serverVersion = data['version']?.toString() ?? '';
+        if (serverVersion.isNotEmpty && serverVersion != version) {
+          return {
+            'version': serverVersion,
+            'change_log': data['change_log']?.toString() ?? '',
+            'apk_url': '${baseUrl}downloads/whatsclick.apk',
+          };
+        }
+      }
+    } catch (e) {
+      if (debug) debugPrint('Check for update error: $e');
+    }
+    return null;
+  }
 }
 
