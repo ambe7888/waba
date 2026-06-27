@@ -54,13 +54,17 @@ class InfoMaterialController extends BaseController
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'required|file|max:10240', // 10MB max
+            'file' => 'nullable|file|max:10240', // 10MB max
         ]);
 
-        $file = $request->file('file');
-        $filename = time() . '_' . Str::slug($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-        
-        $path = $file->storeAs('info_materials', $filename, 'public');
+        $path = null;
+        $originalName = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . Str::slug($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('info_materials', $filename, 'public');
+            $originalName = $file->getClientOriginalName();
+        }
 
         InfoMaterialModel::create([
             'status' => 1,
@@ -69,7 +73,7 @@ class InfoMaterialController extends BaseController
             'type' => 1, // 1 for file
             '__data' => [
                 'file_path' => $path,
-                'file_name' => $file->getClientOriginalName()
+                'file_name' => $originalName
             ]
         ]);
 

@@ -23,11 +23,11 @@
                         </div>
                         <div class="form-group">
                             <label for="description">{{ __tr('Description (Optional)') }}</label>
-                            <textarea name="description" id="description" rows="3" class="form-control"></textarea>
+                            <textarea name="description" id="description" rows="10" class="form-control"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="file">{{ __tr('File') }}</label>
-                            <input type="file" name="file" id="file" class="form-control" required>
+                            <label for="file">{{ __tr('File (Optional)') }}</label>
+                            <input type="file" name="file" id="file" class="form-control">
                             <small class="form-text text-muted">{{ __tr('Max file size: 10MB.') }}</small>
                         </div>
                         <div class="form-group">
@@ -41,3 +41,31 @@
     </div>
 </div>
 @endsection
+
+@push('head')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.3/ui/trumbowyg.min.css">
+@endpush
+
+@push('js')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.3/trumbowyg.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#description').trumbowyg({
+            btns: [
+                ['viewHTML'],
+                ['undo', 'redo'], // Only supported in Blink browsers
+                ['formatting'],
+                ['strong', 'em', 'del'],
+                ['superscript', 'subscript'],
+                ['link'],
+                ['insertImage'],
+                ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
+                ['unorderedList', 'orderedList'],
+                ['horizontalRule'],
+                ['removeformat'],
+                ['fullscreen']
+            ]
+        });
+    });
+</script>
+@endpush

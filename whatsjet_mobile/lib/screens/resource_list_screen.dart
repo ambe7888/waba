@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../services/api_service.dart';
 import '../models/resource.dart';
 
@@ -177,19 +178,6 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                               fontSize: 16,
                                             ),
                                           ),
-                                          if (resource.description != null &&
-                                              resource.description!.isNotEmpty) ...[
-                                            SizedBox(height: 4),
-                                            Text(
-                                              resource.description!,
-                                              style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 13,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
                                           SizedBox(height: 8),
                                           Text(
                                             'Nom : ${resource.fileName}',
@@ -204,19 +192,42 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                     ),
                                     SizedBox(width: 8),
                                     IconButton(
-                                      icon: Icon(Icons.file_download, color: primaryColor, size: 28),
+                                      icon: Icon(Icons.visibility, color: primaryColor, size: 28),
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Téléchargement de : ${resource.fileName}'),
-                                            action: SnackBarAction(
-                                              label: 'Copier le lien',
-                                              onPressed: () {
-                                                // Normally, you would download/open the URL.
-                                                // Sharing/copying is a fallback.
-                                              },
-                                            ),
-                                          ),
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text(resource.title),
+                                              content: SingleChildScrollView(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    if (resource.description != null && resource.description!.isNotEmpty)
+                                                      Html(data: resource.description!),
+                                                    SizedBox(height: 16),
+                                                    if (resource.fileName != null && resource.fileName!.isNotEmpty)
+                                                      Text(
+                                                        'Fichier joint: ${resource.fileName}',
+                                                        style: TextStyle(
+                                                          color: Colors.grey.shade600,
+                                                          fontStyle: FontStyle.italic,
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  child: Text('Fermer', style: TextStyle(color: primaryColor)),
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                ),
+                                              ],
+                                            );
+                                          },
                                         );
                                       },
                                     ),
