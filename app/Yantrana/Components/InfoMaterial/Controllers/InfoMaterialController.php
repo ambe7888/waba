@@ -81,6 +81,62 @@ class InfoMaterialController extends BaseController
     }
 
     /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  string  $uid
+     * @return \Illuminate\View\View
+     */
+    public function edit($uid)
+    {
+        abortIf(!hasCentralAccess());
+        $material = InfoMaterialModel::where('_uid', $uid)->firstOrFail();
+        return view('info_material.edit', compact('material'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $uid
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(Request $request, $uid)
+    {
+        abortIf(!hasCentralAccess());
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'file' => 'nullable|file|max:10240', // 10MB max
+        ]);
+
+        $material = InfoMaterialModel::where('_uid', $uid)->firstOrFail();
+        $data = $material->__data;
+
+        if ($request->hasFile('file')) {
+            // Delete old file if exists
+            if (isset($data['file_path'])) {
+                Storage::disk('public')->delete($data['file_path']);
+            }
+            
+            $file = $request->file('file');
+            $filename = time() . '_' . Str::slug($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('info_materials', $filename, 'public');
+            
+            $data['file_path'] = $path;
+            $data['file_name'] = $file->getClientOriginalName();
+        }
+
+        $material->update([
+            'title' => $request->title,
+            'description' => $request->description ?? '',
+            '__data' => $data
+        ]);
+
+        return redirect()->route('info_material.index')->with('success', __tr('Material updated successfully.'));
+    }
+
+    /**
      * Remove the specified resource from storage.
      *
      * @param  string  $uid
