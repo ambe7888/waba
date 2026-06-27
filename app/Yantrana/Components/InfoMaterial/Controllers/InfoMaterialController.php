@@ -65,7 +65,7 @@ class InfoMaterialController extends BaseController
         InfoMaterialModel::create([
             'status' => 1,
             'title' => $request->title,
-            'description' => $request->description,
+            'description' => $request->description ?? '',
             'type' => 1, // 1 for file
             '__data' => [
                 'file_path' => $path,
