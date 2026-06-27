@@ -626,7 +626,7 @@
                                                     </x-lw.form>
                                                     
                                                     <!-- Format Buttons for Chat -->
-                                                    <div class="px-3 pb-2 pt-1">
+                                                    <div class="px-3 pb-2 pt-1 d-none">
                                                         <x-whatsapp-format-buttons inputId="lwChatWindowMessageBody" />
                                                     </div>
                                                     <!-- /Format Buttons for Chat -->
