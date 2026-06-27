@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
 import 'services/theme_service.dart';
@@ -8,6 +11,20 @@ import 'screens/main_layout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase for push notifications
+  bool firebaseReady = false;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    firebaseReady = true;
+    if (kDebugMode) print('✅ Firebase initialized successfully');
+  } catch (e) {
+    if (kDebugMode) print('⚠️ Firebase initialization failed: $e');
+  }
+
+  FcmService().setFirebaseAvailable(firebaseReady);
 
   // Initialize ThemeService
   final themeService = ThemeService();
