@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _nextPage = 0;
+  final _scrollController = ScrollController();
   late final StreamSubscription<RemoteMessage> _fcmSubscription;
   Timer? _pollingTimer;
 
@@ -42,6 +43,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _loadContacts();
     _searchController.addListener(_applyFilters);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreContacts();
+      }
+    });
 
     // Initialize FCM for push notifications
     FcmService().init().catchError((e) {
@@ -148,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _contacts.fold(0, (sum, c) => sum + c.unreadCount);
 
   Color _parseColor(String? colorStr) {
-    if (colorStr == null || colorStr.isEmpty) return const Color(0xFF64748B);
+    if (colorStr == null || colorStr.isEmpty) return Color(0xFF64748B);
     try {
       if (colorStr.startsWith('#')) {
         String hex = colorStr.replaceAll('#', '');
@@ -169,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Color parse error: $e');
     }
-    return const Color(0xFF64748B);
+    return Color(0xFF64748B);
   }
 
   String getRelativeTime(String? timestamp) {
@@ -229,8 +235,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 errorBuilder: (_, __, ___) => Center(
                   child: Text(
                     initials,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                     ),
@@ -241,8 +247,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           : Center(
               child: Text(
                 initials,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
@@ -287,6 +293,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
     _fadeController.dispose();
@@ -297,14 +304,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF0D9488);
     const accentColor = Color(0xFF2DD4BF);
-    const surfaceDark = Color(0xFF0F172A);
-    const surfaceCard = Color(0xFF1E293B);
+    final surfaceDark = Theme.of(context).scaffoldBackgroundColor;
+    final surfaceCard = Theme.of(context).colorScheme.surface;
     final totalUnread = _totalUnreadCount;
 
     return Scaffold(
-      backgroundColor: surfaceDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: surfaceDark,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Row(
           children: [
@@ -313,17 +320,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [primaryColor, accentColor],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.chat_rounded, color: Colors.white, size: 20),
+              child: Icon(Icons.chat_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
             ),
-            const SizedBox(width: 10),
-            const Text(
+            SizedBox(width: 10),
+            Text(
               'WhatsClick',
               style: TextStyle(
                 fontSize: 22,
@@ -332,17 +339,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             if (totalUnread > 0) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: primaryColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '$totalUnread',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -353,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, size: 22),
+            icon: Icon(Icons.refresh_rounded, size: 22),
             onPressed: _loadContacts,
           ),
         ],
@@ -363,30 +370,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // Search Bar with glassmorphism effect
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Container(
               decoration: BoxDecoration(
                 color: surfaceCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withAlpha(15)),
+                border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06)),
               ),
               child: TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Rechercher un contact...',
-                  hintStyle: TextStyle(color: Colors.white.withAlpha(80), fontSize: 14),
-                  prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withAlpha(80), size: 20),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), size: 20),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear_rounded, color: Colors.white.withAlpha(80), size: 18),
+                          icon: Icon(Icons.clear_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), size: 18),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 ),
               ),
             ),
@@ -396,10 +403,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (_allUniqueLabels.isNotEmpty || _contacts.any((c) => c.unreadCount > 0))
             Container(
               height: 40,
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: EdgeInsets.only(bottom: 8),
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   // "Tous" chip
                   _buildFilterChip(
@@ -409,25 +416,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     onTap: () => _selectLabelFilter(null),
                     count: _contacts.length,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   // "Non lus" chip
                   if (_contacts.any((c) => c.unreadCount > 0))
                     _buildFilterChip(
                       label: 'Non lus',
                       isSelected: _selectedLabelFilter == '__unread',
-                      color: const Color(0xFFF59E0B),
+                      color: Color(0xFFF59E0B),
                       onTap: () => _selectLabelFilter('__unread'),
                       count: _contacts.where((c) => c.unreadCount > 0).length,
                       icon: Icons.mark_email_unread_rounded,
                     ),
                   if (_contacts.any((c) => c.unreadCount > 0))
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                   // Dynamic label chips
                   ..._allUniqueLabels.map((label) {
                     final color = _parseColor(label.bgColor);
                     final count = _contacts.where((c) => c.labels.any((l) => l.title == label.title)).length;
                     return Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: EdgeInsets.only(right: 8),
                       child: _buildFilterChip(
                         label: label.title,
                         isSelected: _selectedLabelFilter == label.title,
@@ -457,10 +464,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             strokeCap: StrokeCap.round,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         Text(
                           'Chargement des conversations...',
-                          style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 14),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47), fontSize: 14),
                         ),
                       ],
                     ),
@@ -473,20 +480,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             Icon(
                               _selectedLabelFilter != null ? Icons.filter_list_off_rounded : Icons.chat_bubble_outline_rounded,
                               size: 56,
-                              color: Colors.white.withAlpha(40),
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.16),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
                               _selectedLabelFilter != null
                                   ? 'Aucun contact avec cette étiquette'
                                   : 'Aucune conversation trouvée',
-                              style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 15),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 15),
                             ),
                             if (_selectedLabelFilter != null) ...[
-                              const SizedBox(height: 12),
+                              SizedBox(height: 12),
                               TextButton(
                                 onPressed: () => _selectLabelFilter(null),
-                                child: const Text('Voir tous les contacts', style: TextStyle(color: primaryColor)),
+                                child: Text('Voir tous les contacts', style: TextStyle(color: primaryColor)),
                               ),
                             ],
                           ],
@@ -497,7 +504,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         color: primaryColor,
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          controller: _scrollController,
+                          padding: EdgeInsets.symmetric(horizontal: 12),
                           itemCount: _filteredContacts.length + (_nextPage > 0 ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == _filteredContacts.length) {
@@ -531,12 +539,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(40) : const Color(0xFF1E293B),
+          color: isSelected ? color.withAlpha(40) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Theme.of(context).colorScheme.onSurface.withOpacity(0.05)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withAlpha(20),
+            color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
             width: 1.5,
           ),
         ),
@@ -544,14 +552,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 14, color: isSelected ? color : Colors.white.withAlpha(120)),
-              const SizedBox(width: 4),
+              Icon(icon, size: 14, color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.47)),
+              SizedBox(width: 4),
             ],
             if (isSelected && icon == null)
               Container(
                 width: 6,
                 height: 6,
-                margin: const EdgeInsets.only(right: 6),
+                margin: EdgeInsets.only(right: 6),
                 decoration: BoxDecoration(
                   color: color,
                   shape: BoxShape.circle,
@@ -560,23 +568,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Colors.white.withAlpha(160),
+                color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.63),
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
             if (count != null) ...[
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withAlpha(50) : Colors.white.withAlpha(15),
+                  color: isSelected ? color.withAlpha(50) : Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    color: isSelected ? color : Colors.white.withAlpha(100),
+                    color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.39),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -599,7 +607,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final hasUnread = contact.unreadCount > 0;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: 4),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -614,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             });
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: hasUnread ? primaryColor.withAlpha(12) : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
@@ -638,13 +646,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           decoration: BoxDecoration(
                             color: accentColor,
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF0F172A), width: 2),
+                            border: Border.all(color: Color(0xFF0F172A), width: 2),
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 // Content
                 Expanded(
                   child: Column(
@@ -658,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
                                 fontSize: 15,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -667,14 +675,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             Text(
                               getRelativeTime(contact.lastMessageTime),
                               style: TextStyle(
-                                color: hasUnread ? accentColor : Colors.white.withAlpha(80),
+                                color: hasUnread ? accentColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.31),
                                 fontSize: 11,
                                 fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           Expanded(
@@ -685,23 +693,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: 13,
                                 color: hasUnread
-                                    ? Colors.white.withAlpha(180)
-                                    : Colors.white.withAlpha(100),
+                                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.71)
+                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.39),
                                 fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
                               ),
                             ),
                           ),
                           if (hasUnread)
                             Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              margin: EdgeInsets.only(left: 8),
+                              padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
                                 color: accentColor,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 '${contact.unreadCount}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Color(0xFF0F172A),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
@@ -712,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       // Labels row
                       if (contact.labels.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Wrap(
                           spacing: 4,
                           runSpacing: 4,
@@ -735,40 +743,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildLoadMoreButton(Color primaryColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
-      child: _isLoadingMore
-          ? Center(
-              child: SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
-              ),
-            )
-          : OutlinedButton(
-              onPressed: _loadMoreContacts,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: primaryColor.withAlpha(100)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text(
-                'Charger plus de conversations',
-                style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 13),
-              ),
-            ),
+      padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+      child: Center(
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
+        ),
+      ),
     );
   }
 
   Widget _buildDrawer(Color primaryColor, Color surfaceDark, Color accentColor) {
     return Drawer(
-      backgroundColor: surfaceDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
           // Drawer Header
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, 60, 20, 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [primaryColor.withAlpha(40), surfaceDark],
@@ -789,25 +782,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
+                  child: Icon(Icons.person_rounded, color: Theme.of(context).colorScheme.onSurface, size: 28),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'WhatsClick',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         'Connecté via Mobile',
-                        style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47), fontSize: 12),
                       ),
                     ],
                   ),
@@ -815,7 +808,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _buildDrawerItem(Icons.chat_rounded, 'Discussions', primaryColor, () {
             Navigator.pop(context);
           }),
@@ -826,9 +819,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           }),
           const Spacer(),
-          Divider(color: Colors.white.withAlpha(20), height: 1),
-          _buildDrawerItem(Icons.logout_rounded, 'Se déconnecter', const Color(0xFFEF4444), _handleLogout),
-          const SizedBox(height: 20),
+          Divider(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08), height: 1),
+          _buildDrawerItem(Icons.logout_rounded, 'Se déconnecter', Color(0xFFEF4444), _handleLogout),
+          SizedBox(height: 20),
         ],
       ),
     );
@@ -840,14 +833,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       title: Text(
         title,
         style: TextStyle(
-          color: color == const Color(0xFFEF4444) ? color : Colors.white.withAlpha(200),
+          color: color == Color(0xFFEF4444) ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.78),
           fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      contentPadding: EdgeInsets.symmetric(horizontal: 20),
     );
   }
 }

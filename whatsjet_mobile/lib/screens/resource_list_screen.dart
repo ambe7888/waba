@@ -58,30 +58,30 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ressources & Bibliothèque'),
+        title: Text('Ressources & Bibliothèque'),
         backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       backgroundColor: Colors.grey.shade50,
       body: Column(
         children: [
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: EdgeInsets.all(12.0),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Rechercher un document...',
-                prefixIcon: const Icon(Icons.search, color: primaryColor),
+                prefixIcon: Icon(Icons.search, color: primaryColor),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: Icon(Icons.clear),
                         onPressed: () => _searchController.clear(),
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                fillColor: Theme.of(context).colorScheme.onSurface,
+                contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide(color: Colors.grey.shade300),
@@ -92,7 +92,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(color: primaryColor),
+                  borderSide: BorderSide(color: primaryColor),
                 ),
               ),
             ),
@@ -101,7 +101,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
           // Resource List View
           Expanded(
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(color: primaryColor),
                   )
                 : _filteredResources.isEmpty
@@ -110,7 +110,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.folder_open_outlined, size: 64, color: Colors.grey.shade400),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
                               'Aucune ressource partagée.',
                               style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
@@ -122,47 +122,47 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                         onRefresh: _loadResources,
                         color: primaryColor,
                         child: ListView.builder(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(12),
                           itemCount: _filteredResources.length,
                           itemBuilder: (context, index) {
                             final resource = _filteredResources[index];
                             return Card(
                               elevation: 1.5,
-                              margin: const EdgeInsets.only(bottom: 12),
+                              margin: EdgeInsets.only(bottom: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.all(16.0),
+                                padding: EdgeInsets.all(16.0),
                                 child: Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: primaryColor.withAlpha(26),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.insert_drive_file_outlined,
                                         color: primaryColor,
                                         size: 28,
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
+                                    SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             resource.title,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
                                             ),
                                           ),
                                           if (resource.description != null &&
                                               resource.description!.isNotEmpty) ...[
-                                            const SizedBox(height: 4),
+                                            SizedBox(height: 4),
                                             Text(
                                               resource.description!,
                                               style: TextStyle(
@@ -173,7 +173,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
-                                          const SizedBox(height: 8),
+                                          SizedBox(height: 8),
                                           Text(
                                             'Nom : ${resource.fileName}',
                                             style: TextStyle(
@@ -185,9 +185,9 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    SizedBox(width: 8),
                                     IconButton(
-                                      icon: const Icon(Icons.file_download, color: primaryColor, size: 28),
+                                      icon: Icon(Icons.file_download, color: primaryColor, size: 28),
                                       onPressed: () {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(

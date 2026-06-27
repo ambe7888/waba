@@ -44,7 +44,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 BoxShadow(
                   color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
                   blurRadius: 10,
-                  offset: const Offset(0, -5),
+                  offset: Offset(0, -5),
                 ),
               ],
             ),
@@ -59,13 +59,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               type: BottomNavigationBarType.fixed,
               backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightCard,
               selectedItemColor: ThemeService.primaryColor,
-              unselectedItemColor: isDark ? Colors.white.withOpacity(0.5) : const Color(0xFF64748B),
-              selectedLabelStyle: const TextStyle(
+              unselectedItemColor: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5) : Color(0xFF64748B),
+              selectedLabelStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
-              unselectedLabelStyle: const TextStyle(
+              unselectedLabelStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
                 fontSize: 11,

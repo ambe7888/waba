@@ -63,28 +63,28 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Compte'),
+        title: Text('Compte'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           // Profil Header
           Center(
             child: CircleAvatar(
               radius: 40,
               backgroundColor: ThemeService.primaryColor.withOpacity(0.2),
-              child: const Icon(Icons.business, size: 40, color: ThemeService.primaryColor),
+              child: Icon(Icons.business, size: 40, color: ThemeService.primaryColor),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Center(
             child: Text(
               _vendorInfo?['title'] ?? 'Mon Entreprise',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           if (_vendorInfo?['whatsapp_number'] != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Center(
               child: Text(
                 '+${_vendorInfo!['whatsapp_number']}',
@@ -92,16 +92,16 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
 
           // Actions
           Card(
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.qr_code, color: Colors.blue),
-                  title: const Text('Mon Code QR'),
-                  trailing: const Icon(Icons.chevron_right),
+                  leading: Icon(Icons.qr_code, color: Colors.blue),
+                  title: Text('Mon Code QR'),
+                  trailing: Icon(Icons.chevron_right),
                   onTap: _showQrCode,
                 ),
                 const Divider(height: 1),
@@ -118,8 +118,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text('Déconnexion', style: TextStyle(color: Colors.red)),
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text('Déconnexion', style: TextStyle(color: Colors.red)),
                   onTap: _logout,
                 ),
               ],

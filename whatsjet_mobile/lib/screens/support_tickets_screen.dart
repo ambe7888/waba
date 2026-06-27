@@ -68,57 +68,57 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Assistance'),
+        title: Text('Assistance'),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
+                      Text(_error!, style: TextStyle(color: Colors.red)),
+                      SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _fetchTickets,
-                        child: const Text('Réessayer'),
+                        child: Text('Réessayer'),
                       ),
                     ],
                   ),
                 )
               : _tickets.isEmpty
-                  ? const Center(child: Text('Aucun ticket trouvé'))
+                  ? Center(child: Text('Aucun ticket trouvé'))
                   : RefreshIndicator(
                       onRefresh: _fetchTickets,
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         itemCount: _tickets.length,
                         itemBuilder: (context, index) {
                           final ticket = _tickets[index];
                           final status = ticket['status'] ?? 1;
                           
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: EdgeInsets.only(bottom: 12),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
+                              contentPadding: EdgeInsets.all(16),
                               title: Text(
                                 ticket['subject'] ?? 'Sans sujet',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 8),
+                                  SizedBox(height: 8),
                                   Text(
                                     ticket['description'] ?? '',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 12),
+                                  SizedBox(height: 12),
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: _getStatusColor(status).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(4),
@@ -133,12 +133,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      SizedBox(width: 8),
                                       Text(
                                         'UID: ${ticket['_uid']}',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: isDark ? Colors.white54 : Colors.black54,
+                                          color: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.54) : Colors.black54,
                                         ),
                                       ),
                                     ],

@@ -177,7 +177,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? 'Informations mises à jour avec succès.' : 'Erreur de mise à jour.'),
-          backgroundColor: success ? _primaryColor : const Color(0xFFEF4444),
+          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
         ),
       );
       if (success && widget.onUpdate != null) {
@@ -204,7 +204,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? 'Notes mises à jour.' : 'Erreur de mise à jour des notes.'),
-          backgroundColor: success ? _primaryColor : const Color(0xFFEF4444),
+          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
         ),
       );
       if (success && widget.onUpdate != null) {
@@ -238,7 +238,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
           content: Text(success 
               ? (_isBlocked ? 'Contact bloqué.' : 'Contact débloqué.')
               : 'Erreur de modification du statut de blocage.'),
-          backgroundColor: success ? _primaryColor : const Color(0xFFEF4444),
+          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
         ),
       );
       if (success && widget.onUpdate != null) {
@@ -266,7 +266,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? 'Agent assigné avec succès.' : 'Erreur lors de l\'assignation de l\'agent.'),
-          backgroundColor: success ? _primaryColor : const Color(0xFFEF4444),
+          backgroundColor: success ? _primaryColor : Color(0xFFEF4444),
         ),
       );
       if (success && widget.onUpdate != null) {
@@ -332,14 +332,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10, left: 4),
+      padding: EdgeInsets.only(top: 20, bottom: 10, left: 4),
       child: Row(
         children: [
           Icon(icon, color: _accentColor, size: 18),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 14,
@@ -366,9 +366,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+        borderSide: BorderSide(color: _primaryColor, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     );
   }
 
@@ -380,7 +380,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       child: Scaffold(
         backgroundColor: _surfaceDark,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             'Options du Contact',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
@@ -388,14 +388,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
           foregroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: Icon(Icons.close_rounded),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: _primaryColor))
+            ? Center(child: CircularProgressIndicator(color: _primaryColor))
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -403,7 +403,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                     children: [
                       // Header Card
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: _surfaceCard,
                           borderRadius: BorderRadius.circular(16),
@@ -416,7 +416,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                               width: 64,
                               height: 64,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   colors: [_primaryColor, _accentColor],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -428,7 +428,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                   widget.contact.name.isNotEmpty
                                       ? widget.contact.name[0].toUpperCase()
                                       : 'C',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 24,
@@ -436,17 +436,17 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(
                               widget.contact.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
                                 color: Colors.white,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               widget.contact.phoneNumber,
                               style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
@@ -458,14 +458,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       // Assignment Section
                       _buildSectionHeader('Assigner un agent', Icons.person_add_alt_1_rounded),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: _surfaceCard,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.white.withAlpha(10)),
                         ),
                         child: _isSavingAgent
-                            ? const Center(
+                            ? Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(12.0),
                                   child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
@@ -474,7 +474,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                             : DropdownButtonFormField<String>(
                                 value: _assignedUserUid,
                                 dropdownColor: _surfaceCard,
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                style: TextStyle(color: Colors.white, fontSize: 14),
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   hintText: 'Sélectionner un agent',
@@ -500,20 +500,20 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       _buildSectionHeader('Détails de base', Icons.info_outline_rounded),
                       TextFormField(
                         controller: _firstNameController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration('Prénom'),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       TextFormField(
                         controller: _lastNameController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration('Nom'),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration('Email'),
                       ),
 
@@ -524,10 +524,10 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                           final uid = field['_uid'] ?? '';
                           final title = field['title'] ?? '';
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
+                            padding: EdgeInsets.only(bottom: 12.0),
                             child: TextFormField(
                               controller: _customFieldControllers[uid],
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              style: TextStyle(color: Colors.white, fontSize: 14),
                               decoration: _inputDecoration(title),
                             ),
                           );
@@ -545,7 +545,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                         child: Column(
                           children: [
                             SwitchListTile(
-                              title: const Text('Chatbot IA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                              title: Text('Chatbot IA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
                               subtitle: Text('Réponses automatiques IA', style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(80))),
                               value: _enableAiBot,
                               activeColor: _primaryColor,
@@ -557,7 +557,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                             ),
                             Divider(color: Colors.white.withAlpha(10), height: 1),
                             SwitchListTile(
-                              title: const Text('Bot Réponse', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                              title: Text('Bot Réponse', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
                               subtitle: Text('Réponses automatiques configurées', style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(80))),
                               value: _enableReplyBot,
                               activeColor: _primaryColor,
@@ -571,23 +571,23 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                         ),
                       ),
 
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       ElevatedButton(
                         onPressed: _isSavingDetails ? null : _saveContactDetails,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
                         ),
                         child: _isSavingDetails
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            : Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
 
                       // Notes Section
@@ -595,33 +595,33 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       TextFormField(
                         controller: _notesController,
                         maxLines: 4,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration('Saisir une note...'),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: _isSavingNotes ? null : _saveNotes,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
                         ),
                         child: _isSavingNotes
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : const Text('Mettre à jour les notes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            : Text('Mettre à jour les notes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
 
                       // Labels Section
                       if (_allLabels.isNotEmpty) ...[
                         _buildSectionHeader('Étiquettes', Icons.label_outline_rounded),
                         _isSavingLabels
-                            ? const Center(
+                            ? Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(8.0),
                                   child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
@@ -634,7 +634,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                   final labelId = label['_id'] as int;
                                   final title = label['title'] ?? '';
                                   final isSelected = _selectedLabelIds.contains(labelId);
-                                  final labelColor = _parseColor(label['bg_color']) ?? const Color(0xFF64748B);
+                                  final labelColor = _parseColor(label['bg_color']) ?? Color(0xFF64748B);
 
                                   return FilterChip(
                                     label: Text(
@@ -665,13 +665,13 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       ],
 
                       // Block Contact
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       Divider(color: Colors.white.withAlpha(15)),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       ElevatedButton.icon(
                         onPressed: _isTogglingBlock ? null : _toggleBlockStatus,
                         icon: _isTogglingBlock
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 16,
                                 width: 16,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
@@ -681,14 +681,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _isBlocked
                               ? Colors.white.withAlpha(15)
-                              : const Color(0xFFEF4444).withAlpha(30),
-                          foregroundColor: _isBlocked ? Colors.white.withAlpha(160) : const Color(0xFFFCA5A5),
+                              : Color(0xFFEF4444).withAlpha(30),
+                          foregroundColor: _isBlocked ? Colors.white.withAlpha(160) : Color(0xFFFCA5A5),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                     ],
                   ),
                 ),

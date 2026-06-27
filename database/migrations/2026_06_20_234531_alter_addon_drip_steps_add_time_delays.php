@@ -11,10 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Day_delay is already renamed to delay_value in the previous failed attempt
-        Schema::table('addon_drip_steps', function (Blueprint $table) {
-            $table->string('delay_type', 20)->default('days')->after('delay_value'); // 'minutes', 'hours', 'days'
-        });
+        // Ensure legacy column naming is upgraded before adding delay_type.
+        if (Schema::hasColumn('addon_drip_steps', 'day_delay') && !Schema::hasColumn('addon_drip_steps', 'delay_value')) {
+            Schema::table('addon_drip_steps', function (Blueprint $table) {
+                $table->renameColumn('day_delay', 'delay_value');
+            });
+        }
+
+        if (!Schema::hasColumn('addon_drip_steps', 'delay_type')) {
+            Schema::table('addon_drip_steps', function (Blueprint $table) {
+                $table->string('delay_type', 20)->default('days')->after('delay_value'); // 'minutes', 'hours', 'days'
+            });
+        }
     }
 
     /**
@@ -22,12 +30,16 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('addon_drip_steps', function (Blueprint $table) {
-            $table->dropColumn('delay_type');
-        });
-        
-        Schema::table('addon_drip_steps', function (Blueprint $table) {
-            $table->renameColumn('delay_value', 'day_delay');
-        });
+        if (Schema::hasColumn('addon_drip_steps', 'delay_type')) {
+            Schema::table('addon_drip_steps', function (Blueprint $table) {
+                $table->dropColumn('delay_type');
+            });
+        }
+
+        if (Schema::hasColumn('addon_drip_steps', 'delay_value') && !Schema::hasColumn('addon_drip_steps', 'day_delay')) {
+            Schema::table('addon_drip_steps', function (Blueprint $table) {
+                $table->renameColumn('delay_value', 'day_delay');
+            });
+        }
     }
 };

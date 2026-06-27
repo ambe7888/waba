@@ -48,7 +48,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
+    final isDark = ThemeService().isDark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          width: 1,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -56,27 +72,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 26),
             ),
             const Spacer(),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : Colors.black87,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
-                color: ThemeService().isDark ? Colors.white70 : Colors.black54,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white70 : Colors.black54,
               ),
             ),
           ],
@@ -87,22 +105,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeService().isDark;
     return Scaffold(
+      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
-        title: const Text('Tableau de bord'),
+        title: Text('Tableau de bord', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
+                      Text(_error!, style: TextStyle(color: Colors.red)),
+                      SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _fetchDashboardStats,
-                        child: const Text('Réessayer'),
+                        child: Text('Réessayer'),
                       ),
                     ],
                   ),
@@ -110,10 +133,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               : RefreshIndicator(
                   onRefresh: _fetchDashboardStats,
                   child: GridView.count(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
+                    childAspectRatio: 0.9,
                     children: [
                       _buildStatCard('Contacts', _stats?['totalContacts']?.toString() ?? '0', Icons.people, Colors.blue),
                       _buildStatCard('Campagnes', _stats?['totalCampaigns']?.toString() ?? '0', Icons.campaign, Colors.orange),
