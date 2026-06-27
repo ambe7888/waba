@@ -701,5 +701,36 @@ class ApiService {
     }
     return null;
   }
+
+  /// Create a new contact label on the server
+  Future<Map<String, dynamic>?> createContactLabel({
+    required String title,
+    required String textColor,
+    required String bgColor,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/create-label');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'title': title,
+          'text_color': textColor,
+          'bg_color': bgColor,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return body['data']?['createdLabel'] as Map<String, dynamic>?;
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Create Contact Label Error: $e');
+      return null;
+    }
+  }
 }
 

@@ -42,6 +42,17 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   static const _primaryColor = Color(0xFF0D9488);
   static const _accentColor = Color(0xFF2DD4BF);
 
+  final List<Map<String, dynamic>> _labelColorOptions = const [
+    {'bg': '#3B82F6', 'text': '#FFFFFF', 'name': 'Bleu'},
+    {'bg': '#10B981', 'text': '#FFFFFF', 'name': 'Vert'},
+    {'bg': '#EF4444', 'text': '#FFFFFF', 'name': 'Rouge'},
+    {'bg': '#F59E0B', 'text': '#FFFFFF', 'name': 'Orange'},
+    {'bg': '#8B5CF6', 'text': '#FFFFFF', 'name': 'Violet'},
+    {'bg': '#EC4899', 'text': '#FFFFFF', 'name': 'Rose'},
+    {'bg': '#14B8A6', 'text': '#FFFFFF', 'name': 'Teal'},
+    {'bg': '#6B7280', 'text': '#FFFFFF', 'name': 'Gris'},
+  ];
+
   void _showDrawerNotice(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -319,6 +330,156 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     }
   }
 
+  Future<void> _createNewGlobalLabel(String title, String textColor, String bgColor) async {
+    setState(() {
+      _isSavingLabels = true;
+    });
+
+    try {
+      final newLabel = await ApiService().createContactLabel(
+        title: title,
+        textColor: textColor,
+        bgColor: bgColor,
+      );
+
+      if (newLabel != null) {
+        final labelId = newLabel['_id'] as int;
+        
+        setState(() {
+          _allLabels.add(newLabel);
+        });
+
+        await _toggleLabel(labelId, true);
+        _showDrawerNotice('Étiquette créée et assignée !');
+      } else {
+        _showDrawerNotice('Échec de la création de l\'étiquette');
+        setState(() {
+          _isSavingLabels = false;
+        });
+      }
+    } catch (_) {
+      _showDrawerNotice('Échec de la création de l\'étiquette');
+      setState(() {
+        _isSavingLabels = false;
+      });
+    }
+  }
+
+  void _showCreateLabelDialog() {
+    final titleController = TextEditingController();
+    String selectedBgColor = '#3B82F6';
+    String selectedTextColor = '#FFFFFF';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+          final txtColor = isDark ? Colors.white : Colors.black87;
+
+          return AlertDialog(
+            backgroundColor: dialogBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Créer une étiquette',
+              style: TextStyle(color: txtColor, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(color: txtColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Nom de l\'étiquette',
+                    labelStyle: TextStyle(color: txtColor.withOpacity(0.6), fontSize: 12),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: txtColor.withOpacity(0.2)),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: _primaryColor, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Couleur',
+                  style: TextStyle(color: txtColor.withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _labelColorOptions.map((opt) {
+                    final isSelected = selectedBgColor == opt['bg'];
+                    final colorVal = _parseColor(opt['bg']) ?? Colors.grey;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedBgColor = opt['bg'];
+                          selectedTextColor = opt['text'];
+                        });
+                      },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: colorVal,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? txtColor : Colors.transparent,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            if (isSelected)
+                              BoxShadow(
+                                color: colorVal.withOpacity(0.4),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              )
+                          ],
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, color: Colors.white, size: 16)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Annuler', style: TextStyle(color: txtColor.withOpacity(0.6))),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final title = titleController.text.trim();
+                  if (title.isEmpty) {
+                    _showDrawerNotice('Le nom de l\'étiquette est obligatoire');
+                    return;
+                  }
+                  Navigator.pop(context);
+                  await _createNewGlobalLabel(title, selectedTextColor, selectedBgColor);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Créer'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -329,21 +490,24 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     super.dispose();
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSectionHeader(String title, IconData icon, {Widget? trailing}) {
     return Padding(
       padding: EdgeInsets.only(top: 20, bottom: 10, left: 4),
       child: Row(
         children: [
           Icon(icon, color: _accentColor, size: 18),
           SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
             ),
           ),
+          if (trailing != null) trailing,
         ],
       ),
     );
@@ -641,51 +805,82 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                       ),
 
                       // Labels Section
-                      if (_allLabels.isNotEmpty) ...[
-                        _buildSectionHeader('Étiquettes', Icons.label_outline_rounded),
-                        _isSavingLabels
-                            ? Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
+                      _buildSectionHeader(
+                        'Étiquettes',
+                        Icons.label_outline_rounded,
+                        trailing: InkWell(
+                          onTap: _showCreateLabelDialog,
+                          borderRadius: BorderRadius.circular(4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: _accentColor, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Créer',
+                                  style: TextStyle(
+                                    color: _primaryColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              )
-                            : Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: _allLabels.map((label) {
-                                  final labelId = label['_id'] as int;
-                                  final title = label['title'] ?? '';
-                                  final isSelected = _selectedLabelIds.contains(labelId);
-                                  final labelColor = _parseColor(label['bg_color']) ?? Color(0xFF64748B);
-
-                                  return FilterChip(
-                                    label: Text(
-                                      title,
-                                      style: TextStyle(
-                                        color: isSelected ? Colors.white : onSurface.withOpacity(0.7),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    selected: isSelected,
-                                    selectedColor: labelColor.withAlpha(120),
-                                    checkmarkColor: Colors.white,
-                                    backgroundColor: cardColor,
-                                    side: BorderSide(
-                                      color: isSelected ? labelColor : onSurface.withOpacity(0.15),
-                                      width: 1,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    onSelected: (selected) {
-                                      _toggleLabel(labelId, selected);
-                                    },
-                                  );
-                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _isSavingLabels
+                          ? Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
                               ),
-                      ],
+                            )
+                          : _allLabels.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  child: Text(
+                                    'Aucune étiquette disponible. Cliquez sur "Créer" pour en ajouter une.',
+                                    style: TextStyle(color: onSurface.withOpacity(0.5), fontSize: 12),
+                                  ),
+                                )
+                              : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _allLabels.map((label) {
+                                    final labelId = label['_id'] as int;
+                                    final title = label['title'] ?? '';
+                                    final isSelected = _selectedLabelIds.contains(labelId);
+                                    final labelColor = _parseColor(label['bg_color']) ?? Color(0xFF64748B);
+
+                                    return FilterChip(
+                                      label: Text(
+                                        title,
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.white : onSurface.withOpacity(0.7),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      selected: isSelected,
+                                      selectedColor: labelColor.withAlpha(120),
+                                      checkmarkColor: Colors.white,
+                                      backgroundColor: cardColor,
+                                      side: BorderSide(
+                                        color: isSelected ? labelColor : onSurface.withOpacity(0.15),
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      onSelected: (selected) {
+                                        _toggleLabel(labelId, selected);
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
 
                       // Block Contact
                       SizedBox(height: 24),
