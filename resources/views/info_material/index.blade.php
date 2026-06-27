@@ -36,7 +36,7 @@
                                 @forelse($materials as $material)
                                 <tr>
                                     <td>{{ $material->title }}</td>
-                                    <td>{{ $material->description }}</td>
+                                    <td>{{ Str::limit(strip_tags($material->description), 100) }}</td>
                                     <td>{{ formatDateTime($material->created_at) }}</td>
                                     <td>
                                         <a href="{{ route('info_material.download', ['uid' => $material->_uid]) }}" class="btn btn-success btn-sm" target="_blank"><i class="fa fa-download"></i> {{ __tr('Download') }}</a>
