@@ -2161,13 +2161,11 @@ if (! function_exists('storeWhatsAppLogChatHistory')) {
 if (! function_exists('sendFCMNotification')) {
     function sendFCMNotification($vendorId, $title, $body, $data = [])
     {
-        $userDeviceRepository = new UserDeviceRepository();
-
-        $deviceToken = $userDeviceRepository->fetchIt(['vendors__id' => $vendorId]);
+        $deviceTokens = \App\Yantrana\Components\UserDevice\Models\UserDeviceModel::where('vendors__id', $vendorId)->get();
 
         $firebaseResponses = [];
-        // Check if user device token exists
-        if (!__isEmpty($deviceToken)) {
+        // Check if user device tokens exist
+        if (!$deviceTokens->isEmpty()) {
             // Generate OAuth token from service account
             $accessToken = getAccessToken();
             
@@ -2175,30 +2173,32 @@ if (! function_exists('sendFCMNotification')) {
             $projectId = $firebaseServiceAccountData['project_id'] ?? null;
             $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
 
-            $payload = [
-                'message' => [
-                    'token' => $deviceToken->device_token,
-                    'notification' => [
-                        'title' => $title,
-                        'body' => $body,
+            foreach ($deviceTokens as $deviceToken) {
+                $payload = [
+                    'message' => [
+                        'token' => $deviceToken->device_token,
+                        'notification' => [
+                            'title' => $title,
+                            'body' => $body,
+                        ],
+                        'data' => $data,
                     ],
-                    'data' => $data,
-                ],
-            ];
+                ];
 
-            $response = Http::withToken($accessToken)
-                ->post($url, $payload);
+                $response = Http::withToken($accessToken)
+                    ->post($url, $payload);
 
-            $cleanResponse = trim($response->body());
-            $firebaseResponses[] = $firebaseResponse = json_decode($cleanResponse);
+                $cleanResponse = trim($response->body());
+                $firebaseResponse = json_decode($cleanResponse);
+                $firebaseResponses[] = $firebaseResponse;
 
-            if (isset($firebaseResponse->error)) {
-                $error = $firebaseResponse->error->status ?? null;
+                if (isset($firebaseResponse->error)) {
+                    $error = $firebaseResponse->error->status ?? null;
 
-                if (in_array($error, ['INVALID_ARGUMENT', 'NOT_FOUND', 'UNREGISTERED'])) {
-
-                    // Delete invalid device token
-                    $userDeviceRepository->deleteIt($deviceToken);
+                    if (in_array($error, ['INVALID_ARGUMENT', 'NOT_FOUND', 'UNREGISTERED'])) {
+                        // Delete invalid device token
+                        $deviceToken->delete();
+                    }
                 }
             }
         }

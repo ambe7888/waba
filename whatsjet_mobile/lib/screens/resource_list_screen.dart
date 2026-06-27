@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../models/resource.dart';
 
@@ -207,12 +208,23 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                                     if (resource.description != null && resource.description!.isNotEmpty)
                                                       Html(data: resource.description!),
                                                     SizedBox(height: 16),
-                                                    if (resource.fileName != null && resource.fileName!.isNotEmpty)
-                                                      Text(
-                                                        'Fichier joint: ${resource.fileName}',
-                                                        style: TextStyle(
-                                                          color: Colors.grey.shade600,
-                                                          fontStyle: FontStyle.italic,
+                                                    if (resource.fileName != null && resource.fileName!.isNotEmpty && resource.downloadUrl != null)
+                                                      ElevatedButton.icon(
+                                                        onPressed: () async {
+                                                          final url = Uri.parse(resource.downloadUrl!);
+                                                          if (await canLaunchUrl(url)) {
+                                                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                                                          } else {
+                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                              SnackBar(content: Text('Impossible d\'ouvrir le lien')),
+                                                            );
+                                                          }
+                                                        },
+                                                        icon: Icon(Icons.download, size: 20),
+                                                        label: Text('Télécharger le fichier joint'),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: primaryColor,
+                                                          foregroundColor: Colors.white,
                                                         ),
                                                       ),
                                                   ],

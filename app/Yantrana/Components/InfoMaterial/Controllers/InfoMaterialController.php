@@ -203,8 +203,8 @@ class InfoMaterialController extends BaseController
                 'uid' => $material->_uid,
                 'title' => $material->title,
                 'description' => $material->description,
-                'file_name' => $material->__data['file_name'] ?? 'file',
-                'download_url' => route('app_api.vendor.info_materials.download', ['uid' => $material->_uid]),
+                'file_name' => $material->__data['file_name'] ?? null,
+                'download_url' => isset($material->__data['file_name']) ? route('app_api.vendor.info_materials.download', ['uid' => $material->_uid]) : null,
             ];
         });
 
