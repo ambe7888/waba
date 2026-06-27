@@ -39,6 +39,7 @@ dependencies:
   qr_flutter: ^4.1.0
   fl_chart: ^1.2.0
   audioplayers: ^6.8.0
+  flutter_html: ^3.0.0
 
 dev_dependencies:
   flutter_test:

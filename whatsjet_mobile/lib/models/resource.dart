@@ -2,15 +2,15 @@ class Resource {
   final String uid;
   final String title;
   final String? description;
-  final String fileName;
-  final String downloadUrl;
+  final String? fileName;
+  final String? downloadUrl;
 
   Resource({
     required this.uid,
     required this.title,
     this.description,
-    required this.fileName,
-    required this.downloadUrl,
+    this.fileName,
+    this.downloadUrl,
   });
 
   factory Resource.fromJson(Map<String, dynamic> json) {
@@ -18,8 +18,8 @@ class Resource {
       uid: json['uid'] ?? '',
       title: json['title'] ?? '',
       description: json['description'],
-      fileName: json['file_name'] ?? 'file',
-      downloadUrl: json['download_url'] ?? '',
+      fileName: json['file_name'],
+      downloadUrl: json['download_url'],
     );
   }
 }
