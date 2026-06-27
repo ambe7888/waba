@@ -43,6 +43,7 @@ use App\Yantrana\Components\Contact\Repositories\ContactCustomFieldRepository;
 use App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppTemplateRepository;
 use App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppMessageLogRepository;
 use App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppMessageQueueRepository;
+use App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel;
 
 class DashboardEngine extends BaseEngine implements DashboardEngineInterface
 {
@@ -237,6 +238,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->whereHas('lastIncomingMessage', function($query) {
                     $query->where('messaged_at', '>', now()->subHours(24));
                 })
+                ->count(),
+            'unreadMessagesCount' => $this->whatsAppMessageLogRepository->getUnreadCount($vendorId),
+            'messagesReceivedTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 1)
+                ->whereDate('created_at', Carbon::today())
                 ->count(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId)
         ]);

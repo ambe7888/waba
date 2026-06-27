@@ -50,7 +50,7 @@ class FcmService {
 
   /// Initialize local notifications plugin — call once at app startup
   static Future<void> initializeLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('ic_launcher_foreground');
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -95,7 +95,7 @@ class FcmService {
       playSound: true,
       enableVibration: true,
       showWhen: true,
-      icon: '@mipmap/ic_launcher',
+      icon: 'ic_launcher_foreground',
       color: Color(0xFF0D9488),
       styleInformation: BigTextStyleInformation(''),
     );
