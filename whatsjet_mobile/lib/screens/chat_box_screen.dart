@@ -7,7 +7,6 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
-import '../services/firestore_service.dart';
 import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
@@ -57,56 +56,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   static const _bubbleIn = Color(0xFF1E293B);     // Slate 800
   static const _chatBg = Color(0xFF0C1222);        // Deep dark
 
-  StreamSubscription? _firestoreSubscription;
-
   @override
   void initState() {
     super.initState();
     _loadMessages();
 
-    // Listen to real-time messages via Firestore
-    _firestoreSubscription = FirestoreService().streamContactMessages(widget.contact.uid).listen((newMsgs) {
-      if (!mounted) return;
-      
-      setState(() {
-        // Keep local sending messages not yet reflected in Firestore
-        final localSendingMessages = _messages.where((m) {
-          if (m.isIncoming) return false;
-          if (m.status != 'initialize' && m.status != 'failed') return false;
-          bool existsSimilar = newMsgs.any((apiMsg) =>
-              !apiMsg.isIncoming &&
-              apiMsg.body == m.body &&
-              DateTime.tryParse(apiMsg.timestamp) != null &&
-              DateTime.tryParse(m.timestamp) != null &&
-              DateTime.tryParse(apiMsg.timestamp)!.difference(DateTime.tryParse(m.timestamp)!).inSeconds.abs() < 15);
-          return !existsSimilar;
-        }).toList();
-
-        final Map<String, ChatMessage> mergedMap = {};
-        for (var m in localSendingMessages) {
-          mergedMap[m.uid] = m;
-        }
-        for (var m in _messages) {
-          if (m.status == 'initialize') continue; // Handled above
-          mergedMap[m.uid] = m;
-        }
-        for (var m in newMsgs) {
-          mergedMap[m.uid] = m; // Firestore overwrites older API messages
-        }
-        
-        final mergedList = mergedMap.values.toList();
-        mergedList.sort((a, b) {
-          DateTime? dtA = DateTime.tryParse(a.timestamp);
-          DateTime? dtB = DateTime.tryParse(b.timestamp);
-          if (dtA == null && dtB == null) return 0;
-          if (dtA == null) return 1;
-          if (dtB == null) return -1;
-          return dtB.compareTo(dtA);
-        });
-        _messages = mergedList;
-      });
-      _scrollToBottom();
+    // Listen to real-time incoming messages via FCM
+    _fcmSubscription = FcmService().onMessage.listen((_) {
+      _loadMessages(silent: true);
     });
+    
+    // Optimized polling interval
+    _pollingTimer = Timer.periodic(
+      const Duration(seconds: pollingIntervalSeconds),
+      (_) => _loadMessages(silent: true),
+    );
   }
 
   Future<void> _loadMessages({bool silent = false}) async {
@@ -204,7 +168,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     }
   }
 
-
+  void _startAggressivePolling() {
+    int count = 0;
+    Timer.periodic(Duration(milliseconds: aggressivePollingIntervalMs), (timer) {
+      if (!mounted || count >= aggressivePollingMaxCount) {
+        timer.cancel();
+        return;
+      }
+      count++;
+      _loadMessages(silent: true);
+    });
+  }
 
   Future<void> _handleSend() async {
     final text = _messageController.text.trim();
@@ -229,19 +203,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
     final success = await ApiService().sendMessage(widget.contact.uid, text);
     if (!success) {
-      // Mark as failed locally if we want, or rely on API response
-      setState(() {
-        final index = _messages.indexWhere((m) => m.uid == tempMsg.uid);
-        if (index != -1) {
-          _messages[index] = ChatMessage(
-            uid: tempMsg.uid,
-            body: tempMsg.body,
-            isIncoming: tempMsg.isIncoming,
-            timestamp: tempMsg.timestamp,
-            status: 'failed',
-          );
-        }
-      });
+      _loadMessages(silent: true);
+    } else {
+      _startAggressivePolling();
     }
   }
 
@@ -404,12 +368,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         originalFilename: 'voice_note.m4a',
       );
 
-      if (!success) {
+      if (success) {
+        _startAggressivePolling();
+      } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erreur lors de l\'envoi de la note vocale')),
           );
         }
+        _loadMessages(silent: true);
       }
     } catch (e) {
       if (mounted) {
@@ -525,6 +492,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                   ScaffoldMessenger.of(localContext).showSnackBar(
                                     const SnackBar(content: Text('Réponse rapide du bot déclenchée')),
                                   );
+                                  _startAggressivePolling();
                                 } else {
                                   ScaffoldMessenger.of(localContext).showSnackBar(
                                     const SnackBar(content: Text('Erreur lors du déclenchement du bot')),
@@ -832,6 +800,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ScaffoldMessenger.of(localContext).showSnackBar(
         const SnackBar(content: Text('Modèle WhatsApp envoyé avec succès')),
       );
+      _loadMessages();
+      _startAggressivePolling();
     } else {
       ScaffoldMessenger.of(localContext).showSnackBar(
         const SnackBar(content: Text('Erreur lors de l\'envoi du modèle')),
@@ -1019,6 +989,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             SnackBar(content: Text('$originalFilename envoyé avec succès')),
           );
         }
+        _startAggressivePolling();
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1038,7 +1009,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   @override
   void dispose() {
-    _firestoreSubscription?.cancel();
+    _fcmSubscription?.cancel();
+    _pollingTimer?.cancel();
     _recordingTimer?.cancel();
     _audioRecorder.dispose();
     _messageController.dispose();
