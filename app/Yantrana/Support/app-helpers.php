@@ -2161,7 +2161,7 @@ if (! function_exists('storeWhatsAppLogChatHistory')) {
 if (! function_exists('sendFCMNotification')) {
     function sendFCMNotification($vendorId, $title, $body, $data = [])
     {
-        $deviceTokens = \App\Yantrana\Components\UserDevice\Models\UserDeviceModel::where('vendors__id', $vendorId)->get();
+        $deviceTokens = \App\Yantrana\Components\UserDevice\Models\UserDeviceModel::where('vendors__id', $vendorId)->get()->unique('device_token');
 
         $firebaseResponses = [];
         // Check if user device tokens exist

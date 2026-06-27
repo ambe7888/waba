@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../config/app_config.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'support_tickets_screen.dart';
 import 'resource_list_screen.dart';
 import 'login_screen.dart';
@@ -158,6 +160,23 @@ class _AccountScreenState extends State<AccountScreen> {
                     },
                     activeColor: ThemeService.primaryColor,
                   ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.system_update_rounded, color: Colors.blueAccent),
+                  title: Text('Mise à jour de l\'application'),
+                  subtitle: Text('Télécharger la version APK'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final url = Uri.parse('${baseUrl}downloads/whatsclick.apk');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Impossible d\'ouvrir le lien')),
+                      );
+                    }
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(
