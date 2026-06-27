@@ -97,6 +97,25 @@ $vendorViewBySuperAdmin = null;
     </div>
     @endif
 
+    <div class="alert alert-info shadow-sm border-0 mb-4" role="alert" style="background: linear-gradient(135deg, #0f172a, #1e293b) !important; color: white; border-radius: 12px; padding: 1.25rem 1.5rem;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                <i class="fab fa-android mr-3 text-success" style="font-size: 2.2rem;"></i>
+                <div>
+                    <strong style="font-size: 1.05rem;" class="text-white">{{ __tr('Gérez vos messages en déplacement !') }}</strong>
+                    <br>
+                    <span class="text-white-50" style="font-size: 0.85rem;">{{ __tr('Téléchargez notre application mobile officielle pour Android et restez connecté où que vous soyez.') }}</span>
+                </div>
+            </div>
+            <div>
+                <a class="btn btn-sm btn-success font-weight-bold" style="background-color: #25d366; border-color: #25d366; color: white;"
+                    href="{{ url('downloads/whatsclick.apk') }}" download>
+                    <i class="fas fa-download mr-1"></i> {{ __tr('Télécharger l\'APK') }}
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-4">
         <div class="col-12">
             <div class="card onboarding-card border-0" style="background: white; border-radius: 16px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; overflow: hidden;">
