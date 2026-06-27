@@ -48,13 +48,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   String? _localRecordingPath;
 
   // Design constants
-  static const _primaryColor = Color(0xFF0D9488);
+
   static const _accentColor = Color(0xFF2DD4BF);
-  static const _surfaceDark = Color(0xFF0F172A);
-  static const _surfaceCard = Color(0xFF1E293B);
-  static const _bubbleOut = Color(0xFF134E4A);   // Teal 900
-  static const _bubbleIn = Color(0xFF1E293B);     // Slate 800
-  static const _chatBg = Color(0xFF0C1222);        // Deep dark
+          // Deep dark
 
   @override
   void initState() {
@@ -225,18 +221,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   Widget _buildStatusIcon(String status) {
     switch (status) {
       case 'failed':
-        return const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444));
+        return Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444));
       case 'initialize':
-        return Icon(Icons.access_time_rounded, size: 13, color: Colors.white.withAlpha(80));
+        return Icon(Icons.access_time_rounded, size: 13, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31));
       case 'accepted':
       case 'sent':
-        return Icon(Icons.done_rounded, size: 14, color: Colors.white.withAlpha(120));
+        return Icon(Icons.done_rounded, size: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47));
       case 'delivered':
-        return Icon(Icons.done_all_rounded, size: 14, color: Colors.white.withAlpha(120));
+        return Icon(Icons.done_all_rounded, size: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47));
       case 'read':
-        return const Icon(Icons.done_all_rounded, size: 14, color: _accentColor);
+        return Icon(Icons.done_all_rounded, size: 14, color: _accentColor);
       default:
-        return Icon(Icons.done_rounded, size: 14, color: Colors.white.withAlpha(120));
+        return Icon(Icons.done_rounded, size: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47));
     }
   }
 
@@ -400,30 +396,30 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           minChildSize: 0.4,
           builder: (_, controller) {
             return Container(
-              decoration: const BoxDecoration(
-                color: _surfaceCard,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: ApiService().fetchQuickReplies(widget.contact.uid),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: _primaryColor));
+                    return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                   }
                   if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.flash_off, size: 56, color: Colors.white.withAlpha(40)),
-                        const SizedBox(height: 16),
+                        Icon(Icons.flash_off, size: 56, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.16)),
+                        SizedBox(height: 16),
                         Text(
                           'Aucune réponse rapide disponible.',
-                          style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 15),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 15),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Fermer', style: TextStyle(color: _primaryColor)),
+                          child: Text('Fermer', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                         ),
                       ],
                     );
@@ -433,21 +429,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   return Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Colors.white.withAlpha(15))),
+                          border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06))),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.flash_on_rounded, color: _accentColor, size: 22),
-                            const SizedBox(width: 8),
-                            const Text(
+                            Icon(Icons.flash_on_rounded, color: _accentColor, size: 22),
+                            SizedBox(width: 8),
+                            Text(
                               'Réponses Rapides',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
                             ),
-                            const Spacer(),
+                            Spacer(),
                             IconButton(
-                              icon: Icon(Icons.close_rounded, color: Colors.white.withAlpha(120)),
+                              icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47)),
                               onPressed: () => Navigator.pop(context),
                             ),
                           ],
@@ -464,18 +460,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: _primaryColor.withAlpha(30),
+                                  color: Theme.of(context).colorScheme.primary.withAlpha(30),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.smart_toy_rounded, color: _primaryColor, size: 20),
+                                child: Icon(Icons.smart_toy_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                               ),
                               title: Text(
                                 reply['name'] ?? 'Nom inconnu',
-                                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 14),
+                                style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                               ),
                               subtitle: Text(
                                 'Déclencher la réponse automatique',
-                                style: TextStyle(color: Colors.white.withAlpha(80), fontSize: 12),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), fontSize: 12),
                               ),
                               onTap: () async {
                                 final localContext = context;
@@ -483,7 +479,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                 showDialog(
                                   context: localContext,
                                   barrierDismissible: false,
-                                  builder: (context) => const Center(child: CircularProgressIndicator(color: _primaryColor)),
+                                  builder: (context) => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
                                 );
                                 final success = await ApiService().sendQuickReply(widget.contact.uid, reply['_id']);
                                 if (!localContext.mounted) return;
@@ -527,30 +523,30 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           minChildSize: 0.4,
           builder: (_, controller) {
             return Container(
-              decoration: const BoxDecoration(
-                color: _surfaceCard,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: ApiService().fetchTemplates(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: _primaryColor));
+                    return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                   }
                   if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.description_outlined, size: 56, color: Colors.white.withAlpha(40)),
-                        const SizedBox(height: 16),
+                        Icon(Icons.description_outlined, size: 56, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.16)),
+                        SizedBox(height: 16),
                         Text(
                           'Aucun modèle approuvé trouvé.',
-                          style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 15),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 15),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Fermer', style: TextStyle(color: _primaryColor)),
+                          child: Text('Fermer', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                         ),
                       ],
                     );
@@ -560,21 +556,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   return Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Colors.white.withAlpha(15))),
+                          border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06))),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.near_me_rounded, color: _accentColor, size: 22),
-                            const SizedBox(width: 8),
-                            const Text(
+                            Icon(Icons.near_me_rounded, color: _accentColor, size: 22),
+                            SizedBox(width: 8),
+                            Text(
                               'Modèles Meta',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
                             ),
-                            const Spacer(),
+                            Spacer(),
                             IconButton(
-                              icon: Icon(Icons.close_rounded, color: Colors.white.withAlpha(120)),
+                              icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47)),
                               onPressed: () => Navigator.pop(context),
                             ),
                           ],
@@ -595,7 +591,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                   Expanded(
                                     child: Text(
                                       template['template_name'] ?? 'Nom du modèle',
-                                      style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 14),
+                                      style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                                     ),
                                   ),
                                   _buildCategoryBadge(category),
@@ -605,11 +601,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                 bodyText.isNotEmpty ? bodyText : 'Pas de texte d\'aperçu',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.white.withAlpha(80), fontSize: 12),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), fontSize: 12),
                               ),
                               trailing: Text(
                                 (template['language'] ?? 'FR').toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.w500, color: _accentColor, fontSize: 11),
+                                style: TextStyle(fontWeight: FontWeight.w500, color: _accentColor, fontSize: 11),
                               ),
                               onTap: () {
                                 Navigator.pop(context);
@@ -637,26 +633,26 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     
     switch (category.toLowerCase()) {
       case 'marketing':
-        bgColor = const Color(0xFFEF4444).withAlpha(30);
-        textColor = const Color(0xFFFCA5A5);
+        bgColor = Color(0xFFEF4444).withAlpha(30);
+        textColor = Color(0xFFFCA5A5);
         break;
       case 'utility':
       case 'utilitaire':
-        bgColor = const Color(0xFF3B82F6).withAlpha(30);
-        textColor = const Color(0xFF93C5FD);
+        bgColor = Color(0xFF3B82F6).withAlpha(30);
+        textColor = Color(0xFF93C5FD);
         break;
       case 'authentication':
       case 'authentification':
-        bgColor = const Color(0xFF8B5CF6).withAlpha(30);
-        textColor = const Color(0xFFC4B5FD);
+        bgColor = Color(0xFF8B5CF6).withAlpha(30);
+        textColor = Color(0xFFC4B5FD);
         break;
       default:
-        bgColor = Colors.white.withAlpha(15);
-        textColor = Colors.white.withAlpha(150);
+        bgColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.06);
+        textColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.59);
     }
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
@@ -709,11 +705,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: _surfaceCard,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Variables pour $templateName',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -721,35 +717,35 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(10),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Aperçu :\n$bodyText',
-                    style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(100)),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39)),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 ...variables.map((v) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
+                    padding: EdgeInsets.only(bottom: 12.0),
                     child: TextField(
                       controller: controllers[v],
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                       decoration: InputDecoration(
                         labelText: 'Valeur pour $v',
-                        labelStyle: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
+                        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 13),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.white.withAlpha(30)),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.12)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.white.withAlpha(30)),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.12)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
                     ),
                   );
@@ -760,11 +756,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Annuler', style: TextStyle(color: Colors.white.withAlpha(100))),
+              child: Text('Annuler', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39))),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () {
@@ -776,7 +772,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 }
                 _sendTemplateMessage(templateUid, values);
               },
-              child: const Text('Envoyer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: Text('Envoyer', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -789,7 +785,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     showDialog(
       context: localContext,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: _primaryColor)),
+      builder: (context) => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
     );
 
     final success = await ApiService().sendTemplateMessage(widget.contact.uid, templateUid, variables);
@@ -852,26 +848,26 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          decoration: const BoxDecoration(
-            color: _surfaceCard,
+          padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Partager du contenu',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildAttachmentItem(Icons.headset_rounded, 'Audio', const Color(0xFFF59E0B), () => _pickAndSendMedia('audio')),
-                  _buildAttachmentItem(Icons.insert_drive_file_rounded, 'Doc', const Color(0xFF6366F1), () => _pickAndSendMedia('document')),
-                  _buildAttachmentItem(Icons.photo_rounded, 'Image', const Color(0xFF8B5CF6), () => _pickAndSendMedia('image')),
-                  _buildAttachmentItem(Icons.video_collection_rounded, 'Vidéo', const Color(0xFFEC4899), () => _pickAndSendMedia('video')),
+                  _buildAttachmentItem(Icons.headset_rounded, 'Audio', Color(0xFFF59E0B), () => _pickAndSendMedia('audio')),
+                  _buildAttachmentItem(Icons.insert_drive_file_rounded, 'Doc', Color(0xFF6366F1), () => _pickAndSendMedia('document')),
+                  _buildAttachmentItem(Icons.photo_rounded, 'Image', Color(0xFF8B5CF6), () => _pickAndSendMedia('image')),
+                  _buildAttachmentItem(Icons.video_collection_rounded, 'Vidéo', Color(0xFFEC4899), () => _pickAndSendMedia('video')),
                 ],
               ),
             ],
@@ -898,8 +894,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             ),
             child: Icon(icon, color: color, size: 26),
           ),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white.withAlpha(160))),
+          SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.63))),
         ],
       ),
     );
@@ -1028,7 +1024,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final isWindowActive = _is24hWindowActive();
 
     return Scaffold(
-      backgroundColor: _chatBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       endDrawerEnableOpenDragGesture: false,
       endDrawer: ContactInfoDrawer(
         contact: widget.contact,
@@ -1047,7 +1043,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       width: 36,
                       height: 36,
                       child: CircularProgressIndicator(
-                        color: _primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         strokeWidth: 3,
                         strokeCap: StrokeCap.round,
                       ),
@@ -1059,14 +1055,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                           _searchQuery.isNotEmpty
                               ? 'Aucun message ne correspond à votre recherche.'
                               : 'Aucun message dans cette conversation.',
-                          style: TextStyle(color: Colors.white.withAlpha(80)),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31)),
                           textAlign: TextAlign.center,
                         ),
                       )
                     : ListView.builder(
                         controller: _scrollController,
                         reverse: true,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         itemCount: filteredMessages.length,
                         itemBuilder: (context, index) {
                           final message = filteredMessages[index];
@@ -1081,26 +1077,26 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               onTap: _showTemplatesSheet,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withAlpha(15),
-                  border: Border(top: BorderSide(color: const Color(0xFFF59E0B).withAlpha(30))),
+                  color: Color(0xFFF59E0B).withAlpha(15),
+                  border: Border(top: BorderSide(color: Color(0xFFF59E0B).withAlpha(30))),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 18),
-                    const SizedBox(width: 8),
+                    Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 18),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Fenêtre 24h expirée. Envoyez un modèle Meta.',
                         style: TextStyle(
                           fontSize: 11,
-                          color: const Color(0xFFFDE68A).withAlpha(200),
+                          color: Color(0xFFFDE68A).withAlpha(200),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 12, color: const Color(0xFFF59E0B).withAlpha(120)),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFFF59E0B).withAlpha(120)),
                   ],
                 ),
               ),
@@ -1111,10 +1107,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             Container(
               height: 48,
               decoration: BoxDecoration(
-                color: _surfaceCard,
-                border: Border(top: BorderSide(color: Colors.white.withAlpha(10))),
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(top: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04))),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: 8),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: _quickEmojis.length,
@@ -1134,8 +1130,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      child: Text(_quickEmojis[index], style: const TextStyle(fontSize: 24)),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      child: Text(_quickEmojis[index], style: TextStyle(fontSize: 24)),
                     ),
                   );
                 },
@@ -1151,15 +1147,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   PreferredSizeWidget _buildAppBar(bool isWindowActive) {
     return AppBar(
-      backgroundColor: _surfaceDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       title: _isSearching
           ? TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Rechercher un message...',
-                hintStyle: TextStyle(color: Colors.white.withAlpha(80)),
+                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31)),
                 border: InputBorder.none,
               ),
               autofocus: true,
@@ -1176,8 +1172,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_primaryColor, _accentColor],
+                    gradient: LinearGradient(
+                      colors: [Theme.of(context).colorScheme.primary, _accentColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1186,11 +1182,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   child: Center(
                     child: Text(
                       widget.contact.name.isNotEmpty ? widget.contact.name[0].toUpperCase() : 'C',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1200,16 +1196,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                           Flexible(
                             child: Text(
                               widget.contact.name,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Container(
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: isWindowActive ? _accentColor : Colors.white.withAlpha(40),
+                              color: isWindowActive ? _accentColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.16),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -1219,21 +1215,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         children: [
                           Text(
                             widget.contact.phoneNumber,
-                            style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(100)),
+                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39)),
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: isWindowActive ? _primaryColor.withAlpha(40) : Colors.white.withAlpha(15),
+                              color: isWindowActive ? Theme.of(context).colorScheme.primary.withAlpha(40) : Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               isWindowActive ? '24h ●' : '24h ○',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: isWindowActive ? _accentColor : Colors.white.withAlpha(80),
+                                color: isWindowActive ? _accentColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.31),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -1248,7 +1244,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       actions: [
         if (_isSearching)
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: Icon(Icons.close_rounded),
             onPressed: () {
               setState(() {
                 _isSearching = false;
@@ -1259,12 +1255,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           )
         else ...[
           IconButton(
-            icon: const Icon(Icons.phone_rounded, size: 20),
+            icon: Icon(Icons.phone_rounded, size: 20),
             tooltip: 'Appeler',
             onPressed: _makePhoneCall,
           ),
           IconButton(
-            icon: const Icon(Icons.search_rounded, size: 20),
+            icon: Icon(Icons.search_rounded, size: 20),
             onPressed: () {
               setState(() {
                 _isSearching = true;
@@ -1272,14 +1268,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.send_rounded, size: 20),
+            icon: Icon(Icons.send_rounded, size: 20),
             tooltip: 'Modèles Meta',
             onPressed: _showTemplatesSheet,
           ),
         ],
         Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.person_rounded, size: 20),
+            icon: Icon(Icons.person_rounded, size: 20),
             tooltip: 'Contact',
             onPressed: () {
               Scaffold.of(context).openEndDrawer();
@@ -1295,17 +1291,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     if (message.isSystemMessage) {
       return Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B).withAlpha(15),
+            color: Color(0xFFF59E0B).withAlpha(15),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFF59E0B).withAlpha(25)),
+            border: Border.all(color: Color(0xFFF59E0B).withAlpha(25)),
           ),
           child: Text(
             message.body,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: Color(0xFFFDE68A),
               fontWeight: FontWeight.w500,
@@ -1320,21 +1316,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     return Align(
       alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        padding: const EdgeInsets.all(10),
+        margin: EdgeInsets.symmetric(vertical: 3),
+        padding: EdgeInsets.all(10),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
         decoration: BoxDecoration(
-          color: isOutgoing ? _bubbleOut : _bubbleIn,
+          color: isOutgoing ? Theme.of(context).colorScheme.primary : (Theme.of(context).brightness == Brightness.dark ? Color(0xFF1E293B) : Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isOutgoing ? const Radius.circular(16) : const Radius.circular(4),
-            bottomRight: isOutgoing ? const Radius.circular(4) : const Radius.circular(16),
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: isOutgoing ? Radius.circular(16) : Radius.circular(4),
+            bottomRight: isOutgoing ? Radius.circular(4) : Radius.circular(16),
           ),
           border: Border.all(
-            color: isOutgoing ? _primaryColor.withAlpha(30) : Colors.white.withAlpha(8),
+            color: isOutgoing ? Theme.of(context).colorScheme.primary.withAlpha(30) : Theme.of(context).colorScheme.onSurface.withOpacity(0.03),
             width: 0.5,
           ),
         ),
@@ -1350,7 +1346,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     message.mediaUrl!.toLowerCase().endsWith('.gif') ||
                     message.type == 'image'))
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: EdgeInsets.only(bottom: 6),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.network(
@@ -1361,24 +1357,24 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       return Container(
                         height: 150,
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(10),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _primaryColor)),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary)),
                       );
                     },
                     errorBuilder: (context, err, stack) {
                       return Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(10),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.broken_image_rounded, color: Colors.white.withAlpha(60), size: 20),
-                            const SizedBox(width: 8),
-                            Text('Image indisponible', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(80))),
+                            Icon(Icons.broken_image_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24), size: 20),
+                            SizedBox(width: 8),
+                            Text('Image indisponible', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31))),
                           ],
                         ),
                       );
@@ -1393,10 +1389,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             else
               Text(
                 message.body,
-                style: const TextStyle(fontSize: 14.5, color: Colors.white),
+                style: TextStyle(fontSize: 14.5, color: Theme.of(context).colorScheme.onSurface),
               ),
 
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
@@ -1407,11 +1403,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       : message.timestamp,
                   style: TextStyle(
                     fontSize: 10,
-                    color: Colors.white.withAlpha(60),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24),
                   ),
                 ),
                 if (isOutgoing) ...[
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   _buildStatusIcon(message.status),
                 ],
               ],
@@ -1426,36 +1422,36 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
-          color: _surfaceDark,
-          border: Border(top: BorderSide(color: Colors.white.withAlpha(8))),
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.03))),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+        padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
         child: _isRecording
             ? Row(
                 children: [
-                  const Icon(Icons.fiber_manual_record, color: Color(0xFFEF4444), size: 16),
-                  const SizedBox(width: 8),
+                  Icon(Icons.fiber_manual_record, color: Color(0xFFEF4444), size: 16),
+                  SizedBox(width: 8),
                   Text(
                     'Enregistrement... ${_recordingSeconds ~/ 60}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Color(0xFFFCA5A5), fontWeight: FontWeight.w500, fontSize: 13),
+                    style: TextStyle(color: Color(0xFFFCA5A5), fontWeight: FontWeight.w500, fontSize: 13),
                   ),
-                  const Spacer(),
+                  Spacer(),
                   TextButton(
                     onPressed: _cancelRecording,
-                    child: Text('Annuler', style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13)),
+                    child: Text('Annuler', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 13)),
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   GestureDetector(
                     onTap: _sendVoiceNote,
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_primaryColor, Color(0xFF0F766E)],
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF0F766E)],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                      child: Icon(Icons.check_rounded, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -1465,7 +1461,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   IconButton(
                     icon: Icon(
                       _showEmojiRow ? Icons.keyboard_rounded : Icons.sentiment_satisfied_alt_rounded,
-                      color: Colors.white.withAlpha(100),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39),
                       size: 22,
                     ),
                     onPressed: () {
@@ -1475,38 +1471,38 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     },
                   ),
                   IconButton(
-                    icon: Icon(Icons.attach_file_rounded, color: Colors.white.withAlpha(100), size: 22),
+                    icon: Icon(Icons.attach_file_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), size: 22),
                     onPressed: _showAttachmentMenu,
                   ),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: _surfaceCard,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white.withAlpha(10)),
+                        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04)),
                       ),
                       child: TextField(
                         controller: _messageController,
                         minLines: 1,
                         maxLines: 5,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Taper un message...',
-                          hintStyle: TextStyle(color: Colors.white.withAlpha(60), fontSize: 14),
+                          hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24), fontSize: 14),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B), size: 20),
+                                icon: Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B), size: 20),
                                 tooltip: 'Réponses rapides',
                                 onPressed: _showQuickRepliesSheet,
                               ),
                               IconButton(
-                                icon: const Icon(Icons.mic_rounded, color: _accentColor, size: 20),
+                                icon: Icon(Icons.mic_rounded, color: _accentColor, size: 20),
                                 tooltip: 'Note vocale',
                                 onPressed: _startRecording,
                               ),
@@ -1516,18 +1512,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   GestureDetector(
                     onTap: _handleSend,
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_primaryColor, Color(0xFF0F766E)],
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF0F766E)],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      child: Icon(Icons.send_rounded, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -1582,11 +1578,10 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF0D9488);
     const accentColor = Color(0xFF2DD4BF);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1596,7 +1591,7 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: primaryColor.withAlpha(40),
+                color: Theme.of(context).colorScheme.primary.withAlpha(40),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -1606,9 +1601,9 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Icon(Icons.mic_rounded, color: accentColor.withAlpha(150), size: 16),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Expanded(
             child: SizedBox(
               width: 140,
@@ -1618,7 +1613,7 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
                   trackHeight: 3,
                   overlayShape: SliderComponentShape.noOverlay,
                   activeTrackColor: accentColor,
-                  inactiveTrackColor: Colors.white.withAlpha(25),
+                  inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                 ),
                 child: Slider(
                   value: _sliderValue,
@@ -1627,12 +1622,12 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             widget.message.body.contains('(')
                 ? widget.message.body.split('(').last.replaceAll(')', '')
                 : '0:05',
-            style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(100)),
+            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39)),
           ),
         ],
       ),

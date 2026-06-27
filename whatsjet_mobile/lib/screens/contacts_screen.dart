@@ -71,7 +71,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       radius: 24,
       child: Text(
         initials,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
   }
@@ -91,12 +91,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Répertoire Contacts'),
+        title: Text('Répertoire Contacts'),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
@@ -107,23 +107,23 @@ class _ContactsScreenState extends State<ContactsScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator())
                 : _error != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_error!, style: const TextStyle(color: Colors.red)),
-                            const SizedBox(height: 16),
+                            Text(_error!, style: TextStyle(color: Colors.red)),
+                            SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadContacts,
-                              child: const Text('Réessayer'),
+                              child: Text('Réessayer'),
                             ),
                           ],
                         ),
                       )
                     : _filteredContacts.isEmpty
-                        ? const Center(child: Text('Aucun contact trouvé'))
+                        ? Center(child: Text('Aucun contact trouvé'))
                         : ListView.builder(
                             itemCount: _filteredContacts.length,
                             itemBuilder: (context, index) {
@@ -132,19 +132,19 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                 leading: _buildAvatar(contact),
                                 title: Text(
                                   contact.name.isNotEmpty ? contact.name : contact.phoneNumber,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(contact.phoneNumber),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.message_rounded, color: ThemeService.primaryColor),
+                                      icon: Icon(Icons.message_rounded, color: ThemeService.primaryColor),
                                       onPressed: () => _openChat(contact),
                                       tooltip: 'Envoyer un message',
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.phone_rounded, color: Colors.green),
+                                      icon: Icon(Icons.phone_rounded, color: Colors.green),
                                       onPressed: () {
                                         // TODO: Direct Call via url_launcher tel:
                                       },

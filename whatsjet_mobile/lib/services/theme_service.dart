@@ -9,7 +9,7 @@ class ThemeService extends ChangeNotifier {
   factory ThemeService() => _instance;
   ThemeService._internal();
 
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
 
   bool get isDark => _themeMode == ThemeMode.dark;
@@ -22,7 +22,7 @@ class ThemeService extends ChangeNotifier {
     } else if (saved == 'system') {
       _themeMode = ThemeMode.system;
     } else {
-      _themeMode = ThemeMode.dark;
+      _themeMode = ThemeMode.light;
     }
     notifyListeners();
   }

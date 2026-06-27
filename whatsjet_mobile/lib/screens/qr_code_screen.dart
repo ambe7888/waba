@@ -19,19 +19,19 @@ class QRCodeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon Code QR'),
+        title: Text('Mon Code QR'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Scannez ce code QR pour discuter',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white, // QR codes always need high contrast
                 borderRadius: BorderRadius.circular(16),
@@ -51,7 +51,7 @@ class QRCodeScreen extends StatelessWidget {
                 foregroundColor: Colors.black,
               ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             Text(
               'Numéro : +$phoneNumber',
               style: TextStyle(

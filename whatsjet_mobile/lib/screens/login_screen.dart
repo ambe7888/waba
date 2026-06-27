@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.15),
+      begin: Offset(0, 0.15),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
 
@@ -139,10 +139,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF0D9488);
-    const accentColor = Color(0xFF2DD4BF);
-    const surfaceDark = Color(0xFF0F172A);
-    const surfaceCard = Color(0xFF1E293B);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final primaryColor = colorScheme.primary;
+    final accentColor = colorScheme.secondary;
+    final surfaceDark = theme.scaffoldBackgroundColor;
+    final surfaceCard = colorScheme.surface;
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = colorScheme.onSurface;
 
     return Scaffold(
       backgroundColor: surfaceDark,
@@ -187,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // Main content
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28.0),
+              padding: EdgeInsets.symmetric(horizontal: 28.0),
               child: FadeTransition(
                 opacity: _fadeAnim,
                 child: SlideTransition(
@@ -207,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   colors: [primaryColor, accentColor],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -217,11 +221,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   BoxShadow(
                                     color: primaryColor.withAlpha(60),
                                     blurRadius: 30,
-                                    offset: const Offset(0, 10),
+                                    offset: Offset(0, 10),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.chat_rounded,
                                 size: 48,
                                 color: Colors.white,
@@ -230,53 +234,53 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           },
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
 
                       // Title
-                      const Text(
+                      Text(
                         'Bienvenue',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: onSurface,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         'Connectez-vous à votre espace WhatsClick',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withAlpha(120),
+                          color: onSurface.withOpacity(0.47),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32),
 
                       // Error message
                       if (_errorMessage != null) ...[
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444).withAlpha(20),
+                            color: Color(0xFFEF4444).withAlpha(20),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFEF4444).withAlpha(60)),
+                            border: Border.all(color: Color(0xFFEF4444).withAlpha(60)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 18),
-                              const SizedBox(width: 10),
+                              Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 18),
+                              SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _errorMessage!,
-                                  style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 13),
+                                  style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 13),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                       ],
 
                       // Email Field
@@ -284,44 +288,44 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         decoration: BoxDecoration(
                           color: surfaceCard,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withAlpha(15)),
+                          border: Border.all(color: onSurface.withOpacity(0.06)),
                         ),
                         child: TextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          style: TextStyle(color: onSurface, fontSize: 14),
                           decoration: InputDecoration(
                             labelText: 'Email ou nom d\'utilisateur',
-                            labelStyle: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
-                            prefixIcon: Icon(Icons.email_outlined, color: Colors.white.withAlpha(80), size: 20),
+                            labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                            prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
 
                       // Password Field
                       Container(
                         decoration: BoxDecoration(
                           color: surfaceCard,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withAlpha(15)),
+                          border: Border.all(color: onSurface.withOpacity(0.06)),
                         ),
                         child: TextField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          style: TextStyle(color: onSurface, fontSize: 14),
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
-                            labelStyle: TextStyle(color: Colors.white.withAlpha(100), fontSize: 13),
-                            prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.white.withAlpha(80), size: 20),
+                            labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                            prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                color: Colors.white.withAlpha(80),
+                                color: onSurface.withOpacity(0.31),
                                 size: 20,
                               ),
                               onPressed: () {
@@ -333,11 +337,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
 
                       // Remember Me & Forgot Password
                       Row(
@@ -351,8 +355,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 child: Checkbox(
                                   value: _rememberMe,
                                   activeColor: primaryColor,
-                                  checkColor: Colors.white,
-                                  side: BorderSide(color: Colors.white.withAlpha(60)),
+                                  checkColor: onSurface,
+                                  side: BorderSide(color: onSurface.withOpacity(0.24)),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                   onChanged: (value) {
                                     setState(() {
@@ -361,29 +365,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text(
                                 'Se souvenir',
-                                style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(140)),
+                                style: TextStyle(fontSize: 13, color: onSurface.withOpacity(0.55)),
                               ),
                             ],
                           ),
                           TextButton(
                             onPressed: _handleForgotPassword,
-                            child: const Text(
+                            child: Text(
                               'Mot de passe oublié ?',
                               style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 12),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       // Login Button
                       Container(
                         height: 52,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [primaryColor, Color(0xFF0F766E)],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
@@ -393,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             BoxShadow(
                               color: primaryColor.withAlpha(60),
                               blurRadius: 16,
-                              offset: const Offset(0, 6),
+                              offset: Offset(0, 6),
                             ),
                           ],
                         ),
@@ -407,15 +411,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                           ),
                           child: _isLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 22,
                                   width: 22,
                                   child: CircularProgressIndicator(
-                                    color: Colors.white,
+                                    color: onSurface,
                                     strokeWidth: 2.5,
                                   ),
                                 )
-                              : const Row(
+                              : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
@@ -423,7 +427,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
-                                        color: Colors.white,
+                                        color: onSurface,
                                         letterSpacing: 0.3,
                                       ),
                                     ),
@@ -433,11 +437,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 48),
+                      SizedBox(height: 48),
                       Text(
                         '© 2026 WhatsClick - ASAP Communication',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 11),
+                        style: TextStyle(color: onSurface.withOpacity(0.24), fontSize: 11),
                       ),
                     ],
                   ),
