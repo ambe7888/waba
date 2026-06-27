@@ -38,6 +38,7 @@ dependencies:
   google_fonts: any
   qr_flutter: ^4.1.0
   fl_chart: ^1.2.0
+  audioplayers: ^6.8.0
 
 dev_dependencies:
   flutter_test:
@@ -60,3 +61,5 @@ flutter:
 
   assets:
     - assets/icon/app_logo.png
+    - assets/icon/favicon.png
+    - assets/icon/launcher_icon.png

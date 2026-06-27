@@ -5,7 +5,6 @@ import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../models/contact.dart';
 import 'chat_box_screen.dart';
-import 'resource_list_screen.dart';
 import 'login_screen.dart';
 import '../config/app_config.dart';
 
@@ -23,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _nextPage = 0;
-  final _scrollController = ScrollController();
+  
   late final StreamSubscription<RemoteMessage> _fcmSubscription;
   Timer? _pollingTimer;
 
@@ -34,6 +33,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Animation
   late AnimationController _fadeController;
 
+  int _parseNextPage(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,11 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _loadContacts();
     _searchController.addListener(_applyFilters);
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-        _loadMoreContacts();
-      }
-    });
+    
 
     // Initialize FCM for push notifications
     FcmService().init().catchError((e) {
@@ -76,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final result = await ApiService().fetchContacts(page: 1);
     final List<Contact> loaded = result['contacts'] as List<Contact>;
-    final int next = result['nextPage'] as int;
+    final int next = _parseNextPage(result['nextPage']);
 
     // Extract unique labels from all contacts
     final Set<ContactLabel> labelsSet = {};
@@ -86,8 +89,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     if (mounted) {
       setState(() {
-        _contacts = loaded;
-        _nextPage = next;
+        if (silent && _contacts.isNotEmpty) {
+          final Map<String, Contact> merged = {
+            for (final existing in _contacts) existing.uid: existing,
+            for (final fresh in loaded) fresh.uid: fresh,
+          };
+          _contacts = merged.values.toList();
+          _nextPage = _nextPage == 0 ? next : (_nextPage > next ? _nextPage : next);
+        } else {
+          _contacts = loaded;
+          _nextPage = next;
+        }
         _allUniqueLabels = labelsSet.toList();
         _isLoading = false;
       });
@@ -107,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final result = await ApiService().fetchContacts(page: _nextPage);
     final List<Contact> loaded = result['contacts'] as List<Contact>;
-    final int next = result['nextPage'] as int;
+    final int next = _parseNextPage(result['nextPage']);
 
     // Update unique labels
     final Set<ContactLabel> labelsSet = Set.from(_allUniqueLabels);
@@ -116,7 +128,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     setState(() {
-      _contacts.addAll(loaded);
+      final Map<String, Contact> merged = {
+        for (final existing in _contacts) existing.uid: existing,
+        for (final fresh in loaded) fresh.uid: fresh,
+      };
+      _contacts = merged.values.toList();
       _nextPage = next;
       _allUniqueLabels = labelsSet.toList();
       _isLoadingMore = false;
@@ -131,7 +147,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         // Text search filter
         final matchesSearch = query.isEmpty ||
             contact.name.toLowerCase().contains(query) ||
-            contact.phoneNumber.contains(query);
+          contact.phoneNumber.contains(query) ||
+          (contact.lastMessage?.toLowerCase().contains(query) ?? false);
 
         // Label filter
         final matchesLabel = _selectedLabelFilter == null ||
@@ -293,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _searchController.dispose();
-    _scrollController.dispose();
+    
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
     _fadeController.dispose();
@@ -304,7 +321,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF0D9488);
     const accentColor = Color(0xFF2DD4BF);
-    final surfaceDark = Theme.of(context).scaffoldBackgroundColor;
     final surfaceCard = Theme.of(context).colorScheme.surface;
     final totalUnread = _totalUnreadCount;
 
@@ -315,25 +331,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         elevation: 0,
         title: Row(
           children: [
-            // Logo mark
+            // Page icon
             Container(
-              width: 36,
-              height: 36,
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryColor, accentColor],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
+                color: primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.chat_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+              child: Icon(Icons.forum_rounded, color: primaryColor, size: 20),
             ),
             SizedBox(width: 10),
             Text(
-              'WhatsClick',
+              'Discussions',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
@@ -365,7 +376,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      drawer: _buildDrawer(primaryColor, surfaceDark, accentColor),
       body: Column(
         children: [
           // Search Bar with glassmorphism effect
@@ -504,7 +514,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         color: primaryColor,
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
-                          controller: _scrollController,
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           itemCount: _filteredContacts.length + (_nextPage > 0 ? 1 : 0),
                           itemBuilder: (context, index) {
@@ -744,103 +753,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildLoadMoreButton(Color primaryColor) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
-      child: Center(
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer(Color primaryColor, Color surfaceDark, Color accentColor) {
-    return Drawer(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      child: Column(
-        children: [
-          // Drawer Header
-          Container(
-            padding: EdgeInsets.fromLTRB(20, 60, 20, 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [primaryColor.withAlpha(40), surfaceDark],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+      child: _isLoadingMore
+          ? Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
+              ),
+            )
+          : OutlinedButton(
+              onPressed: _loadMoreContacts,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: primaryColor.withAlpha(100)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                'Charger plus de conversations',
+                style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 13),
               ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryColor, accentColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(Icons.person_rounded, color: Theme.of(context).colorScheme.onSurface, size: 28),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'WhatsClick',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Connecté via Mobile',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47), fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 8),
-          _buildDrawerItem(Icons.chat_rounded, 'Discussions', primaryColor, () {
-            Navigator.pop(context);
-          }),
-          _buildDrawerItem(Icons.folder_shared_rounded, 'Ressources Partagées', primaryColor, () {
-            Navigator.pop(context);
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ResourceListScreen()),
-            );
-          }),
-          const Spacer(),
-          Divider(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08), height: 1),
-          _buildDrawerItem(Icons.logout_rounded, 'Se déconnecter', Color(0xFFEF4444), _handleLogout),
-          SizedBox(height: 20),
-        ],
-      ),
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, Color color, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: color, size: 22),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: color == Color(0xFFEF4444) ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.78),
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-      ),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: EdgeInsets.symmetric(horizontal: 20),
-    );
-  }
 }

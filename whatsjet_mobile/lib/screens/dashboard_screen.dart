@@ -109,7 +109,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
-        title: Text('Tableau de bord', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/icon/launcher_icon.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'WhatsClick',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,

@@ -16,6 +16,8 @@ class ApiService {
   ApiService._internal();
 
   String? _token;
+  /// Last error message from uploadTempMedia (for UI display)
+  String? lastUploadError;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,6 +25,14 @@ class ApiService {
   }
 
   bool get isAuthenticated => _token != null;
+
+  int _parseNextPage(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
 
   Future<void> _saveToken(String token) async {
     _token = token;
@@ -90,7 +100,8 @@ class ApiService {
         final reaction = body['reaction'];
         if (reaction == 1) {
           final contactsData = body['client_models']?['contacts'] ?? body['data']?['contacts'];
-          final nextPage = body['client_models']?['contactsPaginatePage'] ?? 0;
+          final nextPageRaw = body['client_models']?['contactsPaginatePage'] ?? body['data']?['contactsPaginatePage'];
+          final nextPage = _parseNextPage(nextPageRaw);
           List<Contact> list = [];
           if (contactsData is List) {
             list = contactsData.map((c) => Contact.fromJson(c)).toList();
@@ -115,7 +126,13 @@ class ApiService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
-          return body['data'];
+          final data = body['data'];
+          if (data is Map<String, dynamic>) {
+            if (data['vendorDashboardData'] is Map<String, dynamic>) {
+              return Map<String, dynamic>.from(data['vendorDashboardData'] as Map);
+            }
+            return data;
+          }
         }
       }
       return null;
@@ -143,11 +160,34 @@ class ApiService {
     }
   }
 
+  /// Create support ticket
+  Future<bool> createSupportTicket(String subject, String description) async {
+    final url = Uri.parse('${baseApiUrl}vendor/support-tickets/store');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'subject': subject,
+          'description': description,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Create Ticket Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch chat messages for a specific contact
   Future<List<ChatMessage>?> fetchMessages(String contactUid) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final reaction = body['reaction'];
@@ -159,6 +199,8 @@ class ApiService {
             return logsData.values.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>)).toList();
           }
         }
+      } else {
+        if (debug) debugPrint('Fetch Messages API Error: ${response.statusCode} ${response.body}');
       }
       return null;
     } catch (e) {
@@ -178,12 +220,13 @@ class ApiService {
           'contact_uid': contactUid,
           'message_body': messageBody,
         }),
-      );
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
+      if (debug) debugPrint('Send Message API Error: ${response.statusCode} ${response.body}');
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Message Error: $e');
@@ -286,7 +329,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        return body['reaction'] == 1;
+        // reaction 1 = success, reaction 14 = "nothing to update" (already at desired state = also success)
+        return body['reaction'] == 1 || body['reaction'] == 14;
       }
       return false;
     } catch (e) {
@@ -511,51 +555,73 @@ class ApiService {
   }
 
   /// Upload temporary media file for chat
+  /// [mediaType] is used as fallback for MIME detection: 'whatsapp_audio', 'whatsapp_image', 'whatsapp_video', 'whatsapp_document'
   Future<String?> uploadTempMedia(File file, String mediaType) async {
     final url = Uri.parse('${baseApiUrl}media/upload-temp-media/$mediaType');
     try {
       final token = _token ?? (await SharedPreferences.getInstance()).getString('auth_token');
+      if (token == null || token.isEmpty) {
+        if (debug) debugPrint('Upload Temp Media Error: token manquant');
+        return null;
+      }
       final request = http.MultipartRequest('POST', url);
 
       request.headers.addAll({
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
         'Api-Request-Signature': 'mobile-app-request',
+        'User-Agent': 'WhatsClick-Mobile/1.0.0',
       });
 
-      // Ensure proper MIME type is determined
+      // Determine MIME type from file path, with fallback based on mediaType
       String? mimeType = lookupMimeType(file.path);
-      if (mimeType == null) {
-        if (file.path.toLowerCase().endsWith('.m4a')) {
-          mimeType = 'audio/mp4';
+      if (mimeType == null || mimeType == 'application/octet-stream') {
+        // Fallback based on the mediaType parameter
+        if (mediaType.contains('audio')) {
+          mimeType = file.path.endsWith('.ogg') ? 'audio/ogg'
+              : file.path.endsWith('.mp3') ? 'audio/mpeg'
+              : file.path.endsWith('.aac') ? 'audio/aac'
+              : file.path.endsWith('.webm') ? 'audio/webm'
+              : 'audio/mp4'; // default for m4a / aac-lc recordings
+        } else if (mediaType.contains('image')) {
+          mimeType = file.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        } else if (mediaType.contains('video')) {
+          mimeType = file.path.endsWith('.3gp') ? 'video/3gp' : 'video/mp4';
         } else {
-          mimeType = 'application/octet-stream';
+          mimeType = 'application/pdf';
         }
+        if (debug) debugPrint('Upload Temp Media: MIME fallback -> $mimeType (mediaType=$mediaType, path=${file.path})');
       }
 
-      final type = mimeType.split('/')[0];
-      final subtype = mimeType.split('/').length > 1 ? mimeType.split('/')[1] : 'octet-stream';
-
+      final typeParts = mimeType.split('/');
       final multipartFile = await http.MultipartFile.fromPath(
         'filepond',
         file.path,
-        contentType: MediaType(type, subtype),
+        contentType: MediaType(typeParts[0], typeParts.length > 1 ? typeParts[1] : 'octet-stream'),
       );
       request.files.add(multipartFile);
 
-      final response = await request.send();
+      final response = await request.send().timeout(const Duration(seconds: 45));
       final responseBody = await response.stream.bytesToString();
-      debugPrint('Upload Temp Media Response: $responseBody');
+      debugPrint('Upload Temp Media [${response.statusCode}]: $responseBody');
       
       if (response.statusCode == 200) {
         final body = jsonDecode(responseBody);
         if (body['reaction'] == 1) {
-          return body['data']?['fileName'];
+          lastUploadError = null;
+          return body['data']?['fileName'] ?? body['data']?['file_name'];
         }
+        // Server returned reaction != 1 — extract the message
+        final msg = body['data']?['message'] ?? body['message'] ?? 'Erreur serveur (reaction != 1)';
+        lastUploadError = msg is String ? msg : msg.toString();
+        if (debug) debugPrint('Upload Temp Media Server Error: $lastUploadError');
+      } else {
+        lastUploadError = 'HTTP ${response.statusCode}';
       }
-      if (debug) debugPrint('Upload Temp Media API Error Status: ${response.statusCode}, Body: $responseBody');
+      if (debug) debugPrint('Upload Temp Media API Error: status=${response.statusCode}');
       return null;
     } catch (e) {
+      lastUploadError = e.toString();
       if (debug) debugPrint('Upload Temp Media Exception: $e');
       return null;
     }
@@ -577,15 +643,40 @@ class ApiService {
             'original_filename': originalFilename ?? fileName,
           }),
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
+      if (debug) debugPrint('Send Media Message API Error: ${response.statusCode} ${response.body}');
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Media Message Error: $e');
       return false;
+    }
+  }
+
+  /// Fetch campaign list for mobile
+  Future<List<Map<String, dynamic>>> fetchCampaigns() async {
+    final url = Uri.parse('${baseApiUrl}vendor/campaign-list');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final raw = body['data']?['campaignList'];
+          if (raw is Map && raw['data'] is List) {
+            return List<Map<String, dynamic>>.from(raw['data']);
+          }
+          if (raw is List) {
+            return List<Map<String, dynamic>>.from(raw);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Campaigns Error: $e');
+      return [];
     }
   }
 }

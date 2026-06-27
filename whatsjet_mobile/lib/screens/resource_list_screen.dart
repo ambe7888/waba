@@ -58,9 +58,26 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ressources & Bibliothèque'),
-        backgroundColor: primaryColor,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.menu_book_rounded, color: primaryColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Ressources',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
       ),
       backgroundColor: Colors.grey.shade50,
       body: Column(

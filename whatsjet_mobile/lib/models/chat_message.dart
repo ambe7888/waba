@@ -26,13 +26,40 @@ class ChatMessage {
     var systemRaw = json['is_system_message'];
     bool system = systemRaw == 1 || systemRaw == true || systemRaw == '1' || systemRaw == 'true';
 
+    // Resolve type and media url. The backend stores media info inside
+    // __data['media_values'] (link/type/caption), not as top-level fields.
+    String resolvedType = json['type'] ?? 'text';
+    String? resolvedMediaUrl = json['media_url'] ?? json['file_url'];
+    String resolvedBody = json['message'] ?? json['body'] ?? '';
+
+    final dynamic dataField = json['__data'];
+    if (dataField is Map) {
+      final dynamic mediaValues = dataField['media_values'];
+      if (mediaValues is Map) {
+        final String? mvType = mediaValues['type']?.toString();
+        final String? mvLink = mediaValues['link']?.toString();
+        final String? mvCaption = mediaValues['caption']?.toString();
+        if (mvType != null && mvType.isNotEmpty) {
+          // Normalize sticker to image for rendering
+          resolvedType = mvType == 'sticker' ? 'image' : mvType;
+        }
+        if (mvLink != null && mvLink.isNotEmpty) {
+          resolvedMediaUrl = mvLink;
+        }
+        // Use caption as body text when message is empty
+        if (resolvedBody.isEmpty && mvCaption != null && mvCaption.isNotEmpty) {
+          resolvedBody = mvCaption;
+        }
+      }
+    }
+
     return ChatMessage(
       uid: json['uid'] ?? json['_uid'] ?? '',
-      body: json['message'] ?? json['body'] ?? '',
+      body: resolvedBody,
       isIncoming: incoming,
       timestamp: json['created_at'] ?? json['timestamp'] ?? '',
-      type: json['type'] ?? 'text',
-      mediaUrl: json['media_url'] ?? json['file_url'],
+      type: resolvedType,
+      mediaUrl: resolvedMediaUrl,
       isSystemMessage: system,
       status: json['status'] ?? 'initialize',
     );

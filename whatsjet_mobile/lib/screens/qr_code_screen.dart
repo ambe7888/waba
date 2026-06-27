@@ -19,7 +19,26 @@ class QRCodeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mon Code QR'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: ThemeService.primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.qr_code_2_rounded, color: ThemeService.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Mon Code QR',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
       ),
       body: Center(
         child: Column(

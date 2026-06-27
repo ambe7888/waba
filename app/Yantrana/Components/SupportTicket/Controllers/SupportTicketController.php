@@ -105,6 +105,40 @@ class SupportTicketController extends BaseController
     /**
      * Show the form for creating a new resource.
      */
+
+    public function apiStore(Request $request)
+    {
+        $request->validate([
+            'subject' => 'required|string|max:150',
+            'description' => 'required|string',
+            'priority' => 'nullable|string|in:low,normal,high',
+        ]);
+
+        $vendorId = getVendorId();
+
+        $vendorUser = \App\Yantrana\Components\Vendor\Models\VendorUserModel::where([
+            'vendors__id' => $vendorId,
+            'users__id' => Auth::id()
+        ])->first();
+
+        $ticket = TicketModel::create([
+            'status' => 1,
+            'vendors__id' => $vendorId,
+            'subject' => $request->subject,
+            'description' => $request->description,
+            'priority' => $request->priority ?? 'normal',
+            'vendor_users__id' => $vendorUser ? $vendorUser->_id : null,
+            'contacts__id' => null,
+            '__data' => null,
+        ]);
+
+        return $this->processResponse(1, [
+            1 => 'Ticket created successfully.'
+        ], [
+            'ticket' => $ticket
+        ]);
+    }
+
     public function create()
     {
         return $this->loadView('support_ticket.create');
