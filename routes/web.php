@@ -278,6 +278,11 @@ Route::middleware([
                 VendorController::class,
                 'vendorDataTableList',
             ])->name('central.vendors.read.list');
+
+            Route::get('/export', [
+                VendorController::class,
+                'exportVendorsCsv',
+            ])->name('central.vendors.export');
             /*
             Manage Translations
             ------------------------------------------------------------------- */
