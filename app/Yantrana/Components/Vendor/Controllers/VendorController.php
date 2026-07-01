@@ -75,6 +75,11 @@ class VendorController extends BaseController
         return $this->vendorEngine->prepareVendorDataTableList();
     }
 
+    public function exportVendorsCsv()
+    {
+        return $this->vendorEngine->exportVendorsData();
+    }
+
     public function addVendor(CommonRequest $request)
     {
         if(str_starts_with($request->get('mobile_number'), '0') or str_starts_with($request->get('mobile_number'), '+')) {

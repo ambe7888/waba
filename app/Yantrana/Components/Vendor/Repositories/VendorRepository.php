@@ -170,6 +170,100 @@ class VendorRepository extends BaseRepository implements VendorRepositoryInterfa
             ->toArray();
     }
 
+    public function exportVendorsForAdmin()
+    {
+        $query = $this->primaryModel::leftJoin('users', 'users.vendors__id', '=', 'vendors._id')
+            ->select(
+                'vendors._id',
+                'vendors._uid',
+                'vendors.title',
+                'vendors.created_at',
+                'vendors.status',
+                'users._id as userId',
+                'users.username',
+                'users.email',
+                'users.status as user_status',
+                'users.mobile_number',
+                DB::raw("CONCAT(COALESCE(users.first_name, ''), ' ', COALESCE(users.last_name, '')) AS fullName")
+            );
+
+        $subscriptionStatus = request('subscription_status');
+        if ($subscriptionStatus) {
+            if ($subscriptionStatus === 'active') {
+                $query->where(function($q) {
+                    $q->whereExists(function($subQ) {
+                        $subQ->select(DB::raw(1))
+                            ->from('subscriptions')
+                            ->whereColumn('subscriptions.vendor_model__id', 'vendors._id')
+                            ->where(function($innerQ) {
+                                $innerQ->whereNull('ends_at')
+                                    ->orWhere('ends_at', '>', now());
+                            })
+                            ->whereIn('stripe_status', ['active', 'trialing']);
+                    })
+                    ->orWhereExists(function($subQ) {
+                        $subQ->select(DB::raw(1))
+                            ->from('manual_subscriptions')
+                            ->whereColumn('manual_subscriptions.vendors__id', 'vendors._id')
+                            ->where('manual_subscriptions.status', 'active')
+                            ->where(function($innerQ) {
+                                $innerQ->whereNull('ends_at')
+                                    ->orWhere('ends_at', '>', now());
+                            });
+                    });
+                });
+            } elseif ($subscriptionStatus === 'expired') {
+                $query->where(function($q) {
+                    $q->whereNotExists(function($subQ) {
+                        $subQ->select(DB::raw(1))
+                            ->from('subscriptions')
+                            ->whereColumn('subscriptions.vendor_model__id', 'vendors._id')
+                            ->where(function($innerQ) {
+                                $innerQ->whereNull('ends_at')
+                                    ->orWhere('ends_at', '>', now());
+                            })
+                            ->whereIn('stripe_status', ['active', 'trialing']);
+                    })
+                    ->whereNotExists(function($subQ) {
+                        $subQ->select(DB::raw(1))
+                            ->from('manual_subscriptions')
+                            ->whereColumn('manual_subscriptions.vendors__id', 'vendors._id')
+                            ->where('manual_subscriptions.status', 'active')
+                            ->where(function($innerQ) {
+                                $innerQ->whereNull('ends_at')
+                                    ->orWhere('ends_at', '>', now());
+                            });
+                    })
+                    ->where(function($hasQ) {
+                        $hasQ->whereExists(function($subQ) {
+                            $subQ->select(DB::raw(1))
+                                ->from('subscriptions')
+                                ->whereColumn('subscriptions.vendor_model__id', 'vendors._id');
+                        })
+                        ->orWhereExists(function($subQ) {
+                            $subQ->select(DB::raw(1))
+                                ->from('manual_subscriptions')
+                                ->whereColumn('manual_subscriptions.vendors__id', 'vendors._id');
+                        });
+                    });
+                });
+            } elseif ($subscriptionStatus === 'no_plan') {
+                $query->whereNotExists(function($subQ) {
+                    $subQ->select(DB::raw(1))
+                        ->from('subscriptions')
+                        ->whereColumn('subscriptions.vendor_model__id', 'vendors._id');
+                })
+                ->whereNotExists(function($subQ) {
+                    $subQ->select(DB::raw(1))
+                        ->from('manual_subscriptions')
+                        ->whereColumn('manual_subscriptions.vendors__id', 'vendors._id');
+                });
+            }
+        }
+
+        return $query->orderBy('vendors.created_at', 'desc')->get();
+    }
+
     /**
      * Fetch Record by slug
      *

@@ -20,9 +20,14 @@
                         <option value="no_plan"><?= __tr('No Plan') ?></option>
                     </select>
                 </div>
-                <button type="button" class="btn btn-primary btn-sm mb-0" data-toggle="modal" data-target="#addVendorModal">
-                    <i class="fa fa-plus-circle mr-1"></i> <?= __tr('Add New Vendor') ?>
-                </button>
+                <div class="d-flex align-items-center flex-wrap">
+                    <a id="lwExportVendorsButton" href="{{ route('central.vendors.export') }}" class="btn btn-outline-primary btn-sm mb-0 mr-2">
+                        <i class="fa fa-download mr-1"></i> <?= __tr('Export Vendors') ?>
+                    </a>
+                    <button type="button" class="btn btn-primary btn-sm mb-0" data-toggle="modal" data-target="#addVendorModal">
+                        <i class="fa fa-plus-circle mr-1"></i> <?= __tr('Add New Vendor') ?>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="col-xl-12">
@@ -412,6 +417,14 @@
                 }
             }
 
+            function updateVendorExportUrl(status) {
+                var exportUrl = "{{ route('central.vendors.export') }}";
+                if (status) {
+                    exportUrl += "?subscription_status=" + encodeURIComponent(status);
+                }
+                $('#lwExportVendorsButton').attr('href', exportUrl);
+            }
+
             // Subscription status filter change
             $('#lwSubscriptionStatusFilter').on('change', function() {
                 var status = $(this).val();
@@ -419,9 +432,12 @@
                 if (status) {
                     tableUrl += "?subscription_status=" + status;
                 }
+                updateVendorExportUrl(status);
                 var table = $('#lwManageVendorsTable').DataTable();
                 table.ajax.url(tableUrl).load();
             });
+
+            updateVendorExportUrl($('#lwSubscriptionStatusFilter').val());
         })(jQuery);
     </script>
     @endpush

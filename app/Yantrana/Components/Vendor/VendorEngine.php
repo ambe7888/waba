@@ -156,6 +156,65 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
         return $this->dataTableResponse($userCollection, $requireColumns);
     }
 
+    public function exportVendorsData()
+    {
+        $vendors = $this->vendorRepository->exportVendorsForAdmin();
+        $orderStatuses = configItem('status_codes');
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'exported_vendors_');
+        $fp = fopen($tempFile, 'w');
+        fwrite($fp, "\xEF\xBB\xBF");
+
+        $header = [
+            __tr('Vendor Title'),
+            __tr('Admin User Name'),
+            __tr('Username'),
+            __tr('Email'),
+            __tr('Status'),
+            __tr('Subscription'),
+            __tr('Mobile Number'),
+            __tr('Admin User Status'),
+            __tr('Created On'),
+        ];
+
+        fputcsv($fp, $header);
+
+        foreach ($vendors as $vendor) {
+            $subscription = getVendorCurrentActiveSubscription($vendor->_id);
+            $subscriptionLabel = __tr('No Active Plan');
+
+            if (! __isEmpty($subscription)) {
+                $subscriptionLabel = __tr('Active Plan');
+            } else {
+                $getFreePlan = getFreePlan();
+                if (! __isEmpty($getFreePlan) and $getFreePlan['enabled']) {
+                    $subscriptionLabel = __tr('Free Plan');
+                }
+            }
+
+            fputcsv($fp, [
+                $vendor->title ?? '',
+                $vendor->fullName ?? '',
+                $vendor->username ?? '',
+                $vendor->email ?? '',
+                Arr::get($orderStatuses, $vendor->status, $vendor->status),
+                $subscriptionLabel,
+                $vendor->mobile_number ?? '',
+                Arr::get($orderStatuses, $vendor->user_status, $vendor->user_status),
+                $vendor->created_at ? formatDateTime($vendor->created_at) : '',
+            ]);
+        }
+
+        fclose($fp);
+
+        $dateTime = str_slug(now()->format('Y-m-d-H-i-s'));
+
+        return response()->download($tempFile, "vendors-{$dateTime}.csv", [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Transfer-Encoding' => 'binary',
+        ])->deleteFileAfterSend();
+    }
+
     /**
      * Get Vendor Basic Settings
      *
