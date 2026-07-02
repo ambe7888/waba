@@ -336,6 +336,7 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                         $waId = preg_replace('/[^0-9]/', '', $newUser->mobile_number);
                         
                         if (!empty($waId)) {
+                            ignoreFacebookApiError(true);
                             // Fetch template definition to construct proforma (fallback if name is just string)
                             $waEngine->sendActualWhatsAppTemplateMessage(
                                 (int)$saasAdminVendorId, // Vendor ID of Super Admin
@@ -349,8 +350,10 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                                 [], // message components
                                 null // campaign ID
                             );
+                            ignoreFacebookApiError(false);
                         }
                     } catch (\Exception $e) {
+                        ignoreFacebookApiError(false);
                         \Illuminate\Support\Facades\Log::error("SaaS Automation Welcome Message Failed: " . $e->getMessage());
                     }
                 }
