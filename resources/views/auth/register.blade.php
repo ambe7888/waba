@@ -357,7 +357,7 @@
                                 <small class="text-muted mt-2 d-block font-weight-500">{{__tr("Mobile number should be with country code without 0 or +")}}</small>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+                            <div class="d-flex justify-content-between align-items-center mt-4 pt-2" style="gap: 15px;">
                                 <button type="button" class="btn saas-step-btn-back px-4" onclick="prevStep()">
                                     <i class="fa fa-arrow-left mr-2"></i> {{ __tr('Back') }}
                                 </button>
@@ -422,7 +422,7 @@
                             </div>
                             @endif
 
-                            <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+                            <div class="d-flex justify-content-between align-items-center mt-4 pt-2" style="gap: 15px;">
                                 <button type="button" class="btn saas-step-btn-back px-4" onclick="prevStep()">
                                     <i class="fa fa-arrow-left mr-2"></i> {{ __tr('Back') }}
                                 </button>
