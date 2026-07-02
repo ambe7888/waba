@@ -358,7 +358,7 @@ class TranslationEngine extends BaseEngine implements TranslationEngineInterface
         // set the headers
         $headers->set('Project-Id-Version', config('app.name'));
         $headers->set('PO-Revision-Date', now());
-        $headers->set('Last-Translator', getUserAuthInfo('profile.full_name'));
+        $headers->set('Last-Translator', getUserAuthInfo('profile.full_name') ?: 'System');
         $headers->set('Language', $languageId);
         // Meta for PoEdit
         $headers->set('X-Poedit-KeywordsList', "__;__tr;__trn\n");
