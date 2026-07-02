@@ -166,22 +166,22 @@
 
     @media (min-height: 650px) {
         html, body {
-            height: 100vh !important;
-            overflow: hidden !important;
+            min-height: 100vh !important;
+            height: auto !important;
+            overflow-y: auto !important;
         }
         .main-content {
             min-height: 100vh !important;
-            height: 100vh !important;
+            height: auto !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: center !important;
+            justify-content: flex-start !important;
             align-items: center !important;
-            overflow: hidden !important;
+            padding-top: 110px !important;
+            padding-bottom: 2rem !important;
         }
         .lw-guest-page-container-block {
-            margin: auto !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
+            margin: 0 auto !important;
             width: 100% !important;
         }
         .header.py-4.mb-2 {
