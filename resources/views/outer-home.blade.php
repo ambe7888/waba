@@ -32,745 +32,1280 @@ $appName = getAppSettings('name');
     'static-assets/packages/fontawesome/css/all.css',
     'static-assets/packages/bootstrap-icons/font/bootstrap-icons.css'
     ]) !!}
-    <!-- Google fonts-->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <!-- Google Fonts — Plus Jakarta Sans (recommended by design system) + Playfair Display for hero -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <style>
-        /* Transparent containers inside navbar to fix white blocks */
-        #mainNav .container,
-        #mainNav .navbar-collapse,
-        #mainNav .navbar-nav {
-            background: transparent !important;
+        /* ═══════════════════════════════════════════
+           DESIGN TOKENS
+        ═══════════════════════════════════════════ */
+        :root {
+            --primary: #198754;
+            --primary-dark: #146c43;
+            --primary-light: #d1fae5;
+            --primary-glow: rgba(25, 135, 84, 0.15);
+            --bg: #fafbf8;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+            --shadow-glow: 0 8px 30px rgba(25,135,84,0.18);
+            --transition: 200ms ease;
         }
 
-        /* Modern Glassmorphic Navbar - Light Mode */
-        html[data-theme='light'] nav#mainNav,
+        /* ═══════════════════════════════════════════
+           RESET & BASE
+        ═══════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.05rem;
+            background: var(--bg) url('{{ asset("imgs/wa-message-bg-faded.png") }}') repeat fixed;
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+        }
+        h1,h2,h3,h4,h5,h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
+        }
+        a { text-decoration: none; }
+        img { max-width: 100%; }
+        section { position: relative; }
+
+        /* ═══════════════════════════════════════════
+           NAVBAR
+        ═══════════════════════════════════════════ */
         nav#mainNav {
-            background: rgba(255, 255, 255, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05) !important;
-            transition: all 0.3s ease;
+            top: 25px;
+            width: calc(100% - 40px);
+            max-width: 1100px;
+            margin: 0 auto;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.85) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04) !important;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding: 0.5rem 0;
         }
-        
-        html[data-theme='light'] #mainNav .navbar-nav .nav-item .nav-link,
+        nav#mainNav.scrolled {
+            top: 15px;
+            padding: 0.3rem 0;
+            background: rgba(255,255,255,0.98) !important;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08) !important;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        #mainNav .navbar-brand-img {
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        nav#mainNav.scrolled .navbar-brand-img {
+            transform: scale(0.9);
+        }
         #mainNav .navbar-nav .nav-item .nav-link {
-            color: #374151 !important;
+            color: var(--text-secondary) !important;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.5rem 1.2rem;
+            margin: 0 0.15rem;
+            border-radius: var(--radius-full);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        /* Animated underline for nav links */
+        #mainNav .navbar-nav .nav-item .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: all 0.3s ease;
+            opacity: 0;
+            border-radius: 2px;
+        }
+        #mainNav .navbar-nav .nav-item .nav-link:hover {
+            color: var(--primary) !important;
+            background: var(--primary-glow);
+        }
+        #mainNav .navbar-nav .nav-item .nav-link:hover::after {
+            width: 20px;
+            opacity: 1;
+        }
+        .btn-nav-cta,
+        #mainNav .navbar-nav .nav-item a[href*="register"] {
+            background: var(--primary) !important;
+            color: white !important;
+            border-radius: var(--radius-full) !important;
+            padding: 0.6rem 1.8rem !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            box-shadow: 0 4px 15px rgba(25,135,84,0.2) !important;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            border: none !important;
+            letter-spacing: 0.5px;
+        }
+        .btn-nav-cta:hover,
+        #mainNav .navbar-nav .nav-item a[href*="register"]:hover {
+            background: var(--primary-dark) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 25px rgba(25,135,84,0.3) !important;
+        }
+        .btn-cta {
+            background: var(--primary) !important;
+            color: white !important;
+            border-radius: var(--radius-full);
+            padding: 0.55rem 1.6rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.25s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-cta:hover {
+            background: var(--primary-dark) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(25,135,84,0.3);
+        }
+        
+        /* Mobile menu fixes */
+        @media (max-width: 991px) {
+            nav#mainNav { 
+                padding: 0.8rem 0; 
+                border-radius: 24px;
+                top: 15px;
+            }
+            nav#mainNav .container {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+            }
+            nav#mainNav .navbar-brand {
+                width: auto !important;
+                margin-right: auto;
+            }
+            nav#mainNav .navbar-toggler {
+                margin-left: auto;
+            }
+            nav#mainNav .navbar-collapse {
+                width: 100%;
+                margin-top: 1rem;
+            }
+            #mainNav .navbar-nav {
+                text-align: center;
+                width: 100%;
+            }
+            #mainNav .navbar-nav .nav-item .nav-link {
+                padding: 0.8rem 1.2rem;
+                border-radius: var(--radius-sm);
+            }
+            #mainNav .navbar-nav .nav-item .nav-link::after { display: none; }
+            .btn-nav-cta, #mainNav .navbar-nav .nav-item a[href*="register"] {
+                display: inline-block;
+                margin-top: 0.8rem;
+                margin-left: 0;
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+           HERO SECTION
+        ═══════════════════════════════════════════ */
+        .hero {
+            padding: 160px 0 30px;
+            min-height: auto;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 16px;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.6s ease;
+        }
+        .hero-badge i { font-size: 1rem; }
+        .hero-icons-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInDown 0.5s ease;
+        }
+        .hero-icons-row i {
+            font-size: 5rem;
+            color: var(--primary);
+            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.12));
+            transition: transform 0.3s ease;
+        }
+        .hero-icons-row i:hover {
+            transform: scale(1.1) rotate(-5deg);
+        }
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.6rem, 5.5vw, 4.5rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+        .hero h1 .highlight {
+            color: var(--primary);
+            position: relative;
+        }
+        .hero p.lead {
+            font-size: clamp(1.15rem, 2vw, 1.4rem);
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+            animation: fadeInUp 0.6s ease 0.2s both;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            animation: fadeInUp 0.6s ease 0.3s both;
+        }
+        .hero-actions .btn-primary-hero {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-full);
+            padding: 1rem 2.5rem;
+            font-weight: 700;
+            font-size: 1.15rem;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .hero-actions .btn-primary-hero:hover {
+            background: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(25,135,84,0.3);
+        }
+        .hero-actions .btn-outline-hero {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 1rem 2.5rem;
+            font-weight: 700;
+            font-size: 1.15rem;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .hero-actions .btn-outline-hero:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Stats bar under hero */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.6s ease 0.4s both;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 8px;
+            margin-top: 4px;
+        }
+
+        /* ═══════════════════════════════════════════
+           INTEGRATIONS
+        ═══════════════════════════════════════════ */
+        .integrations {
+            padding: 30px 0;
+            text-align: center;
+        }
+        .integrations .section-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+        .integrations h3 {
+            font-size: 1.6rem;
+            margin-bottom: 0.75rem;
+        }
+        .integrations p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            font-size: 1.15rem;
+        }
+        .integration-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .integration-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            padding: 12px 22px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text);
+            transition: all 0.25s ease;
+            cursor: default;
+            box-shadow: var(--shadow-sm);
+        }
+        .integration-chip:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+        .integration-chip i {
+            font-size: 1.4rem;
+        }
+
+        /* ═══════════════════════════════════════════
+           SECTION SHARED
+        ═══════════════════════════════════════════ */
+        .section-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .section-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+        .section-header h2 {
+            font-size: clamp(2rem, 3.8vw, 2.8rem);
+            margin-bottom: 1rem;
+        }
+        .section-header p {
+            color: var(--text-secondary);
+            max-width: 650px;
+            margin: 0 auto;
+            font-size: 1.2rem;
+            line-height: 1.7;
+        }
+
+        /* ═══════════════════════════════════════════
+           FEATURES
+        ═══════════════════════════════════════════ */
+        .features { padding: 40px 0; }
+        .feature-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2.5rem 2rem;
+            border: 1px solid var(--border);
+            height: 100%;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            text-align: center;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
+        }
+        .feature-icon-wrap {
+            width: 64px;
+            height: 64px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin: 0 auto 1.5rem;
             transition: all 0.3s ease;
         }
-        
-        html[data-theme='light'] #mainNav .navbar-nav .nav-item .nav-link:hover,
-        #mainNav .navbar-nav .nav-item .nav-link:hover {
-            color: #198754 !important;
-            background: rgba(25, 135, 84, 0.08);
-            transform: translateY(-1px);
+        .feature-card:hover .feature-icon-wrap {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.08);
+        }
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.65;
+            margin: 0;
+            font-size: 1.05rem;
         }
 
-        html[data-theme='light'] #mainNav .navbar-nav .nav-item a[href*="register"],
-        #mainNav .navbar-nav .nav-item a[href*="register"] {
-            background: #198754;
-            color: white !important;
-            border-radius: 50px;
-            padding: 0.5rem 1.5rem;
-            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2);
-            font-weight: 600;
+        /* ═══════════════════════════════════════════
+           TESTIMONIALS
+        ═══════════════════════════════════════════ */
+        .testimonials { padding: 40px 0; }
+        .testimonial-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2.5rem 2rem;
+            border: 1px solid var(--border);
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        .testimonial-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
+        }
+        .testimonial-stars {
+            color: #f59e0b;
+            font-size: 1.1rem;
+            margin-bottom: 1.25rem;
+            letter-spacing: 3px;
+        }
+        .testimonial-card blockquote {
+            font-size: 1.15rem;
+            font-style: italic;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 0 0 1.5rem;
+            border: none;
+            padding: 0;
+        }
+        .testimonial-author {
+            font-weight: 700;
+            color: var(--text);
+            font-size: 1.1rem;
+        }
+        .testimonial-role {
+            font-size: 0.95rem;
+            color: var(--primary);
+            font-weight: 500;
         }
 
-        html[data-theme='light'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover,
-        #mainNav .navbar-nav .nav-item a[href*="register"]:hover {
-            background: #157347;
+        /* ═══════════════════════════════════════════
+           PRICING
+        ═══════════════════════════════════════════ */
+        .pricing { padding: 40px 0; }
+        .pricing-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2.5rem 2rem;
+            border: 1px solid var(--border);
+            height: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .pricing-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+        }
+        .pricing-card.popular {
+            border: 2px solid var(--primary);
+            box-shadow: var(--shadow-glow);
+        }
+        .pricing-card.popular::before {
+            content: 'Populaire';
+            position: absolute;
+            top: 16px;
+            right: -30px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 4px 40px;
+            transform: rotate(45deg);
+        }
+        .pricing-card .plan-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        .pricing-card .plan-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .pricing-card .plan-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .pricing-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+        .pricing-card ul li {
+            padding: 0.7rem 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 1.02rem;
+        }
+        .pricing-card ul li:last-child { border-bottom: none; }
+        .pricing-card ul li i.check {
+            color: var(--primary);
+            font-size: 0.85rem;
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+        .pricing-card ul li i.cross {
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+        .btn-plan {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 0.9rem;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .btn-plan-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-glow);
+        }
+        .btn-plan-primary:hover {
+            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(25, 135, 84, 0.3);
+            color: white;
+        }
+        .btn-plan-outline {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+        .btn-plan-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
         }
 
-        /* Modern Glassmorphic Navbar - Dark Mode */
-        html[data-theme='dark'] nav#mainNav {
-            background: rgba(23, 24, 44, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+        /* ═══════════════════════════════════════════
+           FAQ
+        ═══════════════════════════════════════════ */
+        .faq { padding: 40px 0; }
+        .faq .accordion-item {
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-sm) !important;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            background: var(--surface);
+            font-size: 1rem;
+        }
+        .faq .accordion-button {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-weight: 600 !important;
+            font-size: 1.15rem !important;
+            padding: 1.25rem 1.5rem !important;
+            background: var(--surface) !important;
+            color: var(--text) !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .faq .accordion-button:not(.collapsed) {
+            color: var(--primary) !important;
+            background: var(--primary-light) !important;
+        }
+        .faq .accordion-button::after {
+            background-size: 1rem;
+        }
+        .faq .accordion-button:focus { box-shadow: none !important; }
+        .faq .accordion-body {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding: 0 1.5rem 1.5rem;
+            font-size: 1.05rem;
         }
 
-        html[data-theme='dark'] #mainNav .navbar-nav .nav-item .nav-link {
-            color: #e5e7eb !important;
+        /* ═══════════════════════════════════════════
+           CTA SECTION
+        ═══════════════════════════════════════════ */
+        .cta-final {
+            padding: 50px 0;
+            background: linear-gradient(135deg, var(--primary) 0%, #0d6e3e 100%);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-final::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .cta-final::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .cta-final h2 {
+            color: white !important;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        .cta-final p {
+            opacity: 0.85;
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 2;
+            color: white;
+        }
+        .cta-final .btn-cta-white {
+            background: white !important;
+            color: var(--primary) !important;
+            border: none !important;
+            border-radius: var(--radius-full);
+            padding: 1rem 3rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: all 0.25s ease;
+            display: inline-block;
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+        }
+        .cta-final .btn-cta-white:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            background: #f0fdf4 !important;
+            color: var(--primary-dark) !important;
         }
 
-        html[data-theme='dark'] #mainNav .navbar-nav .nav-item .nav-link:hover {
-            color: #34d399 !important;
-            background: rgba(52, 211, 153, 0.1);
+        /* ═══════════════════════════════════════════
+           FOOTER
+        ═══════════════════════════════════════════ */
+        .site-footer {
+            background: #0f172a;
+            color: white;
+            padding: 60px 0 0;
         }
-        
-        html[data-theme='dark'] #mainNav .navbar-nav .nav-item a[href*="register"] {
-            background: #10b981;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        .site-footer .footer-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 2rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .site-footer .footer-brand-col {
+            max-width: 320px;
+        }
+        .site-footer .footer-brand-col img {
+            filter: brightness(0) invert(1);
+            max-height: 40px;
+            margin-bottom: 1rem;
+        }
+        .site-footer .footer-brand-col p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            margin: 0;
+        }
+        .site-footer .footer-links h6 {
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1rem;
+        }
+        .site-footer .footer-links ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .site-footer .footer-links ul li {
+            margin-bottom: 0.5rem;
+        }
+        .site-footer .footer-links ul li a {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+            text-decoration: none;
+        }
+        .site-footer .footer-links ul li a:hover {
+            color: white;
+        }
+        .site-footer .footer-bottom {
+            padding: 1.5rem 0;
+            text-align: center;
+        }
+        .site-footer .footer-bottom p {
+            color: #475569;
+            font-size: 0.85rem;
+            margin: 0;
         }
 
-        html[data-theme='dark'] #mainNav .navbar-nav .nav-item a[href*="register"]:hover {
-            background: #059669;
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+        /* ═══════════════════════════════════════════
+           ANIMATIONS
+        ═══════════════════════════════════════════ */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE
+        ═══════════════════════════════════════════ */
+        @media (max-width: 991px) {
+            .pricing-card.popular { transform: none; }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 140px 0 60px; min-height: auto; }
+            .hero-icons-row i { font-size: 3.5rem; }
+            .stats-bar { gap: 2rem; }
+            .stat-number { font-size: 1.5rem; }
+            .integration-grid { gap: 0.75rem; }
+            .integration-chip { padding: 8px 14px; font-size: 0.85rem; }
+            .integration-chip i { font-size: 1.1rem; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .hero-actions .btn-primary-hero,
+            .hero-actions .btn-outline-hero { width: 100%; max-width: 320px; text-align: center; }
+        }
+        @media (max-width: 768px) {
+            .btn.lw-btn-block-mobile, .lw-btn-block-mobile {
+                margin-bottom: 8px;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body id="page-top" class="lw-outer-home-page">
-    {!! __yesset([
-        'dist/css/app-public.css',
-    ], true,
-    ) !!}
+    {!! __yesset(['dist/css/app-public.css'], true) !!}
 
-        <!-- Navigation-->
-        <nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
-            <div class="container px-5">
-                <!-- Logo -->
-                <!-- Brand -->
-                <a class="navbar-brand pt-0" href="{{ url('/') }}">
-                    <img src="{{ getAppSettings('logo_image_url') }}" class="navbar-brand-img"
-                    alt="{{ getAppSettings('name') }}">
-                </a>
-                <!-- Logo -->
-                <button class="navbar-toggler lw-btn-block-mobile" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
-                    aria-label="{{ __tr('Toggle navigation') }}">
-                    {{  __tr('Menu') }}
-                    <i class="bi-list"></i>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarResponsive">
-                    <ul class="navbar-nav ms-auto me-4 my-3 my-lg-0">
-                        <!-- Menu -->
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#features">{{ __tr('Features') }}</a>
-                        </li>
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="#pricing">{{ __tr('Pricing') }}</a></li>
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="{{ route('user.contact.form') }}">{{
-                                __tr('Contact') }}</a></li>
-                                <!-- pages -->
-                                  <!-- pages -->
-                                  <li class="nav-item">
-                                    @include('layouts.navbars.navs.pages-menu-partial')
-                                 </li>
+    <!-- ══════════════ NAVIGATION ══════════════ -->
+    <nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
+        <div class="container px-4 px-lg-5">
+            <a class="navbar-brand pt-0" href="{{ url('/') }}">
+                <img src="{{ getAppSettings('logo_image_url') }}" class="navbar-brand-img" alt="{{ getAppSettings('name') }}" style="max-height: 32px;">
+            </a>
 
-                                 <!-- /pages -->
-                               <!-- /pages -->
-                        @if(!isLoggedIn())
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" style="border:none; background:transparent;">
+                <i class="bi bi-list fs-2 text-dark"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ms-auto my-3 my-lg-0 align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" href="#features">{{ __tr('Features') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#testimonials">{{ __tr('Testimonials') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#pricing">{{ __tr('Pricing') }}</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('user.contact.form') }}">{{ __tr('Contact') }}</a></li>
+
+                    @include('layouts.navbars.navs.pages-menu-partial')
+
+                    @if(!isLoggedIn())
+                        <li class="nav-item"><a class="nav-link fw-bold" style="color: var(--text) !important; margin-right: 10px;" href="{{ route('auth.login') }}">{{ __tr('Login') }}</a></li>
                         @if(getAppSettings('enable_vendor_registration') or getAppSettings('message_for_disabled_registration'))
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="{{ route('auth.register') }}">{{
-                                __tr('Register') }}</a></li>
-                         @endif
-                        <li class="nav-item"><a class="nav-link me-lg-3" href="{{ route('auth.login') }}">{{
-                                __tr('Login') }}</a></li>
+                            <li class="nav-item mt-2 mt-lg-0">
+                                <a class="nav-link btn-cta text-white" href="{{ route('auth.register') }}">{{ __tr('Get Started') }}</a>
+                            </li>
                         @endif
-                        @if(isLoggedIn())
-                        <li class="nav-item"><a class="nav-link me-lg-3 btn btn-danger text-white" href="{{ route('central.console') }}">{{
-                                __tr('Dashboard') }}</a></li>
-                        @endif
-                        @include('layouts.navbars.locale-menu')
-                        <!-- /Menu -->
-                    </ul>
-
-                </div>
-            </div>
-        </nav>
-        <!-- /Navigation -->
-
-        <!-- Mashead header-->
-        <header class="masthead">
-            <div class="container p-5">
-                <div class="row gx-5 align-items-center my-2">
-                    <div class="col-lg-12">
-                        <div class="col-lg-12 text-center">
-                            <!-- Masthead device mockup feature-->
-                            <div class="masthead-device-mockup h-100" >
-                                <div class="lw-io-icon">
-                                    <i class="bi bi-whatsapp"></i>
-                                    <i class="fa fa-bullhorn"></i>
-                                    <i class="fa fa-dollar-sign"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Mashead text and app badges-->
-                        <div class="mb-5 mb-lg-0 text-center text-lg-start">
-                            <h1 class="display-1  mb-3">{{ __tr('Engage Your Customers on WhatsApp Like Never Before') }}</h1>
-                            <div class="lead display-6 text-muted mt-5 ">{{ __tr('Unlock the full potential of customer engagement with __appName__ - your comprehensive WhatsApp Marketing Platform.', [
-                                '__appName__' => $appName
-                            ]) }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-        <!-- quote/testimonial aside-->
-        <aside class="text-center bg-gradient-primary-to-secondary">
-            <div class="container px-5">
-                <div class="row gx-5 justify-content-center">
-                    <div class="col-xl-8">
-                        <h2 class="display-1 text-white text-center">{!! __tr('Why Choose __appName__?', [
-                            '__appName__' => $appName
-                        ]) !!}</h2>
-                        <div class="h2 text-light my-5">{{ __tr('Discover the unparalleled benefits of our WhatsApp Marketing Platform, __appName__.', [
-                            '__appName__' => $appName
-                        ])  }}</div>
-                        <ul class="text-center list-group mb-5">
-                            <li class="list-group-item py-4 "><h4>{{  __tr('Increased Engagement') }}</h4> <p class="text-success">{{  __tr('Engage directly with your customers in real-time on WhatsApp.') }}</p></li>
-                            <li class="list-group-item py-4 "><h4>{{  __tr('Higher Conversion Rates') }}</h4> <p class="text-success">{{  __tr('Turn conversations into conversions with targeted messaging through __appName__.', [
-                                '__appName__' => $appName
-                            ]) }}</p></li>
-                            <li class="list-group-item py-4 "><h4>{{  __tr('24/7 Customer Support') }}</h4> <p class="text-success">{{  __tr('Automated responses ensure you\'re always there for your customers with __appName__.', [
-                                '__appName__' => $appName
-                            ]) }}</p></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </aside>
-        <!-- Advance Feature Section -->
-        <section class="py-5 lw-io-feaures" id="features">
-            <div class="container py-5">
-                <div class="row">
-                    <h2 class="display-4  mb-4 text-center">{{ __tr('Powerful Features') }}</h2>
-                    <p class="lead fw-normal text-muted mb-md-5 mb-lg-0 text-center">{{ __tr('Features that would make your life easier with WhatsApp Marketing') }}</p>
-                </div>
-                <!-- /Row End -->
-                <div class="row mt-5    ">
-                    <div class="lw-io-single-item col-lg-3 col-md-6">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fab fa-whatsapp"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('WhatsApp Chat') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('The integrated WhatsApp chat feature in __appName__ mirrors the native WhatsApp interface, ensuring a seamless and familiar messaging experience for users.', [
-                                    '__appName__' => $appName
-                                ]) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-bullhorn"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Campaigns') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Create instant or scheduled campaigns for all contacts or specific groups. This means you have the flexibility to reach out to your audience immediately or plan campaigns for optimal timing.', [
-                                    '__appName__' => $appName
-                                ]) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-md-0 my-3">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-user"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Manage Contacts') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Effortlessly import and export contacts using XLSX format for easy contacts transfer along with Add/Edit functionality on interface.') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-bars"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Custom Fields') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Personalize your messages with user base information and custom fields tailored to your audience on __appName__.', [
-                                    '__appName__' => $appName
-                                ]) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- /Row End -->
-                <div class="row mt-1 mt-md-4 d-flex justify-content-center">
-                    <div class="lw-io-single-item col-lg-3 col-md-6">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-robot"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Bot Replies / Chat Bot') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Automate responses and engage customers 24/7 with intelligent bot replies through __appName__.', [
-                                    '__appName__' => $appName
-                                ]) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-bolt"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{!! __tr('Realtime Updates') !!}</h3>
-                                <p class="text-muted mb-0 text-center">{!! __tr('Realtime message and campaign status updates to see your campaign & message performance') !!}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-language"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Multilingual') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Emphasize that the product or service offers support for multiple languages, catering to a diverse audience worldwide.') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-tachometer-alt"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('Dashboard') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('To provide with instant visibility into the performance and status of their marketing campaigns.') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- /Row End -->
-                <!-- /Row End -->
-                <div class="row mt-1 mt-md-4 d-flex justify-content-center">
-                    <div class="lw-io-single-item col-lg-3 col-md-6">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <span class="h1">AI</span> <i class="fa fa-robot"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('AI Chat Bots') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Vendors can create there chat flow using Flowise and integrate seamlessly.') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-users"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{!! __tr('Team Members/Agents') !!}</h3>
-                                <p class="text-muted mb-0 text-center">{!! __tr('Delegate work by creating users with various permissions') !!}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-cogs"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('API') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('Connect any service or scripts using available APIs') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lw-io-single-item col-lg-3 col-md-6 my-3 my-md-0">
-                        <div class="lw-io-item">
-                            <div class="lw-io-icon">
-                                <i class="fa fa-qrcode"></i>
-                            </div>
-                            <div class="lw-ion-feat-info">
-                                <h3 class="font-alt text-center mb-4">{{ __tr('QR Code') }}</h3>
-                                <p class="text-muted mb-0 text-center">{{ __tr('QR code will be generated for WhatsApp phone number to connect users quickly') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- /Row End -->
-            </div>
-            <!-- /Container End -->
-        </section>
-        <!-- /Advance Feature Section -->
-        <!-- Basic features section-->
-        <section class="bg-light">
-            <div class="container px-5">
-                <div class="row gx-5 align-items-center justify-content-center justify-content-lg-between">
-                    <div class="col-12 col-lg-5">
-                        <h2 class="display-4  mb-4">{!! __tr('Built for Customer Engagements') !!}</h2>
-                        <p class="lead fw-normal text-muted mb-5 mb-lg-0">{{ __tr('a robust platform dedicated to optimizing every aspect of customer interaction. From seamless communication channels to personalized engagement strategies, __appName__ enables businesses to foster strong, lasting relationships with their customers while driving positive outcomes and growth', [
-                            '__appName__' => $appName
-                        ]) }}</p>
-                    </div>
-                    <div class="col-sm-8 col-md-6">
-                        <div class="px-5 px-sm-0"><img class="img-fluid rounded-circle"
-                                src="{{ asset('imgs/outer-home/photo-1633354931133-27ac1ee5d853.jpeg') }}" alt="..." /></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <!-- Basic features section-->
-
-
-        <section id="pricing" class="pricing-content section-padding">
-            <div class="container">
-                <div class="section-title text-center">
-                    <div class="pricing-titles mb-4">
-                        <h1 class="display-6">{{ __tr('Simple and Clear Pricing Plans') }}</h1>
-                    </div>
-                </div>
-                <div class="row text-center">
-                    @php
-                    $freePlanDetails = getFreePlan();
-                    $freePlanStructure = getConfigFreePlan();
-                    $paidPlans = getPaidPlans();
-                    $planStructure = getConfigPaidPlans();
-                    @endphp
-                        <!-- Free Plan -->
-                        @if ($freePlanDetails['enabled'])
-                    <div class="col-lg-4 col-md-6 col-sm-12 mb-4 wow fadeInUp" data-wow-duration="1s" data-wow-delay="0.3s" data-wow-offset="0" style="visibility: visible; animation-duration: 1s; animation-delay: 0.3s; animation-name: fadeInUp;">
-                        <div class="pricing_design">
-                            <div class="single-pricing">
-                                <div class="price-head">
-                                    <h6 class="display-5 mb-4 text-uppercase">{{ $freePlanDetails['title']}}</h6>
-                                    <hr class="bg-success">
-                                    <h2 class="price mb-1">{{ formatAmount(0, true, true) }}</h2>
-                                    <span>{{  __tr('Monthly') }}</span>
-                                    <br><br>
-                                    <h2 class="price mb-1">{{ formatAmount(0, true, true) }}</h2>
-                                    <span>{{  __tr('Yearly') }}</span>
-                                    <br><br>
-                                    <small><a class="text-muted" target="_blank" href="https://business.whatsapp.com/products/platform-pricing">{{  __tr('+ WhatsApp Cloud Messaging Charges') }} <i class="fas fa-external-link-alt"></i></a></small>
-                                </div>
-                                <hr class="bg-success mt-4">
-                                <ul>
-                                    @foreach ($freePlanStructure['features'] as $featureKey => $featureValue)
-                                @php
-                                    $configFeatureValue = $featureValue;
-                                    $featureValue = $freePlanDetails['features'][$featureKey];
-                                @endphp
-                                    <li>
-                                        @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
-                                        @if (isset($featureValue['limit']) and $featureValue['limit'])
-                                        <i class="fa fa-check mr-3 bg-success"></i>
-                                        @else
-                                        <i class="fa fa-times mr-3 bg-danger"></i>
-                                        @endif
-                                        {{ ($configFeatureValue['description']) }}
-                                        @else
-                                        <strong>@if (isset($featureValue['limit']) and $featureValue['limit'] < 0) {{ __tr('Unlimited') }} @elseif(isset($featureValue['limit'])) {{ __tr($featureValue['limit']) }} 
-                                        @endif </strong> {{ ($configFeatureValue['description']) }} {{ ($configFeatureValue['limit_duration_title'] ?? '') }} @endif</li>
-                                @endforeach
-                                </ul>
-                                <div class="pricing-price">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @else
+                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                            <a class="nav-link btn-cta text-white" href="{{ route('central.console') }}">{{ __tr('Dashboard') }}</a>
+                        </li>
                     @endif
-                    @foreach ($planStructure as $planKey => $plan)
-                            @php
-                            $planId = $plan['id'];
-                            $features = $plan['features'];
-                            $savedPlan = $paidPlans[$planKey];
-                            $charges = $savedPlan['charges'];
-                            if (!$savedPlan['enabled']) {
-                                continue;
-                            }
-                            @endphp
-                                <div class="col-lg-4 col-md-6 col-sm-12 mb-4 wow fadeInUp" data-wow-duration="1s" data-wow-delay="0.3s" data-wow-offset="0" style="visibility: visible; animation-duration: 1s; animation-delay: 0.3s; animation-name: fadeInUp;">
-                                        <div class="pricing_design">
-                                            <div class="single-pricing {{ $plan['popular']  ? 'lw-pricing-popular' : ''}}">
-                                                <div class="price-head">
-                                                    <h6 class="display-5 mb-4 text-uppercase">{{ $savedPlan['title'] ?? $plan['title']}}</h6>
-                                                    <hr class="bg-success">
-                                                    @foreach ($charges as $itemKey => $itemValue)
-                                                    @php
-                                                        if(!$itemValue['enabled']) {
-                                                            continue;
-                                                        }
-                                                    @endphp
-                                                    <h2 class="price mb-1">{{ formatAmount($itemValue['charge'], true, true) }}</h2>
-                                                    <span>{{ Arr::get($plan['charges'][$itemKey], 'title', '') }}</span>
-                                                    <br><br>
-                                                    @endforeach
-                                                    <small><a class="text-muted" target="_blank" href="https://business.whatsapp.com/products/platform-pricing">{{  __tr('+ WhatsApp Cloud Messaging Charges') }} <i class="fas fa-external-link-alt"></i></a></small>
-                                                </div>
-                                                <hr class="bg-success mt-4">
-                                                <ul>
-                                                    @foreach ($plan['features'] as $featureKey => $featureValue)
-                                                @php
-                                                    $configFeatureValue = $featureValue;
-                                                    $featureValue = $savedPlan['features'][$featureKey];
-                                                @endphp
-                                                    <li>
-                                                        @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
-                                                        @if (isset($featureValue['limit']) and $featureValue['limit'])
-                                                        <i class="fa fa-check mr-3 bg-success"></i>
-                                                        @else
-                                                        <i class="fa fa-times mr-3 bg-danger"></i>
-                                                        @endif
-                                                        {{ ($configFeatureValue['description']) }}
-                                                        @else
-                                                        <strong>@if (isset($featureValue['limit']) and $featureValue['limit'] < 0) {{ __tr('Unlimited') }} @elseif(isset($featureValue['limit'])) {{ __tr($featureValue['limit']) }} @endif </strong> {{ ($configFeatureValue['description']) }} {{ ($configFeatureValue['limit_duration_title'] ?? '') }}
-                                                        @endif
-                                                    </li>
-                                                @endforeach
-                                                </ul>
-                                                
-                                                <div class="text-center mt-4">
-                <a href="https://wb.4adev.com/auth/register/vendor"class="btn btn-success btn-lg rounded-pill">Commencez</a>
+
+                    @include('layouts.navbars.locale-menu')
+                </ul>
             </div>
-                                                
-                                                <div class="pricing-price">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div><!--- END COL -->
-                            @endforeach
-                            
-                            
-<!-- Plan personnalisé -->
-<div class="col-lg-4 col-md-6 col-sm-12 mb-4 wow fadeInUp" data-wow-duration="1s" data-wow-delay="0.4s" data-wow-offset="0">
-    <div class="pricing_design">
-        <div class="single-pricing lw-pricing-popular border border-success">
-            <div class="price-head">
-                <h6 class="display-5 mb-4 text-uppercase text-success">Personnalisé</h6>
-                <hr class="bg-success">
-                <h2 class="price mb-1">Sur mesure</h2>
-                <span>Fonctionnalités illimitées</span>
-                <br><br>
-                <small class="text-muted">Contactez-nous pour une offre adaptée à vos besoins</small>
+        </div>
+    </nav>
+
+    <!-- ══════════════ HERO ══════════════ -->
+    <section class="hero">
+        <div class="container text-center">
+            <!-- Badge -->
+            <div class="hero-badge">
+                <i class="bi bi-lightning-charge-fill"></i>
+                {{ __tr('Plateforme WhatsApp Marketing #1') }}
             </div>
-            <hr class="bg-success mt-4">
-            <ul>
-                <li><i class="fa fa-check mr-3 bg-success"></i> Toutes les fonctionnalités en illimité</li>
-                <li><i class="fa fa-check mr-3 bg-success"></i> Support technique prioritaire</li>
-                <li><i class="fa fa-check mr-3 bg-success"></i> Intégrations avancées sur demande</li>
-                <li><i class="fa fa-check mr-3 bg-success"></i> Formation et assistance dédiée</li>
-            </ul>
-            <div class="text-center mt-4">
-                <a href="https://wa.me/2250100008857?text=Bonjour,%20je%20souhaite%20plus%20d'informations%20sur%20le%20plan%20personnalisé"
-                   target="_blank" class="btn btn-success btn-lg rounded-pill">
-                    Contactez-nous
+
+            <!-- Icons row -->
+            <div class="hero-icons-row">
+                <i class="fab fa-whatsapp"></i>
+                <i class="fas fa-bullhorn"></i>
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+
+            <!-- Heading -->
+            <h1>
+                {{ __tr('Engage Your Customers on') }}<br>
+                <span class="highlight">WhatsApp</span> {{ __tr('Like Never Before') }}
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="lead">
+                {{ __tr('Unlock the full potential of customer engagement with __appName__ — your comprehensive WhatsApp Marketing Platform.', ['__appName__' => $appName]) }}
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="hero-actions">
+                <a class="btn-primary-hero text-decoration-none" href="{{ route('auth.register') }}">
+                    {{ __tr('Start Free Trial') }} <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+                <a class="btn-outline-hero text-decoration-none" href="#features">
+                    {{ __tr('Explore Features') }}
                 </a>
             </div>
-        </div>
-    </div>
-</div>
-<!-- /Plan personnalisé -->
 
-                            
-                            
-                </div><!--- END ROW -->
-            </div><!--- END CONTAINER -->
-        </section>
-        <!-- Call to action section-->
-        <section class="cta d-none">
-            <div class="cta-content">
-                <div class="container px-5 text-center">
-                    <img class="rounded shadow mb-5" src="{{ asset('imgs/outer-home/qr-code-sample.jpeg') }}"
-                    alt="">
-                    <h2 class="text-white display-1  mb-4">
-                        {{ __tr('Lets try it now') }}
-                    </h2>
-                    <p class="text-white">{{  __tr('Scan QR code or click on the button below to start demo chat.') }}</p>
-                    <a class="btn btn-success btn-lg py-3 px-4 rounded-pill"
-                        href="{{ route('auth.register') }}">{{ __tr('Start Chat Now') }}</a>
+            <!-- Stats -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">{{ __tr('Messages / jour') }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">{{ __tr('Entreprises') }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">98%</div>
+                    <div class="stat-label">{{ __tr('Taux de livraison') }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">{{ __tr('Support') }}</div>
                 </div>
             </div>
-        </section>
-        <!-- App badge section-->
-        <section class="bg-gradient-primary-to-secondary text-white" >
-            <div class="container px-5">
-                <h2 class="text-center text-white font-alt mb-4">{{  __tr('Success Stories from the __appName__ Community', [
-                    '__appName__' => $appName
-                ]) }}</h2>
-                <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner">
-                        <div class="carousel-item active">
-                            <div class="container">
-                                <div class="row justify-content-center">
-                                    <div class="col-md-8">
-                                        <div class="testimonial text-center">
-                                            <p class="lead">"{{  __tr('Using __appName__ has transformed our customer engagement strategy. The import/export feature is a game-changer for managing our contacts efficiently.', [
-                                                '__appName__' => $appName
-                                            ]) }}"</p>
-                                            <cite>— {{  __tr('Ange Ambé, Marketing Manager') }}</cite>
-                                        </div>
-                                    </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ INTEGRATIONS ══════════════ -->
+    <section class="integrations">
+        <div class="container">
+            <div class="section-label">{{ __tr('Boostez vos performances') }}</div>
+            <h3>{{ __tr('Connectez WhatsClick à vos outils préférés') }}</h3>
+            <p>{{ __tr('Intégration transparente avec Meta, Google, TikTok, et vos CRM pour automatiser et maximiser votre croissance.') }}</p>
+
+            <div class="integration-grid">
+                <div class="integration-chip">
+                    <i class="fab fa-facebook" style="color: #1877F2;"></i> Meta
+                </div>
+                <div class="integration-chip">
+                    <i class="fab fa-instagram" style="color: #E4405F;"></i> Instagram
+                </div>
+                <div class="integration-chip">
+                    <i class="fab fa-google" style="color: #4285F4;"></i> Google
+                </div>
+                <div class="integration-chip">
+                    <i class="fab fa-tiktok" style="color: #000;"></i> TikTok
+                </div>
+                <div class="integration-chip">
+                    <i class="fab fa-hubspot" style="color: #FF7A59;"></i> HubSpot
+                </div>
+                <div class="integration-chip">
+                    <i class="fab fa-salesforce" style="color: #00A1E0;"></i> Salesforce
+                </div>
+                <div class="integration-chip">
+                    <i class="fas fa-plug" style="color: var(--primary);"></i> API
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ FEATURES ══════════════ -->
+    <section class="features" id="features">
+        <div class="container px-4 px-lg-5">
+            <div class="section-header">
+                <div class="section-label">{{ __tr('Fonctionnalités') }}</div>
+                <h2>{{ __tr('Powerful Features for WhatsApp Marketing') }}</h2>
+                <p>{{ __tr('Everything you need to scale your customer communications, automate responses, and drive conversions directly on WhatsApp.') }}</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-chat-dots-fill"></i></div>
+                        <h3>{{ __tr('Shared Team Inbox') }}</h3>
+                        <p>{{ __tr('Collaborate with your entire team. The integrated WhatsApp chat mirrors the native interface for a seamless experience.') }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-robot"></i></div>
+                        <h3>{{ __tr('Smart Chatbots & AI') }}</h3>
+                        <p>{{ __tr('Automate customer support 24/7 with interactive bots and OpenAI integration to provide immediate answers.') }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-megaphone-fill"></i></div>
+                        <h3>{{ __tr('Broadcast Campaigns') }}</h3>
+                        <p>{{ __tr('Send bulk messages safely. Our smart queuing system protects your number from getting banned by Meta.') }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-people-fill"></i></div>
+                        <h3>{{ __tr('Contact Management') }}</h3>
+                        <p>{{ __tr('Segment your audience with tags and custom fields. Import/Export contacts easily via Excel/CSV.') }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-bar-chart-fill"></i></div>
+                        <h3>{{ __tr('Detailed Analytics') }}</h3>
+                        <p>{{ __tr('Track delivery, read receipts, and engagement metrics to optimize your messaging strategy.') }}</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-layout-text-window-reverse"></i></div>
+                        <h3>{{ __tr('Rich Media Templates') }}</h3>
+                        <p>{{ __tr('Use approved Meta templates with buttons, lists, and images to create highly interactive messages.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ TESTIMONIALS ══════════════ -->
+    <section class="testimonials" id="testimonials">
+        <div class="container px-4 px-lg-5">
+            <div class="section-header">
+                <div class="section-label">{{ __tr('Témoignages') }}</div>
+                <h2>{{ __tr('Success Stories from our Community') }}</h2>
+                <p>{{ __tr('See how businesses are transforming their customer relationships with __appName__.', ['__appName__' => $appName]) }}</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                        <blockquote>"{{ __tr('Using __appName__ has transformed our customer engagement strategy. The import/export feature is a game-changer for managing our contacts efficiently.', ['__appName__' => $appName]) }}"</blockquote>
+                        <div class="testimonial-author">{{ __tr('Ange Ambé') }}</div>
+                        <div class="testimonial-role">{{ __tr('Marketing Manager') }}</div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                        <blockquote>"{{ __tr('The automation capabilities of __appName__, especially the bot replies, have significantly reduced our response times and improved customer satisfaction.', ['__appName__' => $appName]) }}"</blockquote>
+                        <div class="testimonial-author">{{ __tr('POK Service') }}</div>
+                        <div class="testimonial-role">{{ __tr('Customer Service Lead') }}</div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                        <blockquote>"{{ __tr('__appName__\'s intuitive design and easy WhatsApp Business integration made it simple for us to start our marketing campaigns quickly.', ['__appName__' => $appName]) }}"</blockquote>
+                        <div class="testimonial-author">{{ __tr('Cissé Eddy') }}</div>
+                        <div class="testimonial-role">{{ __tr('Digital Marketing Specialist') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ PRICING ══════════════ -->
+    <section class="pricing" id="pricing">
+        <div class="container px-4 px-lg-5">
+            <div class="section-header">
+                <div class="section-label">{{ __tr('Tarifs') }}</div>
+                <h2>{{ __tr('Simple, Transparent Pricing') }}</h2>
+                <p>{{ __tr('Choose the perfect plan to scale your WhatsApp marketing efforts.') }}</p>
+            </div>
+
+            <div class="row justify-content-center g-4">
+                @php
+                    $subscriptionPlans = getPaidPlans();
+                    $planStructure = getConfigPaidPlans();
+                @endphp
+
+                @if(!empty($subscriptionPlans))
+                    @foreach ($subscriptionPlans as $planKey => $savedPlan)
+                        @php
+                            if (!($savedPlan['enabled'] ?? true)) continue;
+                            $planStr = $planStructure[$planKey] ?? ['features' => []];
+                        @endphp
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="pricing-card @if($planKey == 'premium' || $loop->iteration == 2) popular @endif h-100">
+                                <div class="text-center">
+                                    <div class="plan-name">{{ $savedPlan['title'] }}</div>
+                                    @if(isset($savedPlan['charges']['monthly']['charge']))
+                                        <div class="plan-price">{{ formatAmount($savedPlan['charges']['monthly']['charge'], true, true) }}<span>/mo</span></div>
+                                    @endif
+                                </div>
+
+                                <ul>
+                                    @foreach ($planStr['features'] as $featureKey => $configFeatureValue)
+                                        @php
+                                            $featureValue = ($savedPlan['features'] ?? [])[$featureKey] ?? null;
+                                            if(!$featureValue) continue;
+                                        @endphp
+                                        <li>
+                                            @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
+                                                @if (isset($featureValue['limit']) and $featureValue['limit'])
+                                                    <i class="fa fa-check check"></i>
+                                                @else
+                                                    <i class="fa fa-times cross"></i>
+                                                @endif
+                                                <span>{{ ($configFeatureValue['description']) }}</span>
+                                            @else
+                                                <i class="fa fa-check check"></i>
+                                                <span>
+                                                    <strong>
+                                                    @if (isset($featureValue['limit']) and $featureValue['limit'] < 0)
+                                                        {{ __tr('Unlimited') }}
+                                                    @elseif(isset($featureValue['limit']))
+                                                        {{ __tr($featureValue['limit']) }}
+                                                    @endif
+                                                    </strong>
+                                                    {{ ($configFeatureValue['description']) }} {{ ($configFeatureValue['limit_duration_title'] ?? '') }}
+                                                </span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                <a href="{{ route('auth.register') }}" class="btn-plan @if($planKey == 'premium' || $loop->iteration == 2) btn-plan-primary @else btn-plan-outline @endif text-decoration-none">
+                                    {{ __tr('Commencez') }}
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
+
+                <!-- Custom Plan -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="pricing-card h-100">
+                        <div class="text-center">
+                            <div class="plan-name">{{ __tr('Personnalisé') }}</div>
+                            <div class="plan-price" style="font-size: 2rem;">{{ __tr('Sur mesure') }}</div>
+                            <p class="text-muted small mt-2">{{ __tr('Contactez-nous pour une offre adaptée à vos besoins') }}</p>
+                        </div>
+
+                        <ul>
+                            <li><i class="fa fa-check check"></i> <span>{{ __tr('Toutes les fonctionnalités en illimité') }}</span></li>
+                            <li><i class="fa fa-check check"></i> <span>{{ __tr('Support technique prioritaire') }}</span></li>
+                            <li><i class="fa fa-check check"></i> <span>{{ __tr('Intégrations avancées sur demande') }}</span></li>
+                            <li><i class="fa fa-check check"></i> <span>{{ __tr('Formation et assistance dédiée') }}</span></li>
+                        </ul>
+
+                        <a href="https://wa.me/2250100008857?text=Bonjour,%20je%20souhaite%20plus%20d'informations%20sur%20le%20plan%20personnalisé" target="_blank" class="btn-plan btn-plan-outline text-decoration-none">
+                            {{ __tr('Contactez-nous') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ FAQ ══════════════ -->
+    <section class="faq">
+        <div class="container px-4 px-lg-5">
+            <div class="section-header">
+                <div class="section-label">{{ __tr('FAQ') }}</div>
+                <h2>{{ __tr('Frequently Asked Questions') }}</h2>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    {{ __tr('How do I sign up for __appName__?', ['__appName__' => $appName]) }}
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    {{ __tr('Signing up for __appName__ is easy and straightforward. Just visit our sign-up page, fill in your details, and follow the instructions to get started.', ['__appName__' => $appName]) }}
                                 </div>
                             </div>
                         </div>
-                        <div class="carousel-item">
-                            <div class="container">
-                                <div class="row justify-content-center">
-                                    <div class="col-md-8">
-                                        <div class="testimonial text-center">
-                                            <p class="lead">"{{  __tr('The automation capabilities of __appName__, especially the bot replies, have significantly reduced our response times and improved customer satisfaction.', [
-                                                '__appName__' => $appName
-                                            ]) }}"</p>
-                                            <cite>— {{  __tr('POK Service, Customer Service Lead') }}</cite>
-                                        </div>
-                                    </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    {{ __tr('Can I import contacts from an existing customer database?') }}
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    {{ __tr('Yes, __appName__ supports importing contacts through XLSX files. You can easily upload your existing customer database and start sending messages right away.', ['__appName__' => $appName]) }}
                                 </div>
                             </div>
                         </div>
-                        <div class="carousel-item">
-                            <div class="container">
-                                <div class="row justify-content-center">
-                                    <div class="col-md-8">
-                                        <div class="testimonial text-center">
-                                            <p class="lead">"{{  __tr('__appName__\'s intuitive design and easy Facebook WhatsApp Business integration made it simple for us to start our marketing campaigns quickly.', [
-                                                '__appName__' => $appName
-                                            ]) }}"</p>
-                                            <cite>— {{  __tr('Cissé Eddy, Digital Marketing Specialist') }}</cite>
-                                        </div>
-                                    </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    {{ __tr('What kind of support does __appName__ offer?', ['__appName__' => $appName]) }}
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    {{ __tr('__appName__ offers 24/7 customer support through live chat, email, and phone. Our dedicated team is here to help you with any issues or questions you might have.', ['__appName__' => $appName]) }}
                                 </div>
                             </div>
                         </div>
-                        <!-- Additional Testimonial Item -->
-        <div class="carousel-item">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="testimonial text-center">
-                            <p class="lead">"{{  __tr('__appName__ has significantly enhanced our marketing outreach. Their campaign management tools are incredibly user-friendly and effective.', [
-                                '__appName__' => $appName
-                            ]) }}"</p>
-                            <cite>— {{  __tr('Bah Amadou, Marketing Director') }}</cite>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Additional Testimonial Item -->
-        <div class="carousel-item">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="testimonial text-center">
-                            <p class="lead">"{{  __tr('The real-time notifications and analytics features have given us invaluable insights into our customer interactions. Thanks, __appName__!', [
-                                '__appName__' => $appName
-                            ]) }}"</p>
-                            <cite>— {{  __tr('Goulia Junias, Data Analyst') }}</cite>
-                        </div>
-                    </div>
+    <!-- ══════════════ CTA FINAL ══════════════ -->
+    <section class="cta-final">
+        <div class="container px-4 px-lg-5">
+            <h2>{{ __tr('Ready to transform your communication?') }}</h2>
+            <p>{{ __tr('Join thousands of businesses engaging customers successfully on WhatsApp.') }}</p>
+            <a class="btn-cta-white text-decoration-none" href="{{ route('auth.register') }}">{{ __tr('Start Your Free Trial Now') }} <i class="bi bi-arrow-right ms-2"></i></a>
+        </div>
+    </section>
+
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <footer class="site-footer">
+        <div class="container px-4 px-lg-5">
+            <div class="footer-top">
+                <!-- Brand -->
+                <div class="footer-brand-col">
+                    <img src="{{ getAppSettings('logo_image_url') }}" alt="{{ getAppSettings('name') }}">
+                    <p>{{ __tr('Votre plateforme marketing WhatsApp complète pour engager, convertir et fidéliser vos clients.') }}</p>
                 </div>
+                <!-- Links -->
+                <div class="footer-links">
+                    <h6>{{ __tr('Produit') }}</h6>
+                    <ul>
+                        <li><a href="#features">{{ __tr('Features') }}</a></li>
+                        <li><a href="#pricing">{{ __tr('Pricing') }}</a></li>
+                        <li><a href="#testimonials">{{ __tr('Testimonials') }}</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h6>{{ __tr('Entreprise') }}</h6>
+                    <ul>
+                        <li><a href="{{ route('user.contact.form') }}">{{ __tr('Contact') }}</a></li>
+                        <li><a href="{{ route('auth.login') }}">{{ __tr('Login') }}</a></li>
+                        <li><a href="{{ route('auth.register') }}">{{ __tr('Register') }}</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h6>{{ __tr('Connectez-vous') }}</h6>
+                    <ul>
+                        <li><a href="https://wa.me/2250100008857" target="_blank"><i class="fab fa-whatsapp me-1"></i> WhatsApp</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {{ getAppSettings('name') }} {{ date('Y') }}. {{ __tr('All Rights Reserved.') }}</p>
             </div>
         </div>
+    </footer>
 
-        <!-- Additional Testimonial Item -->
-        <div class="carousel-item">
-            <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="testimonial text-center">
-                            <p class="lead">"{{  __tr('Our customer service team has been more efficient than ever with __appName__\'s bot replies feature. It\'s a fantastic tool for quick customer queries.',[
-                                '__appName__' => $appName
-                            ]) }}"</p>
-                            <cite>— {{  __tr('NCho Daniel, Customer Support Manager') }}</cite>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">{{  __tr('Previous') }}</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">{{  __tr('Next') }}</span>
-                    </button>
-                </div>
+    <script>
+        (function() {
+            'use strict';
+            window.appConfig = {
+                debug: "{{ config('app.debug') }}",
+                csrf_token: "{{ csrf_token() }}",
+                locale : '{{ app()->getLocale() }}',
+            }
 
-            </div>
-        </section>
-        <section class="bg-white">
-             <div class="container my-5">
-                <h2 class="mb-5 text-center display-3 ">{{  __tr('Frequently Asked Questions') }}</h2>
-                <div class="accordion" id="faqAccordion">
-                    <!-- FAQ Item 1 -->
-                    <div class="accordion-item">
-                        <h6 class="accordion-header" id="headingOne">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                               {{  __tr('How do I sign up for __appName__?',[
-                                '__appName__' => $appName
-                               ]) }}
-                            </button>
-                        </h6>
-                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                {{  __tr('Signing up for __appName__ is easy and straightforward. Just visit our sign-up page, fill in your details, and follow the instructions to get started.',[
-                                    '__appName__' => $appName
-                                ]) }}
-                            </div>
-                        </div>
-                    </div>
-                    <!-- FAQ Item 2 -->
-                    <div class="accordion-item">
-                        <h6 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                {{  __tr('Can I import contacts from an existing customer database?') }}
-                            </button>
-                        </h6>
-                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                {{  __tr('Yes, __appName__ supports importing contacts through XLSX files. You can easily upload your existing customer database and start sending messages right away.',[
-                                    '__appName__' => $appName
-                                ]) }}
-                            </div>
-                        </div>
-                    </div>
-                    <!-- FAQ Item 3 -->
-                    <div class="accordion-item">
-                        <h6 class="accordion-header" id="headingThree">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                {{  __tr('What kind of support does __appName__ offer?',[
-                                    '__appName__' => $appName
-                                ]) }}
-                            </button>
-                        </h6>
-                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                {{  __tr('__appName__ offers 24/7 customer support through live chat, email, and phone. Our dedicated team is here to help you with any issues or questions you might have.',[
-                                    '__appName__' => $appName
-                                ]) }}
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Additional FAQ items as needed -->
-                </div>
-            </div>
-        </section>
-        <!-- Footer-->
-        <footer class="bg-black text-center py-5">
-            <div class="container px-5">
-                <div class="text-white-50 small">
-                    <div class="mb-2">&copy; {{ getAppSettings('name') }} {{ __tr(date('Y')) }}. {{  __tr('All Rights Reserved.') }}</div>
-                </div>
-            </div>
-        </footer>
-        <script>
-            (function() {
-                'use strict';
-                window.appConfig = {
-                    debug: "{{ config('app.debug') }}",
-                    csrf_token: "{{ csrf_token() }}",
-                    locale : '{{ app()->getLocale() }}',
-                }
-            })();
-        </script>
-{!! __yesset([
-    'dist/js/common-vendorlibs.js',
-    'dist/js/vendorlibs.js',
-    'dist/packages/bootstrap/js/bootstrap.bundle.min.js',
-    'dist/js/jsware.js',
+            // Navbar scroll effect
+            const nav = document.getElementById('mainNav');
+            if (nav) {
+                window.addEventListener('scroll', function() {
+                    nav.classList.toggle('scrolled', window.scrollY > 30);
+                }, { passive: true });
+            }
+        })();
+    </script>
+    {!! __yesset([
+        'dist/js/common-vendorlibs.js',
+        'dist/js/vendorlibs.js',
+        'dist/packages/bootstrap/js/bootstrap.bundle.min.js',
+        'dist/js/jsware.js',
     ]) !!}
     {!! getAppSettings('page_footer_code_all') !!}
     @if(isLoggedIn())
-    {!! getAppSettings('page_footer_code_logged_user_only') !!}
+        {!! getAppSettings('page_footer_code_logged_user_only') !!}
     @endif
-    </body>
+</body>
 </html>
