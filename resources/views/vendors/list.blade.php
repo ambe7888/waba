@@ -32,7 +32,7 @@
         </div>
         <div class="col-xl-12">
             {{-- DATATABLE --}}
-            <x-lw.datatable id="lwManageVendorsTable" data-order="8" data-order-type="desc" :url="route('central.vendors.read.list')" data-page-length="100">
+            <x-lw.datatable id="lwManageVendorsTable" data-order="9" data-order-type="desc" :url="route('central.vendors.read.list')" data-page-length="100">
                 <th data-template="#titleExtendedButtons" data-orderable="true" data-name="title">
                     <?= __tr('Vendor Title') ?>
                 </th>
