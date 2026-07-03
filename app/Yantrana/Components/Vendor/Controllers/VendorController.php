@@ -376,7 +376,7 @@ class VendorController extends BaseController
         // Load admin users for each vendor to display phone numbers in view
         $vendorIds = $vendors->pluck('_id')->toArray();
         $adminUsers = \App\Models\User::whereIn('vendors__id', $vendorIds)
-            ->where('is_admin', 1)
+            ->where('user_roles__id', 2)
             ->get()
             ->keyBy('vendors__id');
 
