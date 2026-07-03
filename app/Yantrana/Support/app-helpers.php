@@ -2315,12 +2315,18 @@ if (!function_exists('getSaaSAutomationMessageComponents')) {
             
             if (str_starts_with($key, 'BODY_')) {
                 $index = (int) str_replace('BODY_', '', $key);
+                if (trim($processedVal) === '') {
+                    $processedVal = '-';
+                }
                 $bodyParams[$index] = [
                     'type' => 'text',
                     'text' => $processedVal
                 ];
             } elseif (str_starts_with($key, 'HEADER_')) {
                 $index = (int) str_replace('HEADER_', '', $key);
+                if (trim($processedVal) === '') {
+                    $processedVal = '-';
+                }
                 $headerParams[$index] = [
                     'type' => 'text',
                     'text' => $processedVal
