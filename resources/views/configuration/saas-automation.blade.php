@@ -52,7 +52,7 @@ if ($saasAdminVendorId) {
                 {{ __tr('Note: Ensure the template names exactly match those approved in your Meta WhatsApp Manager for the selected Vendor Account.') }}
                 <br>
                 <strong>{{ __tr('Supported dynamic variables:') }}</strong>
-                <code>{first_name}</code>, <code>{last_name}</code>, <code>{full_name}</code>, <code>{email}</code>, <code>{mobile_number}</code>, <code>{app_name}</code>, <code>{expiry_date}</code>
+                <code>{first_name}</code>, <code>{last_name}</code>, <code>{full_name}</code>, <code>{email}</code>, <code>{mobile_number}</code>, <code>{app_name}</code>, <code>{account_name}</code>, <code>{expiry_date}</code>, <code>{subscription_amount}</code>
             </div>
 
             <!-- Welcome Template -->
