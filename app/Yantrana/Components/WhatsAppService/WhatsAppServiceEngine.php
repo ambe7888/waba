@@ -2223,7 +2223,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     'messageUid' => $recordCreated->_uid,
                     'contactUid' => $contactUid,
                     'log_message' => $recordCreated,
-                    'contact' => $this->contactRepository->fetchIt($contactUid),
+                    'contact' => (!empty($contactUid)) ? $this->contactRepository->fetchIt($contactUid) : null,
                 ],
                 // response message
                 ($messageResponseStatus == 'held_for_quality_assessment')
