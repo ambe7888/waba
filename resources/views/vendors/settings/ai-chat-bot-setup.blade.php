@@ -133,7 +133,7 @@
                             <x-lw.input-field placeholder="{{ getVendorSettings('open_ai_organization_id') ? __tr('value exist add new to update') : __tr('OpenAI Organization ID') }}"
                             type="text" id="lwOpenAIOrgId" data-form-group-class="col-md-12 col-lg-8"
                             :label="__tr('OpenAI Organization ID')" name="open_ai_organization_id" />
-                            <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/settings/organization/generals">{{  __tr('Get OpenAI Organization ID') }} <i class="fa fa-external-link-alt"></i></a></div>
+                            <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/settings/organization/general">{{  __tr('Get OpenAI Organization ID') }} <i class="fa fa-external-link-alt"></i></a></div>
                             <x-lw.input-field placeholder="{{ __tr('OpenAI Model') }}"
                             type="text" id="lwOpenAiModel" data-form-group-class="col-md-12 col-lg-8"
                             :label="__tr('OpenAI Model')" name="open_ai_model_key" value="{{ getVendorSettings('open_ai_model_key') }}" />
