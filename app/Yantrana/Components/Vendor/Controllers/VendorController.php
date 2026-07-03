@@ -479,6 +479,9 @@ class VendorController extends BaseController
                     ksort($variables['header']);
                     foreach ($variables['header'] as $val) {
                         $processedVal = strtr($val, $replacements);
+                        if (trim($processedVal) === '') {
+                            $processedVal = '-';
+                        }
                         $headerParams[] = ['type' => 'text', 'text' => $processedVal];
                     }
                     $recipientComponents[] = [
@@ -493,6 +496,9 @@ class VendorController extends BaseController
                     ksort($variables['body']);
                     foreach ($variables['body'] as $val) {
                         $processedVal = strtr($val, $replacements);
+                        if (trim($processedVal) === '') {
+                            $processedVal = '-';
+                        }
                         $bodyParams[] = ['type' => 'text', 'text' => $processedVal];
                     }
                     $recipientComponents[] = [
@@ -506,6 +512,9 @@ class VendorController extends BaseController
                     ksort($variables['buttons']);
                     foreach ($variables['buttons'] as $key => $val) {
                         $processedVal = strtr($val, $replacements);
+                        if (trim($processedVal) === '') {
+                            $processedVal = '-';
+                        }
                         $recipientComponents[] = [
                             'type' => 'button',
                             'sub_type' => 'url',
