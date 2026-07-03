@@ -684,10 +684,84 @@ $appName = getAppSettings('name');
         .premium-img:hover {
             transform: scale(1.04) translateY(-3px);
         }
-        .text-white-80 {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 1.05rem;
-            line-height: 1.7;
+        }
+
+        /* ═══════════════════════════════════════════
+           MOBILE APP SECTION
+        ═══════════════════════════════════════════ */
+        .mobile-app-section {
+            padding: 80px 0;
+            background: transparent;
+        }
+        .app-badge-link {
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .app-badge-link:hover:not(.disabled-badge) {
+            transform: scale(1.05) translateY(-2px);
+        }
+        .filter-grayscale {
+            filter: grayscale(1);
+        }
+        .opacity-40 {
+            opacity: 0.4;
+        }
+        .disabled-badge {
+            cursor: not-allowed;
+        }
+        .mobile-phone-mockup-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+        .mobile-phone-body {
+            width: 280px;
+            height: 520px;
+            background: #111;
+            border-radius: 40px;
+            border: 12px solid #222;
+            box-shadow: var(--shadow-lg), 0 25px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            padding: 10px;
+            transform: rotateY(-10deg) rotateX(5deg);
+            transition: all 0.5s ease;
+        }
+        .mobile-phone-body:hover {
+            transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        }
+        .mobile-phone-notch {
+            width: 120px;
+            height: 18px;
+            background: #222;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        .mobile-phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding-top: 15px;
+        }
+        .text-xxs {
+            font-size: 0.72rem;
+        }
+        .text-xs {
+            font-size: 0.85rem;
+        }
+        .app-header-mock {
+            font-size: 0.9rem;
         }
 
         /* ═══════════════════════════════════════════
@@ -1656,6 +1730,55 @@ $appName = getAppSettings('name');
                                 <div class="accordion-body">
                                     {{ __tr('__appName__ offers 24/7 customer support through live chat, email, and phone. Our dedicated team is here to help you with any issues or questions you might have.', ['__appName__' => $appName]) }}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ MOBILE APP SECTION ══════════════ -->
+    <section class="mobile-app-section py-5" id="mobile-app">
+        <div class="container px-4 px-lg-5">
+            <div class="row align-items-center">
+                <!-- Text and Badges Column -->
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <div class="app-content-wrapper">
+                        <span class="walkthrough-badge">{{ __tr('Application Mobile') }}</span>
+                        <h2 class="fw-bold mb-3">{{ __tr('__appName__ dans votre poche', ['__appName__' => $appName]) }}</h2>
+                        <p class="text-secondary mb-4 fs-5 leading-relaxed">
+                            {{ __tr('Gerez vos campagnes, repondez a vos clients en temps reel et suivez vos performances directement depuis votre smartphone Android. Notre application mobile vous accompagne partout pour ne manquer aucune opportunite.') }}
+                        </p>
+                        
+                        <!-- Badges Grid -->
+                        <div class="d-flex flex-wrap gap-3 align-items-center">
+                            <!-- Android (Available) -->
+                            <a href="#" class="app-badge-link" title="{{ __tr('Telecharger pour Android') }}">
+                                <img src="{{ asset('imgs/outer-home/google-play-badge.svg') }}" alt="{{ __tr('Disponible sur Google Play') }}" class="app-badge-img img-fluid" style="height: 48px;" />
+                            </a>
+                            
+                            <!-- iOS (Coming Soon) -->
+                            <div class="position-relative app-badge-link disabled-badge" style="cursor: not-allowed;" title="{{ __tr('Bientot disponible sur App Store') }}">
+                                <img src="{{ asset('imgs/outer-home/app-store-badge.svg') }}" alt="{{ __tr('Bientot disponible sur App Store') }}" class="app-badge-img img-fluid opacity-40 filter-grayscale" style="height: 48px;" />
+                                <span class="badge bg-secondary position-absolute top-0 start-100 translate-middle-x" style="font-size: 0.65rem; padding: 4px 8px; border-radius: 20px;">
+                                    {{ __tr('Bientot disponible') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mockup Column -->
+                <div class="col-lg-6 text-center">
+                    <div class="mobile-phone-mockup-wrapper">
+                        <!-- Outer Phone Body -->
+                        <div class="mobile-phone-body">
+                            <!-- Camera notch / Speaker -->
+                            <div class="mobile-phone-notch"></div>
+                            <!-- Screen Content -->
+                            <div class="mobile-phone-screen" style="padding-top: 0;">
+                                <img src="{{ asset('imgs/outer-home/mobile-app-login.jpg') }}" alt="{{ __tr('WhatsClick Mobile App') }}" style="width: 100%; height: 100%; object-fit: cover;" />
                             </div>
                         </div>
                     </div>
