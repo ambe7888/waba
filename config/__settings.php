@@ -851,6 +851,26 @@ return [
             ],
         ],
         'misc_settings' => [
+            'openai_api_key' => [
+                'key' => 'openai_api_key',
+                'data_type' => 1,     // string
+                'default' => '',
+                'hide_value' => false,
+                'ignore_empty' => false,
+                'validation_rules' => [
+                    'nullable',
+                ],
+            ],
+            'openai_organization_id' => [
+                'key' => 'openai_organization_id',
+                'data_type' => 1,     // string
+                'default' => '',
+                'hide_value' => false,
+                'ignore_empty' => false,
+                'validation_rules' => [
+                    'nullable',
+                ],
+            ],
             'current_home_page_view' => [
                 'key' => 'current_home_page_view',
                 'data_type' => 1,     // string

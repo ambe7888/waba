@@ -571,13 +571,20 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                             class="fas fa-exclamation-triangle ml-1"></i>@endif
                                     </a></strong>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link <?= (isset($pageType) and $pageType == 'ai-chat-bot-setup') ? 'active' : '' ?>"
-                                    href="<?= route('vendor.settings.read', ['pageType' => 'ai-chat-bot-setup']) ?>">
-                                    <i class="fa fa-brain"></i>
-                                    {!! __tr('AI Bot & Bot Settings') !!}
-                                </a>
-                            </li>
+                              <li class="nav-item">
+                                  <a class="nav-link <?= (isset($pageType) and $pageType == 'ai-chat-bot-setup') ? 'active' : '' ?>"
+                                      href="<?= route('vendor.settings.read', ['pageType' => 'ai-chat-bot-setup']) ?>">
+                                      <i class="fa fa-brain"></i>
+                                      {!! __tr('AI Bot & Bot Settings') !!}
+                                  </a>
+                              </li>
+                              <li class="nav-item">
+                                  <a class="nav-link <?= (isset($pageType) and $pageType == 'ai-credits-topup') ? 'active' : '' ?>"
+                                      href="<?= route('vendor.settings.read', ['pageType' => 'ai-credits-topup']) ?>">
+                                      <i class="fa fa-coins"></i>
+                                      {!! __tr('Recharge AI Credits') !!}
+                                  </a>
+                              </li>
                             <li class="nav-item">
                                 <a class="nav-link <?= (isset($pageType) and $pageType == 'api-access') ? 'active' : '' ?>"
                                     href="<?= route('vendor.settings.read', ['pageType' => 'api-access']) ?>">
