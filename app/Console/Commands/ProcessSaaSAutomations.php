@@ -46,7 +46,8 @@ class ProcessSaaSAutomations extends Command
                 $saasAdminVendorId, 
                 $expiryReminderTemplate, 
                 $waEngine,
-                'Subscription Reminder'
+                'Subscription Reminder',
+                $sub
             );
         }
 
@@ -65,14 +66,15 @@ class ProcessSaaSAutomations extends Command
                 $saasAdminVendorId, 
                 $expiredTemplate, 
                 $waEngine,
-                'Subscription Expired'
+                'Subscription Expired',
+                $sub
             );
         }
 
         $this->info("SaaS Automation Processing Complete.");
     }
 
-    private function sendAutomatedMessageToVendor($targetVendorId, $adminVendorId, $templateName, $waEngine, $context)
+    private function sendAutomatedMessageToVendor($targetVendorId, $adminVendorId, $templateName, $waEngine, $context, $sub = null)
     {
         if (empty($templateName)) {
             return;
@@ -98,6 +100,15 @@ class ProcessSaaSAutomations extends Command
         try {
             $this->info("Sending {$context} WhatsApp message to Vendor ID {$targetVendorId} (wa_id: {$waId})");
             
+            $varsJson = '';
+            if ($context == 'Subscription Reminder') {
+                $varsJson = getAppSettings('saas_expiry_reminder_template_vars');
+            } elseif ($context == 'Subscription Expired') {
+                $varsJson = getAppSettings('saas_expired_template_vars');
+            }
+            
+            $messageComponents = getSaaSAutomationMessageComponents($varsJson, $vendorAdmin, $sub);
+
             $waEngine->sendActualWhatsAppTemplateMessage(
                 (int)$adminVendorId, 
                 0, 
@@ -107,7 +118,7 @@ class ProcessSaaSAutomations extends Command
                 'fr', 
                 ['name' => $templateName, 'language' => 'fr'], 
                 [], 
-                [], 
+                $messageComponents, 
                 null 
             );
 

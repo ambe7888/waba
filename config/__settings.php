@@ -1494,14 +1494,32 @@ return [
                 'default' => '',
                 'ignore_empty' => true,
             ],
+            'saas_welcome_template_vars' => [
+                'key' => 'saas_welcome_template_vars',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
             'saas_expiry_reminder_template' => [
                 'key' => 'saas_expiry_reminder_template',
                 'data_type' => 1,    // string
                 'default' => '',
                 'ignore_empty' => true,
             ],
+            'saas_expiry_reminder_template_vars' => [
+                'key' => 'saas_expiry_reminder_template_vars',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
             'saas_expired_template' => [
                 'key' => 'saas_expired_template',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
+            'saas_expired_template_vars' => [
+                'key' => 'saas_expired_template_vars',
                 'data_type' => 1,    // string
                 'default' => '',
                 'ignore_empty' => true,

@@ -2264,3 +2264,78 @@ if (! function_exists('maskString')) {
         return $item;
     }
 }
+
+if (!function_exists('getSaaSAutomationMessageComponents')) {
+    /**
+     * Get message components for SaaS automated template messages
+     *
+     * @param string $varsJson
+     * @param object $user
+     * @param object|null $subscription
+     * @return array
+     */
+    function getSaaSAutomationMessageComponents($varsJson, $user, $subscription = null)
+    {
+        $vars = json_decode($varsJson ?: '[]', true);
+        if (empty($vars)) {
+            return [];
+        }
+
+        $appName = getAppSettings('name');
+        $replacements = [
+            '{first_name}' => $user->first_name ?? '',
+            '{last_name}' => $user->last_name ?? '',
+            '{full_name}' => ($user->first_name ?? '') . ' ' . ($user->last_name ?? ''),
+            '{email}' => $user->email ?? '',
+            '{mobile_number}' => $user->mobile_number ?? '',
+            '{app_name}' => $appName,
+        ];
+        if ($subscription) {
+            $replacements['{expiry_date}'] = $subscription->ends_at ? \Carbon\Carbon::parse($subscription->ends_at)->format('Y-m-d H:i') : '';
+        }
+
+        $bodyParams = [];
+        $headerParams = [];
+
+        // Separate and sort keys
+        foreach ($vars as $key => $val) {
+            // Replace placeholders
+            $processedVal = strtr($val, $replacements);
+            
+            if (str_starts_with($key, 'BODY_')) {
+                $index = (int) str_replace('BODY_', '', $key);
+                $bodyParams[$index] = [
+                    'type' => 'text',
+                    'text' => $processedVal
+                ];
+            } elseif (str_starts_with($key, 'HEADER_')) {
+                $index = (int) str_replace('HEADER_', '', $key);
+                $headerParams[$index] = [
+                    'type' => 'text',
+                    'text' => $processedVal
+                ];
+            }
+        }
+
+        // Sort by key index
+        ksort($bodyParams);
+        ksort($headerParams);
+
+        $components = [];
+        if (!empty($bodyParams)) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_values($bodyParams)
+            ];
+        }
+        if (!empty($headerParams)) {
+            $components[] = [
+                'type' => 'header',
+                'parameters' => array_values($headerParams)
+            ];
+        }
+
+        return $components;
+    }
+}
+
