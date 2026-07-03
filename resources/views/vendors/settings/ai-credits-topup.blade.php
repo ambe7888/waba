@@ -1,6 +1,4 @@
-@extends('layouts.app', ['title' => __tr('Recharge AI Credits')])
 
-@section('content')
 @php
     $vendorId = getVendorId();
     $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
@@ -119,4 +117,4 @@
         </div>
     </div>
 </div>
-@endsection
+

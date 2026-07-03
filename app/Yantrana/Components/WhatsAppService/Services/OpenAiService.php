@@ -219,7 +219,7 @@ class OpenAiService extends BaseEngine
         $botName  = getVendorSettings('open_ai_bot_name', null, null, $vendorId);
         // Step 2: Use OpenAI completion API to generate a refined answer
         $response = OpenAI::completions()->create([
-            'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId),
+            'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
             'messages' => [
                 [
                     'role' => 'system',
@@ -271,7 +271,7 @@ class OpenAiService extends BaseEngine
                 'content' => $question
             ];
             $threadRun = $response = OpenAI::threads()->createAndRun([
-                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId),
+                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
                 'assistant_id' => getVendorSettings('open_ai_assistant_id', null, null, $vendorId),
                 'thread' => [
                     'messages' => $messages,
@@ -318,7 +318,7 @@ class OpenAiService extends BaseEngine
         // Step 2: Use OpenAI completion API to generate a refined answer
         try {
             $response = OpenAI::chat()->create([
-                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId),
+                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
                 'max_tokens' => getVendorSettings('open_ai_max_token', null, null, $vendorId),
                 'temperature' => 0.7,
                 'messages' => $messages
@@ -389,7 +389,7 @@ class OpenAiService extends BaseEngine
         // Step 2: Use OpenAI completion API to generate a refined answer
         try {
             $response = OpenAI::chat()->create([
-                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId),
+                'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
                 'max_tokens' => getVendorSettings('open_ai_max_token', null, null, $vendorId),
                 'temperature' => 0.7,
                 'messages' => $messages

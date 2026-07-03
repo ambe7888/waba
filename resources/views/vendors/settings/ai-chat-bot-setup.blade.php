@@ -121,7 +121,7 @@
                             {{ __tr('Purchased Credits:') }} {{ $extraCredits }}
                         </div>
                         <div class="mt-3">
-                            <a href="{{ route('vendor.ai_credits.topup') }}" class="btn btn-light btn-sm text-primary font-weight-bold">
+                            <a href="{{ route('vendor.settings.read', ['pageType' => 'ai-credits-topup']) }}" class="btn btn-light btn-sm text-primary font-weight-bold">
                                 <i class="fas fa-coins"></i> {{ __tr('Recharge Credits') }}
                             </a>
                         </div>
@@ -155,33 +155,15 @@
                             <x-lw.input-field placeholder="{{ __tr('Your AI Bot Name') }}"
                             type="text" id="lwOpenAIBotName" data-form-group-class="col-md-12 col-lg-8"
                             :label="__tr('Your AI Bot Name')" name="open_ai_bot_name" value="{{ getVendorSettings('open_ai_bot_name') }}" />
+                            <input type="hidden" name="open_ai_bot_data_source_type" value="text" />
+                            <input type="hidden" name="open_ai_max_token" value="1000" />
                             <fieldset>
-                                <legend>{{  __tr('Input Source Data') }}</legend>
-                                <x-lw.input-field x-model="open_ai_bot_data_source_type" type="selectize" data-lw-plugin="lwSelectize" id="lwOpenAIInputDataSource" data-form-group-class="col-sm-12 col-md-4" data-selected="{{ getVendorSettings('open_ai_bot_data_source_type') }}" :label="__tr('Data Source Type')" name="open_ai_bot_data_source_type"  required="true" >
-                                    <x-slot name="selectOptions">
-                                        <option value="assistant">{{ __tr('OpenAI Assistant') }}</option>
-                                        <option value="text">{{ __tr('Input Text Data') }}</option>
-                                    </x-slot>
-                                </x-lw.input-field>
-                                {{-- </div> --}}
-                                <div x-show="open_ai_bot_data_source_type == 'text'">
-                                    <x-lw.input-field placeholder="{{ __tr('Max tokens to use') }}"
-                                    type="number" min="1" id="lwOpenAiMaxToken" data-form-group-class="col-sm-12 col-md-4"
-                                    :label="__tr('Max tokens to use per request')" name="open_ai_max_token" value="{{ getVendorSettings('open_ai_max_token') }}" />
-                                    <div class="col my-4 mb-sm-0">
-                                        <!-- Welcome email textarea -->
-                                      <label for="lwTrainingTextData">{{  __tr('Input Data for Answers') }}</label>
-                                      <textarea rows="10" id="lwTrainingTextData" class="lw-form-field form-control" placeholder="{{ __tr('Add the data you want to Bot should answer based on.') }}" name="open_ai_input_training_data">{!! getVendorSettings('open_ai_input_training_data') !!}</textarea>
-                                        <!-- /Welcome email textarea -->
-                                        <div class="help-text my-4">{{  __tr('Your OpenAI training data') }}</div>
-                                  </div>
-                                </div>
-    
-                                <div x-show="open_ai_bot_data_source_type == 'assistant'">
-                                    <x-lw.input-field placeholder="{{ getVendorSettings('open_ai_assistant_id') ? __tr('value exist add new to update') : __tr('OpenAI Assistant ID') }}"
-                                    type="text" id="lwOpenAIAssistantId" data-form-group-class="col-md-12 col-lg-8"
-                                    :label="__tr('OpenAI Assistant ID')" name="open_ai_assistant_id" />
-                                    <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/assistants/">{{  __tr('OpenAI Assistants') }} <i class="fa fa-external-link-alt"></i></a></div>
+                                <legend>{{  __tr('Bot Training Data') }}</legend>
+                                
+                                <div class="col my-4 mb-sm-0">
+                                    <label for="lwTrainingTextData">{{  __tr('Information about your business') }}</label>
+                                    <textarea rows="10" id="lwTrainingTextData" class="lw-form-field form-control" placeholder="{{ __tr('Type all the information the bot should know to answer customer questions...') }}" name="open_ai_input_training_data">{!! getVendorSettings('open_ai_input_training_data') !!}</textarea>
+                                    <div class="help-text my-4">{{  __tr('The AI will use this text to answer questions.') }}</div>
                                 </div>
                             </fieldset>
                             <hr>
@@ -202,7 +184,6 @@
                     </div>
                 </div>
             </fieldset>
-    </div>
     {{-- flowise --}}
         <div class="col-md-8" x-cloak>
         <!-- Page Heading -->
