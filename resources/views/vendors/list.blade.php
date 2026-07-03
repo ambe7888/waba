@@ -42,8 +42,8 @@
                 <th data-orderable="true" data-name="fullName">
                     <?= __tr('Admin User Name') ?>
                 </th>
-                <th data-orderable="true" data-name="username">
-                    <?= __tr('username') ?>
+                <th data-orderable="true" data-name="mobile_number">
+                    <?= __tr('Phone Number') ?>
                 </th>
                 <th data-orderable="true" data-name="email">
                     <?= __tr('email') ?>

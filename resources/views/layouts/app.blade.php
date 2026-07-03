@@ -68,6 +68,17 @@ $currentAppTheme ='';
     @if(getAppSettings('page_head_code'))
     {!! getAppSettings('page_head_code') !!}
     @endif
+    <style>
+        @media (max-width: 767.98px) {
+            #sidenav-collapse-main, .navbar-collapse {
+                background-color: #ffffff !important;
+                opacity: 1 !important;
+            }
+            .lw-app-theme-dark #sidenav-collapse-main, .lw-app-theme-dark .navbar-collapse {
+                background-color: #172b4d !important;
+            }
+        }
+    </style>
 </head>
 
 <body
