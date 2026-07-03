@@ -55,7 +55,7 @@ class ThemeService extends ChangeNotifier {
   // ============================================
   // Color Palette
   // ============================================
-  static const primaryColor = Color(0xFF0D9488);    // Teal 600
+  static const primaryColor = Color(0xFF198754);    // Teal 600
   static const primaryDark = Color(0xFF0F766E);     // Teal 700
   static const accentColor = Color(0xFF2DD4BF);     // Teal 300
 

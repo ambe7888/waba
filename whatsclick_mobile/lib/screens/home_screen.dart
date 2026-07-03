@@ -384,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF0D9488);
+    const primaryColor = Color(0xFF198754);
     const accentColor = Color(0xFF2DD4BF);
     final surfaceCard = Theme.of(context).colorScheme.surface;
     final totalUnread = _totalUnreadCount;

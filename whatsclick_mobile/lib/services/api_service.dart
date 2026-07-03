@@ -183,6 +183,48 @@ class ApiService {
     }
   }
 
+  /// Fetch single ticket details
+  Future<Map<String, dynamic>?> fetchSupportTicketDetails(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid');
+    
+    try {
+      final response = await http.get(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['reaction'] == 1) {
+          return data['data'];
+        }
+        throw Exception('Reaction error: ${response.body}');
+      }
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+    } catch (e) {
+      if (debug) debugPrint('Fetch Ticket Details Error: $e');
+      throw e; // Rethrow to display in UI
+    }
+  }
+
+  /// Reply to a support ticket
+  Future<bool> replyToSupportTicket(String uid, String message) async {
+    final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid/reply');
+    
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({'message': message}),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Reply to Ticket Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch chat messages for a specific contact
   Future<List<ChatMessage>?> fetchMessages(String contactUid) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');

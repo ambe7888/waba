@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'ticket_detail_screen.dart';
 
 class SupportTicketsScreen extends StatefulWidget {
   const SupportTicketsScreen({super.key});
@@ -249,7 +250,15 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                 ],
                               ),
                               onTap: () {
-                                // TODO: Navigate to ticket details
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TicketDetailScreen(
+                                      ticketUid: ticket['_uid'],
+                                      subject: ticket['subject'] ?? 'Sans sujet',
+                                    ),
+                                  ),
+                                ).then((_) => _fetchTickets()); // Refresh when coming back
                               },
                             ),
                           );
