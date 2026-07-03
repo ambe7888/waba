@@ -2282,6 +2282,15 @@ if (!function_exists('getSaaSAutomationMessageComponents')) {
         }
 
         $appName = getAppSettings('name');
+        
+        $accountName = '';
+        if ($user && isset($user->vendors__id) && $user->vendors__id) {
+            $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($user->vendors__id);
+            if ($vendor) {
+                $accountName = $vendor->title;
+            }
+        }
+
         $replacements = [
             '{first_name}' => $user->first_name ?? '',
             '{last_name}' => $user->last_name ?? '',
@@ -2289,9 +2298,11 @@ if (!function_exists('getSaaSAutomationMessageComponents')) {
             '{email}' => $user->email ?? '',
             '{mobile_number}' => $user->mobile_number ?? '',
             '{app_name}' => $appName,
+            '{account_name}' => $accountName,
         ];
         if ($subscription) {
             $replacements['{expiry_date}'] = $subscription->ends_at ? \Carbon\Carbon::parse($subscription->ends_at)->format('Y-m-d H:i') : '';
+            $replacements['{subscription_amount}'] = $subscription->charges ?? '';
         }
 
         $bodyParams = [];
