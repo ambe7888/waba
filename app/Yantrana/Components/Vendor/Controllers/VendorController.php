@@ -414,73 +414,6 @@ class VendorController extends BaseController
         $vendorIds = $request->vendors;
         $variables = $request->input('variables', []);
 
-        // Construction du tableau messageComponents pour l'API Meta
-        $messageComponents = [];
-
-        // 1. Header Media Variables
-        if (isset($variables['header_media']) && is_array($variables['header_media'])) {
-            $mediaFormat = array_key_first($variables['header_media']); // image, video, document
-            $mediaLink = $variables['header_media'][$mediaFormat];
-            $messageComponents[] = [
-                'type' => 'header',
-                'parameters' => [
-                    [
-                        'type' => $mediaFormat,
-                        $mediaFormat => ['link' => $mediaLink]
-                    ]
-                ]
-            ];
-        }
-
-        // 2. Header Text Variables
-        if (isset($variables['header']) && is_array($variables['header'])) {
-            $headerParams = [];
-            ksort($variables['header']);
-            foreach ($variables['header'] as $val) {
-                $headerParams[] = ['type' => 'text', 'text' => $val];
-            }
-            // Si on a déjà un header (cas peu probable avec les règles Meta mais au cas où) on le complète, sinon on le crée
-            $existingHeaderKey = array_search('header', array_column($messageComponents, 'type'));
-            if ($existingHeaderKey !== false) {
-                $messageComponents[$existingHeaderKey]['parameters'] = array_merge($messageComponents[$existingHeaderKey]['parameters'], $headerParams);
-            } else {
-                $messageComponents[] = [
-                    'type' => 'header',
-                    'parameters' => $headerParams
-                ];
-            }
-        }
-
-        // 3. Body Text Variables
-        if (isset($variables['body']) && is_array($variables['body'])) {
-            $bodyParams = [];
-            ksort($variables['body']); // Ordonner par clé (1, 2, 3...)
-            foreach ($variables['body'] as $val) {
-                $bodyParams[] = ['type' => 'text', 'text' => $val];
-            }
-            $messageComponents[] = [
-                'type' => 'body',
-                'parameters' => $bodyParams
-            ];
-        }
-
-        // 4. Button Variables
-        if (isset($variables['buttons']) && is_array($variables['buttons'])) {
-            $btnIndex = 0;
-            ksort($variables['buttons']);
-            foreach ($variables['buttons'] as $key => $val) {
-                $messageComponents[] = [
-                    'type' => 'button',
-                    'sub_type' => 'url',
-                    'index' => (int)$key, // Les boutons nécessitent un index
-                    'parameters' => [
-                        ['type' => 'text', 'text' => $val]
-                    ]
-                ];
-                $btnIndex++;
-            }
-        }
-
         $vendorAdmins = \App\Models\User::whereIn('vendors__id', $vendorIds)
             ->whereNotNull('mobile_number')
             ->where('mobile_number', '!=', '')
@@ -490,6 +423,100 @@ class VendorController extends BaseController
         foreach ($vendorAdmins as $admin) {
             $waId = preg_replace('/[^0-9]/', '', $admin->mobile_number);
             if (!empty($waId)) {
+                // Fetch the vendor's active subscription
+                $sub = \App\Yantrana\Components\Subscription\Models\ManualSubscriptionModel::where('vendors__id', $admin->vendors__id)
+                    ->where('status', 1)
+                    ->orderBy('ends_at', 'desc')
+                    ->first();
+
+                // Fetch account name (vendor title)
+                $accountName = '';
+                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($admin->vendors__id);
+                if ($vendor) {
+                    $accountName = $vendor->title;
+                }
+
+                $appName = getAppSettings('name');
+
+                $replacements = [
+                    '{first_name}' => $admin->first_name ?? '',
+                    '{last_name}' => $admin->last_name ?? '',
+                    '{full_name}' => ($admin->first_name ?? '') . ' ' . ($admin->last_name ?? ''),
+                    '{email}' => $admin->email ?? '',
+                    '{mobile_number}' => $admin->mobile_number ?? '',
+                    '{app_name}' => $appName,
+                    '{account_name}' => $accountName,
+                    '{expiry_date}' => '',
+                    '{subscription_amount}' => '',
+                ];
+
+                if ($sub) {
+                    $replacements['{expiry_date}'] = $sub->ends_at ? \Carbon\Carbon::parse($sub->ends_at)->format('Y-m-d H:i') : '';
+                    $replacements['{subscription_amount}'] = $sub->charges ?? '';
+                }
+
+                // Construction du tableau messageComponents pour ce destinataire
+                $recipientComponents = [];
+
+                // 1. Header Media Variables
+                if (isset($variables['header_media']) && is_array($variables['header_media'])) {
+                    $mediaFormat = array_key_first($variables['header_media']);
+                    $mediaLink = $variables['header_media'][$mediaFormat];
+                    $recipientComponents[] = [
+                        'type' => 'header',
+                        'parameters' => [
+                            [
+                                'type' => $mediaFormat,
+                                $mediaFormat => ['link' => $mediaLink]
+                            ]
+                        ]
+                    ];
+                }
+
+                // 2. Header Text Variables
+                if (isset($variables['header']) && is_array($variables['header'])) {
+                    $headerParams = [];
+                    ksort($variables['header']);
+                    foreach ($variables['header'] as $val) {
+                        $processedVal = strtr($val, $replacements);
+                        $headerParams[] = ['type' => 'text', 'text' => $processedVal];
+                    }
+                    $recipientComponents[] = [
+                        'type' => 'header',
+                        'parameters' => $headerParams
+                    ];
+                }
+
+                // 3. Body Text Variables
+                if (isset($variables['body']) && is_array($variables['body'])) {
+                    $bodyParams = [];
+                    ksort($variables['body']);
+                    foreach ($variables['body'] as $val) {
+                        $processedVal = strtr($val, $replacements);
+                        $bodyParams[] = ['type' => 'text', 'text' => $processedVal];
+                    }
+                    $recipientComponents[] = [
+                        'type' => 'body',
+                        'parameters' => $bodyParams
+                    ];
+                }
+
+                // 4. Button Variables
+                if (isset($variables['buttons']) && is_array($variables['buttons'])) {
+                    ksort($variables['buttons']);
+                    foreach ($variables['buttons'] as $key => $val) {
+                        $processedVal = strtr($val, $replacements);
+                        $recipientComponents[] = [
+                            'type' => 'button',
+                            'sub_type' => 'url',
+                            'index' => (int)$key,
+                            'parameters' => [
+                                ['type' => 'text', 'text' => $processedVal]
+                            ]
+                        ];
+                    }
+                }
+
                 try {
                     $waEngine->sendActualWhatsAppTemplateMessage(
                         (int)$saasAdminVendorId, 
@@ -500,7 +527,7 @@ class VendorController extends BaseController
                         'fr', 
                         ['name' => $templateName, 'language' => 'fr'], 
                         [], 
-                        $messageComponents, 
+                        $recipientComponents, 
                         null 
                     );
                     $successCount++;
