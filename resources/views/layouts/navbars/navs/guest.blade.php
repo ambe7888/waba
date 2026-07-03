@@ -105,6 +105,17 @@
             nav#mainNav .navbar-collapse {
                 width: 100%;
                 margin-top: 1rem;
+                background: #ffffff !important;
+                border-radius: 16px;
+                padding: 1.5rem 1rem;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            }
+            html[data-theme='dark'] nav#mainNav .navbar-collapse,
+            html[lw-theme-mode='dark'] nav#mainNav .navbar-collapse {
+                background: #17182c !important;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             }
             #mainNav .navbar-nav {
                 text-align: center;
