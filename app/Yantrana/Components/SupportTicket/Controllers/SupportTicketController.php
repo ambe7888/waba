@@ -164,7 +164,8 @@ class SupportTicketController extends BaseController
     {
         $request->validate([
             'message' => 'required|string',
-            'attachment' => 'nullable|file|max:10240', // 10MB max
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'file|max:10240', // 10MB max per file
         ]);
 
         $ticketQuery = TicketModel::where('_uid', $uid);
@@ -173,12 +174,22 @@ class SupportTicketController extends BaseController
         }
         $ticket = $ticketQuery->firstOrFail();
 
-        $fileData = null;
+        $attachmentsData = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('support_tickets', $filename, 'public');
+                $attachmentsData[] = [
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName()
+                ];
+            }
+        }
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('support_tickets', $filename, 'public');
-            $fileData = [
+            $attachmentsData[] = [
                 'file_path' => $path,
                 'file_name' => $file->getClientOriginalName()
             ];
@@ -188,7 +199,7 @@ class SupportTicketController extends BaseController
             'tickets__id' => $ticket->_id,
             'users__id' => Auth::id(),
             'message' => $request->message,
-            '__data' => $fileData ? ['attachment' => $fileData] : null,
+            '__data' => !empty($attachmentsData) ? ['attachments' => $attachmentsData] : null,
         ]);
 
         // Update ticket updated_at and status if needed
@@ -238,7 +249,8 @@ class SupportTicketController extends BaseController
             'subject' => 'required|string|max:150',
             'description' => 'required|string',
             'priority' => 'nullable|string|in:low,normal,high',
-            'attachment' => 'nullable|file|max:10240', // 10MB max
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'file|max:10240',
         ]);
 
         $vendorId = getVendorId();
@@ -305,7 +317,8 @@ class SupportTicketController extends BaseController
     {
         $request->validate([
             'message' => 'required|string',
-            'attachment' => 'nullable|file|max:10240', // 10MB max
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'file|max:10240', // 10MB max per file
         ]);
 
         $ticketQuery = TicketModel::where('_uid', $uid);
@@ -314,12 +327,22 @@ class SupportTicketController extends BaseController
         }
         $ticket = $ticketQuery->firstOrFail();
 
-        $fileData = null;
+        $attachmentsData = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('support_tickets', $filename, 'public');
+                $attachmentsData[] = [
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName()
+                ];
+            }
+        }
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('support_tickets', $filename, 'public');
-            $fileData = [
+            $attachmentsData[] = [
                 'file_path' => $path,
                 'file_name' => $file->getClientOriginalName()
             ];
@@ -329,7 +352,7 @@ class SupportTicketController extends BaseController
             'tickets__id' => $ticket->_id,
             'users__id' => Auth::id(),
             'message' => $request->message,
-            '__data' => $fileData ? ['attachment' => $fileData] : null,
+            '__data' => !empty($attachmentsData) ? ['attachments' => $attachmentsData] : null,
         ]);
 
         // Update ticket updated_at and status if needed

@@ -27,14 +27,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   final _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  File? _selectedFile;
+  List<File> _selectedFiles = [];
 
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles();
-      if (result != null && result.files.single.path != null) {
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+      if (result != null) {
         setState(() {
-          _selectedFile = File(result.files.single.path!);
+          _selectedFiles.addAll(
+            result.files.where((f) => f.path != null).map((f) => File(f.path!))
+          );
         });
       }
     } catch (e) {
@@ -98,14 +100,17 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   Future<void> _sendReply() async {
     final msg = _messageController.text.trim();
-    if (msg.isEmpty) return;
+    if (msg.isEmpty && _selectedFiles.isEmpty) return;
 
     setState(() {
       _isSending = true;
     });
 
-    final success =
-        await ApiService().replyToSupportTicket(widget.ticketUid, msg);
+    final success = await ApiService().replyToSupportTicket(
+      widget.ticketUid,
+      msg.isEmpty ? 'Pièce(s) jointe(s)' : msg,
+      attachments: _selectedFiles,
+    );
 
     if (mounted) {
       setState(() {
@@ -113,6 +118,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       });
       if (success) {
         _messageController.clear();
+        _selectedFiles.clear();
         _fetchDetails();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -321,42 +327,60 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (_selectedFile != null)
+                            if (_selectedFiles.isNotEmpty)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? ThemeService.darkSurface
-                                      : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.attach_file,
-                                        size: 20, color: Colors.grey),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _selectedFile!.path.split('/').last,
-                                        style: TextStyle(
-                                            color: isDark
-                                                ? Colors.white70
-                                                : Colors.black87),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close,
-                                          size: 20, color: Colors.red),
-                                      onPressed: () =>
-                                          setState(() => _selectedFile = null),
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                  ],
+                                width: double.infinity,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _selectedFiles
+                                      .map((file) => Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? ThemeService.darkSurface
+                                                  : const Color(0xFFF1F5F9),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.attach_file,
+                                                    size: 16,
+                                                    color: Colors.grey),
+                                                const SizedBox(width: 4),
+                                                Flexible(
+                                                  child: Text(
+                                                    file.path.split('/').last,
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: isDark
+                                                            ? Colors.white70
+                                                            : Colors.black87),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _selectedFiles
+                                                          .remove(file);
+                                                    });
+                                                  },
+                                                  child: const Icon(Icons.close,
+                                                      size: 16,
+                                                      color: Colors.red),
+                                                ),
+                                              ],
+                                            ),
+                                          ))
+                                      .toList(),
                                 ),
                               ),
                             Row(

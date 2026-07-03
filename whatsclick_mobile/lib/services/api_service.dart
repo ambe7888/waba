@@ -9,6 +9,8 @@ import '../config/app_config.dart';
 import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../models/resource.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -204,11 +206,11 @@ class ApiService {
   }
 
   /// Reply to a support ticket
-  Future<bool> replyToSupportTicket(String uid, String message, {File? attachment}) async {
+  Future<bool> replyToSupportTicket(String uid, String message, {List<File>? attachments}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid/reply');
     
     try {
-      if (attachment != null) {
+      if (attachments != null && attachments.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token') ?? '';
         var request = http.MultipartRequest('POST', url);
@@ -217,12 +219,47 @@ class ApiService {
           'Accept': 'application/json',
         });
         request.fields['message'] = message;
-        request.files.add(await http.MultipartFile.fromPath('attachment', attachment.path));
-        final streamedResponse = await request.send();
+        for (var file in attachments) {
+          final length = await file.length();
+          File fileToUpload = file;
+          
+          // If image is larger than 2MB, try to compress it
+          if (length > 2000000) {
+            final ext = file.path.split('.').last.toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
+              try {
+                final tempDir = await getTemporaryDirectory();
+                final targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.$ext';
+                final format = ext == 'png' ? CompressFormat.png : (ext == 'webp' ? CompressFormat.webp : CompressFormat.jpeg);
+                var compressedFile = await FlutterImageCompress.compressAndGetFile(
+                  file.absolute.path, 
+                  targetPath,
+                  quality: 70,
+                  format: format,
+                );
+                if (compressedFile != null) {
+                  fileToUpload = File(compressedFile.path);
+                }
+              } catch (e) {
+                if (debug) debugPrint('Compression error: $e');
+              }
+            }
+          }
+          
+          final finalLength = await fileToUpload.length();
+          if (finalLength > 10485760) {
+            if (debug) debugPrint('File too large even after compression: ${finalLength}');
+            return false;
+          }
+          request.files.add(await http.MultipartFile.fromPath('attachments[]', fileToUpload.path));
+        }
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
         final response = await http.Response.fromStream(streamedResponse);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           return data['reaction'] == 1;
+        } else {
+          if (debug) debugPrint('Upload failed: ${response.statusCode} - ${response.body}');
         }
         return false;
       } else {

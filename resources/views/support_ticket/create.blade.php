@@ -35,10 +35,10 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-control-label text-muted" for="attachment">{{ __tr('Attachment (Optional)') }}</label>
+                                    <label class="form-control-label text-muted" for="attachments">{{ __tr('Attachments (Optional)') }}</label>
                                     <div class="custom-file">
-                                        <input type="file" class="custom-file-input" name="attachment" id="attachment" onchange="document.getElementById('attachment-label').innerHTML = this.files[0].name">
-                                        <label class="custom-file-label" for="attachment" id="attachment-label">{{ __tr('Choose file') }}</label>
+                                        <input type="file" class="custom-file-input" name="attachments[]" id="attachments" multiple onchange="document.getElementById('attachments-label').innerHTML = this.files.length + ' {{ __tr('file(s) selected') }}'">
+                                        <label class="custom-file-label" for="attachments" id="attachments-label">{{ __tr('Choose files') }}</label>
                                     </div>
                                     <small class="form-text text-muted">{{ __tr('Max size: 10MB. Allowed types: Images, PDFs, Zip.') }}</small>
                                 </div>
