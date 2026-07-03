@@ -1,6 +1,10 @@
 <div class="row">
     @php
     $vendorId = getVendorId();
+    $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+    $planCredits = $vendor->plan_ai_credits ?? 0;
+    $extraCredits = $vendor->extra_ai_credits ?? 0;
+    $totalCredits = $planCredits + $extraCredits;
     // check the feature limit
     $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $vendorId);
     $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_other_bot_timing_restrictions') ?: [];
@@ -101,6 +105,31 @@
         <h1 class="mt-5">
             <?= __tr('AI Bots Integrations') ?>
         </h1>
+        
+        <div class="row my-4">
+            <div class="col-md-6 mb-4">
+                <div class="card bg-primary text-white shadow">
+                    <div class="card-body">
+                        <div class="font-weight-bold text-uppercase mb-1">
+                            {{ __tr('AI Credits Balance') }}
+                        </div>
+                        <div class="h2 mb-0 font-weight-bold text-white">
+                            {{ $totalCredits }}
+                        </div>
+                        <div class="mt-2 text-white-50 text-sm">
+                            {{ __tr('Subscription Credits:') }} {{ $planCredits }}<br>
+                            {{ __tr('Purchased Credits:') }} {{ $extraCredits }}
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ route('vendor.ai_credits.topup') }}" class="btn btn-light btn-sm text-primary font-weight-bold">
+                                <i class="fas fa-coins"></i> {{ __tr('Recharge Credits') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="alert alert-warning my-4">
             {{  __tr('AI Chat bot only get triggered if manual chat bot did not respond and contact has enabled for AI Bot reply.') }}
         </div>
@@ -126,18 +155,6 @@
                             <x-lw.input-field placeholder="{{ __tr('Your AI Bot Name') }}"
                             type="text" id="lwOpenAIBotName" data-form-group-class="col-md-12 col-lg-8"
                             :label="__tr('Your AI Bot Name')" name="open_ai_bot_name" value="{{ getVendorSettings('open_ai_bot_name') }}" />
-                            <x-lw.input-field placeholder="{{ getVendorSettings('open_ai_access_key') ? __tr('value exist add new to update') : __tr('OpenAI Key') }}"
-                            type="text" id="lwOpenAiAccessToken" data-form-group-class="col-md-12 col-lg-8"
-                            :label="__tr('OpenAI Key')" name="open_ai_access_key" />
-                            <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/api-keys">{{  __tr('Get OpenAI Key') }} <i class="fa fa-external-link-alt"></i></a></div>
-                            <x-lw.input-field placeholder="{{ getVendorSettings('open_ai_organization_id') ? __tr('value exist add new to update') : __tr('OpenAI Organization ID') }}"
-                            type="text" id="lwOpenAIOrgId" data-form-group-class="col-md-12 col-lg-8"
-                            :label="__tr('OpenAI Organization ID')" name="open_ai_organization_id" />
-                            <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/settings/organization/general">{{  __tr('Get OpenAI Organization ID') }} <i class="fa fa-external-link-alt"></i></a></div>
-                            <x-lw.input-field placeholder="{{ __tr('OpenAI Model') }}"
-                            type="text" id="lwOpenAiModel" data-form-group-class="col-md-12 col-lg-8"
-                            :label="__tr('OpenAI Model')" name="open_ai_model_key" value="{{ getVendorSettings('open_ai_model_key') }}" />
-                            <div class="col help-text mt-2 text-sm"><a target="_blank" href="https://platform.openai.com/docs/models">{{  __tr('OpenAI Model') }} <i class="fa fa-external-link-alt"></i></a></div>
                             <fieldset>
                                 <legend>{{  __tr('Input Source Data') }}</legend>
                                 <x-lw.input-field x-model="open_ai_bot_data_source_type" type="selectize" data-lw-plugin="lwSelectize" id="lwOpenAIInputDataSource" data-form-group-class="col-sm-12 col-md-4" data-selected="{{ getVendorSettings('open_ai_bot_data_source_type') }}" :label="__tr('Data Source Type')" name="open_ai_bot_data_source_type"  required="true" >

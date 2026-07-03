@@ -44,9 +44,16 @@ class OpenAiService extends BaseEngine
         if (!$vendorId) {
             $vendorId = getVendorId();
         }
+        
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        $totalCredits = ($vendor->plan_ai_credits ?? 0) + ($vendor->extra_ai_credits ?? 0);
+        if ($totalCredits <= 0) {
+            throw new Exception("Insufficient AI Credits");
+        }
+
         config([
-            'openai.api_key' =>  $accessKey ?: getVendorSettings('open_ai_access_key', null, null, $vendorId),
-            'openai.organization' => $orgKey ?: getVendorSettings('open_ai_organization_id', null, null, $vendorId),
+            'openai.api_key' =>  getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY'),
+            'openai.organization' => getAppSettings('openai_organization_id') ?: env('OPENAI_ORGANIZATION'),
         ]);
     }
     /**
@@ -226,6 +233,8 @@ class OpenAiService extends BaseEngine
             'max_tokens' => getVendorSettings('open_ai_max_token', null, null, $vendorId),
         ]);
 
+        $this->deductVendorCredit($vendorId);
+
         return trim($response['choices'][0]['text']);
     }
 
@@ -280,6 +289,7 @@ class OpenAiService extends BaseEngine
             $messageList = OpenAI::threads()->messages()->list(
                 threadId: $threadRun->threadId,
             );
+            $this->deductVendorCredit($vendorId);
             return $messageList->data[0]->content[0]->text->value;
         }
         // Text Based Source type
@@ -313,6 +323,7 @@ class OpenAiService extends BaseEngine
                 'temperature' => 0.7,
                 'messages' => $messages
             ]);
+            $this->deductVendorCredit($vendorId);
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -397,5 +408,18 @@ class OpenAiService extends BaseEngine
         ]);
 
         return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
+    }
+
+    protected function deductVendorCredit($vendorId)
+    {
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        if ($vendor) {
+            if ($vendor->plan_ai_credits > 0) {
+                $vendor->plan_ai_credits -= 1;
+            } elseif ($vendor->extra_ai_credits > 0) {
+                $vendor->extra_ai_credits -= 1;
+            }
+            $vendor->save();
+        }
     }
 }

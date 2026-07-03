@@ -1,6 +1,31 @@
 <!-- Page Heading -->
 <section>
     <h1>{!! __tr('Setup & Integrations') !!}</h1>
+
+    <!-- OpenAI Settings -->
+    <fieldset x-data="{panelOpened:false}" x-cloak>
+        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('OpenAI') }}"> {{ __tr('OpenAI Global Setup') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
+        <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'misc_settings']) ?>">
+            <div class="row">
+                <div class="col-md-6">
+                    <x-lw.input-field type="text" :label="__tr('OpenAI API Key')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" required />
+                    <div class="text-sm text-info mt-1">
+                        {{ __tr('This global API key will be used for all vendors using the AI Bot feature.') }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
+                    <div class="text-sm text-info mt-1">
+                        {{ __tr('Optional. Set the organization ID if applicable.') }}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Save') }}</button>
+            </div>
+        </form>
+    </fieldset>
+
     <fieldset x-data="{panelOpened:false}" x-cloak>
         <legend @click="panelOpened = !panelOpened">{{ __tr('Campaign Execution Settings') }} <span class="text-danger my-2">{{ __tr('* required') }}</span> <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
         <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'misc_settings']) ?>">
