@@ -337,7 +337,9 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                         
                         if (!empty($waId)) {
                             ignoreFacebookApiError(true);
-                            // Fetch template definition to construct proforma (fallback if name is just string)
+                            $welcomeVars = getAppSettings('saas_welcome_template_vars');
+                            $messageComponents = getSaaSAutomationMessageComponents($welcomeVars, $newUser);
+                            
                             $waEngine->sendActualWhatsAppTemplateMessage(
                                 (int)$saasAdminVendorId, // Vendor ID of Super Admin
                                 0, // Contact ID (0 for unregistered contact)
@@ -347,7 +349,7 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                                 'fr', // Template Language
                                 ['name' => $saasWelcomeTemplate, 'language' => 'fr'], // template proforma
                                 [], // template components
-                                [], // message components
+                                $messageComponents, // message components
                                 null // campaign ID
                             );
                             ignoreFacebookApiError(false);
