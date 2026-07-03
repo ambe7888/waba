@@ -367,7 +367,7 @@ class VendorController extends BaseController
 
         if (!empty($saasAdminVendorId)) {
             $templates = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $saasAdminVendorId)
-                ->where('status', 'approved')
+                ->where('status', 'APPROVED')
                 ->get();
         }
 
