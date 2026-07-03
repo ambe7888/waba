@@ -204,23 +204,41 @@ class ApiService {
   }
 
   /// Reply to a support ticket
-  Future<bool> replyToSupportTicket(String uid, String message) async {
+  Future<bool> replyToSupportTicket(String uid, String message, {File? attachment}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid/reply');
     
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({'message': message}),
-      );
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['reaction'] == 1;
+      if (attachment != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('auth_token') ?? '';
+        var request = http.MultipartRequest('POST', url);
+        request.headers.addAll({
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        });
+        request.fields['message'] = message;
+        request.files.add(await http.MultipartFile.fromPath('attachment', attachment.path));
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return data['reaction'] == 1;
+        }
+        return false;
+      } else {
+        final response = await http.post(
+          url,
+          headers: _getHeaders(),
+          body: jsonEncode({'message': message}),
+        );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return data['reaction'] == 1;
+        }
+        return false;
       }
-      return false;
     } catch (e) {
-      if (debug) debugPrint('Reply to Ticket Error: $e');
+      if (debug) debugPrint('Reply Ticket Error: $e');
       return false;
     }
   }

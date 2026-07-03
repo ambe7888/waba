@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
@@ -22,9 +24,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   Map<String, dynamic>? _ticket;
   List<dynamic> _replies = [];
   String? _error;
-  
+
   final _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  File? _selectedFile;
+
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles();
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedFile = File(result.files.single.path!);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
+
   bool _isSending = false;
 
   @override
@@ -40,7 +60,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     });
 
     try {
-      final data = await ApiService().fetchSupportTicketDetails(widget.ticketUid);
+      final data =
+          await ApiService().fetchSupportTicketDetails(widget.ticketUid);
       if (mounted) {
         setState(() {
           if (data != null && data['ticket'] != null) {
@@ -83,7 +104,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       _isSending = true;
     });
 
-    final success = await ApiService().replyToSupportTicket(widget.ticketUid, msg);
+    final success =
+        await ApiService().replyToSupportTicket(widget.ticketUid, msg);
 
     if (mounted) {
       setState(() {
@@ -100,22 +122,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     }
   }
 
-  Widget _buildMessageBubble(String sender, String message, String time, bool isMe) {
+  Widget _buildMessageBubble(
+      String sender, String message, String time, bool isMe,
+      {Map<String, dynamic>? attachment}) {
     final isDark = ThemeService().isDark;
-    
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
         padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMe 
-              ? ThemeService.primaryColor 
+          color: isMe
+              ? ThemeService.primaryColor
               : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(16).copyWith(
-            bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
-            bottomLeft: !isMe ? const Radius.circular(0) : const Radius.circular(16),
+            bottomRight:
+                isMe ? const Radius.circular(0) : const Radius.circular(16),
+            bottomLeft:
+                !isMe ? const Radius.circular(0) : const Radius.circular(16),
           ),
           boxShadow: [
             BoxShadow(
@@ -143,9 +170,44 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               message,
               style: TextStyle(
                 fontSize: 14,
-                color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                color: isMe
+                    ? Colors.white
+                    : (isDark ? Colors.white : Colors.black87),
               ),
             ),
+            if (attachment != null) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isMe ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.attach_file,
+                        size: 16,
+                        color: isMe
+                            ? Colors.white
+                            : (isDark ? Colors.white70 : Colors.black54)),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        attachment['file_name'] ?? 'Fichier',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isMe
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 6),
             Text(
               time,
@@ -175,7 +237,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : const Color(0xFFF1F5F9),
       appBar: AppBar(
         backgroundColor: isDark ? ThemeService.darkCard : Colors.white,
         elevation: 1,
@@ -201,7 +264,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? Center(
+                  child:
+                      Text(_error!, style: const TextStyle(color: Colors.red)))
               : Column(
                   children: [
                     Expanded(
@@ -216,27 +281,32 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                             _formatDate(_ticket?['created_at']),
                             true,
                           ),
-                          
+
                           // Replies
                           ..._replies.map((reply) {
                             // Check if reply is from vendor or admin
-                            final isMe = reply['users__id'] == _ticket?['vendor_user']?['users__id'];
-                            final senderName = isMe ? 'Vous' : (reply['user']?['first_name'] ?? 'Support');
-                            
+                            final isMe = reply['users__id'] ==
+                                _ticket?['vendor_user']?['users__id'];
+                            final senderName = isMe
+                                ? 'Vous'
+                                : (reply['user']?['first_name'] ?? 'Support');
+
                             return _buildMessageBubble(
                               senderName,
                               reply['message'] ?? '',
                               _formatDate(reply['created_at']),
                               isMe,
+                              attachment: reply['__data']?['attachment'],
                             );
                           }).toList(),
                         ],
                       ),
                     ),
-                    
+
                     // Input Area
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: isDark ? ThemeService.darkCard : Colors.white,
                         boxShadow: [
@@ -248,41 +318,102 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         ],
                       ),
                       child: SafeArea(
-                        child: Row(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _messageController,
-                                maxLines: 4,
-                                minLines: 1,
-                                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                                decoration: InputDecoration(
-                                  hintText: 'Écrire une réponse...',
-                                  hintStyle: const TextStyle(color: Colors.grey),
-                                  filled: true,
-                                  fillColor: isDark ? ThemeService.darkSurface : const Color(0xFFF1F5F9),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            if (_selectedFile != null)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? ThemeService.darkSurface
+                                      : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.attach_file,
+                                        size: 20, color: Colors.grey),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedFile!.path.split('/').last,
+                                        style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white70
+                                                : Colors.black87),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close,
+                                          size: 20, color: Colors.red),
+                                      onPressed: () =>
+                                          setState(() => _selectedFile = null),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            CircleAvatar(
-                              backgroundColor: ThemeService.primaryColor,
-                              radius: 24,
-                              child: _isSending
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : IconButton(
-                                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                                      onPressed: _sendReply,
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.attach_file,
+                                      color: Colors.grey),
+                                  onPressed: _pickFile,
+                                  padding: EdgeInsets.zero,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _messageController,
+                                    maxLines: 4,
+                                    minLines: 1,
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87),
+                                    decoration: InputDecoration(
+                                      hintText: 'Écrire une réponse...',
+                                      hintStyle:
+                                          const TextStyle(color: Colors.grey),
+                                      filled: true,
+                                      fillColor: isDark
+                                          ? ThemeService.darkSurface
+                                          : const Color(0xFFF1F5F9),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 12),
                                     ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                CircleAvatar(
+                                  backgroundColor: ThemeService.primaryColor,
+                                  radius: 24,
+                                  child: _isSending
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2),
+                                        )
+                                      : IconButton(
+                                          icon: const Icon(Icons.send_rounded,
+                                              color: Colors.white, size: 20),
+                                          onPressed: _sendReply,
+                                        ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
