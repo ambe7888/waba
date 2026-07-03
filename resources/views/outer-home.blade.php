@@ -464,12 +464,12 @@ $appName = getAppSettings('name');
             justify-content: center;
             font-size: 1.6rem;
             margin: 0 auto 1.5rem;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .feature-card:hover .feature-icon-wrap {
             background: var(--primary);
             color: white;
-            transform: scale(1.08);
+            transform: scale(1.15) rotate(-10deg);
         }
         .feature-card h3 {
             font-size: 1.3rem;
@@ -480,6 +480,214 @@ $appName = getAppSettings('name');
             line-height: 1.65;
             margin: 0;
             font-size: 1.05rem;
+        }
+
+        /* ═══════════════════════════════════════════
+           POURQUOI CHOISIR WHATSCLICK
+        ═══════════════════════════════════════════ */
+        .why-choose-us {
+            padding: 80px 0 50px;
+        }
+        .why-choose-us h2 {
+            font-size: clamp(2rem, 3.8vw, 2.8rem);
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0;
+            text-align: center;
+        }
+        .why-choose-us h2 span {
+            color: var(--primary);
+        }
+        .why-card {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            height: 100%;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: transparent;
+            border-radius: var(--radius);
+        }
+        .why-card:hover {
+            transform: translateY(-5px);
+        }
+        .why-icon-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin: 0 auto 1.75rem;
+            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.08);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .why-card:hover .why-icon-wrap {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: var(--shadow-glow);
+            transform: scale(1.1) rotate(5deg);
+        }
+        .why-card h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        }
+
+        /* ═══════════════════════════════════════════
+           FEATURE WALKTHROUGHS
+        ═══════════════════════════════════════════ */
+        .feature-walkthroughs {
+            padding: 80px 0;
+            background: transparent;
+        }
+        .walkthrough-row {
+            padding: 50px 0;
+        }
+        .walkthrough-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 1.5rem;
+        }
+        .walkthrough-content h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .walkthrough-content h4 {
+            font-weight: 600;
+            font-size: 1.15rem;
+            line-height: 1.5;
+        }
+        .walkthrough-content p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+        .walkthrough-image-wrap {
+            position: relative;
+            z-index: 2;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+        }
+        .walkthrough-image-wrap:hover {
+            transform: translateY(-4px) scale(1.02);
+        }
+        .walkthrough-image-decor {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            right: 15px;
+            bottom: 15px;
+            border-radius: var(--radius);
+            z-index: 1;
+            opacity: 0.15;
+            transition: all 0.3s ease;
+        }
+        .decor-yellow {
+            background: #ffc107;
+        }
+        .decor-primary {
+            background: var(--primary);
+        }
+        .walkthrough-row:hover .walkthrough-image-decor {
+            transform: translate(-5px, -5px) rotate(-1deg);
+        }
+        .bot-flow-accordion {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            height: 380px;
+        }
+        .bot-flow-card {
+            flex: 1;
+            height: 100%;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .bot-flow-card:hover {
+            flex: 3;
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+        .bot-flow-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            transition: transform 0.5s ease;
+        }
+
+        /* ═══════════════════════════════════════════
+           PREMIUM FEATURE GRID (GREEN CONTAINER)
+        ═══════════════════════════════════════════ */
+        .premium-features-container {
+            padding: 80px 0;
+            background: transparent;
+        }
+        .premium-gradient-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #0d6e3e 100%);
+            border-radius: 32px;
+            padding: 5rem 4rem;
+            box-shadow: var(--shadow-lg), 0 20px 40px rgba(13, 110, 62, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .premium-gradient-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .premium-row {
+            padding: 4rem 0;
+        }
+        .premium-row:first-child {
+            padding-top: 0;
+        }
+        .premium-row:last-child {
+            padding-bottom: 0;
+        }
+        .premium-divider {
+            border: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 2.5rem 0;
+        }
+        .premium-img {
+            max-height: 320px;
+            object-fit: contain;
+            transition: all 0.3s ease;
+        }
+        .premium-img:hover {
+            transform: scale(1.04) translateY(-3px);
+        }
+        .text-white-80 {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 1.05rem;
+            line-height: 1.7;
         }
 
         /* ═══════════════════════════════════════════
@@ -988,6 +1196,48 @@ $appName = getAppSettings('name');
         </div>
     </section>
 
+    <!-- ══════════════ POURQUOI CHOISIR ══════════════ -->
+    <section class="why-choose-us" id="why-choose-us">
+        <div class="container px-4 px-lg-5">
+            <div class="section-header text-center mb-5">
+                <h2>{{ __tr('Pourquoi choisir') }} <span>{!! __tr('__appName__?', ['__appName__' => $appName]) !!}</span></h2>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <!-- 1. Engagement accru -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="why-card">
+                        <div class="why-icon-wrap">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>{{ __tr('Engagement accru') }}</h3>
+                        <p>{{ __tr("Connectez-vous directement avec vos clients en temps réel sur WhatsApp à l'aide de l'interface intuitive __appName__ et d'une intégration transparente. Établissez des relations durables qui génèrent des résultats.", ['__appName__' => $appName]) }}</p>
+                    </div>
+                </div>
+                <!-- 2. Des taux de conversion plus élevés -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="why-card">
+                        <div class="why-icon-wrap">
+                            <i class="fas fa-people-arrows"></i>
+                        </div>
+                        <h3>{{ __tr('Des taux de conversion plus élevés') }}</h3>
+                        <p>{{ __tr("Avec __appName__, chaque conversation est une opportunité. Transformez les discussions informelles en interactions significatives qui conduisent à des conversions accrues grâce à des messages ciblés et des campagnes personnalisées.", ['__appName__' => $appName]) }}</p>
+                    </div>
+                </div>
+                <!-- 3. Assistance client 24h/24 et 7j/7 -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="why-card">
+                        <div class="why-icon-wrap">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h3>{{ __tr('Assistance client 24h/24 et 7j/7') }}</h3>
+                        <p>{{ __tr("Vos clients méritent la meilleure assistance, et __appName__ fournit des réponses automatisées 24h/24 et 7j/7 qui garantissent que vous ne manquerez jamais rien. Restez connecté, restez réactif et regardez votre entreprise prospérer.", ['__appName__' => $appName]) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ══════════════ FEATURES ══════════════ -->
     <section class="features" id="features">
         <div class="container px-4 px-lg-5">
@@ -998,48 +1248,231 @@ $appName = getAppSettings('name');
             </div>
 
             <div class="row g-4">
+                <!-- 1. Inscription intégrée -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-chat-dots-fill"></i></div>
-                        <h3>{{ __tr('Shared Team Inbox') }}</h3>
-                        <p>{{ __tr('Collaborate with your entire team. The integrated WhatsApp chat mirrors the native interface for a seamless experience.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-box-arrow-in-right"></i></div>
+                        <h3>{{ __tr('Inscription intégrée') }}</h3>
+                        <p>{{ __tr('Intégrez facilement les clients grâce à notre système d\'inscription intégré.') }}</p>
                     </div>
                 </div>
+                <!-- 2. Gestion des modèles -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-file-earmark-text"></i></div>
+                        <h3>{{ __tr('Gestion des modèles') }}</h3>
+                        <p>{{ __tr('Gérez les modèles directement dans l\'application sans nécessiter une visite sur Meta pour créer des modèles.') }}</p>
+                    </div>
+                </div>
+                <!-- 3. Plusieurs numéros de téléphone -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-telephone"></i></div>
+                        <h3>{{ __tr('Plusieurs numéros de téléphone') }}</h3>
+                        <p>{{ __tr('Prend en charge plusieurs numéros de téléphone pour le même compte WhatsApp Business.') }}</p>
+                    </div>
+                </div>
+                <!-- 4. Conversations -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-chat-dots"></i></div>
+                        <h3>{{ __tr('Conversations') }}</h3>
+                        <p>{{ __tr('La fonctionnalité de chat WhatsClick reproduit l\'interface native de WhatsApp, garantissant aux utilisateurs une expérience de messagerie transparente et familière.') }}</p>
+                    </div>
+                </div>
+                <!-- 5. Réponses du robot/bot de discussion -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon-wrap"><i class="bi bi-robot"></i></div>
-                        <h3>{{ __tr('Smart Chatbots & AI') }}</h3>
-                        <p>{{ __tr('Automate customer support 24/7 with interactive bots and OpenAI integration to provide immediate answers.') }}</p>
+                        <h3>{{ __tr('Réponses du robot/bot de discussion') }}</h3>
+                        <p>{{ __tr('Automatisez les réponses et engagez les clients 24h/24 et 7j/7 grâce aux réponses intelligentes des robots.') }}</p>
                     </div>
                 </div>
+                <!-- 6. API pour se connecter avec d'autres services -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-megaphone-fill"></i></div>
-                        <h3>{{ __tr('Broadcast Campaigns') }}</h3>
-                        <p>{{ __tr('Send bulk messages safely. Our smart queuing system protects your number from getting banned by Meta.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-gear"></i></div>
+                        <h3>{{ __tr('API pour se connecter avec d\'autres services') }}</h3>
+                        <p>{{ __tr('Les API permettent une connexion transparente entre différents services, permettant le partage de données et l\'intégration de fonctionnalités.') }}</p>
                     </div>
                 </div>
+                <!-- 7. Gérer les contacts -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-people-fill"></i></div>
-                        <h3>{{ __tr('Contact Management') }}</h3>
-                        <p>{{ __tr('Segment your audience with tags and custom fields. Import/Export contacts easily via Excel/CSV.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-person-lines-fill"></i></div>
+                        <h3>{{ __tr('Gérer les contacts') }}</h3>
+                        <p>{{ __tr('Importez et exportez sans effort des contacts au format XLSX pour un transfert facile des contacts ainsi que la fonctionnalité Ajouter/Modifier sur l\'interface.') }}</p>
                     </div>
                 </div>
+                <!-- 8. Mises à jour en temps réel -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-bar-chart-fill"></i></div>
-                        <h3>{{ __tr('Detailed Analytics') }}</h3>
-                        <p>{{ __tr('Track delivery, read receipts, and engagement metrics to optimize your messaging strategy.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-lightning-charge"></i></div>
+                        <h3>{{ __tr('Mises à jour en temps réel') }}</h3>
+                        <p>{{ __tr('Mises à jour en temps réel de l\'état des messages et des campagnes pour voir les performances de votre campagne ou de vos messages.') }}</p>
                     </div>
                 </div>
+                <!-- 9. Tableau de bord -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-layout-text-window-reverse"></i></div>
-                        <h3>{{ __tr('Rich Media Templates') }}</h3>
-                        <p>{{ __tr('Use approved Meta templates with buttons, lists, and images to create highly interactive messages.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-speedometer2"></i></div>
+                        <h3>{{ __tr('Tableau de bord') }}</h3>
+                        <p>{{ __tr('Fournir une visibilité instantanée sur les performances et l\'état de leurs campagnes marketing.') }}</p>
                     </div>
                 </div>
+                <!-- 10. Membres de l'équipe/agents -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-people"></i></div>
+                        <h3>{{ __tr('Membres de l\'équipe/agents') }}</h3>
+                        <p>{{ __tr('Déléguez le travail en créant des utilisateurs avec diverses autorisations.') }}</p>
+                    </div>
+                </div>
+                <!-- 11. Messages interactifs/bouton pour la réponse du bot -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-chat-square-text"></i></div>
+                        <h3>{{ __tr('Messages interactifs/bouton pour la réponse du bot') }}</h3>
+                        <p>{{ __tr('Les robots interactifs avancés fournissent désormais des réponses plus intelligentes et plus attrayantes, prenant en charge des images, des documents, des vidéos, des audios et des boutons interactifs pour une interaction utilisateur améliorée.') }}</p>
+                    </div>
+                </div>
+                <!-- 12. Les champs personnalisés -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-list-ul"></i></div>
+                        <h3>{{ __tr('Les champs personnalisés') }}</h3>
+                        <p>{{ __tr('Personnalisez vos messages avec des informations sur la base d\'utilisateurs et des champs personnalisés adaptés à votre audience sur WhatsClick.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ FEATURE WALKTHROUGHS ══════════════ -->
+    <section class="feature-walkthroughs" id="walkthroughs">
+        <div class="container px-4 px-lg-5">
+            
+            <!-- 1. Campaign Management -->
+            <div class="row align-items-center walkthrough-row mb-5">
+                <div class="col-lg-6 text-center position-relative mb-4 mb-lg-0">
+                    <div class="walkthrough-image-decor decor-yellow"></div>
+                    <div class="walkthrough-image-wrap">
+                        <img class="img-fluid rounded-4 shadow-lg" src="{{ asset('imgs/outer-home/campaign.png') }}" alt="{{ __tr('Gestion de campagne') }}" />
+                    </div>
+                </div>
+                <div class="col-lg-6 ps-lg-5">
+                    <div class="walkthrough-content">
+                        <span class="walkthrough-badge">{{ __tr('Gestion de campagne') }}</span>
+                        <h2>{{ __tr('Gestion de campagne') }}</h2>
+                        <h4 class="text-danger my-3">{{ __tr('Tout réaliser la gestion des campagnes enfin ; créer, planifier et atteindre instantanément!') }}</h4>
+                        <p>{{ __tr("Gerez sans effort vos campagnes grace a notre fonction de gestion de campagne intuitive. Creez ou planifiez des campagnes instantanement pour tous les contacts ou des groupes specifiques, ce qui permet une portee immediate ou un calendrier strategique. Maximisez l'impact de vos efforts de marketing et prenez le controle de vos messages en toute simplicite.") }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Integrated WhatsApp Chat -->
+            <div class="row align-items-center walkthrough-row flex-lg-row-reverse mb-5">
+                <div class="col-lg-6 text-center position-relative mb-4 mb-lg-0">
+                    <div class="walkthrough-image-decor decor-primary"></div>
+                    <div class="walkthrough-image-wrap">
+                        <img class="img-fluid rounded-4 shadow-lg" src="{{ asset('imgs/outer-home/whatsapp-chat.png') }}" alt="{{ __tr('Chat WhatsApp Integre') }}" />
+                    </div>
+                </div>
+                <div class="col-lg-6 pe-lg-5">
+                    <div class="walkthrough-content">
+                        <span class="walkthrough-badge">{{ __tr('Chat WhatsApp Integre') }}</span>
+                        <h2>{{ __tr('Chat WhatsApp Integre') }}</h2>
+                        <h4 class="text-danger my-3">{{ __tr("Ameliorer l'engagement et le support client") }}</h4>
+                        <p>{{ __tr("La fonction de chat WhatsApp integree dans __appName__ offre une experience de messagerie transparente et familiere en reproduisant fidelement l'interface native de WhatsApp. Les utilisateurs peuvent naviguer sans effort, en tirant parti de leur familiarite avec la disposition et les fonctions de WhatsApp. Cette coherence ameliore le confort et l'efficacite des utilisateurs, facilitant une communication fluide.", ['__appName__' => $appName]) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Bot Flow Builder -->
+            <div class="row align-items-center walkthrough-row mb-5">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="bot-flow-accordion">
+                        <div class="bot-flow-card">
+                            <img src="{{ asset('imgs/outer-home/bot-flow2.png') }}" alt="Bot Flow Step 1" />
+                        </div>
+                        <div class="bot-flow-card">
+                            <img src="{{ asset('imgs/outer-home/bot-flow3.png') }}" alt="Bot Flow Step 2" />
+                        </div>
+                        <div class="bot-flow-card">
+                            <img src="{{ asset('imgs/outer-home/bot-flow1.png') }}" alt="Bot Flow Step 3" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 ps-lg-5">
+                    <div class="walkthrough-content">
+                        <span class="walkthrough-badge">{{ __tr('Generateur de Flux de robots') }}</span>
+                        <h2>{{ __tr('Generateur de Flux de robots') }}</h2>
+                        <h4 class="text-danger my-3">{{ __tr('Simplifier la construction de conversion de flux de robots') }}</h4>
+                        <p>{{ __tr("Notre constructeur de flux de robots avance vous aide a creer des conversions de robots facilement et efficacement. Le constructeur de flux de robots simplifie la configuration des points de declenchement d'un robot a l'autre en utilisant des liens pour les boutons et les options de ligne de liste.") }}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ══════════════ PREMIUM FEATURE GRID (GREEN CONTAINER) ══════════════ -->
+    <section class="premium-features-container py-5">
+        <div class="container px-4 px-lg-5">
+            <div class="premium-gradient-card">
+                
+                <!-- A. Reached to the Customers -->
+                <div class="row align-items-center premium-row">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <h2 class="text-white fw-bold mb-3">{{ __tr('Atteint les clients') }}</h2>
+                        <h5 class="text-warning mb-3 fw-semibold">{{ __tr('Voulez-vous rendre les interactions de votre chatbot plus excitantes et engageantes ?') }}</h5>
+                        <p class="text-white-80">{{ __tr("Notre fonctionnalite de bot avancee vous permet d'envoyer des images, des videos et des documents ainsi que des boutons via votre chatbot. Au lieu d'utiliser uniquement du texte, vous pouvez desormais impressionner vos clients avec des images visuellement attrayantes, des videos informatives et des documents utiles. C'est un excellent moyen de capter leur attention et de leur fournir un contenu precieux. Essayez maintenant et faites passer vos interactions avec le chatbot au niveau superieur !") }}</p>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <img class="img-fluid rounded-4 premium-img" src="{{ asset('imgs/outer-home/media-message.png') }}" alt="{{ __tr('Atteint les clients') }}" />
+                    </div>
+                </div>
+
+                <hr class="premium-divider" />
+
+                <!-- B. QR Code Generation -->
+                <div class="row align-items-center premium-row flex-lg-row-reverse">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <h2 class="text-white fw-bold mb-3">{{ __tr('Generation de codes QR') }}</h2>
+                        <h5 class="text-warning mb-3 fw-semibold">{{ __tr('Scannez le code QR pour demarrer le chat') }}</h5>
+                        <p class="text-white-80">{{ __tr('Generez rapidement et facilement des codes QR pour votre numero de telephone WhatsApp grace a cette fonctionnalite. Les utilisateurs peuvent se connecter sans effort en scannant le code avec leurs smartphones, initiant instantanement la communication avec votre compte WhatsApp. Ce processus simplifie garantit des interactions fluides et un acces facile pour interagir avec votre public.') }}</p>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <img class="img-fluid w-75 premium-img" src="{{ asset('imgs/outer-home/qr-code.png') }}" alt="{{ __tr('Generation de codes QR') }}" />
+                    </div>
+                </div>
+
+                <hr class="premium-divider" />
+
+                <!-- C. FlowiseAI Integration -->
+                <div class="row align-items-center premium-row">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <h2 class="text-white fw-bold mb-3">{{ __tr('Integration AI Bots pour les entrepreneurs') }} <span class="text-warning">{{ __tr('FlowiseAI') }}</span></h2>
+                        <p class="text-white-80">{{ __tr('Flowise AI propose des chatbots alimentes par l\'IA pour que les fournisseurs automatisent les interactions avec les clients et ameliorent l\'engagement.') }}</p>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <img class="img-fluid rounded-4 premium-img" src="{{ asset('imgs/outer-home/bg-11.png') }}" alt="{{ __tr('FlowiseAI') }}" />
+                    </div>
+                </div>
+
+                <hr class="premium-divider" />
+
+                <!-- D. Powered by WhatsApp Cloud API -->
+                <div class="row align-items-center premium-row flex-lg-row-reverse">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <h2 class="text-white fw-bold mb-3">{{ __tr('Propulse par l\'API WhatsApp Cloud') }}</h2>
+                        <p class="text-white-80">{{ __tr('__appName__ s\'integre parfaitement a l\'API WhatsApp Cloud, garantissant des operations fluides sans gestion de serveur ni depenses supplementaires, ce qui en fait une solution rentable.', ['__appName__' => $appName]) }}</p>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <img class="img-fluid w-75 premium-img" src="{{ asset('imgs/outer-home/bg-4.png') }}" alt="{{ __tr('WhatsApp Cloud API') }}" />
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
