@@ -91,28 +91,61 @@ $currentAppTheme ='';
 
     <div class="main-content">
         <!-- Global PWA Loader -->
-        <div id="pwa-global-loader" class="pwa-loader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(2px);">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="sr-only">Loading...</span>
+        <div id="pwa-global-loader" class="pwa-loader-overlay" style="display: none; opacity: 0; transition: opacity 0.3s ease; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(4px);">
+            <div class="fluid-loader">
+                <div class="fluid-dot"></div>
+                <div class="fluid-dot"></div>
+                <div class="fluid-dot"></div>
             </div>
-            <div class="mt-2 text-primary font-weight-bold">{{ __tr('Chargement...') }}</div>
+            <div class="mt-4 text-muted" style="font-weight: 500; letter-spacing: 0.5px;">{{ __tr('Chargement...') }}</div>
         </div>
         <style>
-            .pwa-loader-overlay { background: rgba(255, 255, 255, 0.7); }
-            .lw-app-theme-dark .pwa-loader-overlay { background: rgba(17, 17, 17, 0.7); }
+            .pwa-loader-overlay { background: rgba(255, 255, 255, 0.85); }
+            .lw-app-theme-dark .pwa-loader-overlay { background: rgba(15, 23, 42, 0.85); }
+            .fluid-loader {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                justify-content: center;
+            }
+            .fluid-dot {
+                width: 12px;
+                height: 12px;
+                background-color: var(--primary, #5e72e4);
+                border-radius: 50%;
+                animation: fluid-bounce 1.4s infinite ease-in-out both;
+            }
+            .fluid-dot:nth-child(1) { animation-delay: -0.32s; }
+            .fluid-dot:nth-child(2) { animation-delay: -0.16s; }
+            @keyframes fluid-bounce {
+                0%, 80%, 100% { 
+                    transform: scale(0);
+                    opacity: 0.4;
+                } 
+                40% { 
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
         </style>
         <script>
             window.addEventListener('beforeunload', function() {
                 var loader = document.getElementById('pwa-global-loader');
                 if (loader) {
                     loader.style.display = 'flex';
+                    // Trigger reflow to ensure transition works
+                    void loader.offsetWidth;
+                    loader.style.opacity = '1';
                 }
             });
             window.addEventListener('pageshow', function(event) {
                 // Hide loader if restoring from bfcache (back button)
                 var loader = document.getElementById('pwa-global-loader');
                 if (loader) {
-                    loader.style.display = 'none';
+                    loader.style.opacity = '0';
+                    setTimeout(function() {
+                        loader.style.display = 'none';
+                    }, 300);
                 }
             });
         </script>
