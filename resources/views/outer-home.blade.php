@@ -1196,8 +1196,9 @@ $appName = getAppSettings('name');
 
             <!-- Heading -->
             <h1>
-                {{ __tr('Boost your customer engagement on a 100% secure') }}
-                <span class="highlight">WhatsApp</span> {{ __tr('platform.') }}
+                {!! __tr('Boost your customer engagement on a 100% secure __whatsApp__ platform.', [
+                    '__whatsApp__' => '<span class="highlight">WhatsApp</span>'
+                ]) !!}
             </h1>
 
             <!-- Subtitle -->
