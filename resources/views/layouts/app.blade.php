@@ -90,6 +90,34 @@ $currentAppTheme ='';
     @endauth
 
     <div class="main-content">
+        <!-- Global PWA Loader -->
+        <div id="pwa-global-loader" class="pwa-loader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(2px);">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <div class="mt-2 text-primary font-weight-bold">{{ __tr('Chargement...') }}</div>
+        </div>
+        <style>
+            .pwa-loader-overlay { background: rgba(255, 255, 255, 0.7); }
+            .lw-app-theme-dark .pwa-loader-overlay { background: rgba(17, 17, 17, 0.7); }
+        </style>
+        <script>
+            window.addEventListener('beforeunload', function() {
+                var loader = document.getElementById('pwa-global-loader');
+                if (loader) {
+                    loader.style.display = 'flex';
+                }
+            });
+            window.addEventListener('pageshow', function(event) {
+                // Hide loader if restoring from bfcache (back button)
+                var loader = document.getElementById('pwa-global-loader');
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
+        </script>
+        <!-- /Global PWA Loader -->
+
         @include('layouts.navbars.navbar')
 
         @if(isDemo())
