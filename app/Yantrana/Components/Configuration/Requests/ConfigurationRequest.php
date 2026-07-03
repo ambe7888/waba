@@ -230,6 +230,19 @@ class ConfigurationRequest extends BaseRequest
                             }
                         }
                     break;
+                    case 'wave_payment':
+                        $enableWave = Arr::get($inputData, 'enable_wave');
+        
+                        // check if wave payment enable
+                        if ($enableWave) {
+                            if (!array_get($inputData, 'wave_keys_exist')) {
+                                $rules = [
+                                    'wave_api_key' => 'required',
+                                    'wave_webhook_secret' => 'required',
+                                ];
+                            }
+                        }
+                    break;
             case 'email':
 
                 //driver specific rules

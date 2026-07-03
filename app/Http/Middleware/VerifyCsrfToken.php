@@ -22,6 +22,7 @@ class VerifyCsrfToken extends Middleware
         'paystack/*',
         'yoomoney/*',
         'yoomoney/yoomoney-webhook-order-payment',
+        'webhook/wave',
     ];
 
     /**

@@ -433,6 +433,30 @@ return [
                 'ignore_empty' => true,
             ],
         ],
+        // wave mobile money
+        'wave_payment' => [
+            'enable_wave' => [
+                'key' => 'enable_wave',
+                'data_type' => 2,    // boolean
+                'default' => false,
+            ],
+            'wave_api_key' => [
+                'key' => 'wave_api_key',
+                'data_type' => 1,    // string
+                'default' => '',
+                'placeholder' => 'Wave API Key',
+                'hide_value' => true,
+                'ignore_empty' => true,
+            ],
+            'wave_webhook_secret' => [
+                'key' => 'wave_webhook_secret',
+                'data_type' => 1,    // string
+                'default' => '',
+                'placeholder' => 'Wave Webhook Secret',
+                'hide_value' => true,
+                'ignore_empty' => true,
+            ],
+        ],
         //paystack
            'paystack_payment' => [
                 // Payment method

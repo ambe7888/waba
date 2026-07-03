@@ -64,6 +64,12 @@ Route::get('/console', function () {
 })->name('home');
 
 
+// Wave Mobile Money Webhook
+Route::post('webhook/wave', [
+    \App\Yantrana\Components\Subscription\Controllers\WavePaymentController::class,
+    'handleWebhook',
+])->name('wave.webhook');
+
 // authentication routes
 require __DIR__ . '/auth.php';
 // Authenticated Routes
@@ -180,6 +186,8 @@ Route::middleware([
                 ConfigurationController::class,
                 'createStripeWebhook',
             ])->name('manage.configuration.create_stripe_webhook');
+
+
 
 
 
@@ -1174,6 +1182,13 @@ Route::middleware([
                ManualSubscriptionController::class,
                'checkoutRazorpay'
             ])->name('write.razorpay.checkout');
+
+            // wave checkout
+            Route::post('/payment/wave/checkout', [
+                \App\Yantrana\Components\Subscription\Controllers\WavePaymentController::class,
+                'createCheckoutSession',
+            ])->name('wave.checkout');
+
              //paystack order checkout
              Route::post('/paystack-verify/{reference}', [
                 ManualSubscriptionController::class,

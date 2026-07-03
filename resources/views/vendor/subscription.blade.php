@@ -299,6 +299,15 @@
                                     </button>
                                     
                                 </form>
+                                @if(getAppSettings('enable_wave'))
+                                <form action="{{ route('wave.checkout') }}" method="post" id="wave-pay-form">
+                                    @csrf
+                                    <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                    <button value="wave" type="submit" class="mt-4 btn btn-primary">
+                                        <i class="fa fa-money-bill-wave"></i> {{ __tr('Change/Renew Plan Via Wave') }}
+                                    </button>
+                                </form>
+                                @endif
                                @else
                                @if ((getAppSettings('enable_upi_payment') or getAppSettings('enable_bank_transfer') or getAppSettings('enable_paypal') or getAppSettings('enable_razorpay') or getAppSettings('enable_paystack') or getAppSettings('enable_yoomoney') or getAppSettings('enable_phonepe')) and !$isRazorpaySubscription or ($isRazorpaySubscription and $isSubscriptionManuallyCancelled))
                                <fieldset>
@@ -456,6 +465,21 @@
                                                 {{ __tr('Subscribe Now') }}
                                             </button>
                                     </form>
+                                    </fieldset>
+                                    @endif
+                                    @if(getAppSettings('enable_wave'))
+                                    <fieldset class="mt-3">
+                                         <legend>
+                                             <i class="fa fa-money-bill-wave"></i> {{ __tr('Wave Mobile Money') }}
+                                         </legend>
+                                         <form action="{{ route('wave.checkout') }}" method="post" id="wave-pay-form-new">
+                                             @csrf
+                                             <input type="hidden" name="plan_id" value="{{ $planId ?? '' }}">
+                                             <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                             <button value="wave" type="submit" class="btn btn-primary mt-2">
+                                                 {{ __tr('Pay via Wave') }}
+                                             </button>
+                                         </form>
                                     </fieldset>
                                     @endif
                                     <!-- Stack for recurring payment Subscribe Now Button -->

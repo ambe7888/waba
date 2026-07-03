@@ -290,6 +290,68 @@
             <!-- /For Recurring Payment Only -->
         </fieldset>
 
+        <!-- Wave Mobile Money checkout start -->
+        <fieldset class="lw-fieldset mb-3" x-data="{panelOpened:false}" x-cloak>
+            <legend class="lw-fieldset-legend" @click="panelOpened = !panelOpened">
+                <i class="fa fa-money-bill-wave"></i> <?= __tr('Wave Mobile Money') ?>
+                <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small>
+            </legend>
+            <!-- Payment Setting Form -->
+            <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" data-callback="onPaymentGatewayFormCallback"
+                action="<?= route('manage.configuration.write', ['pageType' => 'wave_payment']) ?>">
+                <!-- input field body -->
+                <div class="form-group mt-2">
+                    <!-- Enable Wave Checkout field -->
+                    <div class="form-group pt-3">
+                        <label for="lwEnableWave">
+                            <input type="hidden" name="enable_wave" value="0">
+                            <input type="checkbox" id="lwEnableWave" data-lw-plugin="lwSwitchery" name="enable_wave"
+                                <?= getAppSettings('enable_wave')==true ? 'checked' : '' ?>>
+                            <?= __tr('Enable Wave Checkout') ?>
+                        </label>
+                    </div>
+
+                    <!-- wave keys exist hidden field -->
+                    <input type="hidden" name="wave_keys_exist" id="lwWaveKeysExist"
+                        value="<?= $configurationData['wave_api_key'] ?? '' ?>" />
+
+                    <div id="lwWaveInputField">
+                        <!-- Wave API Key -->
+                        <div class="mb-3">
+                            <label for="lwWaveApiKey">
+                                <?= __tr('Wave API Key') ?>
+                            </label>
+                            <input type="text" class="form-control form-control-user" value=""
+                                id="lwWaveApiKey" name="wave_api_key"
+                                placeholder="<?= __tr('Wave API Key') ?>">
+                        </div>
+                        <!-- Wave Webhook Secret -->
+                        <div class="mb-3">
+                            <label for="lwWaveWebhookSecret">
+                                <?= __tr('Wave Webhook Secret') ?>
+                            </label>
+                            <input type="text" class="form-control form-control-user" value=""
+                                id="lwWaveWebhookSecret" name="wave_webhook_secret"
+                                placeholder="<?= __tr('Wave Webhook Secret') ?>">
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>{{ __tr('Webhook URL:') }}</strong><br>
+                            <code>{{ getViaSharedUrl(route('wave.webhook')) }}</code><br>
+                            <small>{{ __tr('Copy this URL and add it to your Wave Business Dashboard to receive payment confirmations.') }}</small>
+                        </div>
+                    </div>
+                </div>
+                <!-- Update Button -->
+                <div class="form-group">
+                    <button type="submit" class="lw-ajax-form-submit-action btn btn-primary btn-user lw-btn-block-mobile">
+                        <?= __tr('Save') ?>
+                    </button>
+                </div>
+            </form>
+        </fieldset>
+        <!-- / Wave Mobile Money checkout end -->
+
+
         <!-- For one time Payment Only -->
         @stack('oneTimeGatewaySettingStackStart')
         <!-- /For one time Payment Only -->

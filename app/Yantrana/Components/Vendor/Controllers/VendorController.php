@@ -546,10 +546,10 @@ class VendorController extends BaseController
             }
         }
 
-        return $this->processResponse(1, [], [
-            'message' => __tr('Diffusion envoyée avec succès à __count__ contact(s).', [
+        return $this->processResponse(1, [
+            1 => __tr('Diffusion envoyée avec succès à __count__ contact(s).', [
                 '__count__' => $successCount
             ])
-        ], true);
+        ], [], true);
     }
 }
