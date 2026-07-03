@@ -40,6 +40,12 @@
                                         </small>
                                     </div>
 
+                                    <!-- Aperçu du Template -->
+                                    <div id="template-preview-container" class="mt-3 p-3 border rounded bg-white shadow-sm" style="display: none;">
+                                        <div class="text-xs font-weight-bold text-uppercase text-secondary mb-2">{{ __tr('Aperçu du Template') }}</div>
+                                        <div class="template-preview-text text-sm bg-light p-3 rounded mb-2 border" style="white-space: pre-wrap; line-height: 1.6; color: #374151;"></div>
+                                    </div>
+
                                     <!-- Conteneur Variables Dynamiques -->
                                     <div id="dynamic-variables-container" class="mt-3"></div>
                                     
@@ -156,12 +162,32 @@
             let html = '';
             let hasVars = false;
             
+            if (!tplName || !tpl) {
+                $('#template-preview-container').hide();
+                $('#dynamic-variables-container').empty();
+                return;
+            }
+
+            let bodyText = '';
+            let headerText = '';
+            let buttonsHtml = '';
+            
             if (tpl && tpl.__data && tpl.__data.template && tpl.__data.template.components) {
                 tpl.__data.template.components.forEach(comp => {
+                    if (comp.type === 'BODY') {
+                        bodyText = comp.text || '';
+                    } else if (comp.type === 'HEADER' && comp.format === 'TEXT') {
+                        headerText = comp.text || '';
+                    } else if (comp.type === 'BUTTONS' && comp.buttons) {
+                        comp.buttons.forEach((btn) => {
+                            buttonsHtml += `<div class="mt-2"><button type="button" class="btn btn-outline-secondary btn-sm" disabled><i class="fa fa-external-link-alt text-xs mr-1"></i> ${btn.text}</button></div>`;
+                        });
+                    }
+
                     // Header Media Variables
                     if (comp.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(comp.format)) {
                         html += `
-                            <div class="form-group border-left border-primary pl-3">
+                            <div class="form-group border-left border-primary pl-3 mt-3">
                                 <label class="font-weight-bold"><i class="fa fa-file-alt"></i> Lien URL (${comp.format}) - Entête</label>
                                 <input type="url" name="variables[header_media][${comp.format.toLowerCase()}]" class="form-control" placeholder="https://..." required>
                                 <small class="form-text text-muted">{{ __tr('Saisissez le lien public direct vers le média.') }}</small>
@@ -178,7 +204,7 @@
                         matches.forEach(m => {
                             let num = m.replace(/[{}]/g, '');
                             html += `
-                                <div class="form-group border-left border-primary pl-3">
+                                <div class="form-group border-left border-primary pl-3 mt-3">
                                     <label class="font-weight-bold">Variable ${m} (${comp.type})</label>
                                     <input type="text" name="variables[${comp.type.toLowerCase()}][${num}]" class="form-control var-input-field" placeholder="Valeur pour ${m}" required>
                                 </div>
@@ -189,10 +215,31 @@
                 });
             }
             
+            // Build and show template preview
+            let previewHtml = '';
+            if (headerText) {
+                let highlightedHeader = headerText.replace(/\{\{(\d+)\}\}/g, '<span class="badge badge-warning font-weight-bold text-dark">HEADER Variable {' + '{$1}' + '}</span>');
+                previewHtml += `<div class="border-bottom pb-2 mb-2 font-weight-bold text-dark">${highlightedHeader}</div>`;
+            }
+            if (bodyText) {
+                let highlightedBody = bodyText.replace(/\{\{(\d+)\}\}/g, '<span class="badge badge-warning font-weight-bold text-dark">Variable {' + '{$1}' + '}</span>');
+                previewHtml += `<div class="text-dark">${highlightedBody}</div>`;
+            }
+            if (buttonsHtml) {
+                previewHtml += `<div class="border-top pt-2 mt-2">${buttonsHtml}</div>`;
+            }
+            
+            if (previewHtml) {
+                $('#template-preview-container .template-preview-text').html(previewHtml);
+                $('#template-preview-container').show();
+            } else {
+                $('#template-preview-container').hide();
+            }
+            
             if (hasVars) {
                 // Prepend help tags
                 const helperHtml = `
-                    <div class="alert alert-secondary p-3 mb-3 border bg-light">
+                    <div class="alert alert-secondary p-3 mb-3 border bg-light mt-3">
                         <div class="font-weight-bold text-sm mb-2 text-dark"><i class="fa fa-info-circle text-info"></i> {{ __tr('Placeholders Dynamiques:') }}</div>
                         <p class="text-xs mb-2">{{ __tr('Cliquez sur une variable ci-dessous pour l\'insérer dans le champ sélectionné ou la copier :') }}</p>
                         <div class="d-flex flex-wrap">
