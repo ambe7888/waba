@@ -3604,6 +3604,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     // if openai issues
                     if ($e instanceof \OpenAI\Exceptions\ErrorException) {
                         logSystemVendorChatMessage($contact, 'ERROR', $e->getMessage());
+                    } elseif ($e->getMessage() == 'Insufficient AI Credits') {
+                        logSystemVendorChatMessage($contact, 'ERROR', __tr("L'IA n'a pas pu répondre car votre solde de crédits IA est épuisé. Veuillez vous rendre sur la page Paramètres > Recharge AI Credits pour acheter des crédits."));
                     }
                     __logDebug($e->getMessage());
                     // send error message to the customers

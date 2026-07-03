@@ -42,6 +42,10 @@ return [
                 'description' => __tr('AI Chat Bot'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
+            'ai_credits' => [
+                'description' => __tr('AI Credits / Month'),
+                'limit' => 10, // 10 free credits
+            ],
             'api_access' => [
                 'type' => 'switch', // on or off
                 'description' => __tr('API and Webhook Access'),
@@ -91,6 +95,10 @@ return [
                 'type' => 'switch', // on or off
                 'description' => __tr('AI Chat Bot'),
                 'limit' => 1, // 0 for none and 1 for enable
+            ],
+            'ai_credits' => [
+                'description' => __tr('AI Credits / Month'),
+                'limit' => 500,
             ],
             'api_access' => [
                 'type' => 'switch', // on or off
@@ -155,6 +163,10 @@ return [
                 'description' => __tr('AI Chat Bot'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
+            'ai_credits' => [
+                'description' => __tr('AI Credits / Month'),
+                'limit' => 2000,
+            ],
             'api_access' => [
                 'type' => 'switch', // on or off
                 'description' => __tr('API and Webhook Access'),
@@ -217,6 +229,10 @@ return [
                 'type' => 'switch', // on or off
                 'description' => __tr('AI Chat Bot'),
                 'limit' => 1, // 0 for none, 1 for enable
+            ],
+            'ai_credits' => [
+                'description' => __tr('AI Credits / Month'),
+                'limit' => -1, // Unlimited
             ],
             'api_access' => [
                 'type' => 'switch', // on or off

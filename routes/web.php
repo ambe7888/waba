@@ -1049,6 +1049,18 @@ Route::middleware([
                 VendorSettingsController::class,
                 'index',
             ])->name('vendor.settings.read');
+
+            // AI Credits Topup
+            Route::get('/ai-credits/topup', [
+                VendorSettingsController::class,
+                'topupView',
+            ])->name('vendor.ai_credits.topup');
+
+            Route::post('/ai-credits/checkout', [
+                \App\Yantrana\Components\Subscription\Controllers\WavePaymentController::class,
+                'createAiCreditsCheckoutSession',
+            ])->name('vendor.ai_credits.checkout');
+
             // Vendor Settings update
             Route::post('/settings', [
                 VendorSettingsController::class,

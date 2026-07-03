@@ -76,6 +76,11 @@ class VendorSettingsController extends BaseController
      *
      * @return view
      *---------------------------------------------------------------- */
+    public function topupView()
+    {
+        return $this->loadView('vendors.settings.ai-credits-topup');
+    }
+
     public function index($pageType = 'general')
     {
         validateVendorAccess('administrative');
