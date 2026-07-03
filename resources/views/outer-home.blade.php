@@ -861,7 +861,7 @@ $appName = getAppSettings('name');
     <nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
         <div class="container px-4 px-lg-5">
             <a class="navbar-brand pt-0" href="{{ url('/') }}">
-                <img src="{{ getAppSettings('logo_image_url') }}" class="navbar-brand-img" alt="{{ getAppSettings('name') }}" style="max-height: 32px;">
+                <img src="{{ getAppSettings('logo_image_url') }}" class="navbar-brand-img" alt="{{ getAppSettings('name') }}" style="max-height: 45px;">
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" style="border:none; background:transparent;">

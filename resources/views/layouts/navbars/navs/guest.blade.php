@@ -8,16 +8,30 @@
             background: transparent !important;
         }
 
-        /* Modern Glassmorphic Navbar - Light Mode */
+        /* Modern Glassmorphic Floating Pill Navbar - Light Mode */
         html[data-theme='light'] nav#mainNav,
         html[lw-theme-mode='light'] nav#mainNav,
         nav#mainNav {
+            top: 25px !important;
+            width: calc(100% - 40px);
+            max-width: 1100px;
+            margin: 0 auto;
+            border-radius: 100px;
             background: rgba(255, 255, 255, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05) !important;
-            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.6) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: fixed;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            padding: 0.5rem 0;
+        }
+
+        #mainNav .navbar-brand-img {
+            max-height: 45px !important;
         }
         
         html[data-theme='light'] #mainNav .navbar-nav .nav-item .nav-link,
@@ -58,14 +72,55 @@
             box-shadow: 0 6px 20px rgba(25, 135, 84, 0.3);
         }
 
-        /* Modern Glassmorphic Navbar - Dark Mode */
+        /* Modern Glassmorphic Floating Pill Navbar - Dark Mode */
         html[data-theme='dark'] nav#mainNav,
         html[lw-theme-mode='dark'] nav#mainNav {
             background: rgba(23, 24, 44, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Mobile menu fixes */
+        @media (max-width: 991px) {
+            nav#mainNav { 
+                padding: 0.8rem 0; 
+                border-radius: 24px;
+                top: 15px !important;
+            }
+            nav#mainNav .container {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+            }
+            nav#mainNav .navbar-brand {
+                width: auto !important;
+                margin-right: auto;
+            }
+            nav#mainNav .navbar-toggler {
+                margin-left: auto;
+            }
+            nav#mainNav .navbar-collapse {
+                width: 100%;
+                margin-top: 1rem;
+            }
+            #mainNav .navbar-nav {
+                text-align: center;
+                width: 100%;
+            }
+            #mainNav .navbar-nav .nav-item .nav-link {
+                padding: 0.8rem 1.2rem;
+                text-align: center;
+            }
+            html[data-theme='light'] #mainNav .navbar-nav .nav-item a[href*="register"],
+            html[lw-theme-mode='light'] #mainNav .navbar-nav .nav-item a[href*="register"],
+            #mainNav .navbar-nav .nav-item a[href*="register"] {
+                display: inline-block;
+                margin-top: 0.8rem;
+                margin-left: 0;
+            }
         }
 
         html[data-theme='dark'] #mainNav .navbar-nav .nav-item .nav-link,
