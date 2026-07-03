@@ -138,6 +138,7 @@ if ($saasAdminVendorId) {
 </form>
 
 @if($saasAdminVendorId)
+@push('js')
 <script>
 $(document).ready(function() {
     // Approved templates passed from PHP
@@ -297,4 +298,5 @@ $(document).ready(function() {
     });
 });
 </script>
+@endpush
 @endif
