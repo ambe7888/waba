@@ -5,8 +5,14 @@ $currentAppTheme ='';
 @endphp
 
      
-html > body {
+html > body:not(.lw-guest-page) {
 background-color: {{ getAppSettings('app_bg_color') }}!important;
+}
+/* Pages invitées : fond identique à la page d'accueil */
+html:has(body.lw-guest-page),
+html > body.lw-guest-page {
+    background: #fafbf8 url('{{ asset("imgs/wa-message-bg-faded.png") }}') repeat fixed !important;
+    background-color: #fafbf8 !important;
 }
 .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .conversation {
 background-color: {{ darkenColorValue(getAppSettings('app_bg_color'), 9) }}!important;
@@ -122,7 +128,7 @@ $css .= ".border.border-$bootstrapClass { border-color: $bgColor !important; }\n
 @endforeach
 {!! $css !!}
 @if (getAppSettings('disable_bg_image'))
-html > body {
+html > body:not(.lw-guest-page) {
     background: {{ getAppSettings('app_bg_color') }}!important;
 }
 @endif

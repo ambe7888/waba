@@ -2,6 +2,17 @@
 @section('content')
 @include('layouts.headers.guest')
 <style>
+    /* ══ Uniformiser l'arrière-plan avec la page d'accueil ══ */
+    html, html > body {
+        background: #fafbf8 url('{{ asset("imgs/wa-message-bg-faded.png") }}') repeat fixed !important;
+        background-color: #fafbf8 !important;
+    }
+    .main-content-has-bg::before {
+        display: none !important;
+    }
+    .main-content, .header, .header.py-4 {
+        background: transparent !important;
+    }
     .saas-login-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(15px);

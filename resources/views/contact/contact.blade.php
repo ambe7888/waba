@@ -16,12 +16,22 @@
     /* ═══════════════════════════════════════════
        CONTACT PAGE — PRO MAX DESIGN
     ═══════════════════════════════════════════ */
+    /* ══ Uniformiser l'arrière-plan avec la page d'accueil ══ */
+    html, html > body {
+        background: #fafbf8 url('{{ asset("imgs/wa-message-bg-faded.png") }}') repeat fixed !important;
+        background-color: #fafbf8 !important;
+    }
+    .main-content-has-bg::before {
+        display: none !important;
+    }
+    .main-content, .header, .header.py-4 {
+        background: transparent !important;
+    }
     .contact-page-wrapper {
         padding-top: 100px;
         padding-bottom: 80px;
         min-height: 100vh;
-        /* Keep the WhatsApp background */
-        background: #fafbf8 url('{{ asset("imgs/wa-message-bg-faded.png") }}') repeat fixed;
+        background: transparent !important;
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
