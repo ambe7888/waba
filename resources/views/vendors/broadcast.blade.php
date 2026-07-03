@@ -57,8 +57,8 @@
                                                     <input type="checkbox" name="vendors[]" value="{{ $vendor->_id }}" class="custom-control-input vendor-checkbox" id="vendor_{{ $vendor->_id }}">
                                                     <label class="custom-control-label" for="vendor_{{ $vendor->_id }}">
                                                         {{ $vendor->title }} 
-                                                        @if($vendor->slug)
-                                                            <small class="text-muted">({{ $vendor->slug }})</small>
+                                                        @if(!empty($vendor->admin_phone))
+                                                            <small class="text-muted font-weight-bold ml-2">({{ $vendor->admin_phone }})</small>
                                                         @endif
                                                     </label>
                                                 </div>
@@ -119,44 +119,100 @@
 
         // Dynamic Variables Logic
         const templates = {!! json_encode($templates->toArray()) !!};
+        let lastFocusedInput = null;
+
+        // Track last focused variable input
+        $(document).on('focus', '#dynamic-variables-container input', function() {
+            lastFocusedInput = this;
+        });
+
+        // Handle tag click to insert or copy
+        $(document).on('click', '.tag-helper', function(e) {
+            e.preventDefault();
+            const tag = $(this).data('tag');
+            
+            if (lastFocusedInput) {
+                const startPos = lastFocusedInput.selectionStart;
+                const endPos = lastFocusedInput.selectionEnd;
+                const val = $(lastFocusedInput).val();
+                $(lastFocusedInput).val(val.substring(0, startPos) + tag + val.substring(endPos));
+                lastFocusedInput.selectionStart = lastFocusedInput.selectionEnd = startPos + tag.length;
+                lastFocusedInput.focus();
+            } else {
+                navigator.clipboard.writeText(tag);
+            }
+            
+            const $badge = $(this);
+            const originalText = $badge.text();
+            $badge.text('{{ __tr("Inséré / Copié") }}').removeClass('badge-light border').addClass('badge-success text-white');
+            setTimeout(() => {
+                $badge.text(originalText).removeClass('badge-success text-white').addClass('badge-light border');
+            }, 1000);
+        });
+
         $('#templateName').on('change', function() {
             let tplName = $(this).val();
             let tpl = templates.find(t => t.template_name === tplName);
             let html = '';
+            let hasVars = false;
             
             if (tpl && tpl.__data && tpl.__data.template && tpl.__data.template.components) {
                 tpl.__data.template.components.forEach(comp => {
                     // Header Media Variables
                     if (comp.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(comp.format)) {
-                        let icon = comp.format === 'IMAGE' ? 'image' : (comp.format === 'VIDEO' ? 'video' : 'file');
                         html += `
                             <div class="form-group border-left border-primary pl-3">
-                                <label class="font-weight-bold"><i class="fa fa-${icon}"></i> Lien URL (${comp.format}) - Entête</label>
+                                <label class="font-weight-bold"><i class="fa fa-file-alt"></i> Lien URL (${comp.format}) - Entête</label>
                                 <input type="url" name="variables[header_media][${comp.format.toLowerCase()}]" class="form-control" placeholder="https://..." required>
                                 <small class="form-text text-muted">{{ __tr('Saisissez le lien public direct vers le média.') }}</small>
                             </div>
                         `;
+                        hasVars = true;
                     }
                     
                     // Text Variables (Body, Header, Buttons)
                     let text = comp.text || '';
                     let matches = text.match(/\{\{(\d+)\}\}/g);
                     if (matches) {
-                        // Unique matches to avoid duplicate inputs if a variable is used twice
                         matches = [...new Set(matches)];
                         matches.forEach(m => {
                             let num = m.replace(/[{}]/g, '');
                             html += `
                                 <div class="form-group border-left border-primary pl-3">
                                     <label class="font-weight-bold">Variable ${m} (${comp.type})</label>
-                                    <input type="text" name="variables[${comp.type.toLowerCase()}][${num}]" class="form-control" placeholder="Valeur pour ${m}" required>
+                                    <input type="text" name="variables[${comp.type.toLowerCase()}][${num}]" class="form-control var-input-field" placeholder="Valeur pour ${m}" required>
                                 </div>
                             `;
                         });
+                        hasVars = true;
                     }
                 });
             }
+            
+            if (hasVars) {
+                // Prepend help tags
+                const helperHtml = `
+                    <div class="alert alert-secondary p-3 mb-3 border bg-light">
+                        <div class="font-weight-bold text-sm mb-2 text-dark"><i class="fa fa-info-circle text-info"></i> {{ __tr('Placeholders Dynamiques:') }}</div>
+                        <p class="text-xs mb-2">{{ __tr('Cliquez sur une variable ci-dessous pour l\'insérer dans le champ sélectionné ou la copier :') }}</p>
+                        <div class="d-flex flex-wrap">
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{first_name}" style="cursor: pointer;">{first_name}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{last_name}" style="cursor: pointer;">{last_name}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{full_name}" style="cursor: pointer;">{full_name}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{email}" style="cursor: pointer;">{email}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{mobile_number}" style="cursor: pointer;">{mobile_number}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{app_name}" style="cursor: pointer;">{app_name}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{account_name}" style="cursor: pointer;">{account_name}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{expiry_date}" style="cursor: pointer;">{expiry_date}</span>
+                            <span class="badge badge-light border text-dark p-2 mr-2 mb-2 cursor-pointer tag-helper" data-tag="{subscription_amount}" style="cursor: pointer;">{subscription_amount}</span>
+                        </div>
+                    </div>
+                `;
+                html = helperHtml + html;
+            }
+            
             $('#dynamic-variables-container').html(html);
+            lastFocusedInput = null; // reset
         });
     })();
 </script>

@@ -372,6 +372,17 @@ class VendorController extends BaseController
         }
 
         $vendors = \App\Yantrana\Components\Vendor\Models\VendorModel::where('status', 1)->get();
+        
+        // Load admin users for each vendor to display phone numbers in view
+        $vendorIds = $vendors->pluck('_id')->toArray();
+        $adminUsers = \App\Models\User::whereIn('vendors__id', $vendorIds)
+            ->where('is_admin', 1)
+            ->get()
+            ->keyBy('vendors__id');
+
+        foreach ($vendors as $vendor) {
+            $vendor->admin_phone = isset($adminUsers[$vendor->_id]) ? $adminUsers[$vendor->_id]->mobile_number : '';
+        }
 
         return $this->loadView('vendors.broadcast', [
             'saasAdminVendorId' => $saasAdminVendorId,
