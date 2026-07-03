@@ -164,6 +164,7 @@ class SupportTicketController extends BaseController
     {
         $request->validate([
             'message' => 'required|string',
+            'attachment' => 'nullable|file|max:10240', // 10MB max
         ]);
 
         $ticketQuery = TicketModel::where('_uid', $uid);
@@ -172,11 +173,22 @@ class SupportTicketController extends BaseController
         }
         $ticket = $ticketQuery->firstOrFail();
 
+        $fileData = null;
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('support_tickets', $filename, 'public');
+            $fileData = [
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName()
+            ];
+        }
+
         TicketReplyModel::create([
             'tickets__id' => $ticket->_id,
             'users__id' => Auth::id(),
             'message' => $request->message,
-            '__data' => null,
+            '__data' => $fileData ? ['attachment' => $fileData] : null,
         ]);
 
         // Update ticket updated_at and status if needed
@@ -185,6 +197,19 @@ class SupportTicketController extends BaseController
             $ticket->status = 2; // 2: In Progress / Answered
             if (!$ticket->assigned_users__id) {
                 $ticket->assigned_users__id = Auth::id();
+            }
+
+            // Send push notification to vendor
+            if (function_exists('sendFCMNotification')) {
+                sendFCMNotification(
+                    $ticket->vendors__id,
+                    "Réponse: " . $ticket->subject,
+                    \Illuminate\Support\Str::limit(strip_tags($request->message), 100),
+                    [
+                        'type' => 'support_ticket',
+                        'uid' => $ticket->_uid
+                    ]
+                );
             }
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
@@ -313,6 +338,19 @@ class SupportTicketController extends BaseController
             $ticket->status = 2; // 2: In Progress / Answered
             if (!$ticket->assigned_users__id) {
                 $ticket->assigned_users__id = Auth::id();
+            }
+
+            // Send push notification to vendor
+            if (function_exists('sendFCMNotification')) {
+                sendFCMNotification(
+                    $ticket->vendors__id,
+                    "Réponse: " . $ticket->subject,
+                    \Illuminate\Support\Str::limit(strip_tags($request->message), 100),
+                    [
+                        'type' => 'support_ticket',
+                        'uid' => $ticket->_uid
+                    ]
+                );
             }
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
