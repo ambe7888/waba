@@ -139,6 +139,66 @@ class SupportTicketController extends BaseController
         ]);
     }
 
+    /**
+     * API: Display the specified resource for Mobile App.
+     */
+    public function apiShow($uid)
+    {
+        $ticketQuery = TicketModel::with(['vendor', 'vendorUser.user', 'replies.user', 'assignedUser', 'labels'])->where('_uid', $uid);
+        
+        if (!hasCentralAccess()) {
+            $ticketQuery->where('vendors__id', getVendorId());
+        }
+
+        $ticket = $ticketQuery->firstOrFail();
+
+        return $this->processResponse(1, [], [
+            'ticket' => $ticket
+        ]);
+    }
+
+    /**
+     * API: Add reply to ticket for Mobile App.
+     */
+    public function apiReply(Request $request, $uid)
+    {
+        $request->validate([
+            'message' => 'required|string',
+        ]);
+
+        $ticketQuery = TicketModel::where('_uid', $uid);
+        if (!hasCentralAccess()) {
+            $ticketQuery->where('vendors__id', getVendorId());
+        }
+        $ticket = $ticketQuery->firstOrFail();
+
+        TicketReplyModel::create([
+            'tickets__id' => $ticket->_id,
+            'users__id' => Auth::id(),
+            'message' => $request->message,
+            '__data' => null,
+        ]);
+
+        // Update ticket updated_at and status if needed
+        $ticket->touch();
+        if (hasCentralAccess()) {
+            $ticket->status = 2; // 2: In Progress / Answered
+            if (!$ticket->assigned_users__id) {
+                $ticket->assigned_users__id = Auth::id();
+            }
+        } else {
+            // Vendor replied, reopen ticket if it was answered (2)
+            if ($ticket->status == 2) {
+                $ticket->status = 1;
+            }
+        }
+        $ticket->save();
+
+        return $this->processResponse(1, [
+            1 => 'Reply added successfully.'
+        ]);
+    }
+
     public function create()
     {
         return $this->loadView('support_ticket.create');

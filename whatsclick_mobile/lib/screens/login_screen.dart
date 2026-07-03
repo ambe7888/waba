@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
@@ -113,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final success = await ApiService().login(email, password);
 
     if (success) {
+      TextInput.finishAutofillContext();
       await _saveCredentials();
       // Initialize FCM after successful login
       try {
@@ -283,62 +285,71 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         SizedBox(height: 16),
                       ],
 
-                      // Email Field
-                      Container(
-                        decoration: BoxDecoration(
-                          color: surfaceCard,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: onSurface.withOpacity(0.06)),
-                        ),
-                        child: TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(color: onSurface, fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: 'Email ou nom d\'utilisateur',
-                            labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                            prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 14),
-
-                      // Password Field
-                      Container(
-                        decoration: BoxDecoration(
-                          color: surfaceCard,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: onSurface.withOpacity(0.06)),
-                        ),
-                        child: TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          style: TextStyle(color: onSurface, fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: 'Mot de passe',
-                            labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                            prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                color: onSurface.withOpacity(0.31),
-                                size: 20,
+                      AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Email Field
+                            Container(
+                              decoration: BoxDecoration(
+                                color: surfaceCard,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: onSurface.withOpacity(0.06)),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                              child: TextField(
+                                controller: _emailController,
+                                autofillHints: const [AutofillHints.username, AutofillHints.email],
+                                keyboardType: TextInputType.emailAddress,
+                                style: TextStyle(color: onSurface, fontSize: 14),
+                                decoration: InputDecoration(
+                                  labelText: 'Email ou nom d\'utilisateur',
+                                  labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                                  prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                ),
+                              ),
                             ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          ),
+                            SizedBox(height: 14),
+
+                            // Password Field
+                            Container(
+                              decoration: BoxDecoration(
+                                color: surfaceCard,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: onSurface.withOpacity(0.06)),
+                              ),
+                              child: TextField(
+                                controller: _passwordController,
+                                obscureText: _obscurePassword,
+                                autofillHints: const [AutofillHints.password],
+                                style: TextStyle(color: onSurface, fontSize: 14),
+                                decoration: InputDecoration(
+                                  labelText: 'Mot de passe',
+                                  labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                                  prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                      color: onSurface.withOpacity(0.31),
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(height: 14),

@@ -7,13 +7,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
 
-/// Top-level handler for background FCM messages (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp();
   } catch (_) {}
-  await FcmService._showLocalNotification(message);
+  // Only manually show notification if OS hasn't already shown it
+  // (Android automatically shows notifications when app is in background if message.notification != null)
+  if (message.notification == null) {
+    await FcmService._showLocalNotification(message);
+  }
 }
 
 class FcmService {
@@ -96,7 +99,7 @@ class FcmService {
       enableVibration: true,
       showWhen: true,
       icon: 'ic_launcher_foreground',
-      color: Color(0xFF0D9488),
+      color: Color(0xFF198754),
       styleInformation: BigTextStyleInformation(''),
     );
 
@@ -120,7 +123,11 @@ class FcmService {
     );
   }
 
+  bool _isInitialized = false;
+
   Future<void> init() async {
+    if (_isInitialized) return;
+    
     // Skip FCM initialization if Firebase is not available
     if (!_isFirebaseAvailable) {
       if (kDebugMode) print('⚠️ FCM skipped: Firebase is not available');
@@ -128,6 +135,7 @@ class FcmService {
     }
 
     try {
+      _isInitialized = true;
       _firebaseMessaging = FirebaseMessaging.instance;
 
       // Request permissions (important for Android 13+ and iOS)

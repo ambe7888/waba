@@ -266,6 +266,16 @@ Route::group([
             'apiStore',
         ])->name('app_api.vendor.support_tickets.store');
 
+        Route::get('/support-tickets/{uid}', [
+            \App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class,
+            'apiShow',
+        ])->name('app_api.vendor.support_tickets.show');
+
+        Route::post('/support-tickets/{uid}/reply', [
+            \App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class,
+            'apiReply',
+        ])->name('app_api.vendor.support_tickets.reply');
+
         // Get WhatsApp templates
         Route::get('/whatsapp/templates', function () {
             validateVendorAccess('messaging');

@@ -39,7 +39,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   final Set<int> _selectedLabelIds = {};
 
   // Design constants
-  static const _primaryColor = Color(0xFF0D9488);
+  static const _primaryColor = Color(0xFF198754);
   static const _accentColor = Color(0xFF2DD4BF);
 
   final List<Map<String, dynamic>> _labelColorOptions = const [
@@ -850,7 +850,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: _allLabels.map((label) {
-                                    final labelId = label['_id'] as int;
+                                    final labelId = int.tryParse(label['_id']?.toString() ?? label['id']?.toString() ?? '0') ?? 0;
                                     final title = label['title'] ?? '';
                                     final isSelected = _selectedLabelIds.contains(labelId);
                                     final labelColor = _parseColor(label['bg_color']) ?? Color(0xFF64748B);
