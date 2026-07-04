@@ -243,18 +243,6 @@ return [
                 'data_type' => 2,    // boolean
                 'default' => false,
             ],
-            'open_ai_access_key' => [
-                'key' => 'open_ai_access_key',
-                'data_type' => 1,    // string
-                'default' => '',
-                'hide_value' => true,
-                'ignore_empty' => true,
-                'validation_rules' => [
-                   'alpha_dash',
-                   'required',
-                // 'required_if:enable_open_ai_bot,on',
-                ],
-            ],
             'open_ai_bot_name' => [
                 'key' => 'open_ai_bot_name',
                 'data_type' => 1,    // string
