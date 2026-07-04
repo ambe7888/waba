@@ -53,12 +53,11 @@ class ECommerceEngine extends BaseEngine
     protected function syncShopify($vendorId)
     {
         $shopUrl = getVendorSettings('shopify_shop_url', null, null, $vendorId);
-        $accessToken = getVendorSettings('shopify_access_token', null, null, $vendorId);
 
-        if (empty($shopUrl) || empty($accessToken)) {
+        if (empty($shopUrl)) {
             return [
                 'reaction_code' => 2,
-                'message' => __tr('Shopify URL or Access Token is missing.')
+                'message' => __tr('Shopify URL is missing.')
             ];
         }
 
@@ -66,11 +65,9 @@ class ECommerceEngine extends BaseEngine
         $shopUrl = preg_replace('/^https?:\/\//', '', $shopUrl);
         $shopUrl = rtrim($shopUrl, '/');
 
-        $url = "https://{$shopUrl}/admin/api/2023-04/products.json";
+        $url = "https://{$shopUrl}/products.json";
 
-        $response = Http::withHeaders([
-            'X-Shopify-Access-Token' => $accessToken,
-        ])->get($url);
+        $response = Http::get($url);
 
         if (!$response->successful()) {
             return [
