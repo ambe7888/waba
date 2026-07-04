@@ -971,27 +971,15 @@ if (! function_exists('combineArray')) {
 if (! function_exists('formatAmount')) {
     function formatAmount($amount = null, $currencyCode = false, $currencySymbol = false, $options = [])
     {
-        if ($currencyCode === true) {
-            $currencyCode = getCurrency();
-        } elseif ($currencyCode === false) {
-            $currencyCode = '';
-        }
-
         if ($currencySymbol === true) {
             $currencySymbol = getCurrencySymbol();
         } elseif ($currencySymbol === false) {
             $currencySymbol = '';
         }
 
-        $currencySymbolStr = html_entity_decode($currencySymbol);
-        $cleanSymbol = strtolower(trim($currencySymbolStr));
-        $cleanCode = strtolower(trim($currencyCode));
+        $currencySymbolStr = trim(html_entity_decode($currencySymbol));
 
-        if ($cleanSymbol === $cleanCode) {
-            $currencyCode = '';
-        }
-
-        $formattedCurrency = $currencySymbolStr . number_format((float) $amount, 2) . ($currencyCode ? ' ' . trim($currencyCode) : '');
+        $formattedCurrency = number_format((float) $amount, 2) . ($currencySymbolStr ? ' ' . $currencySymbolStr : '');
 
         return __tr($formattedCurrency);
     }
