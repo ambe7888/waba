@@ -436,9 +436,27 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
 
         // Get current active plan defaults
         $activePlanId = null;
+        $activeFrequency = null;
         $vendorSubscription = getVendorCurrentActiveSubscription($vendor->_id);
         if ($vendorSubscription) {
             $activePlanId = $vendorSubscription->plan_id ?? $vendorSubscription->type;
+            
+            // Resolve active subscription frequency
+            $activeFrequency = $vendorSubscription->charges_frequency; 
+            if (!$activeFrequency && isset($vendorSubscription->stripe_price)) {
+                // look up by stripe price
+                $planDetails = getPaidPlans($activePlanId);
+                $planCharges = \Illuminate\Support\Arr::get($planDetails, 'charges', []);
+                foreach ($planCharges as $key => $val) {
+                    if ($val['price_id'] == $vendorSubscription->stripe_price) {
+                        $activeFrequency = $key;
+                        break;
+                    }
+                }
+            }
+            if (!$activeFrequency) {
+                $activeFrequency = 'monthly'; // fallback
+            }
         }
 
         $featuresList = [
@@ -458,11 +476,15 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
         foreach ($featuresList as $feat) {
             $planDefaults[$feat] = '';
         }
+        $planDefaults['charge'] = '';
 
         if ($activePlanId && $activePlanId !== 'free') {
             $planDetails = getPaidPlans($activePlanId);
             foreach ($featuresList as $feat) {
                 $planDefaults[$feat] = \Illuminate\Support\Arr::get($planDetails, "features.{$feat}.limit", '');
+            }
+            if ($activeFrequency) {
+                $planDefaults['charge'] = \Illuminate\Support\Arr::get($planDetails, "charges.{$activeFrequency}.charge", '');
             }
         }
 
