@@ -1435,8 +1435,12 @@
     });
 })();
 </script>
-@if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
-    @include('WhatsJetCallingAddon::call-panel')
+@if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+    @push('chatRightSidebarAdditionalLinksAndButtons')
+        <button type="button" class="btn btn-success btn-sm lw-btn-block-mobile mb-2" data-toggle="modal" data-target="#lwECommerceProductPicker">
+            <i class="fa fa-shopping-cart"></i> {{ __tr('Send Shopify Products') }}
+        </button>
+    @endpush
 @endif
 @push('head')
     {!! __yesset('dist/emojionearea/emojionearea.min.css', true) !!}

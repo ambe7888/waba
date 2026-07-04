@@ -1099,6 +1099,11 @@ Route::middleware([
                 'getProducts',
             ])->name('vendor.ecommerce.products');
 
+            Route::post('/ecommerce/send-product', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'sendProductMessage',
+            ])->name('vendor.ecommerce.send_product');
+
             Route::post('/disconnect-account', [
                 WhatsAppServiceController::class,
                 'disconnectAccount',
