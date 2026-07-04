@@ -65,17 +65,17 @@
                             
                             <div class="form-group mb-3">
                                 <label for="ai_credits">{{ __tr('AI Credits') }}</label>
-                                <input type="number" class="form-control" name="ai_credits" id="ai_credits" value="<%- __tData.custom_limits?.ai_credits || '' %>">
+                                <input type="number" class="form-control" name="ai_credits" id="ai_credits" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
                             </div>
 
                             <div class="form-group mb-3">
                                 <label for="contact_limit">{{ __tr('Contact Limit') }}</label>
-                                <input type="number" class="form-control" name="contact_limit" id="contact_limit" value="<%- __tData.custom_limits?.contact_limit || '' %>">
+                                <input type="number" class="form-control" name="contact_limit" id="contact_limit" value="<%- __tData.custom_limits ? __tData.custom_limits.contact_limit : '' %>">
                             </div>
 
                             <div class="form-group mb-3">
                                 <label for="campaign_limit">{{ __tr('Campaign Limit') }}</label>
-                                <input type="number" class="form-control" name="campaign_limit" id="campaign_limit" value="<%- __tData.custom_limits?.campaign_limit || '' %>">
+                                <input type="number" class="form-control" name="campaign_limit" id="campaign_limit" value="<%- __tData.custom_limits ? __tData.custom_limits.campaign_limit : '' %>">
                             </div>
                         </fieldset>
 
@@ -87,7 +87,7 @@
                             
                             <div class="form-group mb-3">
                                 <label for="custom_plan_charge">{{ __tr('Custom Charge Amount') }}</label>
-                                <input type="number" step="0.01" class="form-control" name="custom_plan_charge" id="custom_plan_charge" value="<%- __tData.custom_plan_charge || '' %>">
+                                <input type="number" step="0.01" class="form-control" name="custom_plan_charge" id="custom_plan_charge" value="<%- __tData.custom_plan_charge ? __tData.custom_plan_charge : '' %>">
                             </div>
 
                             <div class="form-group mb-3">
