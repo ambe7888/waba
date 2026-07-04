@@ -4,6 +4,7 @@ $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
 $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
     ->latest()
     ->get();
+$activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
 @endphp
 
 <style>
@@ -41,6 +42,11 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
     border-color: #17a2b8;
     background-color: rgba(23, 162, 184, 0.04);
     box-shadow: 0 4px 15px rgba(23, 162, 184, 0.15);
+}
+.platform-card.active-green-card {
+    border-color: #28a745 !important;
+    background-color: rgba(40, 167, 69, 0.04) !important;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15) !important;
 }
 .platform-card .selected-badge {
     position: absolute;
@@ -158,49 +164,73 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
         <div class="row mb-5">
             <!-- Shopify Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="integration === 'shopify' ? 'selected-shopify' : ''" @click="integration = 'shopify'">
+                <div class="platform-card" :class="[
+                    integration === 'shopify' ? 'selected-shopify' : '',
+                    '{{ $activeIntegration }}' === 'shopify' ? 'active-green-card' : ''
+                ]" @click="integration = 'shopify'">
                     <template x-if="integration === 'shopify'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
                     </template>
                     <i class="fab fa-shopify mb-3 text-success" style="font-size: 3rem; color: #96bf48 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">Shopify</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Synchronisation anonyme sans clé API nécessaire.') }}</p>
+                    @if($activeIntegration === 'shopify')
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                    @endif
                 </div>
             </div>
 
             <!-- WooCommerce Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="integration === 'woocommerce' ? 'selected-woocommerce' : ''" @click="integration = 'woocommerce'">
+                <div class="platform-card" :class="[
+                    integration === 'woocommerce' ? 'selected-woocommerce' : '',
+                    '{{ $activeIntegration }}' === 'woocommerce' ? 'active-green-card' : ''
+                ]" @click="integration = 'woocommerce'">
                     <template x-if="integration === 'woocommerce'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
                     </template>
                     <i class="fab fa-wordpress mb-3" style="font-size: 3rem; color: #7f54b3 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">WooCommerce</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Liaison via clés d\'API Consumer Key / Secret.') }}</p>
+                    @if($activeIntegration === 'woocommerce')
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                    @endif
                 </div>
             </div>
 
             <!-- WhatsApp Catalog Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : ''" @click="integration = 'whatsapp_catalog'">
+                <div class="platform-card" :class="[
+                    integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
+                    '{{ $activeIntegration }}' === 'whatsapp_catalog' ? 'active-green-card' : ''
+                ]" @click="integration = 'whatsapp_catalog'">
                     <template x-if="integration === 'whatsapp_catalog'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
                     </template>
                     <i class="fab fa-whatsapp mb-3 text-success" style="font-size: 3rem; color: #25d366 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue WhatsApp') }}</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Associer l\'ID de votre catalogue Meta natif.') }}</p>
+                    @if($activeIntegration === 'whatsapp_catalog')
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                    @endif
                 </div>
             </div>
 
             <!-- Manual Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="integration === 'manual' ? 'selected-manual' : ''" @click="integration = 'manual'">
+                <div class="platform-card" :class="[
+                    integration === 'manual' ? 'selected-manual' : '',
+                    '{{ $activeIntegration }}' === 'manual' ? 'active-green-card' : ''
+                ]" @click="integration = 'manual'">
                     <template x-if="integration === 'manual'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
                     </template>
                     <i class="fas fa-edit mb-3 text-info" style="font-size: 3rem;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Manuel / Excel') }}</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Créez vos produits manuellement ou via import Excel.') }}</p>
+                    @if($activeIntegration === 'manual')
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                    @endif
                 </div>
             </div>
         </div>
