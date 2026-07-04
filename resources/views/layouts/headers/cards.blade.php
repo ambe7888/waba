@@ -247,8 +247,11 @@ $vendorViewBySuperAdmin = false;
                         @endif
 
                         {{-- Orders Card --}}
-                        @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                        @php
+                            $hasEcommerce = vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'];
+                        @endphp
                         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            @if ($hasEcommerce)
                             <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
                                 <div class="card-body">
                                     <div class="row">
@@ -267,8 +270,27 @@ $vendorViewBySuperAdmin = false;
                                     </p>
                                 </div>
                             </div>
+                            @else
+                            <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px; opacity: 0.7; background-color: rgba(248, 249, 250, 0.85);">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Commandes') }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 text-muted">0</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-secondary text-white rounded-circle shadow" style="background: #adb5bd !important;">
+                                                <i class="fas fa-shopping-basket"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-sm">
+                                        <span class="text-danger font-weight-bold" style="font-size: 0.78rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><i class="fas fa-lock mr-1"></i> {{ __tr('Disponible uniquement dans le plan Commerce Pro') }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
                         </div>
-                        @endif
 
                         {{-- Messages Received Today --}}
                         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
