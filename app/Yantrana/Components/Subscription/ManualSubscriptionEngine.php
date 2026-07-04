@@ -423,7 +423,7 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 $vendorUpdateData = [
                     'plan_custom_limits' => empty($customLimits) ? null : json_encode($customLimits),
                     'custom_plan_charge' => (isset($inputData['custom_plan_charge']) && $inputData['custom_plan_charge'] !== '') ? (float) $inputData['custom_plan_charge'] : null,
-                    'custom_plan_frequency' => $inputData['custom_plan_frequency'] ?: null,
+                    'custom_plan_frequency' => (isset($inputData['custom_plan_frequency']) && $inputData['custom_plan_frequency']) ? $inputData['custom_plan_frequency'] : null,
                 ];
                 
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->update($vendorUpdateData);
