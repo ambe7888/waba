@@ -934,11 +934,6 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
                 $userMessage = $e->getMessage();
             }
             // __logDebug($userMessage);
-            \Illuminate\Support\Facades\Log::error('WhatsApp API Error: ' . $userMessage, [
-                'response_body' => $getContentsDecoded,
-                'vendor_id' => $this->vendorId ?? getVendorId(),
-                'from_phone_number_id' => config('app.from_phone_number_id'),
-            ]);
             // set notification as your key is token expired
             if (
                 Str::contains($e->getMessage(), 'Session has expired') and !getVendorSettings(
