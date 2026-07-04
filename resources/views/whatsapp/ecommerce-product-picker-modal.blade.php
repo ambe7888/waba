@@ -62,17 +62,20 @@
                 return;
             }
 
-            __DataRequest.post('{{ route('vendor.ecommerce.send_product') }}', {
+            var request = __DataRequest.post('{{ route('vendor.ecommerce.send_product') }}', {
                 contact_uid: contactUid,
                 product_uid: this.selectedProductUid
             }, function(response) {
-                self.isSending = false;
                 if (response.reaction == 1 || response.reaction_code == 1) {
                     showSuccessMessage('{{ __tr('Product sent successfully!') }}');
                     $('#ecommerceProductPickerModal').modal('hide');
                 } else {
                     showErrorMessage(response.message || '{{ __tr('Failed to send product.') }}');
                 }
+            });
+            
+            request.always(function() {
+                self.isSending = false;
             });
         }
     }" x-init="fetchProducts()">

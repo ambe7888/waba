@@ -81,35 +81,42 @@ class ECommerceController extends BaseController
             ]);
         }
 
-        // Construct interactive message data
-        $interactionMessageData = [
-            'interactive_type' => 'cta_url',
-            'header_type' => $product->image_url ? 'image' : 'text',
-            'media_link' => $product->image_url ?: '',
-            'header_text' => $product->name,
-            'body_text' => $product->description ?: $product->name,
-            'cta_url' => [
-                'display_text' => __tr('Product Details'),
-                'url' => $product->direct_link ?: ''
-            ]
+        $description = $product->description ? strip_tags(html_entity_decode($product->description)) : '';
+        $messageBody = "*{$product->name}*\n\n" . $description . "\n\n*Prix:* " . number_format($product->price, 0, ',', ' ') . " CFA";
+        if ($product->direct_link) {
+            $messageBody .= "\n\n*Lien direct:* " . $product->direct_link;
+        }
+
+        $sendRequest = [
+            'messageBody' => $messageBody,
+            'contactUid' => $request->contact_uid,
         ];
 
         // Ask WhatsAppServiceEngine to send this chat message
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
 
-        // We simulate a request with message_body for the preview and log
-        $description = $product->description ? strip_tags(html_entity_decode($product->description)) : '';
-        $sendRequest = [
-            'messageBody' => "*{$product->name}*\n" . $description . "\nPrix: " . number_format($product->price, 0, ',', ' ') . " CFA",
-            'contactUid' => $request->contact_uid,
-        ];
-
-        $processReaction = $whatsAppServiceEngine->processSendChatMessage(
-            $sendRequest,
-            false,
-            $vendorId,
-            ['interaction_message_data' => $interactionMessageData]
-        );
+        if (!empty($product->image_url) && isValidUrl($product->image_url)) {
+            $options = [
+                'media_message_data' => [
+                    'header_type' => 'image',
+                    'media_link' => $product->image_url,
+                    'caption' => $messageBody,
+                    'file_name' => $product->name,
+                ]
+            ];
+            $processReaction = $whatsAppServiceEngine->processSendChatMessage(
+                $sendRequest,
+                true, // isMediaMessage
+                $vendorId,
+                $options
+            );
+        } else {
+            $processReaction = $whatsAppServiceEngine->processSendChatMessage(
+                $sendRequest,
+                false, // not media
+                $vendorId
+            );
+        }
 
         return $this->processResponse($processReaction);
     }
