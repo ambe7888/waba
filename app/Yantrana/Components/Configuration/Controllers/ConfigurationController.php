@@ -530,6 +530,14 @@ class W" . "ha" . "tsAppSe" . "rviceE" . "ngine {}");
                     $allAddons['ShopifyProductSend']['installed_version'] = '1.0.0';
                     $allAddons['ShopifyProductSend']['enable'] = true;
                 }
+                if (isset($allAddons['WhatsJetChatMobileApp'])) {
+                    $allAddons['WhatsJetChatMobileApp']['installed_version'] = '1.0.0';
+                    $allAddons['WhatsJetChatMobileApp']['enable'] = true;
+                }
+                if (isset($allAddons['WhatsJetEmbeddedSignUpAddon'])) {
+                    $allAddons['WhatsJetEmbeddedSignUpAddon']['installed_version'] = '1.0.0';
+                    $allAddons['WhatsJetEmbeddedSignUpAddon']['enable'] = true;
+                }
                 if (isDemo()) {
                     foreach ($allAddons as $addonKey => $addon) {
                         if (isset($addon['identifier']) and !in_array($addon['identifier'], $availableAddonsKeys)) {
