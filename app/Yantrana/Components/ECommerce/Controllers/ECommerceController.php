@@ -82,22 +82,19 @@ class ECommerceController extends BaseController
         }
 
         $description = $product->description ? strip_tags(html_entity_decode($product->description)) : '';
-        $messageBody = "*{$product->name}*\n\n" . $description . "\n\n*Prix:* " . number_format($product->price, 0, ',', ' ') . " CFA";
+        // Truncate description to max 200 characters to keep the message readable
+        if (mb_strlen($description) > 200) {
+            $description = mb_substr($description, 0, 200) . '...';
+        }
+        $messageBody = "*{$product->name}*\n\n" . $description . "\n\n💰 *Prix:* " . number_format($product->price, 0, ',', ' ') . " CFA";
         if ($product->direct_link) {
-            $messageBody .= "\n\n*Lien direct:* " . $product->direct_link;
+            $messageBody .= "\n\n🛒 *Commander:* " . $product->direct_link;
         }
 
         $sendRequest = [
             'messageBody' => $messageBody,
             'contactUid' => $request->contact_uid,
         ];
-
-        // Get the contact to find the real wa_id (phone number)
-        $contactRepository = app(\App\Yantrana\Components\Contact\Repositories\ContactRepository::class);
-        $contact = $contactRepository->getVendorContact($request->contact_uid, $vendorId);
-        if (empty($contact)) {
-            return $this->processResponse(2, [], ['message' => __tr('Contact not found.')]);
-        }
 
         // Get the vendor's real phone number ID from whatsapp_phone_numbers (already decrypted as JSON array)
         $phoneNumbers = getVendorSettings('whatsapp_phone_numbers', null, null, $vendorId) ?: [];

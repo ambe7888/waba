@@ -66,11 +66,15 @@
                 contact_uid: contactUid,
                 product_uid: this.selectedProductUid
             }, function(response) {
-                if (response.reaction == 1 || response.reaction_code == 1) {
-                    showSuccessMessage('{{ __tr('Product sent successfully!') }}');
+                var isSuccess = (response.reaction == 1) || (response.reaction_code == 1) || (response && response.data && response.data.reaction == 1);
+                if (isSuccess) {
                     $('#ecommerceProductPickerModal').modal('hide');
+                    setTimeout(function() {
+                        showSuccessMessage('{{ __tr('Product sent successfully!') }}');
+                    }, 400);
                 } else {
-                    showErrorMessage(response.message || '{{ __tr('Failed to send product.') }}');
+                    var errMsg = (response && response.data && response.data.message) || response.message || '{{ __tr('Failed to send product.') }}';
+                    showErrorMessage(errMsg);
                 }
             });
             
