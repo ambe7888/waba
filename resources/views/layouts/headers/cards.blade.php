@@ -310,7 +310,7 @@ $vendorViewBySuperAdmin = false;
                                         </div>
                                     </div>
                                     <p class="mt-3 mb-0 text-muted text-sm">
-                                        <a href="{{ route('vendor.ecommerce.products') }}" class="text-success font-weight-bold"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les produits') }}</a>
+                                        <a href="{{ route('vendor.settings.read', ['pageType' => 'ecommerce']) }}" class="text-success font-weight-bold"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les produits') }}</a>
                                     </p>
                                 </div>
                             </div>
