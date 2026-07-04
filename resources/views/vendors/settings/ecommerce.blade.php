@@ -70,7 +70,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
     isSyncing: false,
     syncMessage: '',
     manualTab: 'list',
-    manualProducts: @json($manualProducts),
+    manualProducts: {{ json_encode($manualProducts) }},
     syncProducts() {
         this.isSyncing = true;
         this.syncMessage = '';
