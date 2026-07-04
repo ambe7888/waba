@@ -601,6 +601,41 @@ return [
                 'default'       => '',
                 'ignore_empty' => false
             ],
+            'ecommerce_integration' => [
+                'key' => 'ecommerce_integration',
+                'data_type' => 1,
+                'default' => 'none',
+            ],
+            'shopify_shop_url' => [
+                'key' => 'shopify_shop_url',
+                'data_type' => 1,
+                'default' => '',
+            ],
+            'shopify_access_token' => [
+                'key' => 'shopify_access_token',
+                'data_type' => 1,
+                'default' => '',
+            ],
+            'woocommerce_shop_url' => [
+                'key' => 'woocommerce_shop_url',
+                'data_type' => 1,
+                'default' => '',
+            ],
+            'woocommerce_consumer_key' => [
+                'key' => 'woocommerce_consumer_key',
+                'data_type' => 1,
+                'default' => '',
+            ],
+            'woocommerce_consumer_secret' => [
+                'key' => 'woocommerce_consumer_secret',
+                'data_type' => 1,
+                'default' => '',
+            ],
+            'whatsapp_catalog_id' => [
+                'key' => 'whatsapp_catalog_id',
+                'data_type' => 1,
+                'default' => '',
+            ],
         ],
     ],
 ];

@@ -585,6 +585,16 @@
                                                                     </a>
                                                                 </template>
                                                                 <!-- /Quick Bot Reply -->
+                                                                @if(vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                                                                <template x-if="contact">
+                                                                    <a title="{{ __tr('Send Product') }}"
+                                                                        class="dropdown-item"
+                                                                        data-toggle="modal"
+                                                                        data-target="#lwECommerceProductPicker">
+                                                                        <i class="fa fa-shopping-cart text-muted"></i> {{ __tr('Send Product') }}
+                                                                    </a>
+                                                                </template>
+                                                                @endif
                                                                 <a title="{{ __tr('Send Document') }}"
                                                                     class="lw-ajax-link-action dropdown-item" data-toggle="modal"
                                                                     data-response-template="#lwWhatsappAttachment"
@@ -1160,6 +1170,7 @@
  <!-- Edit Contact Modal -->
  @include('contact.contact-edit-modal-partial')
  @include('whatsapp.quick-reply-modal')
+ @include('whatsapp.ecommerce-product-picker-modal')
  @include('whatsapp.recording-modal')
  <!--/ Edit Contact Modal -->
  <!-- Manage Labels Modal -->

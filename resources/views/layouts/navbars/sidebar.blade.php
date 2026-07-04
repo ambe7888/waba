@@ -586,6 +586,14 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                       {!! __tr('Recharge AI Credits') !!}
                                   </a>
                               </li>
+                              @if(vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                              <li class="nav-item">
+                                  <a class="nav-link <?= (isset($pageType) and $pageType == 'ecommerce') ? 'active' : '' ?>"
+                                      href="<?= route('vendor.settings.read', ['pageType' => 'ecommerce']) ?>">
+                                      <i class="fa fa-shopping-cart"></i>
+                                      {!! __tr('E-commerce & Catalogue') !!}
+                                  </a>
+                              </li>
                               @endif
                             <li class="nav-item">
                                 <a class="nav-link <?= (isset($pageType) and $pageType == 'api-access') ? 'active' : '' ?>"
