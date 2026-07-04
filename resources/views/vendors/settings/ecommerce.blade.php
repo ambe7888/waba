@@ -262,7 +262,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                                 <i class="fas fa-info-circle mr-1"></i> {{ __tr('Liaison Facebook Requise') }}
                             </h5>
                             <p class="mb-0 text-dark" style="color: #000000 !important; font-size: 0.88rem; line-height: 1.4;">
-                                {{ __tr('Dans votre Meta Business Suite / WhatsApp Manager, vous devez aller dans Paramètres -> Catalogues et associer le catalogue à votre numéro.') }}
+                                {{ __tr('Dans votre Meta Business Suite / WhatsApp Manager, vous devez aller dans Paramètres > Catalogues et associer le catalogue à votre numéro.') }}
                             </p>
                         </div>
                     </div>
