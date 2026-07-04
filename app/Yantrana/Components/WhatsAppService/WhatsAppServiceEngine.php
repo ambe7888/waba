@@ -3068,6 +3068,53 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             'messageWamid' => null,
         ], $options);
 
+        // Automatically parse interactive buttons from AI or bot response text
+        if (!$interactionMessageData && !empty($replyText)) {
+            $buttons = [];
+            $ctaUrl = null;
+            $interactiveType = null;
+
+            // Parse URL button: [URL_BUTTON: Button Text: https://example.com]
+            if (preg_match('/\[URL_BUTTON:\s*(.*?):\s*(https?:\/\/.*?)\]/i', $replyText, $matches)) {
+                $interactiveType = 'cta_url';
+                $buttonText = trim($matches[1]);
+                $buttonUrl = trim($matches[2]);
+                $ctaUrl = [
+                    [
+                        'name' => 'display_text',
+                        'value' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
+                    ],
+                    [
+                        'name' => 'url',
+                        'value' => $buttonUrl,
+                    ],
+                ];
+                // Remove the URL_BUTTON tag from the text
+                $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/i', '', $replyText);
+            }
+            // Parse Quick Reply buttons: [BUTTON: Button Text]
+            elseif (preg_match_all('/\[BUTTON:\s*(.*?)\]/i', $replyText, $matches)) {
+                $interactiveType = 'button';
+                foreach ($matches[1] as $btnText) {
+                    $buttons[] = trim($btnText);
+                }
+                $buttons = array_slice($buttons, 0, 3); // Meta limit is 3 buttons
+                // Remove BUTTON tags from the text
+                $replyText = preg_replace('/\[BUTTON:\s*.*?\]/i', '', $replyText);
+            }
+
+            $replyText = trim($replyText);
+
+            if ($interactiveType) {
+                $interactionMessageData = [
+                    'interactive_type' => $interactiveType,
+                    'body_text' => $replyText,
+                    'buttons' => $buttons,
+                    'cta_url' => $ctaUrl,
+                ];
+            }
+        }
+
         $mediaMessageData = $options['mediaMessageData'] ?? null;
         $isTriggerFromQuickReply = Arr::get($options, 'isTriggerFromQuickReply') ? false : true;
         return $this->processSendChatMessage(

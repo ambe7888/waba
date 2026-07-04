@@ -264,13 +264,19 @@ class OpenAiService extends BaseEngine
             }
         }
 
+        $interactiveInstructions = "\n\n" .
+            "IMPORTANT: You can use interactive buttons in your response. " .
+            "- To offer quick reply buttons (up to 3 buttons), append them at the very end of your response, each on a new line in this format: [BUTTON: Button Text]. Example: [BUTTON: En savoir plus]\n" .
+            "- To offer a single link button (URL button), append it at the end of your response in this format: [URL_BUTTON: Button Text: URL]. Example: [URL_BUTTON: Commander: https://example.com]\n" .
+            "Keep the button text very short (max 20 characters). Do not mix BUTTON and URL_BUTTON in the same response. Always prefer using buttons instead of plain links when possible.";
+
         if ($botDataSourceType == 'assistant') {
             $this->initConfiguration($vendorId);
 
             $messages = [
                 [
                     'role' => 'assistant',
-                    'content' => "You are a helpful assistant " . ($botName ? ' your name is ' . $botName . ' and don"t include your name in reply.' : '') . " a well-formatted, structured way with appropriate new lines and paragraphs. Strictly do not answer out of given context, your answer should be based on the given context and content. You are talking with " . ($contact->full_name ?: '') . $productContext,
+                    'content' => "You are a helpful assistant " . ($botName ? ' your name is ' . $botName . ' and don"t include your name in reply.' : '') . " a well-formatted, structured way with appropriate new lines and paragraphs. Strictly do not answer out of given context, your answer should be based on the given context and content. You are talking with " . ($contact->full_name ?: '') . $productContext . $interactiveInstructions,
                 ]
             ];
 
@@ -317,7 +323,7 @@ class OpenAiService extends BaseEngine
         $messages = [
             [
                 'role' => 'system',
-                'content' => ($botName ? ' your name is ' . $botName : '') . '. You are a smart AI agent that continues helpful, coherent conversations based on the full context. If the question is out of context tell the user that its out of scope. Strictly do not answer out of given context, your answer should be based on the given context and content. Based on the following content, answer the question in a well-formatted, structured way with appropriate new lines and paragraphs:\n\nContent: ' . $combinedSections . $productContext . " You are talking with " . ($contact->full_name ?: ''),
+                'content' => ($botName ? ' your name is ' . $botName : '') . '. You are a smart AI agent that continues helpful, coherent conversations based on the full context. If the question is out of context tell the user that its out of scope. Strictly do not answer out of given context, your answer should be based on the given context and content. Based on the following content, answer the question in a well-formatted, structured way with appropriate new lines and paragraphs:\n\nContent: ' . $combinedSections . $productContext . $interactiveInstructions . " You are talking with " . ($contact->full_name ?: ''),
             ]
         ];
 
