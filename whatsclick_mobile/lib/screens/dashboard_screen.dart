@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../config/app_config.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -232,6 +233,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
+                      SliverToBoxAdapter(
+                        child: _buildMessageHistoryChart(),
+                      ),
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         sliver: SliverGrid.count(
@@ -257,6 +261,150 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildMessageHistoryChart() {
+    final isDark = ThemeService().isDark;
+    final List<dynamic> rawHistory = _stats?['messageHistory'] ?? [];
+    if (rawHistory.isEmpty) return const SizedBox.shrink();
+
+    final barGroups = <BarChartGroupData>[];
+    double maxVal = 10;
+    
+    for (int i = 0; i < rawHistory.length; i++) {
+      final item = rawHistory[i];
+      final incoming = double.tryParse(item['incoming']?.toString() ?? '0') ?? 0;
+      final outgoing = double.tryParse(item['outgoing']?.toString() ?? '0') ?? 0;
+      
+      if (incoming > maxVal) maxVal = incoming;
+      if (outgoing > maxVal) maxVal = outgoing;
+
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: incoming,
+              color: Colors.blue,
+              width: 8,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            BarChartRodData(
+              toY: outgoing,
+              color: Colors.green,
+              width: 8,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Historique des messages (7j)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 10,
+                height: 10,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 4),
+              Text('Reçus', style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
+              const SizedBox(width: 8),
+              Container(
+                width: 10,
+                height: 10,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 4),
+              Text('Envoyés', style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxVal * 1.2,
+                barTouchData: BarTouchData(enabled: true),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        final idx = value.toInt();
+                        if (idx >= 0 && idx < rawHistory.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              rawHistory[idx]['label']?.toString() ?? '',
+                              style: TextStyle(
+                                color: isDark ? Colors.white60 : Colors.black54,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: TextStyle(
+                            color: isDark ? Colors.white60 : Colors.black54,
+                            fontSize: 10,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: barGroups,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

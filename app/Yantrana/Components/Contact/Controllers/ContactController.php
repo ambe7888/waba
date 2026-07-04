@@ -378,6 +378,36 @@ class ContactController extends BaseController
     }
 
     /**
+     * API Get Contacts of a Group
+     *
+     * @param string $groupUid
+     * @return json object
+     */
+    public function apiGetGroupContacts($groupUid)
+    {
+        validateVendorAccess('manage_contacts');
+        $vendorId = getVendorId();
+        $contactGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where([
+            '_uid' => $groupUid,
+            'vendors__id' => $vendorId,
+        ])->first();
+        
+        if (!$contactGroup) {
+            return $this->processApiResponse(18, [], ['message' => __tr('Group not found.')]);
+        }
+        
+        $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->whereHas('groups', function($query) use($contactGroup) {
+                $query->where('contact_groups__id', $contactGroup->_id);
+            })
+            ->get();
+            
+        return $this->processApiResponse(1, [], [
+            'contacts' => $contacts
+        ]);
+    }
+
+    /**
      * API Get Contact Labels and Tags List
      *
      * @return json object

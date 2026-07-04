@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/contact.dart';
 import '../services/api_service.dart';
+import '../services/theme_service.dart';
 
 class ContactInfoDrawer extends StatefulWidget {
   final Contact contact;
@@ -34,9 +35,12 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   List<Map<String, dynamic>> _allLabels = [];
   List<Map<String, dynamic>> _agents = [];
   List<Map<String, dynamic>> _customFields = [];
+  List<Map<String, dynamic>> _allGroups = [];
   
   final Map<String, TextEditingController> _customFieldControllers = {};
   final Set<int> _selectedLabelIds = {};
+  final Set<String> _selectedGroupUids = {};
+  bool _isSavingGroups = false;
 
   // Design constants
   static const _primaryColor = Color(0xFF198754);
@@ -134,6 +138,21 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
           );
           if (matchingAgent.isNotEmpty) {
             _assignedUserUid = matchingAgent['_uid'];
+          }
+        }
+      }
+
+      // Fetch all groups
+      final allGroups = await ApiService().fetchContactGroups();
+      _allGroups = allGroups;
+
+      if (details != null && details['groups'] != null) {
+        final List<dynamic> assignedGroups = details['groups'] as List;
+        _selectedGroupUids.clear();
+        for (var g in assignedGroups) {
+          final uid = g['uid'] ?? g['_uid'];
+          if (uid != null) {
+            _selectedGroupUids.add(uid.toString());
           }
         }
       }
@@ -362,6 +381,107 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       setState(() {
         _isSavingLabels = false;
       });
+    }
+  }
+
+  Future<void> _showManageGroupsDialog() async {
+    final isDark = ThemeService().isDark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final tempSelectedGroups = Set<String>.from(_selectedGroupUids);
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Gérer les groupes',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              content: _allGroups.isEmpty
+                  ? Text(
+                      'Aucun groupe de contacts disponible.',
+                      style: TextStyle(color: onSurface.withOpacity(0.6)),
+                    )
+                  : SizedBox(
+                      width: double.maxFinite,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _allGroups.length,
+                        itemBuilder: (context, index) {
+                          final group = _allGroups[index];
+                          final title = group['title'] ?? 'Groupe';
+                          final uid = group['_uid'] ?? '';
+                          final isChecked = tempSelectedGroups.contains(uid);
+
+                          return CheckboxListTile(
+                            title: Text(
+                              title,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                            ),
+                            value: isChecked,
+                            activeColor: ThemeService.primaryColor,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                if (val == true) {
+                                  tempSelectedGroups.add(uid);
+                                } else {
+                                  tempSelectedGroups.remove(uid);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'Annuler',
+                    style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeService.primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Enregistrer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (updated == true) {
+      setState(() => _isSavingGroups = true);
+      final success = await ApiService().assignGroupsToContact(
+        [widget.contact.uid],
+        tempSelectedGroups.toList(),
+      );
+
+      if (success) {
+        setState(() {
+          _selectedGroupUids.clear();
+          _selectedGroupUids.addAll(tempSelectedGroups);
+          _isSavingGroups = false;
+        });
+        _showDrawerNotice('Groupes mis à jour avec succès');
+      } else {
+        setState(() => _isSavingGroups = false);
+        _showDrawerNotice('Erreur lors de la mise à jour des groupes');
+      }
     }
   }
 
@@ -878,6 +998,77 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                       onSelected: (selected) {
                                         _toggleLabel(labelId, selected);
                                       },
+                                    );
+                                  }).toList(),
+                                ),
+
+                      // Groupes Section
+                      _buildSectionHeader(
+                        'Groupes de Contacts',
+                        Icons.group_work_rounded,
+                        trailing: InkWell(
+                          onTap: _showManageGroupsDialog,
+                          borderRadius: BorderRadius.circular(4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit, color: _accentColor, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Gérer',
+                                  style: TextStyle(
+                                    color: _primaryColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _isSavingGroups
+                          ? Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
+                              ),
+                            )
+                          : _selectedGroupUids.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  child: Text(
+                                    'Ce contact n\'appartient à aucun groupe.',
+                                    style: TextStyle(color: onSurface.withOpacity(0.5), fontSize: 12),
+                                  ),
+                                )
+                              : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _allGroups
+                                      .where((g) => _selectedGroupUids.contains(g['_uid'] ?? ''))
+                                      .map((group) {
+                                    final title = group['title'] ?? 'Groupe';
+
+                                    return Chip(
+                                      label: Text(
+                                        title,
+                                        style: TextStyle(
+                                          color: onSurface.withOpacity(0.8),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor: _primaryColor.withOpacity(0.1),
+                                      side: BorderSide(
+                                        color: _primaryColor.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     );
                                   }).toList(),
                                 ),

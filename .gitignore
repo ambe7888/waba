@@ -62,3 +62,4 @@ PROJECT_LOG.md
 update.md
 campagne.sql
 storage/firebase/firebase-service-account.json
+all_templates_dump.sql

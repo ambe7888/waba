@@ -7,6 +7,9 @@ import 'support_tickets_screen.dart';
 import 'resource_list_screen.dart';
 import 'login_screen.dart';
 import 'qr_code_screen.dart';
+import 'canned_replies_screen.dart';
+import 'notification_settings_screen.dart';
+import 'contact_groups_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -146,6 +149,39 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const SupportTicketsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.flash_on_rounded, color: Colors.amber),
+                  title: const Text('Réponses Rapides'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CannedRepliesScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.group_work_rounded, color: Colors.purple),
+                  title: const Text('Groupes de Contacts'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ContactGroupsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.notifications_active_rounded, color: Colors.blue),
+                  title: const Text('Paramètres de Notifications'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
                     );
                   },
                 ),

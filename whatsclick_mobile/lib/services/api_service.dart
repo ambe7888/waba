@@ -829,5 +829,230 @@ class ApiService {
       return null;
     }
   }
+
+  /// Fetch product list for mobile
+  Future<List<Map<String, dynamic>>> fetchProducts({String search = ''}) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products?search=$search');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final productsObj = body['data']?['products'];
+          if (productsObj is Map && productsObj['data'] is List) {
+            return List<Map<String, dynamic>>.from(productsObj['data']);
+          }
+          if (productsObj is List) {
+            return List<Map<String, dynamic>>.from(productsObj);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Products Error: $e');
+      return [];
+    }
+  }
+
+  /// Send a product message to a contact
+  Future<bool> sendProductMessage(String contactUid, String productUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/send-product');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'contact_uid': contactUid,
+          'product_uid': productUid,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Send Product Message Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch all canned replies
+  Future<List<Map<String, dynamic>>> fetchCannedReplies() async {
+    final url = Uri.parse('${baseApiUrl}vendor/canned-replies');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['canned_replies'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Canned Replies Error: $e');
+      return [];
+    }
+  }
+
+  /// Save or update a canned reply
+  Future<Map<String, dynamic>?> saveCannedReply({
+    String? uid,
+    required String shortcut,
+    required String message,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/canned-replies/save');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'uid': uid,
+          'shortcut': shortcut,
+          'message': message,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return body['data']?['canned_reply'] as Map<String, dynamic>?;
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Save Canned Reply Error: $e');
+      return null;
+    }
+  }
+
+  /// Delete a canned reply
+  Future<bool> deleteCannedReply(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/canned-replies/$uid');
+    try {
+      final response = await http.delete(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Canned Reply Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch contact groups
+  Future<List<Map<String, dynamic>>> fetchContactGroups() async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/groups');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['contactGroups'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Contact Groups Error: $e');
+      return [];
+    }
+  }
+
+  /// Create a contact group
+  Future<bool> createContactGroup(String title) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/groups/create');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'title': title,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Create Contact Group Error: $e');
+      return false;
+    }
+  }
+
+  /// Delete a contact group
+  Future<bool> deleteContactGroup(String groupUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/groups/$groupUid/delete');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Contact Group Error: $e');
+      return false;
+    }
+  }
+
+  /// Assign groups to contact
+  Future<bool> assignGroupsToContact(List<String> contactUids, List<String> groupUids) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/assign-groups');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'contacts_uid': contactUids,
+          'groups_uid': groupUids,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Assign Groups Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch contacts belonging to a specific group
+  Future<List<Contact>> fetchGroupContacts(String groupUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/groups/$groupUid/contacts');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['contacts'] as List?;
+          if (list != null) {
+            return list.map((c) => Contact.fromJson(Map<String, dynamic>.from(c))).toList();
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Group Contacts Error: $e');
+      return [];
+    }
+  }
 }
 

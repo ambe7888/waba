@@ -53,6 +53,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   Timer? _recordingTimer;
   final _audioRecorder = AudioRecorder();
   String? _localRecordingPath;
+  
+  // Canned Replies State
+  List<Map<String, dynamic>> _cannedReplies = [];
+  List<Map<String, dynamic>> _filteredCannedReplies = [];
+  bool _showCannedSuggestions = false;
 
   // Design constants
 
@@ -98,6 +103,40 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       const Duration(seconds: pollingIntervalSeconds),
       (_) => _loadMessages(silent: true),
     );
+    _loadCannedReplies();
+    _messageController.addListener(_onMessageTextChanged);
+  }
+
+  Future<void> _loadCannedReplies() async {
+    final list = await ApiService().fetchCannedReplies();
+    if (mounted) {
+      setState(() {
+        _cannedReplies = list;
+      });
+    }
+  }
+
+  void _onMessageTextChanged() {
+    final text = _messageController.text;
+    if (text.startsWith('/')) {
+      final query = text.substring(1).toLowerCase();
+      final filtered = _cannedReplies.where((reply) {
+        final shortcut = reply['shortcut']?.toString().toLowerCase() ?? '';
+        final msg = reply['message']?.toString().toLowerCase() ?? '';
+        return shortcut.contains(query) || msg.contains(query);
+      }).toList();
+
+      setState(() {
+        _filteredCannedReplies = filtered;
+        _showCannedSuggestions = filtered.isNotEmpty;
+      });
+    } else {
+      if (_showCannedSuggestions) {
+        setState(() {
+          _showCannedSuggestions = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadMessages({bool silent = false}) async {
@@ -878,10 +917,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -890,18 +929,46 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 'Partager du contenu',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
               ),
-              SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.center,
                 children: [
-                  _buildAttachmentItem(Icons.headset_rounded, 'Audio', Color(0xFFF59E0B), () => _pickAndSendMedia('audio')),
-                  _buildAttachmentItem(Icons.insert_drive_file_rounded, 'Doc', Color(0xFF6366F1), () => _pickAndSendMedia('document')),
-                  _buildAttachmentItem(Icons.photo_rounded, 'Image', Color(0xFF8B5CF6), () => _pickAndSendMedia('image')),
-                  _buildAttachmentItem(Icons.video_collection_rounded, 'Vidéo', Color(0xFFEC4899), () => _pickAndSendMedia('video')),
+                  _buildAttachmentItem(Icons.headset_rounded, 'Audio', const Color(0xFFF59E0B), () => _pickAndSendMedia('audio')),
+                  _buildAttachmentItem(Icons.insert_drive_file_rounded, 'Doc', const Color(0xFF6366F1), () => _pickAndSendMedia('document')),
+                  _buildAttachmentItem(Icons.photo_rounded, 'Image', const Color(0xFF8B5CF6), () => _pickAndSendMedia('image')),
+                  _buildAttachmentItem(Icons.video_collection_rounded, 'Vidéo', const Color(0xFFEC4899), () => _pickAndSendMedia('video')),
+                  _buildAttachmentItem(Icons.shopping_bag_rounded, 'Produit', const Color(0xFF10B981), _showProductPicker),
                 ],
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showProductPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          builder: (_, controller) {
+            return _ProductPickerSheet(
+              scrollController: controller,
+              contactUid: widget.contact.uid,
+              contactName: widget.contact.name,
+              onProductSent: () {
+                _loadMessages(silent: true);
+              },
+            );
+          },
         );
       },
     );
@@ -1055,6 +1122,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   @override
   void dispose() {
+    _messageController.removeListener(_onMessageTextChanged);
     _fcmSubscription?.cancel();
     _pollingTimer?.cancel();
     _recordingTimer?.cancel();
@@ -1187,6 +1255,59 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     ),
                   );
                 },
+              ),
+            ),
+
+          // Canned Replies Suggestions Overlay
+          if (_showCannedSuggestions)
+            Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+                border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _filteredCannedReplies.length,
+                  itemBuilder: (context, index) {
+                    final reply = _filteredCannedReplies[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B), size: 18),
+                      title: Text(
+                        reply['shortcut'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        reply['message'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _messageController.text = reply['message'] ?? '';
+                          _messageController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: _messageController.text.length),
+                          );
+                          _showCannedSuggestions = false;
+                        });
+                      },
+                    );
+                  },
+                ),
               ),
             ),
 
@@ -1840,6 +1961,252 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
                     ? _formatDuration(_duration)
                     : '0:00',
             style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductPickerSheet extends StatefulWidget {
+  final ScrollController scrollController;
+  final String contactUid;
+  final String contactName;
+  final VoidCallback onProductSent;
+
+  const _ProductPickerSheet({
+    required this.scrollController,
+    required this.contactUid,
+    required this.contactName,
+    required this.onProductSent,
+  });
+
+  @override
+  State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
+}
+
+class _ProductPickerSheetState extends State<_ProductPickerSheet> {
+  final _searchController = TextEditingController();
+  List<Map<String, dynamic>> _products = [];
+  bool _isLoading = true;
+  bool _isSending = false;
+  String _searchQuery = '';
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final products = await ApiService().fetchProducts(search: _searchQuery);
+    if (mounted) {
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = query;
+        });
+        _loadProducts();
+      }
+    });
+  }
+
+  void _confirmAndSendProduct(Map<String, dynamic> product) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Envoyer le produit'),
+        content: Text('Voulez-vous envoyer "${product['name']}" à ${widget.contactName} ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2DD4BF),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() {
+                _isSending = true;
+              });
+              final success = await ApiService().sendProductMessage(widget.contactUid, product['_uid'] ?? '');
+              if (mounted) {
+                setState(() {
+                  _isSending = false;
+                });
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Produit envoyé avec succès')),
+                  );
+                  widget.onProductSent();
+                  Navigator.pop(context); // Close bottom sheet
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Échec de l\'envoi du produit')),
+                  );
+                }
+              }
+            },
+            child: const Text('Envoyer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06))),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.shopping_bag_rounded, color: Color(0xFF10B981), size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Sélectionner un produit',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47)),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          // Search Input
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un produit...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.12)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+            ),
+          ),
+          // Content
+          Expanded(
+            child: Stack(
+              children: [
+                if (_isLoading)
+                  Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
+                else if (_products.isEmpty)
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.shopping_bag_outlined, size: 56, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.16)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Aucun produit trouvé',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.builder(
+                    controller: widget.scrollController,
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      final product = _products[index];
+                      final String? imageUrl = product['image_url'];
+                      final double price = double.tryParse(product['price']?.toString() ?? '0') ?? 0;
+                      
+                      return ListTile(
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.black12,
+                          ),
+                          child: (imageUrl != null && imageUrl.isNotEmpty)
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, err, stack) => const Icon(Icons.shopping_cart, color: Colors.grey),
+                                  ),
+                                )
+                              : const Icon(Icons.shopping_cart, color: Colors.grey),
+                        ),
+                        title: Text(
+                          product['name'] ?? 'Produit sans nom',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          '${price.toStringAsFixed(0)} CFA',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.send_rounded, color: Color(0xFF2DD4BF)),
+                          onPressed: _isSending ? null : () => _confirmAndSendProduct(product),
+                        ),
+                        onTap: _isSending ? null : () => _confirmAndSendProduct(product),
+                      );
+                    },
+                  ),
+                if (_isSending)
+                  Container(
+                    color: Colors.black12,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
