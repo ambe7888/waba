@@ -163,6 +163,11 @@ class ManualSubscriptionController extends BaseController
             "status" => [
                 Rule::in(array_keys(configItem('subscription_status')))
             ],
+            'ai_credits' => 'nullable|integer|min:0',
+            'contact_limit' => 'nullable|integer|min:0',
+            'campaign_limit' => 'nullable|integer|min:0',
+            'custom_plan_charge' => 'nullable|numeric|min:0',
+            'custom_plan_frequency' => 'nullable|string|in:monthly,yearly',
         ]);
         // ask engine to process the request
         $processReaction = $this->manualSubscriptionEngine->processManualSubscriptionUpdate($request->get('manualSubscriptionIdOrUid'), $request->all());

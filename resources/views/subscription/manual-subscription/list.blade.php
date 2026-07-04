@@ -57,6 +57,48 @@
                         <textarea class="form-control" name="remarks" id="lwEditRemarks" rows="2"><%- __tData.remarks %></textarea>
                     </div>
                         <!-- /Ends_At -->
+                        <fieldset class="lw-fieldset mb-3 mt-4">
+                            <legend class="lw-fieldset-legend">{{  __tr('Custom Plan Limits for this Vendor') }}</legend>
+                            <div class="alert alert-info">
+                                {{ __tr('Leave fields empty to use the default limits from the assigned plan.') }}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="ai_credits">{{ __tr('AI Credits') }}</label>
+                                <input type="number" class="form-control" name="ai_credits" id="ai_credits" value="<%- __tData.custom_limits?.ai_credits || '' %>">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="contact_limit">{{ __tr('Contact Limit') }}</label>
+                                <input type="number" class="form-control" name="contact_limit" id="contact_limit" value="<%- __tData.custom_limits?.contact_limit || '' %>">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="campaign_limit">{{ __tr('Campaign Limit') }}</label>
+                                <input type="number" class="form-control" name="campaign_limit" id="campaign_limit" value="<%- __tData.custom_limits?.campaign_limit || '' %>">
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="lw-fieldset mb-3">
+                            <legend class="lw-fieldset-legend">{{  __tr('Custom Manual Pricing for this Vendor') }}</legend>
+                            <div class="alert alert-info">
+                                {{ __tr('Set a custom price for this client for future renewals.') }}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="custom_plan_charge">{{ __tr('Custom Charge Amount') }}</label>
+                                <input type="number" step="0.01" class="form-control" name="custom_plan_charge" id="custom_plan_charge" value="<%- __tData.custom_plan_charge || '' %>">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="custom_plan_frequency">{{ __tr('Charge Frequency') }}</label>
+                                <select name="custom_plan_frequency" id="custom_plan_frequency" class="form-control">
+                                    <option value="">{{ __tr('Default') }}</option>
+                                    <option value="monthly" <%= __tData.custom_plan_frequency === 'monthly' ? 'selected' : '' %>>{{ __tr('Monthly') }}</option>
+                                    <option value="yearly" <%= __tData.custom_plan_frequency === 'yearly' ? 'selected' : '' %>>{{ __tr('Yearly') }}</option>
+                                </select>
+                            </div>
+                        </fieldset>
                         @else
                         <div class="alert alert-danger">
                             {{  __tr('Extended licence required to enable manage subscription') }}
