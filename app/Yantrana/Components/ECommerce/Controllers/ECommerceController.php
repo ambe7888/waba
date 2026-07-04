@@ -274,21 +274,64 @@ class ECommerceController extends BaseController
             $accessToken = decrypt($accessToken);
         } catch (\Exception $e) {}
 
-        // Make HTTP Request to Meta API
-        $response = \Http::withToken($accessToken)
-            ->get("https://graph.facebook.com/v25.0/{$wabaId}/commerce_settings");
+        $catalogsList = [];
 
-        if ($response->successful()) {
-            $data = $response->json();
-            $catalogs = $data['data'] ?? [];
+        // 1. Try to get catalogs via WABA owning business
+        try {
+            $wabaResponse = \Http::withToken($accessToken)
+                ->get("https://graph.facebook.com/v25.0/{$wabaId}", [
+                    'fields' => 'owning_business'
+                ]);
+
+            if ($wabaResponse->successful()) {
+                $businessId = $wabaResponse->json()['owning_business']['id'] ?? null;
+                if ($businessId) {
+                    $catalogsResponse = \Http::withToken($accessToken)
+                        ->get("https://graph.facebook.com/v25.0/{$businessId}/owned_product_catalogs");
+                    if ($catalogsResponse->successful()) {
+                        $catalogsData = $catalogsResponse->json()['data'] ?? [];
+                        foreach ($catalogsData as $cat) {
+                            $catalogsList[] = [
+                                'id' => $cat['id'],
+                                'name' => $cat['name'] ?? ('Catalog #' . $cat['id'])
+                            ];
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {}
+
+        // 2. If empty, fallback to WABA commerce settings (currently linked catalog)
+        if (empty($catalogsList)) {
+            try {
+                $commResponse = \Http::withToken($accessToken)
+                    ->get("https://graph.facebook.com/v25.0/{$wabaId}/commerce_settings");
+
+                if ($commResponse->successful()) {
+                    $commData = $commResponse->json()['data'] ?? [];
+                    foreach ($commData as $comm) {
+                        if (isset($comm['catalog_id'])) {
+                            $catalogsList[] = [
+                                'id' => $comm['catalog_id'],
+                                'name' => __tr('Linked Catalog')
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {}
+        }
+
+        // Remove duplicates
+        $catalogsList = array_values(array_unique($catalogsList, SORT_REGULAR));
+
+        if (!empty($catalogsList)) {
             return $this->processResponse(1, [], [
-                'catalogs' => $catalogs
+                'catalogs' => $catalogsList
             ]);
         }
 
-        $errorMsg = $response->json()['error']['message'] ?? $response->body() ?? __tr('Failed to fetch catalogs from Meta Graph API.');
         return $this->processResponse(2, [], [
-            'message' => $errorMsg
+            'message' => __tr('No catalogs found. Please link a catalog to your WhatsApp number in your Meta Business Suite.')
         ]);
     }
 }
