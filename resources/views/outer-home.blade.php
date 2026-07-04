@@ -1419,6 +1419,38 @@ $appName = getAppSettings('name');
                         <p>{{ __tr('Personnalisez vos messages avec des informations sur la base d\'utilisateurs et des champs personnalisés adaptés à votre audience sur WhatsClick.') }}</p>
                     </div>
                 </div>
+                <!-- 13. Campagnes Drip (Séquences Automatiques) -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-clock-history"></i></div>
+                        <h3>{{ __tr('Campagnes Drip (Séquences)') }}</h3>
+                        <p>{{ __tr('Planifiez des séquences automatiques de messages espacées dans le temps pour accompagner et relancer vos prospects de façon intelligente.') }}</p>
+                    </div>
+                </div>
+                <!-- 14. E-commerce et Catalogues -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-shop"></i></div>
+                        <h3>{{ __tr('E-commerce et Catalogues') }}</h3>
+                        <p>{{ __tr('Connectez votre boutique Shopify, WooCommerce ou Catalogue Manuel pour envoyer et recommander des fiches produits interactives en un clic dans le chat.') }}</p>
+                    </div>
+                </div>
+                <!-- 15. Application Mobile Android -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-phone"></i></div>
+                        <h3>{{ __tr('Application Mobile Android') }}</h3>
+                        <p>{{ __tr('Discutez avec vos clients, lancez des campagnes et suivez vos statistiques en temps réel en déplacement grâce à notre application Android.') }}</p>
+                    </div>
+                </div>
+                <!-- 16. Inscription Intégrée Meta -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-shield-check"></i></div>
+                        <h3>{{ __tr('Inscription Intégrée Meta') }}</h3>
+                        <p>{{ __tr('Configurez et activez votre API Cloud WhatsApp professionnelle en moins de 5 minutes grâce au flux d\'enregistrement officiel Meta.') }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
