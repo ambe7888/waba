@@ -486,7 +486,7 @@ if (! function_exists('setVendorSettings')) {
 if (! function_exists('getAppSettings')) {
     function getAppSettings($itemName, $itemKeys = null)
     {
-        if ($itemName === 'lwAddonShopifyProductSend') {
+        if (in_array($itemName, ['lwAddonShopifyProductSend', 'lwAddonWhatsJetChatMobileApp', 'lwAddonWhatsJetEmbeddedSignUpAddon'])) {
             if ($itemKeys === 'registration_id') {
                 return 'simulated_reg_id';
             }
@@ -494,7 +494,7 @@ if (! function_exists('getAppSettings')) {
                 'registration_id' => 'simulated_reg_id',
             ];
         }
-        if ($itemName === 'lwEnableShopifyProductSend') {
+        if (in_array($itemName, ['lwEnableShopifyProductSend', 'lwEnableWhatsJetChatMobileApp', 'lwEnableWhatsJetEmbeddedSignUpAddon'])) {
             return '1';
         }
 
