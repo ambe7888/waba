@@ -1323,12 +1323,12 @@ $appName = getAppSettings('name');
             </div>
 
             <div class="row g-4">
-                <!-- 1. Inscription intégrée -->
+                <!-- 1. Segmentation & Tags -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="bi bi-box-arrow-in-right"></i></div>
-                        <h3>{{ __tr('Inscription intégrée') }}</h3>
-                        <p>{{ __tr('Intégrez facilement les clients grâce à notre système d\'inscription intégré.') }}</p>
+                        <div class="feature-icon-wrap"><i class="bi bi-tags"></i></div>
+                        <h3>{{ __tr('Segmentation & Tags') }}</h3>
+                        <p>{{ __tr('Organisez vos contacts avec des tags personnalisés et filtrez votre audience pour envoyer des campagnes ciblées et percutantes.') }}</p>
                     </div>
                 </div>
                 <!-- 2. Gestion des modèles -->
