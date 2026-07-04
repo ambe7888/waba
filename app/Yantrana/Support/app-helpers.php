@@ -979,7 +979,7 @@ if (! function_exists('formatAmount')) {
 
         $currencySymbolStr = trim(html_entity_decode($currencySymbol));
 
-        $formattedCurrency = number_format((float) $amount, 2) . ($currencySymbolStr ? ' ' . $currencySymbolStr : '');
+        $formattedCurrency = number_format((float) $amount, 0, '.', ' ') . ($currencySymbolStr ? ' ' . $currencySymbolStr : '');
 
         return __tr($formattedCurrency);
     }
