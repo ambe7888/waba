@@ -327,6 +327,19 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             $manualSubscriptionArray['custom_plan_frequency'] = $vendor->custom_plan_frequency;
         }
 
+        $planDefaults = [
+            'ai_credits' => '',
+            'contact_limit' => '',
+            'campaign_limit' => '',
+        ];
+        if ($manualSubscription->plan_id) {
+            $planDetails = getPaidPlans($manualSubscription->plan_id);
+            $planDefaults['ai_credits'] = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', '');
+            $planDefaults['contact_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.contact_limit.limit', '');
+            $planDefaults['campaign_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.campaign_limit.limit', '');
+        }
+        $manualSubscriptionArray['plan_defaults'] = $planDefaults;
+
         return $this->engineResponse(1, $manualSubscriptionArray);
     }
 
