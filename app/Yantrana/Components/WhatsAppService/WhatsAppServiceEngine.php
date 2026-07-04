@@ -3670,6 +3670,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // has in subscription plan
         $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $contact->vendors__id);
         if (!$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
+            // Meta AI Bot
+            if (getVendorSettings('enable_meta_ai_bot', null, null, $contact->vendors__id)) {
+                return false;
+            }
             $aiBotReplyText = null;
             // open ai
             if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and (getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) or getAppSettings('openai_api_key') or env('OPENAI_API_KEY'))) {
