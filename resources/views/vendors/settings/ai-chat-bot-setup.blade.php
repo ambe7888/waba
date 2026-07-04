@@ -256,5 +256,43 @@
             </div>
             </div>
             </fieldset>
+
+        {{-- Meta AI Setup --}}
+        <fieldset class="lw-fieldset mb-3 mt-4" x-data="{panelOpened:false}" x-cloak>
+            <legend @click="panelOpened = !panelOpened">
+                <i class="fab fa-meta text-primary mr-3"></i> <?= __tr('Meta Business Agent (Meta AI) Setup') ?> 
+                <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small>
+            </legend>
+            <div x-cloak x-show="panelOpened">
+                <div>
+                    <p>{{  __tr("Meta Business Agent is a native AI chatbot hosted directly by Meta. When enabled, Meta's Llama-based assistant responds directly to incoming customer messages, bypassing local OpenAI and Flowise AI processing. To use this feature, configure your AI agent, knowledge base, and skills inside the Meta Business Suite under WhatsApp Manager > Meta Business Agent.") }}</p>
+                </div>
+                <div>
+                    @if ($vendorPlanDetails['is_limit_available'])
+                    <form id="lwMetaAiBotForm" class="lw-ajax-form lw-form" name="meta_ai_bot_setup_page" method="post" action="<?= route('vendor.settings.write.update') ?>">
+                        <input type="hidden" name="pageType" value="meta_ai_bot_setup">
+                        <input type="hidden" name="form_type" value="meta_ai_bot_setup_page" />
+                        
+                        <x-lw.checkbox id="enableMetaAiBot" name="enable_meta_ai_bot" :checked="getVendorSettings('enable_meta_ai_bot')" data-lw-plugin="lwSwitchery" :label="__tr('Enable Meta Business Agent (Meta AI)')" />
+                        
+                        <div class="alert alert-warning my-4">
+                            <strong>{{ __tr('Attention :') }}</strong> {{  __tr("Enabling Meta AI will override and disable all local OpenAI and Flowise AI bots on this platform. Meta's native AI will reply directly to your clients on WhatsApp. Make sure your Meta Business Agent is integrated and published via the API in your Facebook Developer Portal/WhatsApp Manager.") }}
+                        </div>
+                        
+                        <hr>
+                        <div class="form-group m-3">
+                            <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">
+                                <?= __tr('Save') ?>
+                            </button>
+                        </div>
+                    </form>
+                    @else
+                        <div class="alert alert-danger">
+                            {{  __tr('This Feature is not available in your plan, please upgrade your subscription plan.') }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </fieldset>
     </div>
 </div>

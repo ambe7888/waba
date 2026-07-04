@@ -232,6 +232,13 @@ return [
                 ],
             ],
         ],
+        'meta_ai_bot_setup' => [
+            'enable_meta_ai_bot' => [
+                'key' => 'enable_meta_ai_bot',
+                'data_type' => 2,    // boolean
+                'default' => false,
+            ],
+        ],
         'open_ai_bot_setup' => [
             'enable_open_ai_bot' => [
                 'key' => 'enable_open_ai_bot',
