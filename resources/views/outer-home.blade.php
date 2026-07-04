@@ -851,9 +851,9 @@ $appName = getAppSettings('name');
             margin-bottom: 1rem;
         }
         .pricing-card .plan-price {
-            font-size: 3rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            color: var(--text);
+            color: var(--primary);
             line-height: 1;
             margin-bottom: 0.25rem;
         }
@@ -1606,13 +1606,15 @@ $appName = getAppSettings('name');
                 @endphp
 
                 @if(!empty($subscriptionPlans))
+                    @php $activeIteration = 0; @endphp
                     @foreach ($subscriptionPlans as $planKey => $savedPlan)
                         @php
                             if (!($savedPlan['enabled'] ?? true)) continue;
+                            $activeIteration++;
                             $planStr = $planStructure[$planKey] ?? ['features' => []];
                         @endphp
                         <div class="col-lg-4 col-md-6 mb-4">
-                            <div class="pricing-card @if($planKey == 'premium' || $loop->iteration == 2) popular @endif h-100">
+                            <div class="pricing-card @if($planKey == 'premium' || $activeIteration == 2) popular @endif h-100">
                                 <div class="text-center">
                                     <div class="plan-name">{{ $savedPlan['title'] }}</div>
                                     @if(isset($savedPlan['charges']['monthly']['charge']))
@@ -1651,7 +1653,7 @@ $appName = getAppSettings('name');
                                     @endforeach
                                 </ul>
 
-                                <a href="{{ route('auth.register') }}" class="btn-plan @if($planKey == 'premium' || $loop->iteration == 2) btn-plan-primary @else btn-plan-outline @endif text-decoration-none">
+                                <a href="{{ route('auth.register') }}" class="btn-plan @if($planKey == 'premium' || $activeIteration == 2) btn-plan-primary @else btn-plan-outline @endif text-decoration-none">
                                     {{ __tr('Commencez') }}
                                 </a>
                             </div>
