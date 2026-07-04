@@ -87,9 +87,19 @@ class ECommerceController extends BaseController
             $description = mb_substr($description, 0, 200) . '...';
         }
         $messageBody = "*{$product->name}*\n\n" . $description . "\n\n💰 *Prix:* " . number_format($product->price, 0, ',', ' ') . " CFA";
-        if ($product->direct_link) {
-            $messageBody .= "\n\n🛒 *Commander:* " . $product->direct_link;
-        }
+
+        // Construct interactive message data (cta_url)
+        $interactionMessageData = [
+            'interactive_type' => 'cta_url',
+            'header_type' => (!empty($product->image_url) && isValidUrl($product->image_url)) ? 'image' : 'text',
+            'media_link' => $product->image_url ?: '',
+            'header_text' => mb_substr($product->name, 0, 60), // Meta limit is 60 chars
+            'body_text' => ($description ?: $product->name) . "\n\n" . __tr('Prix:') . " " . number_format($product->price, 0, ',', ' ') . " CFA",
+            'cta_url' => [
+                'display_text' => mb_substr(__tr('Détails du produit'), 0, 20), // Meta limit is 20 chars
+                'url' => $product->direct_link ?: ''
+            ]
+        ];
 
         $sendRequest = [
             'messageBody' => $messageBody,
@@ -106,33 +116,17 @@ class ECommerceController extends BaseController
         // Ask WhatsAppServiceEngine to send this chat message
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
 
-        if (!empty($product->image_url) && isValidUrl($product->image_url)) {
-            $options = [
-                'from_phone_number_id' => $currentPhoneNumberId,
-                'media_message_data' => [
-                    'header_type' => 'image',
-                    'media_link' => $product->image_url,
-                    'caption' => $messageBody,
-                    'file_name' => $product->name,
-                ]
-            ];
-            $processReaction = $whatsAppServiceEngine->processSendChatMessage(
-                $sendRequest,
-                true,
-                $vendorId,
-                $options
-            );
-        } else {
-            $options = [
-                'from_phone_number_id' => $currentPhoneNumberId,
-            ];
-            $processReaction = $whatsAppServiceEngine->processSendChatMessage(
-                $sendRequest,
-                false,
-                $vendorId,
-                $options
-            );
-        }
+        $options = [
+            'from_phone_number_id' => $currentPhoneNumberId,
+            'interaction_message_data' => $interactionMessageData,
+        ];
+
+        $processReaction = $whatsAppServiceEngine->processSendChatMessage(
+            $sendRequest,
+            false, // Not a standard media message
+            $vendorId,
+            $options
+        );
 
         return $this->processResponse($processReaction);
     }

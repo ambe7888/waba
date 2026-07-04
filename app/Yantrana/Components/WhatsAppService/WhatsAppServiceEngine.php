@@ -3080,14 +3080,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $buttonText = trim($matches[1]);
                 $buttonUrl = trim($matches[2]);
                 $ctaUrl = [
-                    [
-                        'name' => 'display_text',
-                        'value' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
-                    ],
-                    [
-                        'name' => 'url',
-                        'value' => $buttonUrl,
-                    ],
+                    'display_text' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
+                    'url' => $buttonUrl,
                 ];
                 // Remove the URL_BUTTON tag from the text
                 $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/i', '', $replyText);
@@ -3108,14 +3102,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $buttonText = trim($matches[1]);
                 $buttonUrl = trim($matches[2]);
                 $ctaUrl = [
-                    [
-                        'name' => 'display_text',
-                        'value' => mb_substr($buttonText, 0, 20),
-                    ],
-                    [
-                        'name' => 'url',
-                        'value' => $buttonUrl,
-                    ],
+                    'display_text' => mb_substr($buttonText, 0, 20),
+                    'url' => $buttonUrl,
                 ];
                 // Remove the markdown link along with any typical preceding words like "cliquez ici : ", "cliquez ici", "ici : ", etc.
                 $replyText = preg_replace('/(cliquez\s+ici\s*:?\s*|cliquez\s+ici\s*|ici\s*:?\s*)?\[[^\]]+\]\([^\s\)]+\)/ui', '', $replyText);
