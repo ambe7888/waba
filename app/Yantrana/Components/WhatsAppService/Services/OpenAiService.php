@@ -419,6 +419,10 @@ class OpenAiService extends BaseEngine
     {
         $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
         if ($vendor) {
+            // If credits are unlimited (>= 99999999), do not deduct
+            if ($vendor->plan_ai_credits >= 99999999) {
+                return;
+            }
             if ($vendor->plan_ai_credits > 0) {
                 $vendor->plan_ai_credits -= 1;
             } elseif ($vendor->extra_ai_credits > 0) {
