@@ -24,9 +24,9 @@ class ECommerceController extends BaseController
     /**
      * Synchronize WooCommerce / Shopify Products
      */
-    public function syncProducts()
+    public function syncProducts(Request $request)
     {
-        $processReaction = $this->ecommerceEngine->syncProducts();
+        $processReaction = $this->ecommerceEngine->syncProducts(null, $request->source);
         return $this->processResponse($processReaction);
     }
 
@@ -98,8 +98,9 @@ class ECommerceController extends BaseController
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
 
         // We simulate a request with message_body for the preview and log
+        $description = $product->description ? strip_tags(html_entity_decode($product->description)) : '';
         $sendRequest = [
-            'messageBody' => "*{$product->name}*\n" . ($product->description ?: '') . "\nPrice: " . number_format($product->price) . " CFA",
+            'messageBody' => "*{$product->name}*\n" . $description . "\nPrix: " . number_format($product->price, 0, ',', ' ') . " CFA",
             'contactUid' => $request->contact_uid,
         ];
 

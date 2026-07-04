@@ -14,13 +14,13 @@ class ECommerceEngine extends BaseEngine
      * @param int|null $vendorId
      * @return array
      */
-    public function syncProducts($vendorId = null)
+    public function syncProducts($vendorId = null, $source = null)
     {
         if (!$vendorId) {
             $vendorId = getVendorId();
         }
 
-        $integration = getVendorSettings('ecommerce_integration', null, null, $vendorId);
+        $integration = $source ?: getVendorSettings('ecommerce_integration', null, null, $vendorId);
         if (!$integration || $integration == 'none') {
             return [
                 'reaction_code' => 2,
@@ -33,6 +33,8 @@ class ECommerceEngine extends BaseEngine
                 return $this->syncShopify($vendorId);
             } elseif ($integration == 'woocommerce') {
                 return $this->syncWooCommerce($vendorId);
+            } elseif ($integration == 'whatsapp_catalog') {
+                return $this->syncWhatsAppCatalog($vendorId);
             }
         } catch (\Exception $e) {
             return [
@@ -189,6 +191,83 @@ class ECommerceEngine extends BaseEngine
         return [
             'reaction_code' => 1,
             'message' => __tr('Successfully synced __count__ products from WooCommerce.', ['__count__' => $syncedCount])
+        ];
+    }
+
+    /**
+     * Synchronize products from WhatsApp Catalog (Meta)
+     *
+     * @param int $vendorId
+     * @return array
+     */
+    protected function syncWhatsAppCatalog($vendorId)
+    {
+        $catalogId = getVendorSettings('whatsapp_catalog_id', null, null, $vendorId);
+        $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
+
+        if (!$catalogId || !$accessToken) {
+            return [
+                'reaction_code' => 2,
+                'message' => __tr('WhatsApp Catalog ID or Access Token is missing.')
+            ];
+        }
+
+        try {
+            $accessToken = decrypt($accessToken);
+        } catch (\Exception $e) {}
+
+        $url = "https://graph.facebook.com/v20.0/{$catalogId}/products?fields=id,name,description,price,image_url,url";
+        $syncedCount = 0;
+
+        do {
+            $response = \Http::withToken($accessToken)->get($url);
+
+            if (!$response->successful()) {
+                \Log::error('Meta Catalog Sync failed: ' . $response->body());
+                if ($syncedCount == 0) {
+                    return [
+                        'reaction_code' => 2,
+                        'message' => __tr('Failed to fetch catalog from Meta.')
+                    ];
+                }
+                break;
+            }
+
+            $responseData = $response->json();
+            $productsData = $responseData['data'] ?? [];
+
+            foreach ($productsData as $product) {
+                $retailerId = $product['id'];
+                $name = $product['name'] ?? 'Product ' . $retailerId;
+                $description = $product['description'] ?? '';
+                // price comes as a string like "100.00 CFA" or "100.00"
+                $priceStr = $product['price'] ?? '0';
+                $price = floatval(preg_replace('/[^0-9.]/', '', $priceStr));
+                $imageUrl = $product['image_url'] ?? null;
+                $directLink = $product['url'] ?? null;
+
+                ProductModel::updateOrCreate([
+                    'vendors__id' => $vendorId,
+                    'retailer_id' => $retailerId,
+                    'source' => 'whatsapp_catalog',
+                ], [
+                    '_uid' => (string) \Str::uuid(),
+                    'name' => $name,
+                    'description' => $description,
+                    'price' => $price,
+                    'image_url' => $imageUrl,
+                    'direct_link' => $directLink,
+                ]);
+
+                $syncedCount++;
+            }
+
+            $url = $responseData['paging']['next'] ?? null;
+        } while ($url);
+
+        return [
+            'reaction_code' => 1,
+            'message' => __tr('Successfully synced __count__ products from WhatsApp Catalog.', ['__count__' => $syncedCount])
         ];
     }
 }

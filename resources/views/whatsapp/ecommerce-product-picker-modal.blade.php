@@ -17,7 +17,7 @@
                 page: this.page
             }, function(response) {
                 self.isLoading = false;
-                if (response.reaction_code == 1) {
+                if (response.reaction == 1) {
                     self.products = response.data.products.data;
                     self.lastPage = response.data.products.last_page;
                     if (self.products.length > 0 && !self.selectedProductUid) {
@@ -71,7 +71,7 @@
                 product_uid: this.selectedProductUid
             }, function(response) {
                 self.isSending = false;
-                if (response.reaction_code == 1) {
+                if (response.reaction == 1) {
                     showSuccessMessage('{{ __tr('Product sent successfully!') }}');
                     $('#lwECommerceProductPicker').modal('hide');
                 } else {

@@ -375,7 +375,7 @@ $isManualConnected = true;
                     <div class="form-group mt-4">
                         <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm"><i class="fas fa-save mr-2"></i> {{ __tr('Save Settings') }}</button>
                         
-                        <span x-show="integration === 'shopify' || integration === 'woocommerce'" x-cloak>
+                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog'" x-cloak>
                             <button type="button" @click="syncProducts()" class="btn btn-success btn-lg ml-2 shadow-sm" :disabled="isSyncing">
                                 <span x-show="!isSyncing"><i class="fas fa-sync mr-2"></i> {{ __tr('Sync Products Now') }}</span>
                                 <span x-show="isSyncing"><i class="fas fa-spinner fa-spin mr-2"></i> {{ __tr('Synchronizing...') }}</span>
@@ -487,7 +487,7 @@ $isManualConnected = true;
                     </div>
                 </div>
 
-                <div x-show="syncMessage" class="alert alert-info mt-3" x-text="syncMessage" x-cloak></div>
+                <div x-show="syncMessage" class="alert mt-3" style="background-color: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; color: #000;" x-text="syncMessage" x-cloak></div>
             </div>
         </div>
 
