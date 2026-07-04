@@ -434,8 +434,31 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
             $customLimits = [];
         }
 
+        // Get current active plan defaults
+        $activePlanId = null;
+        $vendorSubscription = \App\Yantrana\Components\Subscription\Models\SubscriptionModel::where('vendors__id', $vendor->_id)
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc')
+            ->first();
+        if ($vendorSubscription) {
+            $activePlanId = $vendorSubscription->plan_id ?? $vendorSubscription->type;
+        }
+
+        $planDefaults = [
+            'ai_credits' => '',
+            'contact_limit' => '',
+            'campaign_limit' => '',
+        ];
+        if ($activePlanId && $activePlanId !== 'free') {
+            $planDetails = getPaidPlans($activePlanId);
+            $planDefaults['ai_credits'] = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', '');
+            $planDefaults['contact_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.contact_limit.limit', '');
+            $planDefaults['campaign_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.campaign_limit.limit', '');
+        }
+
         return $this->engineReaction(1, [
             '_uid' => $vendor->_uid,
+            'plan_defaults' => $planDefaults,
             'custom_limits' => [
                 'ai_credits' => Arr::get($customLimits, 'ai_credits', ''),
                 'contact_limit' => Arr::get($customLimits, 'contact_limit', ''),
