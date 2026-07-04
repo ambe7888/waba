@@ -586,6 +586,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                       {!! __tr('Recharge AI Credits') !!}
                                   </a>
                               </li>
+                              @endif
                               @if(vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
                               <li class="nav-item">
                                   <a class="nav-link <?= (isset($pageType) and $pageType == 'ecommerce') ? 'active' : '' ?>"
