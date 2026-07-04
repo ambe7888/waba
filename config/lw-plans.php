@@ -51,6 +51,11 @@ return [
                 'description' => __tr('API and Webhook Access'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
+            'ecommerce_catalog' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('E-commerce & Catalogue'),
+                'limit' => 0, // 0 for none, 1 for enable
+            ],
         ],
     ],
     'paid' => [ // do not change this key
@@ -103,6 +108,11 @@ return [
             'api_access' => [
                 'type' => 'switch', // on or off
                 'description' => __tr('API and Webhook Access'),
+                'limit' => 1, // 0 for none, 1 for enable
+            ],
+            'ecommerce_catalog' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('E-commerce & Catalogue'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
             ],
@@ -172,6 +182,11 @@ return [
                 'description' => __tr('API and Webhook Access'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
+            'ecommerce_catalog' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('E-commerce & Catalogue'),
+                'limit' => 1, // 0 for none, 1 for enable
+            ],
             ],
             'charges' => [
                 'monthly' => [
@@ -237,6 +252,11 @@ return [
             'api_access' => [
                 'type' => 'switch', // on or off
                 'description' => __tr('API and Webhook Access'),
+                'limit' => 1, // 0 for none, 1 for enable
+            ],
+            'ecommerce_catalog' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('E-commerce & Catalogue'),
                 'limit' => 1, // 0 for none, 1 for enable
             ],
             ],

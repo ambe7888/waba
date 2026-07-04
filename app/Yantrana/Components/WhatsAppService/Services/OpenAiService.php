@@ -252,13 +252,25 @@ class OpenAiService extends BaseEngine
         $botName = getVendorSettings('open_ai_bot_name', null, null, $vendorId);
         $botDataSourceType = getVendorSettings('open_ai_bot_data_source_type', null, null, $vendorId);
         $useExistingChatHistory = getVendorSettings('use_existing_chat_history', null, null, $vendorId);
+
+        $productContext = '';
+        if (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available']) {
+            $products = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
+            if ($products->isNotEmpty()) {
+                $productContext = "\n\nHere is our product catalog. If the customer asks about products, pricing, or recommendations, suggest these products and include their direct links so the customer can buy them:\n";
+                foreach ($products as $prod) {
+                    $productContext .= "- Name: {$prod->name}, Price: {$prod->price} CFA, Description: {$prod->description}, Direct Link: {$prod->direct_link}\n";
+                }
+            }
+        }
+
         if ($botDataSourceType == 'assistant') {
             $this->initConfiguration($vendorId);
 
             $messages = [
                 [
                     'role' => 'assistant',
-                    'content' => "You are a helpful assistant " . ($botName ? ' your name is ' . $botName . ' and don"t include your name in reply.' : '') . " a well-formatted, structured way with appropriate new lines and paragraphs. Strictly do not answer out of given context, your answer should be based on the given context and content. You are talking with " . $contact->full_name ?: '',
+                    'content' => "You are a helpful assistant " . ($botName ? ' your name is ' . $botName . ' and don"t include your name in reply.' : '') . " a well-formatted, structured way with appropriate new lines and paragraphs. Strictly do not answer out of given context, your answer should be based on the given context and content. You are talking with " . ($contact->full_name ?: '') . $productContext,
                 ]
             ];
 
@@ -305,7 +317,7 @@ class OpenAiService extends BaseEngine
         $messages = [
             [
                 'role' => 'system',
-                'content' => ($botName ? ' your name is ' . $botName : '') . '. You are a smart AI agent that continues helpful, coherent conversations based on the full context. If the question is out of context tell the user that its out of scope. Strictly do not answer out of given context, your answer should be based on the given context and content. Based on the following content, answer the question in a well-formatted, structured way with appropriate new lines and paragraphs:\n\nContent: ' . $combinedSections . " You are talking with " . $contact->full_name ?: '',
+                'content' => ($botName ? ' your name is ' . $botName : '') . '. You are a smart AI agent that continues helpful, coherent conversations based on the full context. If the question is out of context tell the user that its out of scope. Strictly do not answer out of given context, your answer should be based on the given context and content. Based on the following content, answer the question in a well-formatted, structured way with appropriate new lines and paragraphs:\n\nContent: ' . $combinedSections . $productContext . " You are talking with " . ($contact->full_name ?: ''),
             ]
         ];
 

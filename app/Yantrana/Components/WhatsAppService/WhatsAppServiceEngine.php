@@ -3935,6 +3935,55 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         $messageBody = $this->jsonToListRecursive($nfmReply);
                     }
                 }
+                if (!$messageBody) {
+                    $orderData = Arr::get($messageObject, '0.interactive.order');
+                    if (!empty($orderData)) {
+                        $catalogId = $orderData['catalog_id'] ?? '';
+                        $items = $orderData['product_items'] ?? [];
+                        
+                        $itemDetails = [];
+                        $totalPrice = 0;
+                        $currency = 'CFA';
+                        
+                        foreach ($items as $item) {
+                            $retailerId = $item['product_retailer_id'] ?? '';
+                            $qty = (int) ($item['quantity'] ?? 1);
+                            $price = (float) ($item['item_price'] ?? 0);
+                            $currency = $item['currency'] ?? 'CFA';
+                            
+                            // Find product name locally
+                            $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where([
+                                'vendors__id' => $vendorId,
+                                'retailer_id' => $retailerId
+                            ])->first();
+                            
+                            $productName = $product ? $product->name : ('Product #' . $retailerId);
+                            $itemDetails[] = "{$qty}x {$productName} (" . number_format($price) . " {$currency})";
+                            $totalPrice += $price * $qty;
+                        }
+                        
+                        $messageBody = "🛒 " . __tr('New Order placed via WhatsApp Catalog:') . "\n" . implode("\n", $itemDetails) . "\nTotal: " . number_format($totalPrice) . " {$currency}";
+                        
+                        // Save Order to orders table
+                        $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+                            '_uid' => (string) \Illuminate\Support\Str::uuid(),
+                            'vendors__id' => $vendorId,
+                            'contacts__id' => $contact->_id,
+                            'order_details' => $orderData,
+                            'status' => 'validated',
+                        ]);
+                        
+                        // Append to customer notes
+                        $orderNote = "\n[🛒 Order - " . now()->toDateTimeString() . "]: 1 order with info: " . implode(', ', $itemDetails) . " (Total: " . number_format($totalPrice) . " {$currency})";
+                        $contact->contact_notes = ($contact->contact_notes ?? '') . $orderNote;
+                        $contact->save();
+                        
+                        // Broadcast updated contact to frontend
+                        updateModelsViaVendorBroadcast($vendorUid, [
+                            'contact' => $contact
+                        ]);
+                    }
+                }
                 if (!$messageBody && Arr::get($messageObject, '0.interactive.type') == 'call_permission_reply') {
                     $decision = Arr::get($messageObject, '0.interactive.call_permission_reply.decision');
                     if (empty($decision)) {

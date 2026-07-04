@@ -1088,6 +1088,17 @@ Route::middleware([
                 'disconnectWebhook',
             ])->name('vendor.webhook.disconnect.write');
 
+            // E-commerce & Catalog
+            Route::post('/ecommerce/sync', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'syncProducts',
+            ])->name('vendor.ecommerce.sync');
+
+            Route::get('/ecommerce/products', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'getProducts',
+            ])->name('vendor.ecommerce.products');
+
             Route::post('/disconnect-account', [
                 WhatsAppServiceController::class,
                 'disconnectAccount',
