@@ -147,6 +147,37 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
         .catch(error => {
             showErrorMessage('Erreur réseau.');
         });
+    },
+    isDetectingCatalog: false,
+    detectMetaCatalog() {
+        this.isDetectingCatalog = true;
+        var self = this;
+        fetch('{{ route('vendor.ecommerce.meta_catalogs') }}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            self.isDetectingCatalog = false;
+            if (data.reaction_code == 1) {
+                var catalogs = data.data.catalogs;
+                if (catalogs && catalogs.length > 0) {
+                    var catalogId = catalogs[0].catalog_id;
+                    document.getElementById('whatsapp_catalog_id').value = catalogId;
+                    document.getElementById('whatsapp_catalog_id').dispatchEvent(new Event('input'));
+                    showSuccessMessage('{{ __tr("Catalogue détecté et pré-rempli avec succès : ") }}' + catalogId);
+                } else {
+                    showErrorMessage('{{ __tr("Aucun catalogue lié trouvé dans vos paramètres WhatsApp Commerce.") }}');
+                }
+            } else {
+                showErrorMessage(data.data.message || '{{ __tr("Erreur lors de la récupération des catalogues depuis Meta.") }}');
+            }
+        })
+        .catch(error => {
+            self.isDetectingCatalog = false;
+            showErrorMessage('{{ __tr("Erreur réseau.") }}');
+        });
     }
 }">
     <div class="col-md-12">
@@ -285,8 +316,16 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
                         <div class="form-group">
                             <label class="font-weight-bold" for="whatsapp_catalog_id">{{ __tr('WhatsApp Catalog ID') }}</label>
-                            <input type="text" class="form-control form-control-lg" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="e.g. 128392193892182">
-                            <small class="form-text text-muted">{{ __tr('Liez l\'identifiant unique de votre catalogue Meta Business Manager.') }}</small>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="e.g. 128392193892182">
+                                <div class="input-group-append">
+                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-success font-weight-bold shadow-sm" :disabled="isDetectingCatalog">
+                                        <span x-show="!isDetectingCatalog"><i class="fas fa-magic mr-1"></i> {{ __tr('Détecter depuis Facebook') }}</span>
+                                        <span x-show="isDetectingCatalog"><i class="fas fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">{{ __tr('Liez l\'identifiant unique de votre catalogue Meta Business Manager. Ou cliquez sur le bouton pour le récupérer automatiquement.') }}</small>
                         </div>
                         <div class="p-3 mt-3" style="background-color: rgba(40, 167, 69, 0.08) !important; border-left: 5px solid #28a745 !important; border-radius: 8px; color: #000000 !important;">
                             <h5 class="font-weight-bold mb-1" style="color: #28a745 !important; font-size: 0.95rem;">
