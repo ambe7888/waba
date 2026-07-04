@@ -220,7 +220,8 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
             <div class="card-body">
                 
                 <!-- Main Form for saving settings (Shopify / WooCommerce / WhatsApp / None) -->
-                <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update') ?>">
+                <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
+                    <input type="hidden" name="pageType" value="internals">
                     <input type="hidden" name="ecommerce_integration" :value="integration">
 
                     <!-- Shopify Config -->
@@ -437,11 +438,12 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                     </div>
 
                     <!-- Hidden configuration field to persist integration value -->
-                    <form id="persistManualForm" class="lw-ajax-form lw-form d-none" method="post" action="<?= route('vendor.settings.write.update') ?>">
+                    <form id="persistManualForm" class="lw-ajax-form lw-form d-none" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
+                        <input type="hidden" name="pageType" value="internals">
                         <input type="hidden" name="ecommerce_integration" value="manual">
                     </form>
                     <div class="mt-4">
-                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update') }}', {ecommerce_integration: 'manual'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-primary btn-lg px-5 shadow-sm">
+                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-primary btn-lg px-5 shadow-sm">
                             <i class="fas fa-save mr-2"></i> {{ __tr('Activer le mode Manuel') }}
                         </button>
                     </div>
