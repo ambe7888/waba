@@ -33,7 +33,18 @@ class SyncVendorCredits extends Command
         foreach ($vendors as $vendor) {
             $subscription = getVendorCurrentActiveSubscription($vendor->_id);
             if (__isEmpty($subscription)) {
-                $this->line("Vendor {$vendor->title} (ID: {$vendor->_id}) has no active subscription. Skipping.");
+                $getFreePlan = getFreePlan();
+                if (!__isEmpty($getFreePlan) && !empty($getFreePlan['enabled'])) {
+                    $aiCreditsLimit = Arr::get($getFreePlan, 'features.ai_credits.limit', 0);
+                    $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                    VendorModel::where('_id', $vendor->_id)
+                        ->update(['plan_ai_credits' => $planAiCredits]);
+                    $this->info("Vendor {$vendor->title} (ID: {$vendor->_id}): No active subscription. Set to Free Plan credits: " . ($planAiCredits === 999999999 ? 'Unlimited (-1)' : $planAiCredits));
+                } else {
+                    VendorModel::where('_id', $vendor->_id)
+                        ->update(['plan_ai_credits' => 0]);
+                    $this->line("Vendor {$vendor->title} (ID: {$vendor->_id}) has no active subscription & Free Plan is disabled. Set credits to 0.");
+                }
                 continue;
             }
 
