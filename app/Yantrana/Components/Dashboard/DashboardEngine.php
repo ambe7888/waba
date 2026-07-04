@@ -210,6 +210,12 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'vendors__id' => $vendorId
         ];
         
+        $vendorModel = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        $planCredits = $vendorModel->plan_ai_credits ?? 0;
+        $extraCredits = $vendorModel->extra_ai_credits ?? 0;
+        $totalCredits = $planCredits + $extraCredits;
+        $displayCredits = $planCredits >= 99999999 ? __tr('Unlimited') : (string)$totalCredits;
+
         return array_merge([
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
@@ -244,7 +250,13 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->where('is_incoming_message', 1)
                 ->whereDate('created_at', Carbon::today())
                 ->count(),
-            'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId)
+            'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
+            'ai_credits' => [
+                'plan_credits' => $planCredits,
+                'extra_credits' => $extraCredits,
+                'total_credits' => $totalCredits,
+                'display_credits' => $displayCredits,
+            ]
         ]);
     }
 
