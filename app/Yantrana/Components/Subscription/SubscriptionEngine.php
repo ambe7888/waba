@@ -279,6 +279,12 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
             // In Laravel Cashier, when user change plans for a subscription, the local subscription name is not automatically updated. The subscription name in the database is typically set when the subscription is created and does not change automatically when the plan is updated.To update the local subscription name after changing the plan, Then our system can update the subscription record in your database.
             if (! __isEmpty($processedData)) {
                 $processedData->update(['type' => $getPlanDetails['id']]);
+
+                $aiCreditsLimit = Arr::get($getPlanDetails, 'features.ai_credits.limit', 0);
+                if ($aiCreditsLimit > 0) {
+                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
+                        ->update(['plan_ai_credits' => $aiCreditsLimit]);
+                }
             }
         } catch (IncompletePayment $exception) {
             return $this->engineResponse(21, [
@@ -335,6 +341,12 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
                 $subscription->trialDays($trialDays);
             }
             $subscription->allowPaymentFailures()->create($request->paymentMethod);
+
+            $aiCreditsLimit = Arr::get($getPlanDetails, 'features.ai_credits.limit', 0);
+            if ($aiCreditsLimit > 0) {
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
+                    ->update(['plan_ai_credits' => $aiCreditsLimit]);
+            }
         } catch (IncompletePayment $exception) {
             return redirect()->route(
                 'cashier.payment',

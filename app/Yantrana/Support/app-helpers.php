@@ -1301,6 +1301,15 @@ if (! function_exists('vendorPlanDetails')) {
             $detailsContainer['plan_title'] = getPaidPlans("{$planId}.title");
             $planCharges = getPaidPlans("{$planId}.charges");
 
+            // Apply custom overrides
+            $vendorRecord = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendor);
+            if ($vendorRecord && $vendorRecord->plan_custom_limits) {
+                $customLimits = is_string($vendorRecord->plan_custom_limits) ? json_decode($vendorRecord->plan_custom_limits, true) : $vendorRecord->plan_custom_limits;
+                if (is_array($customLimits) && isset($customLimits[$feature])) {
+                    $featureLimitCount = (int) $customLimits[$feature];
+                }
+            }
+
             if (!__isEmpty($planCharges)) {
                 foreach ($planCharges as $chargesKey => $chargesValue) {
                     if ($chargesValue['price_id'] == ($subscription->stripe_price ?? null)) {

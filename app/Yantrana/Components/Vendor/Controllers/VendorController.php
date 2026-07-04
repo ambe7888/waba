@@ -274,6 +274,37 @@ class VendorController extends BaseController
     }
 
     /**
+     * Prepare Custom Plan Data
+     *
+     * @param string $vendorIdOrUid
+     * @return array
+     */
+    public function prepareCustomPlanData($vendorIdOrUid)
+    {
+        $processReaction = $this->vendorEngine->prepareCustomPlanData($vendorIdOrUid);
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+     * Update Custom Plan Data
+     *
+     * @return json object
+     */
+    public function updateCustomPlanData(CommonPostRequest $request)
+    {
+        $request->validate([
+            'ai_credits' => 'nullable|integer|min:0',
+            'contact_limit' => 'nullable|integer|min:0',
+            'campaign_limit' => 'nullable|integer|min:0',
+            'custom_plan_charge' => 'nullable|numeric|min:0',
+            'custom_plan_frequency' => 'nullable|string|in:monthly,yearly',
+        ]);
+        
+        $processReaction = $this->vendorEngine->processCustomPlanUpdate($request->all());
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
      * Vendor Dashboard
      *
      * @param int|string $vendorIdOrUid

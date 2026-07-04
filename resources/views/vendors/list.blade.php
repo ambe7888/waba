@@ -93,6 +93,9 @@
         <!-- Media and Files -->
         <a href="<%= __Utils.apiURL("{{ route('media.files.read_view', ['vendor_uid']) }}", {'vendor_uid': 'vendor_uid='+__tData._uid}) %>" class="btn btn-primary btn-sm" title="{!! __tr('Media & Files') !!}"><i class="fas fa-photo-video"></i> {!! __tr('Media & Files') !!}</a>
         <!--  /Media and Files -->
+        <!-- Custom Plan -->
+        <a data-pre-callback="appFuncs.clearContainer" title="{{ __tr('Customize Plan') }}" class="lw-btn btn btn-sm btn-info lw-ajax-link-action" data-response-template="#lwCustomPlanBody" href="<%= __Utils.apiURL("{{ route('vendor.read.custom_plan.data', ['vendorIdOrUid']) }}", {'vendorIdOrUid': __tData._uid}) %>" data-toggle="modal" data-target="#lwCustomPlanModal"><i class="fa fa-sliders-h"></i> {{ __tr('Customize Plan') }}</a>
+        <!-- /Custom Plan -->
     </script>
     <script type="text/template" id="lwSubscriptionColumn">
         <% if(__tData.subscription) { %>
@@ -405,6 +408,7 @@
     </x-lw.modal>
     <!--/ EDIT VENDOR MODAL -->
     @include('vendors.quick-view-modal')
+    @include('vendors.custom-plan-modal')
     @push('footer')
     @endpush
     @push('appScripts')

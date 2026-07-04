@@ -414,6 +414,76 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
     }
 
     /**
+     * Prepare Custom Plan Data
+     *
+     * @param string $vendorIdOrUid
+     * @return array
+     */
+    public function prepareCustomPlanData($vendorIdOrUid)
+    {
+        $vendor = $this->vendorRepository->fetchIt($vendorIdOrUid);
+        if (__isEmpty($vendor)) {
+            return $this->engineReaction(18, null, __tr('Vendor not found.'));
+        }
+
+        $customLimits = $vendor->plan_custom_limits;
+        if (is_string($customLimits)) {
+            $customLimits = json_decode($customLimits, true);
+        }
+        if (!is_array($customLimits)) {
+            $customLimits = [];
+        }
+
+        return $this->engineReaction(1, [
+            '_uid' => $vendor->_uid,
+            'custom_limits' => [
+                'ai_credits' => Arr::get($customLimits, 'ai_credits', ''),
+                'contact_limit' => Arr::get($customLimits, 'contact_limit', ''),
+                'campaign_limit' => Arr::get($customLimits, 'campaign_limit', ''),
+            ],
+            'custom_plan_charge' => $vendor->custom_plan_charge,
+            'custom_plan_frequency' => $vendor->custom_plan_frequency,
+        ]);
+    }
+
+    /**
+     * Process Custom Plan Update
+     *
+     * @param array $inputData
+     * @return array
+     */
+    public function processCustomPlanUpdate($inputData)
+    {
+        $vendor = $this->vendorRepository->fetchIt($inputData['vendorIdOrUid']);
+        if (__isEmpty($vendor)) {
+            return $this->engineReaction(18, null, __tr('Vendor not found.'));
+        }
+
+        $customLimits = [];
+        if (isset($inputData['ai_credits']) && $inputData['ai_credits'] !== '') {
+            $customLimits['ai_credits'] = (int) $inputData['ai_credits'];
+        }
+        if (isset($inputData['contact_limit']) && $inputData['contact_limit'] !== '') {
+            $customLimits['contact_limit'] = (int) $inputData['contact_limit'];
+        }
+        if (isset($inputData['campaign_limit']) && $inputData['campaign_limit'] !== '') {
+            $customLimits['campaign_limit'] = (int) $inputData['campaign_limit'];
+        }
+
+        $updateData = [
+            'plan_custom_limits' => empty($customLimits) ? null : json_encode($customLimits),
+            'custom_plan_charge' => (isset($inputData['custom_plan_charge']) && $inputData['custom_plan_charge'] !== '') ? (float) $inputData['custom_plan_charge'] : null,
+            'custom_plan_frequency' => $inputData['custom_plan_frequency'] ?: null,
+        ];
+
+        if ($this->vendorRepository->updateIt($vendor, $updateData)) {
+            return $this->engineReaction(1, null, __tr('Custom plan overrides updated successfully.'));
+        }
+
+        return $this->engineReaction(14, null, __tr('Failed to update custom plan overrides.'));
+    }
+
+    /**
       * Process login as for Team Member
       *
       * @param  string $userIdOrUid
