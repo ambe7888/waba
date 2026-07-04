@@ -1338,6 +1338,64 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  TextSpan _parseHtmlToTextSpan(String text, TextStyle baseStyle) {
+    final List<TextSpan> children = [];
+    final tagRegExp = RegExp(r'(<[^>]+>)');
+    final parts = text.split(tagRegExp);
+    final matches = tagRegExp.allMatches(text).toList();
+    
+    bool isBold = false;
+    bool isItalic = false;
+    bool isStrikethrough = false;
+    bool isCode = false;
+    
+    for (int i = 0; i < parts.length; i++) {
+      final part = parts[i];
+      if (part.isNotEmpty) {
+        TextStyle currentStyle = baseStyle;
+        if (isBold) {
+          currentStyle = currentStyle.copyWith(fontWeight: FontWeight.bold);
+        }
+        if (isItalic) {
+          currentStyle = currentStyle.copyWith(fontStyle: FontStyle.italic);
+        }
+        if (isStrikethrough) {
+          currentStyle = currentStyle.copyWith(decoration: TextDecoration.lineThrough);
+        }
+        if (isCode) {
+          currentStyle = currentStyle.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: baseStyle.color?.withOpacity(0.08),
+          );
+        }
+        children.add(TextSpan(text: part, style: currentStyle));
+      }
+      
+      if (i < matches.length) {
+        final tag = matches[i].group(0) ?? '';
+        if (tag == '<strong>') {
+          isBold = true;
+        } else if (tag == '</strong>') {
+          isBold = false;
+        } else if (tag == '<em>') {
+          isItalic = true;
+        } else if (tag == '</em>') {
+          isItalic = false;
+        } else if (tag == '<del>') {
+          isStrikethrough = true;
+        } else if (tag == '</del>') {
+          isStrikethrough = false;
+        } else if (tag == '<code>' || tag.startsWith('<span')) {
+          isCode = true;
+        } else if (tag == '</code>' || tag == '</span>') {
+          isCode = false;
+        }
+      }
+    }
+    
+    return TextSpan(children: children.isEmpty ? [TextSpan(text: text, style: baseStyle)] : children);
+  }
+
   Widget _buildMessageBubble(ChatMessage message) {
     // System message
     if (message.isSystemMessage) {
@@ -1431,9 +1489,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
             // TEXT (default)
             else if (msgType != 'image')
-              Text(
-                message.body,
-                style: TextStyle(fontSize: 14.5, color: textColor),
+              RichText(
+                text: _parseHtmlToTextSpan(
+                  message.body,
+                  TextStyle(fontSize: 14.5, color: textColor),
+                ),
               ),
 
             const SizedBox(height: 4),
