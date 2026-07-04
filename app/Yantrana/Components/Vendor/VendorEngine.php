@@ -436,10 +436,7 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
 
         // Get current active plan defaults
         $activePlanId = null;
-        $vendorSubscription = \App\Yantrana\Components\Subscription\Models\SubscriptionModel::where('vendors__id', $vendor->_id)
-            ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->first();
+        $vendorSubscription = getVendorCurrentActiveSubscription($vendor->_id);
         if ($vendorSubscription) {
             $activePlanId = $vendorSubscription->plan_id ?? $vendorSubscription->type;
         }
