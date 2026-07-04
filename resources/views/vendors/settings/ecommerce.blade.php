@@ -196,6 +196,26 @@ $isManualConnected = true;
         document.getElementById('whatsapp_catalog_id').dispatchEvent(new Event('input'));
         this.showCatalogList = false;
         showSuccessMessage('{{ __tr("Catalogue sélectionné avec succès.") }}');
+    },
+    clearProducts(source) {
+        var msg = source === 'all' 
+            ? '{{ __tr("Voulez-vous vraiment supprimer TOUS les produits du catalogue ?") }}' 
+            : '{{ __tr("Voulez-vous vraiment supprimer tous les produits de cette source ?") }}';
+        if (confirm(msg)) {
+            var self = this;
+            __DataRequest.post('{{ route('vendor.ecommerce.products.clear') }}', { source: source }, function(response) {
+                if (response.reaction_code == 1) {
+                    showSuccessMessage(response.message);
+                    if (source === 'all') {
+                        self.allProducts = [];
+                    } else {
+                        self.allProducts = self.allProducts.filter(p => p.source !== source);
+                    }
+                } else {
+                    showErrorMessage(response.message || 'Erreur lors de la suppression.');
+                }
+            });
+        }
     }
 }">
     <div class="col-md-12">
@@ -207,8 +227,23 @@ $isManualConnected = true;
             {{ __tr('Sélectionnez et configurez votre catalogue produits pour le lier à votre compte WhatsApp. Recommandez des produits directement dans les chats et suivez vos ventes.') }}
         </p>
 
-        @if ($vendorPlanDetails['is_limit_available'])
-        
+        <!-- Enable/Disable E-commerce Integration Toggle -->
+        <div class="card shadow-sm mb-4 border-left-primary">
+            <div class="card-body d-flex align-items-center justify-content-between py-3">
+                <div>
+                    <h5 class="font-weight-bold text-dark mb-0"><i class="fas fa-toggle-on text-primary mr-2"></i> {{ __tr("Activer l'intégration E-commerce") }}</h5>
+                    <p class="text-xs text-muted mb-0">{{ __tr("Activez ou désactivez complètement l'intégration de votre catalogue produits.") }}</p>
+                </div>
+                <div>
+                    <div class="custom-control custom-switch custom-switch-lg">
+                        <input type="checkbox" class="custom-control-input cursor-pointer" id="toggleEcommerce" :checked="integration !== 'none'" @change="if ($event.target.checked) { integration = 'manual' } else { if (confirm('{{ __tr('Voulez-vous désactiver l\'intégration e-commerce ?') }}')) { integration = 'none'; __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'none', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Intégration désactivée.'); setTimeout(() => { window.location.reload(); }, 1000); } }); } else { $event.target.checked = true; } }">
+                        <label class="custom-control-label font-weight-bold cursor-pointer" for="toggleEcommerce" x-text="integration !== 'none' ? '{{ __tr('Activé') }}' : '{{ __tr('Désactivé') }}'"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="integration !== 'none'" x-transition x-cloak>
         <!-- Platform Selection Cards -->
         <div class="row mb-5">
             <!-- Shopify Card -->
@@ -380,6 +415,10 @@ $isManualConnected = true;
                                 <span x-show="!isSyncing"><i class="fas fa-sync mr-2"></i> {{ __tr('Sync Products Now') }}</span>
                                 <span x-show="isSyncing"><i class="fas fa-spinner fa-spin mr-2"></i> {{ __tr('Synchronizing...') }}</span>
                             </button>
+                            
+                            <button type="button" @click="clearProducts(integration)" class="btn btn-danger btn-lg ml-2 shadow-sm">
+                                <i class="fas fa-trash-alt mr-2"></i> {{ __tr('Vider les produits importés') }}
+                            </button>
                         </span>
                     </div>
                 </form>
@@ -484,11 +523,16 @@ $isManualConnected = true;
                         <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-primary btn-lg px-5 shadow-sm">
                             <i class="fas fa-save mr-2"></i> {{ __tr('Activer le mode Manuel') }}
                         </button>
+                        
+                        <button type="button" @click="clearProducts('manual')" class="btn btn-danger btn-lg ml-2 shadow-sm">
+                            <i class="fas fa-trash-alt mr-2"></i> {{ __tr('Vider les produits manuels') }}
+                        </button>
                     </div>
                 </div>
 
                 <div x-show="syncMessage" class="alert mt-3" style="background-color: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; color: #000;" x-text="syncMessage" x-cloak></div>
             </div>
+        </div>
         </div>
 
         <!-- Unified Product Catalog Card -->
@@ -497,6 +541,9 @@ $isManualConnected = true;
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="fas fa-boxes mr-1"></i> {{ __tr('Tous les produits du catalogue') }}
                 </h6>
+                <button type="button" @click="clearProducts('all')" class="btn btn-danger btn-sm shadow-sm">
+                    <i class="fas fa-trash mr-1"></i> {{ __tr('Vider tout le catalogue') }}
+                </button>
             </div>
             <div class="card-body">
                 <!-- Filters & Search -->

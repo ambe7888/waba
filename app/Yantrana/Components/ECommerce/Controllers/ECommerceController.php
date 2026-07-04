@@ -362,4 +362,28 @@ class ECommerceController extends BaseController
             'message' => __tr('No catalogs found. Please link a catalog to your WhatsApp number in your Meta Business Suite.')
         ]);
     }
+
+    /**
+     * Clear products for a specific source or all sources
+     */
+    public function clearProducts(Request $request)
+    {
+        $vendorId = getVendorId();
+        $source = $request->source;
+
+        if ($source && $source !== 'all') {
+            ProductModel::where([
+                'vendors__id' => $vendorId,
+                'source' => $source
+            ])->delete();
+            $message = __tr('Tous les produits de la source "__source__" ont été supprimés.', ['__source__' => $source]);
+        } else {
+            ProductModel::where('vendors__id', $vendorId)->delete();
+            $message = __tr('Tous les produits du catalogue ont été supprimés.');
+        }
+
+        return $this->processResponse(1, [], [
+            'message' => $message
+        ]);
+    }
 }
