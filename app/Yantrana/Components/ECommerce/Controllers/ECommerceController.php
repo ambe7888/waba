@@ -92,9 +92,11 @@ class ECommerceController extends BaseController
             'contactUid' => $request->contact_uid,
         ];
 
-        // Force the current vendor's phone number ID to avoid using a stale
-        // phone number from the contact's last message (which may belong to another vendor account).
-        $currentPhoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
+        // Get the real (decrypted) phone number ID from whatsapp_phone_numbers
+        // current_phone_number_id is encrypted and cannot be passed directly to the API.
+        // whatsapp_phone_numbers returns a decoded JSON array with the actual phone number IDs.
+        $phoneNumbers = getVendorSettings('whatsapp_phone_numbers', null, null, $vendorId) ?: [];
+        $currentPhoneNumberId = !empty($phoneNumbers) ? ($phoneNumbers[0]['id'] ?? null) : null;
 
         // Ask WhatsAppServiceEngine to send this chat message
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
