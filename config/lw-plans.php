@@ -61,20 +61,20 @@ return [
     'paid' => [ // do not change this key
         'plan_1' => [
             'id' => 'plan_1',
-            'enabled' => false,
-            'popular' => true, // set plan as popular
-            'title' => 'Standard',
+            'enabled' => true,
+            'popular' => false, // set plan as popular
+            'title' => 'Plan 1',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
                     'description' => __tr('Contacts'),
-                    'limit' => 5, // 0 for none, -1 for unlimited
+                    'limit' => 1000, // 0 for none, -1 for unlimited
                 ],
                 'campaigns' => [
                     'limit_duration' => 'monthly',
                     'limit_duration_title' => __tr('Per Month'),
                     'description' => __tr('Campaigns'),
-                    'limit' => 10, // 0 for none, -1 for unlimited
+                    'limit' => 10000, // 0 for none, -1 for unlimited
                 ],
                 'drip_campaigns' => [
                     'description' => __tr('Drip Campaigns (Automated Sequences)'),
@@ -82,132 +82,132 @@ return [
                 ],
                 'bot_replies' => [
                     'description' => __tr('Bot Replies'),
-                    'limit' => 10, // 0 for none, -1 for unlimited
+                    'limit' => 50, // 0 for none, -1 for unlimited
                 ],
                 'bot_flows' => [
                     'description' => __tr('Bot Flows'),
-                    'limit' => 5, // 0 for none, -1 for unlimited
+                    'limit' => 20, // 0 for none, -1 for unlimited
                 ],
                 'contact_custom_fields' => [
                     'description' => __tr('Contact Custom Fields'),
-                    'limit' => 5, // 0 for none, -1 for unlimited
+                    'limit' => 10, // 0 for none, -1 for unlimited
                 ],
                 'system_users' => [
-                'description' => __tr('Team Members/Agents'),
-                'limit' => 5, // 0 for none, -1 for unlimited
-            ],
-            'ai_chat_bot' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('AI Chat Bot'),
-                'limit' => 1, // 0 for none and 1 for enable
-            ],
-            'ai_credits' => [
-                'description' => __tr('AI Credits / Month'),
-                'limit' => 500,
-            ],
-            'api_access' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('API and Webhook Access'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
-            'ecommerce_catalog' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('E-commerce & Catalogue'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
+                    'description' => __tr('Team Members/Agents'),
+                    'limit' => 2, // 0 for none, -1 for unlimited
+                ],
+                'ai_chat_bot' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('AI Chat Bot'),
+                    'limit' => 1, // 0 for none and 1 for enable
+                ],
+                'ai_credits' => [
+                    'description' => __tr('AI Credits / Month'),
+                    'limit' => 500,
+                ],
+                'api_access' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('API and Webhook Access'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ecommerce_catalog' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('E-commerce & Catalogue'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
                     'title' => __tr('monthly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 10,
+                    'charge' => 5000,
                 ],
                 'yearly' => [
                     'title' => __tr('yearly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 100,
+                    'charge' => 50000,
                 ],
             ],
         ],
         'plan_2' => [
             'id' => 'plan_2',
-            'enabled' => false,
-            'popular' => false, // set plan as popular
-            'title' => 'Premium',
+            'enabled' => true,
+            'popular' => true, // set plan as popular
+            'title' => 'Plan 2',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
                     'description' => __tr('Contacts'),
-                    'limit' => 15, // 0 for none, -1 for unlimited
+                    'limit' => 5000, // 0 for none, -1 for unlimited
                 ],
                 'campaigns' => [
                     'limit_duration' => 'monthly',
                     'limit_duration_title' => __tr('Per Month'),
                     'description' => __tr('Campaigns'),
-                    'limit' => 10, // 0 for none, -1 for unlimited
+                    'limit' => 50000, // 0 for none, -1 for unlimited
                 ],
                 'drip_campaigns' => [
                     'description' => __tr('Drip Campaigns (Automated Sequences)'),
-                    'limit' => 15, // 0 for none, -1 for unlimited
+                    'limit' => 20, // 0 for none, -1 for unlimited
                 ],
                 'bot_replies' => [
                     'description' => __tr('Bot Replies'),
-                    'limit' => 10, // 0 for none, -1 for unlimited
+                    'limit' => 200, // 0 for none, -1 for unlimited
                 ],
                 'bot_flows' => [
                     'description' => __tr('Bot Flows'),
-                    'limit' => 5, // 0 for none, -1 for unlimited
+                    'limit' => 100, // 0 for none, -1 for unlimited
                 ],
                 'contact_custom_fields' => [
                     'description' => __tr('Contact Custom Fields'),
-                    'limit' => 10, // 0 for none, -1 for unlimited
+                    'limit' => 50, // 0 for none, -1 for unlimited
                 ],
                 'system_users' => [
-                'description' => __tr('Team Members/Agents'),
-                'limit' => 10, // 0 for none, -1 for unlimited
-            ],
-            'ai_chat_bot' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('AI Chat Bot'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
-            'ai_credits' => [
-                'description' => __tr('AI Credits / Month'),
-                'limit' => 2000,
-            ],
-            'api_access' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('API and Webhook Access'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
-            'ecommerce_catalog' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('E-commerce & Catalogue'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
+                    'description' => __tr('Team Members/Agents'),
+                    'limit' => 10, // 0 for none, -1 for unlimited
+                ],
+                'ai_chat_bot' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('AI Chat Bot'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ai_credits' => [
+                    'description' => __tr('AI Credits / Month'),
+                    'limit' => 2000,
+                ],
+                'api_access' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('API and Webhook Access'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ecommerce_catalog' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('E-commerce & Catalogue'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
                     'title' => __tr('monthly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 20,
+                    'charge' => 10000,
                 ],
                 'yearly' => [
                     'title' => __tr('yearly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 199,
+                    'charge' => 100000,
                 ],
             ],
         ],
         'plan_3' => [
             'id' => 'plan_3',
-            'enabled' => false,
+            'enabled' => true,
             'popular' => false, // set plan as popular
-            'title' => 'Ultimate',
+            'title' => 'Plan 3',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
@@ -239,39 +239,39 @@ return [
                 'system_users' => [
                     'description' => __tr('Team Members/Agents'),
                     'limit' => -1, // 0 for none, -1 for unlimited
-            ],
-            'ai_chat_bot' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('AI Chat Bot'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
-            'ai_credits' => [
-                'description' => __tr('AI Credits / Month'),
-                'limit' => -1, // Unlimited
-            ],
-            'api_access' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('API and Webhook Access'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
-            'ecommerce_catalog' => [
-                'type' => 'switch', // on or off
-                'description' => __tr('E-commerce & Catalogue'),
-                'limit' => 1, // 0 for none, 1 for enable
-            ],
+                ],
+                'ai_chat_bot' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('AI Chat Bot'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ai_credits' => [
+                    'description' => __tr('AI Credits / Month'),
+                    'limit' => -1, // Unlimited
+                ],
+                'api_access' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('API and Webhook Access'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ecommerce_catalog' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('E-commerce & Catalogue'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
                     'title' => __tr('monthly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 30,
+                    'charge' => 15000,
                 ],
                 'yearly' => [
                     'title' => __tr('yearly'),
-                    'enabled' => false,
+                    'enabled' => true,
                     'price_id' => '',
-                    'charge' => 299,
+                    'charge' => 150000,
                 ],
             ],
         ],
