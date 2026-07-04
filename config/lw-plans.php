@@ -53,7 +53,7 @@ return [
             ],
             'ecommerce_catalog' => [
                 'type' => 'switch', // on or off
-                'description' => __tr('E-commerce & Catalogue'),
+                'description' => __tr('E-commerce et Catalogue'),
                 'limit' => 0, // 0 for none, 1 for enable
             ],
         ],
@@ -63,7 +63,7 @@ return [
             'id' => 'plan_1',
             'enabled' => true,
             'popular' => false, // set plan as popular
-            'title' => 'Plan 1',
+            'title' => 'Plan de base',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
@@ -112,7 +112,7 @@ return [
                 ],
                 'ecommerce_catalog' => [
                     'type' => 'switch', // on or off
-                    'description' => __tr('E-commerce & Catalogue'),
+                    'description' => __tr('E-commerce et Catalogue'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
@@ -135,7 +135,7 @@ return [
             'id' => 'plan_2',
             'enabled' => true,
             'popular' => true, // set plan as popular
-            'title' => 'Plan 2',
+            'title' => 'Plan Intermédiaire',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
@@ -184,7 +184,7 @@ return [
                 ],
                 'ecommerce_catalog' => [
                     'type' => 'switch', // on or off
-                    'description' => __tr('E-commerce & Catalogue'),
+                    'description' => __tr('E-commerce et Catalogue'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
@@ -207,7 +207,7 @@ return [
             'id' => 'plan_3',
             'enabled' => true,
             'popular' => false, // set plan as popular
-            'title' => 'Plan 3',
+            'title' => 'Plan Commerce Pro',
             'trial_days' => 0,
             'features' => [
                 'contacts' => [
@@ -256,7 +256,7 @@ return [
                 ],
                 'ecommerce_catalog' => [
                     'type' => 'switch', // on or off
-                    'description' => __tr('E-commerce & Catalogue'),
+                    'description' => __tr('E-commerce et Catalogue'),
                     'limit' => 1, // 0 for none, 1 for enable
                 ],
             ],
