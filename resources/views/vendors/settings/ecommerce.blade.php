@@ -257,6 +257,12 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                             <input type="text" class="form-control form-control-lg" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="e.g. 128392193892182">
                             <small class="form-text text-muted">{{ __tr('Liez l\'identifiant unique de votre catalogue Meta Business Manager.') }}</small>
                         </div>
+                        <div class="alert alert-info border-0 mt-3 shadow-none" style="background-color: rgba(37, 211, 102, 0.08); border-left: 4px solid #25d366 !important; border-radius: 8px;">
+                            <h5 class="text-success font-weight-bold mb-1" style="font-size: 0.95rem;"><i class="fas fa-info-circle mr-1"></i> {{ __tr('Liaison Facebook Requise') }}</h5>
+                            <p class="mb-0 text-dark-50 text-sm" style="line-height: 1.4; color: #1e4620 !important;">
+                                {{ __tr('Dans votre Meta Business Suite / WhatsApp Manager, vous devez aller dans Paramètres -> Catalogues et associer le catalogue à votre numéro.') }}
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Action buttons for platforms -->
