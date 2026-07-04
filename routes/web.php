@@ -439,6 +439,17 @@ Route::middleware([
                     'changePasswordVendor',
                 ])->name('auth.vendor.change.password');
 
+                // Custom Plan Routes
+                Route::get('/get-custom-plan-data/{vendorIdOrUid}', [
+                    vendorController::class,
+                    'prepareCustomPlanData',
+                ])->name('vendor.read.custom_plan.data');
+
+                Route::post('/update-custom-plan-data', [
+                    vendorController::class,
+                    'updateCustomPlanData',
+                ])->name('vendor.write.custom_plan.data');
+
                 // Vendor-dashboard
                 Route::get('/{vendorIdOrUid}/dashboard', [
                     vendorController::class,
