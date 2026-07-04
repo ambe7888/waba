@@ -149,8 +149,12 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
         });
     },
     isDetectingCatalog: false,
+    metaCatalogs: [],
+    showCatalogList: false,
     detectMetaCatalog() {
         this.isDetectingCatalog = true;
+        this.metaCatalogs = [];
+        this.showCatalogList = false;
         var self = this;
         fetch('{{ route('vendor.ecommerce.meta_catalogs') }}', {
             headers: {
@@ -161,15 +165,9 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
         .then(data => {
             self.isDetectingCatalog = false;
             if (data.reaction_code == 1) {
-                var catalogs = data.data.catalogs;
-                if (catalogs && catalogs.length > 0) {
-                    var catalogId = catalogs[0].catalog_id;
-                    document.getElementById('whatsapp_catalog_id').value = catalogId;
-                    document.getElementById('whatsapp_catalog_id').dispatchEvent(new Event('input'));
-                    showSuccessMessage('{{ __tr("Catalogue détecté et pré-rempli avec succès : ") }}' + catalogId);
-                } else {
-                    showErrorMessage('{{ __tr("Aucun catalogue lié trouvé dans vos paramètres WhatsApp Commerce.") }}');
-                }
+                self.metaCatalogs = data.data.catalogs;
+                self.showCatalogList = true;
+                showSuccessMessage('{{ __tr("Catalogues récupérés avec succès.") }}');
             } else {
                 showErrorMessage(data.data.message || '{{ __tr("Erreur lors de la récupération des catalogues depuis Meta.") }}');
             }
@@ -178,6 +176,12 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             self.isDetectingCatalog = false;
             showErrorMessage('{{ __tr("Erreur réseau.") }}');
         });
+    },
+    selectCatalog(catalogId) {
+        document.getElementById('whatsapp_catalog_id').value = catalogId;
+        document.getElementById('whatsapp_catalog_id').dispatchEvent(new Event('input'));
+        this.showCatalogList = false;
+        showSuccessMessage('{{ __tr("Catalogue sélectionné avec succès.") }}');
     }
 }">
     <div class="col-md-12">
@@ -326,6 +330,22 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                                 </div>
                             </div>
                             <small class="form-text text-muted">{{ __tr('Liez l\'identifiant unique de votre catalogue Meta Business Manager. Ou cliquez sur le bouton pour le récupérer automatiquement.') }}</small>
+
+                            <!-- Meta Catalogs List Selector -->
+                            <div x-show="showCatalogList" class="mt-3 border rounded p-3 bg-light" x-cloak>
+                                <h6 class="font-weight-bold text-dark mb-2"><i class="fas fa-list mr-1 text-success"></i> Sélectionnez un catalogue disponible sur votre compte :</h6>
+                                <div class="list-group">
+                                    <template x-for="cat in metaCatalogs" :key="cat.id">
+                                        <button type="button" @click="selectCatalog(cat.id)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
+                                            <div>
+                                                <span class="font-weight-bold text-dark text-sm" x-text="cat.name"></span>
+                                                <div class="text-xs text-muted">ID: <span class="text-monospace" x-text="cat.id"></span></div>
+                                            </div>
+                                            <span class="badge badge-success px-2 py-1 text-xs"><i class="fas fa-check mr-1"></i> Sélectionner</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                         <div class="p-3 mt-3" style="background-color: rgba(40, 167, 69, 0.08) !important; border-left: 5px solid #28a745 !important; border-radius: 8px; color: #000000 !important;">
                             <h5 class="font-weight-bold mb-1" style="color: #28a745 !important; font-size: 0.95rem;">
