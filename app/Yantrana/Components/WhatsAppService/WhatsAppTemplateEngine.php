@@ -470,9 +470,9 @@ class WhatsAppTemplateEngine extends BaseEngine implements WhatsAppTemplateEngin
             
             if (empty($metaTemplateId) || in_array($whatsAppTemplate->status, ['DRAFT', 'REJECTED', 'PENDING'])) {
                 $createTemplateRequest = $this->whatsAppApiService->createTemplate(
-                    $request->template_name,
-                    $request->language_code,
-                    $request->category,
+                    !empty($request->template_name) ? $request->template_name : $whatsAppTemplate->template_name,
+                    !empty($request->language_code) ? $request->language_code : $whatsAppTemplate->language,
+                    !empty($request->category) ? $request->category : $whatsAppTemplate->category,
                     $components,
                     $vendorId
                 );
