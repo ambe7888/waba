@@ -56,10 +56,6 @@ $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
                             <label for="shopify_shop_url">{{ __tr('Shopify Shop URL') }}</label>
                             <input type="text" class="form-control" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="e.g. mystore.myshopify.com">
                         </div>
-                        <div class="form-group">
-                            <label for="shopify_access_token">{{ __tr('Shopify Admin Access Token') }}</label>
-                            <input type="password" class="form-control" id="shopify_access_token" value="{{ getVendorSettings('shopify_access_token') }}" name="shopify_access_token" placeholder="shpat_...">
-                        </div>
                     </div>
 
                     <!-- WooCommerce Fields -->
