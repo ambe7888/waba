@@ -52,13 +52,23 @@ class OpenAiService extends BaseEngine
         }
 
         // Priority: passed accessKey > vendor key > global admin key > .env key
+        $vendorKey = getVendorSettings('open_ai_access_key', null, null, $vendorId);
+        if ($vendorKey && !Str::startsWith($vendorKey, 'sk-')) {
+            $vendorKey = null; // Ignore invalid encrypted keys
+        }
+        
         $apiKey = $accessKey 
-            ?: getVendorSettings('open_ai_access_key', null, null, $vendorId)
+            ?: $vendorKey
             ?: getAppSettings('openai_api_key') 
             ?: env('OPENAI_API_KEY');
         
+        $vendorOrg = getVendorSettings('open_ai_organization_id', null, null, $vendorId);
+        if ($vendorOrg && !Str::startsWith($vendorOrg, 'org-')) {
+            $vendorOrg = null;
+        }
+
         $orgId = $orgKey 
-            ?: getVendorSettings('open_ai_organization_id', null, null, $vendorId)
+            ?: $vendorOrg
             ?: getAppSettings('openai_organization_id') 
             ?: env('OPENAI_ORGANIZATION');
 
