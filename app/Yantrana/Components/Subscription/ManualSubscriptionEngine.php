@@ -274,10 +274,15 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 // Update AI credits for the vendor based on the plan
                 $planDetails = getPaidPlans($planId);
                 $aiCreditsLimit = Arr::get($planDetails, 'features.ai_credits.limit', 0);
-                if ($aiCreditsLimit > 0) {
-                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
-                        ->update(['plan_ai_credits' => $aiCreditsLimit]);
+                if ($vendor && $vendor->plan_custom_limits) {
+                    $customLimits = is_string($vendor->plan_custom_limits) ? json_decode($vendor->plan_custom_limits, true) : $vendor->plan_custom_limits;
+                    if (is_array($customLimits) && isset($customLimits['ai_credits'])) {
+                        $aiCreditsLimit = $customLimits['ai_credits'];
+                    }
                 }
+                $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                    ->update(['plan_ai_credits' => $planAiCredits]);
                 return $this->manualSubscriptionRepository->transactionResponse(1, [], __tr('Manual Subscription added.'));
             }
             return $this->manualSubscriptionRepository->transactionResponse(2, [], __tr('Manual Subscription not added.'));
@@ -433,10 +438,9 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                     $aiCreditsLimit = $customLimits['ai_credits'];
                 }
                 
-                if ($aiCreditsLimit > 0) {
-                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
-                        ->update(['plan_ai_credits' => $aiCreditsLimit]);
-                }
+                $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
+                    ->update(['plan_ai_credits' => $planAiCredits]);
             }
             return $this->engineResponse(1, null, __tr('Manual Subscription updated.'));
         }
@@ -714,10 +718,18 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             ])) {
                 $planDetails = getPaidPlans($subscriptionRequestRecord->plan_id);
                 $aiCreditsLimit = Arr::get($planDetails, 'features.ai_credits.limit', 0);
-                if ($aiCreditsLimit > 0) {
-                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendorId)
-                        ->update(['plan_ai_credits' => $aiCreditsLimit]);
+                
+                $vendorRecord = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+                if ($vendorRecord && $vendorRecord->plan_custom_limits) {
+                    $customLimits = is_string($vendorRecord->plan_custom_limits) ? json_decode($vendorRecord->plan_custom_limits, true) : $vendorRecord->plan_custom_limits;
+                    if (is_array($customLimits) && isset($customLimits['ai_credits'])) {
+                        $aiCreditsLimit = $customLimits['ai_credits'];
+                    }
                 }
+                
+                $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendorId)
+                    ->update(['plan_ai_credits' => $planAiCredits]);
                 return $this->engineSuccessResponse([
                     'txn_reference' => $request['txn_reference'],
                     'redirectRoute' => route('payment.success.page', ['txnId' => $request['txn_reference']]),

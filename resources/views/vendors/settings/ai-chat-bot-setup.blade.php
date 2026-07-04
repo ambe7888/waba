@@ -5,6 +5,10 @@
     $planCredits = $vendor->plan_ai_credits ?? 0;
     $extraCredits = $vendor->extra_ai_credits ?? 0;
     $totalCredits = $planCredits + $extraCredits;
+    
+    $planCreditsDisplay = $planCredits >= 99999999 ? __tr('Unlimited') : $planCredits;
+    $totalCreditsDisplay = $planCredits >= 99999999 ? __tr('Unlimited') : $totalCredits;
+    
     // check the feature limit
     $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $vendorId);
     $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_other_bot_timing_restrictions') ?: [];
@@ -114,10 +118,10 @@
                             {{ __tr('AI Credits Balance') }}
                         </div>
                         <div class="h2 mb-0 font-weight-bold text-white">
-                            {{ $totalCredits }}
+                            {{ $totalCreditsDisplay }}
                         </div>
                         <div class="mt-2 text-white-50 text-sm">
-                            {{ __tr('Subscription Credits:') }} {{ $planCredits }}<br>
+                            {{ __tr('Subscription Credits:') }} {{ $planCreditsDisplay }}<br>
                             {{ __tr('Purchased Credits:') }} {{ $extraCredits }}
                         </div>
                         <div class="mt-3">
