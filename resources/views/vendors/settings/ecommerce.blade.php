@@ -69,8 +69,17 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
     integration: '{{ getVendorSettings('ecommerce_integration') ?: 'none' }}',
     isSyncing: false,
     syncMessage: '',
-    manualTab: 'list',
-    manualProducts: {{ json_encode($manualProducts) }},
+    manualTab: 'add',
+    allProducts: {{ json_encode($manualProducts) }},
+    catalogSearch: '',
+    catalogSourceFilter: '',
+    filteredCatalogProducts() {
+        return this.allProducts.filter(p => {
+            var matchesSearch = !this.catalogSearch || p.name.toLowerCase().includes(this.catalogSearch.toLowerCase()) || (p.description && p.description.toLowerCase().includes(this.catalogSearch.toLowerCase()));
+            var matchesSource = !this.catalogSourceFilter || p.source === this.catalogSourceFilter;
+            return matchesSearch && matchesSource;
+        });
+    },
     syncProducts() {
         this.isSyncing = true;
         this.syncMessage = '';
@@ -93,7 +102,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             __DataRequest.post('{{ route("vendor.ecommerce.products.delete", ["productUid" => "PRODUCT_UID"]) }}'.replace('PRODUCT_UID', productUid), {}, function(response) {
                 if (response.reaction_code == 1) {
                     showSuccessMessage(response.message);
-                    self.manualProducts = self.manualProducts.filter(p => p._uid !== productUid);
+                    self.allProducts = self.allProducts.filter(p => p._uid !== productUid);
                 } else {
                     showErrorMessage(response.message || 'Erreur lors de la suppression.');
                 }
@@ -375,76 +384,12 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     
                     <!-- Manual Sub-Tabs -->
                     <div class="d-flex border-bottom mb-4">
-                        <button type="button" @click="manualTab = 'list'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'list' ? 'active border-bottom border-primary text-primary' : 'text-muted'" style="text-decoration: none;">
-                            <i class="fas fa-list-ul mr-2"></i> Liste des produits
-                        </button>
                         <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'add' ? 'active border-bottom border-primary text-primary' : 'text-muted'" style="text-decoration: none;">
                             <i class="fas fa-plus-circle mr-2"></i> Créer manuellement
                         </button>
                         <button type="button" @click="manualTab = 'import'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'import' ? 'active border-bottom border-primary text-primary' : 'text-muted'" style="text-decoration: none;">
                             <i class="fas fa-file-excel mr-2"></i> Importer via CSV / Excel
                         </button>
-                    </div>
-
-                    <!-- TAB 1: Product List -->
-                    <div x-show="manualTab === 'list'">
-                        <template x-if="manualProducts.length === 0">
-                            <div class="text-center py-5">
-                                <i class="fas fa-box-open text-muted mb-3" style="font-size: 3.5rem;"></i>
-                                <h4 class="text-gray-800 font-weight-bold mb-1">Aucun produit dans le catalogue local</h4>
-                                <p class="text-muted">Commencez par ajouter un produit manuellement ou importez-en via un fichier Excel.</p>
-                                <button type="button" @click="manualTab = 'add'" class="btn btn-primary mt-2 shadow-sm"><i class="fas fa-plus mr-1"></i> Ajouter un produit</button>
-                            </div>
-                        </template>
-
-                        <template x-if="manualProducts.length > 0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-items-center">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th>Image</th>
-                                            <th>Nom</th>
-                                            <th>Prix</th>
-                                            <th>Description</th>
-                                            <th>Lien Direct</th>
-                                            <th class="text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template x-for="product in manualProducts" :key="product._uid">
-                                            <tr>
-                                                <td>
-                                                    <template x-if="product.image_url">
-                                                        <img :src="product.image_url" class="rounded shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
-                                                    </template>
-                                                    <template x-if="!product.image_url">
-                                                        <div class="rounded bg-light d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px; color: #adb5bd;">
-                                                            <i class="fas fa-image"></i>
-                                                        </div>
-                                                    </template>
-                                                </td>
-                                                <td class="font-weight-bold text-dark" x-text="product.name"></td>
-                                                <td class="text-success font-weight-bold" x-text="Number(product.price).toLocaleString() + ' CFA'"></td>
-                                                <td class="text-muted text-xs" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || 'NA'"></td>
-                                                <td>
-                                                    <template x-if="product.direct_link">
-                                                        <a :href="product.direct_link" target="_blank" class="badge badge-primary px-3 py-2 text-white shadow-inner" style="border-radius: 6px;"><i class="fas fa-external-link-alt mr-1"></i> Ouvrir</a>
-                                                    </template>
-                                                    <template x-if="!product.direct_link">
-                                                        <span class="text-muted text-xs">-</span>
-                                                    </template>
-                                                </td>
-                                                <td class="text-right">
-                                                    <button type="button" @click="deleteProduct(product._uid)" class="btn btn-sm btn-danger shadow-sm" title="Supprimer">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </template>
                     </div>
 
                     <!-- TAB 2: Add Product Form -->
@@ -485,7 +430,6 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
 
                             <div class="form-group mb-0">
                                 <button type="submit" class="btn btn-success px-4 py-2 shadow-sm"><i class="fas fa-plus mr-1"></i> Créer le produit</button>
-                                <button type="button" @click="manualTab = 'list'" class="btn btn-secondary px-4 py-2 ml-2">Annuler</button>
                             </div>
                         </form>
                     </div>
@@ -539,6 +483,102 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                 </div>
 
                 <div x-show="syncMessage" class="alert alert-info mt-3" x-text="syncMessage" x-cloak></div>
+            </div>
+        </div>
+
+        <!-- Unified Product Catalog Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-boxes mr-1"></i> {{ __tr('Tous les produits du catalogue') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Filters & Search -->
+                <div class="row mb-4">
+                    <div class="col-md-6 form-group">
+                        <label class="font-weight-bold text-muted small mb-1">{{ __tr('Rechercher un produit') }}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="{{ __tr('Nom ou description...') }}" x-model="catalogSearch">
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label class="font-weight-bold text-muted small mb-1">{{ __tr('Filtrer par source') }}</label>
+                        <select class="form-control" x-model="catalogSourceFilter">
+                            <option value="">{{ __tr('Toutes les sources') }}</option>
+                            <option value="manual">{{ __tr('Catalogue Manuel') }}</option>
+                            <option value="shopify">Shopify</option>
+                            <option value="woocommerce">WooCommerce</option>
+                            <option value="whatsapp_catalog">{{ __tr('WhatsApp Catalog') }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-items-center">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>{{ __tr('Image') }}</th>
+                                <th>{{ __tr('Nom') }}</th>
+                                <th>{{ __tr('Source') }}</th>
+                                <th>{{ __tr('Prix') }}</th>
+                                <th>{{ __tr('Description') }}</th>
+                                <th>{{ __tr('Lien Direct') }}</th>
+                                <th class="text-right">{{ __tr('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="product in filteredCatalogProducts()" :key="product._uid">
+                                <tr>
+                                    <td>
+                                        <template x-if="product.image_url">
+                                            <img :src="product.image_url" class="rounded shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
+                                        </template>
+                                        <template x-if="!product.image_url">
+                                            <div class="rounded bg-light d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px; color: #adb5bd;">
+                                                <i class="fas fa-image"></i>
+                                            </div>
+                                        </template>
+                                    </td>
+                                    <td class="font-weight-bold text-dark" x-text="product.name"></td>
+                                    <td>
+                                        <span class="badge border text-capitalize px-3 py-1 font-weight-bold" 
+                                              :class="{
+                                                  'badge-success border-success text-white': product.source === 'whatsapp_catalog',
+                                                  'badge-primary border-primary text-white': product.source === 'woocommerce',
+                                                  'badge-info border-info text-white': product.source === 'shopify',
+                                                  'badge-secondary border-secondary text-white': product.source === 'manual'
+                                              }"
+                                              x-text="product.source === 'whatsapp_catalog' ? 'WhatsApp' : product.source">
+                                        </span>
+                                    </td>
+                                    <td class="text-success font-weight-bold" x-text="Number(product.price).toLocaleString() + ' CFA'"></td>
+                                    <td class="text-muted text-xs" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || 'NA'"></td>
+                                    <td>
+                                        <template x-if="product.direct_link">
+                                            <a :href="product.direct_link" target="_blank" class="badge badge-primary px-3 py-2 text-white shadow-inner" style="border-radius: 6px;"><i class="fas fa-external-link-alt mr-1"></i> {{ __tr('Ouvrir') }}</a>
+                                        </template>
+                                        <template x-if="!product.direct_link">
+                                            <span class="text-muted text-xs">-</span>
+                                        </template>
+                                    </td>
+                                    <td class="text-right">
+                                        <button type="button" @click="deleteProduct(product._uid)" class="btn btn-sm btn-danger shadow-sm" title="{{ __tr('Supprimer') }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="filteredCatalogProducts().length === 0" class="text-center py-4 text-muted" x-cloak>
+                        {{ __tr('Aucun produit correspondant trouvé.') }}
+                    </div>
+                </div>
             </div>
         </div>
         @else
