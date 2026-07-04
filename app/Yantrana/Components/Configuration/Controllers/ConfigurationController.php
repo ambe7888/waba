@@ -538,6 +538,8 @@ class W" . "ha" . "tsAppSe" . "rviceE" . "ngine {}");
                     $allAddons['WhatsJetEmbeddedSignUpAddon']['installed_version'] = '1.0.0';
                     $allAddons['WhatsJetEmbeddedSignUpAddon']['enable'] = true;
                 }
+                unset($allAddons['ContactStripePaymentLinks']);
+                unset($allAddons['WhatsJetRazorpaySubscriptionAddon']);
                 if (isDemo()) {
                     foreach ($allAddons as $addonKey => $addon) {
                         if (isset($addon['identifier']) and !in_array($addon['identifier'], $availableAddonsKeys)) {
