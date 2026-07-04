@@ -208,6 +208,9 @@ class OpenAiService extends BaseEngine
         // $sections = preg_split('/\n\n+/', $largeDataRecord->data);
         // $storedEmbeddings = json_decode($largeDataRecord->embedding);
         $largeDataRecord = getVendorSettings('open_ai_embedded_training_data', null, null, $vendorId);
+        if (empty($largeDataRecord) || !is_array($largeDataRecord) || empty($largeDataRecord['data'])) {
+            return [];
+        }
         $sections = $largeDataRecord['data']; //preg_split('/\n\n+/', $largeDataRecord['data']);  // Ensure you split the data in the same way
         $storedEmbeddings = ($largeDataRecord['embedding']);
         $similarities = [];
@@ -281,6 +284,11 @@ class OpenAiService extends BaseEngine
             "- To offer quick reply buttons (up to 3 buttons), append them at the very end of your response, each on a new line in this format: [BUTTON: Button Text]. Example: [BUTTON: En savoir plus]\n" .
             "- To offer a single link button (URL button), append it at the end of your response in this format: [URL_BUTTON: Button Text: URL]. Example: [URL_BUTTON: Commander: https://example.com]\n" .
             "Keep the button text very short (max 20 characters). Do not mix BUTTON and URL_BUTTON in the same response. Always prefer using buttons instead of plain links when possible.";
+
+        $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);
+        if ($botDataSourceType == 'assistant' && (!$assistantId || !Str::startsWith($assistantId, 'asst_'))) {
+            $botDataSourceType = 'text';
+        }
 
         if ($botDataSourceType == 'assistant') {
             $this->initConfiguration($vendorId);
