@@ -1,6 +1,6 @@
 <!-- CUSTOM PLAN VENDOR MODAL -->
 <x-lw.modal id="lwCustomPlanModal" :header="__tr('Customize Plan & Pricing')" :hasForm="true">
-    <x-lw.form id="lwCustomPlanForm" :action="route('vendor.write.custom_plan.data')"  :data-callback="appFuncs.modelSuccessCallback" data-callback-params="{{ json_encode(['modalId' => '#lwCustomPlanModal', 'datatableId' => '#lwManageVendorsTable']) }}">
+    <x-lw.form id="lwCustomPlanForm" :action="route('vendor.write.custom_plan.data')" data-callback="appFuncs.modelSuccessCallback" data-callback-params="{{ json_encode(['modalId' => '#lwCustomPlanModal', 'datatableId' => '#lwManageVendorsTable']) }}">
         <div id="lwCustomPlanBody" class="lw-form-modal-body"></div>
         <script type="text/template" id="lwCustomPlanBody-template">
             <input type="hidden" name="vendorIdOrUid" value="<%- __tData._uid %>" />
