@@ -464,10 +464,20 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   final _titleController = TextEditingController();
   DateTime? _scheduledAt;
 
-  // Step 2
+  // Step 2 General
+  String _audienceType = 'groups'; // 'groups' or 'contacts'
+
+  // Step 2: Groups
   List<Map<String, dynamic>> _groups = [];
   List<String> _selectedGroupUids = [];
   bool _loadingGroups = true;
+
+  // Step 2: Contacts
+  List<Map<String, dynamic>> _contacts = [];
+  List<Map<String, dynamic>> _filteredContacts = [];
+  List<String> _selectedContactUids = [];
+  bool _loadingContacts = true;
+  final _contactsSearchController = TextEditingController();
 
   // Step 3
   List<Map<String, dynamic>> _templates = [];
@@ -481,12 +491,15 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   void initState() {
     super.initState();
     _loadGroups();
+    _loadContacts();
     _loadTemplates();
+    _contactsSearchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
+    _contactsSearchController.dispose();
     for (var c in _varControllers) c.dispose();
     super.dispose();
   }
@@ -494,6 +507,28 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   Future<void> _loadGroups() async {
     final groups = await ApiService().fetchContactGroups();
     if (mounted) setState(() { _groups = groups; _loadingGroups = false; });
+  }
+
+  Future<void> _loadContacts() async {
+    final contacts = await ApiService().fetchSimpleContactsList();
+    if (mounted) {
+      setState(() {
+        _contacts = contacts;
+        _filteredContacts = contacts;
+        _loadingContacts = false;
+      });
+    }
+  }
+
+  void _onSearchChanged() {
+    final query = _contactsSearchController.text.toLowerCase();
+    setState(() {
+      _filteredContacts = _contacts.where((c) {
+        final name = (c['name'] ?? '').toString().toLowerCase();
+        final waId = (c['wa_id'] ?? '').toString().toLowerCase();
+        return name.contains(query) || waId.contains(query);
+      }).toList();
+    });
   }
 
   Future<void> _loadTemplates() async {
@@ -515,7 +550,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   }
 
   Future<void> _submit() async {
-    if (_selectedTemplateUid == null || _selectedGroupUids.isEmpty) return;
+    if (_selectedTemplateUid == null) return;
+    if (_audienceType == 'groups' && _selectedGroupUids.isEmpty) return;
+    if (_audienceType == 'contacts' && _selectedContactUids.isEmpty) return;
     setState(() => _isSubmitting = true);
 
     final vars = <String, String>{};
@@ -526,7 +563,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     final payload = {
       'title': _titleController.text.trim(),
       'template_uid': _selectedTemplateUid,
-      'group_uids': _selectedGroupUids,
+      'timezone': 'Africa/Douala', // Standard default expected by API
+      if (_audienceType == 'groups') 'group_uids': _selectedGroupUids,
+      if (_audienceType == 'contacts') 'contact_uids': _selectedContactUids,
       if (_scheduledAt != null) 'scheduled_at': _scheduledAt!.toIso8601String(),
       ...vars,
     };
@@ -541,8 +580,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
         );
         Navigator.pop(context, true);
       } else {
+        final errMsg = result?['message'] ?? 'Erreur lors de la création.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la création.'), backgroundColor: Colors.red),
+          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
         );
       }
     }
@@ -570,7 +610,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  ['1. Informations', '2. Groupes cibles', '3. Modèle & Variables'][_step],
+                  ['1. Informations', '2. Audience cible', '3. Modèle & Variables'][_step],
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
@@ -618,10 +658,17 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                             const SnackBar(content: Text('Veuillez saisir un titre.')));
                           return;
                         }
-                        if (_step == 1 && _selectedGroupUids.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Sélectionnez au moins un groupe.')));
-                          return;
+                        if (_step == 1) {
+                          if (_audienceType == 'groups' && _selectedGroupUids.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sélectionnez au moins un groupe.')));
+                            return;
+                          }
+                          if (_audienceType == 'contacts' && _selectedContactUids.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sélectionnez au moins un contact.')));
+                            return;
+                          }
                         }
                         setState(() => _step++);
                       } else {
@@ -699,8 +746,77 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     ]);
   }
 
-  // ── Step 2: Group selection ─────────────────────────────────────────────────
+  // ── Step 2: Target Audience selection ───────────────────────────────────────
   Widget _buildStep2() {
+    final isDark = ThemeService().isDark;
+    return Column(
+      children: [
+        // Audience type selector
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white10 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _audienceType = 'groups'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _audienceType == 'groups' ? ThemeService.primaryColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Groupes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _audienceType == 'groups' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _audienceType = 'contacts'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _audienceType == 'contacts' ? ThemeService.primaryColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Contacts',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _audienceType == 'contacts' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Display list based on type
+        Expanded(
+          child: _audienceType == 'groups'
+              ? _buildGroupsList()
+              : _buildContactsList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupsList() {
     if (_loadingGroups) return const Center(child: CircularProgressIndicator());
     if (_groups.isEmpty) {
       return const Center(child: Text('Aucun groupe de contacts trouvé.'));
@@ -729,6 +845,56 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildContactsList() {
+    if (_loadingContacts) return const Center(child: CircularProgressIndicator());
+    if (_contacts.isEmpty) {
+      return const Center(child: Text('Aucun contact trouvé.'));
+    }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextField(
+            controller: _contactsSearchController,
+            decoration: InputDecoration(
+              hintText: 'Rechercher un contact...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _filteredContacts.length,
+            itemBuilder: (_, i) {
+              final c = _filteredContacts[i];
+              final uid = (c['_uid'] ?? c['uid'] ?? '').toString();
+              final name = c['name'] ?? 'Sans nom';
+              final waId = c['wa_id'] ?? '';
+              final selected = _selectedContactUids.contains(uid);
+              return CheckboxListTile(
+                value: selected,
+                onChanged: (val) {
+                  setState(() {
+                    if (val == true) _selectedContactUids.add(uid);
+                    else _selectedContactUids.remove(uid);
+                  });
+                },
+                title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(waId),
+                secondary: CircleAvatar(
+                  backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.15),
+                  child: Icon(Icons.person_rounded, color: ThemeService.primaryColor, size: 20),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
