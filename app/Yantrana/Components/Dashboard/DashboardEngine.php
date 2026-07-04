@@ -250,6 +250,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->where('is_incoming_message', 1)
                 ->whereDate('created_at', Carbon::today())
                 ->count(),
+            'ordersCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->count() : 0,
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'ai_credits' => [
                 'is_enabled' => (bool) vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'],

@@ -221,6 +221,100 @@ $vendorViewBySuperAdmin = false;
                     @endif
                     {{-- /Banner Conversations Actives --}}
 
+                    <div class="row mb-4">
+                        {{-- AI Credits Card --}}
+                        @if (vendorPlanDetails('ai_chat_bot', 1)['is_limit_available'])
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Crédits IA') }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 text-primary">{{ $ai_credits['display_credits'] ?? 0 }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-gradient-primary text-white rounded-circle shadow" style="background: linear-gradient(135deg, #5e72e4, #825ee4) !important;">
+                                                <i class="fas fa-brain"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <span>{{ __tr('Crédits restants ce mois') }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Orders Card --}}
+                        @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Commandes') }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 text-success">{{ $ordersCount ?? 0 }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-gradient-success text-white rounded-circle shadow" style="background: linear-gradient(135deg, #2dce89, #2dcecc) !important;">
+                                                <i class="fas fa-shopping-basket"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <a href="{{ route('vendor.ecommerce.products') }}" class="text-success font-weight-bold"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les produits') }}</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Messages Received Today --}}
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr("Reçus Aujourd'hui") }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 text-info">{{ $messagesReceivedTodayCount ?? 0 }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-gradient-info text-white rounded-circle shadow" style="background: linear-gradient(135deg, #11cdef, #1171ef) !important;">
+                                                <i class="fas fa-comments"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <span>{{ __tr('Messages entrants reçus') }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Unread Messages --}}
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Non Lus') }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 {{ ($unreadMessagesCount ?? 0) > 0 ? 'text-danger' : 'text-muted' }}">{{ $unreadMessagesCount ?? 0 }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-gradient-warning text-white rounded-circle shadow" style="background: linear-gradient(135deg, #fb6340, #fbb140) !important;">
+                                                <i class="fas fa-envelope-open-text"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <a href="{{ route('vendor.chat_message.contact.view') }}" class="font-weight-bold" style="color: #fb6340;"><i class="fas fa-comment-dots mr-1"></i> {{ __tr('Ouvrir la messagerie') }}</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row mb-2">
                         @if (hasVendorAccess('manage_contacts'))
                         {{-- total contacts --}}

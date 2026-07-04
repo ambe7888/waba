@@ -120,10 +120,11 @@ $vendorViewBySuperAdmin = null;
         <div class="col-12">
             <div class="card onboarding-card border-0" style="background: white; border-radius: 16px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; overflow: hidden;">
                 <!-- Header Card with Gradient -->
-                <div class="card-header border-0 py-4 d-flex align-items-center justify-content-between flex-wrap" style="background: linear-gradient(135deg, #128c7e, #25d366) !important; border-radius: 16px 16px 0 0 !important;">
+                <div class="card-header border-0 py-4 d-flex align-items-center justify-content-between flex-wrap" style="background: linear-gradient(135deg, #128c7e, #25d366) !important; border-radius: 16px 16px 0 0 !important; cursor: pointer;" data-toggle="collapse" data-target="#onboardingCollapse" aria-expanded="{{ $percentage == 100 ? 'false' : 'true' }}">
                     <div>
                         <h3 class="text-white mb-1 font-weight-bold" style="font-size: 1.25rem;">
                             <i class="fas fa-flag-checkered mr-2"></i> {{ __tr('Guide de Démarrage Rapide') }}
+                            <i class="fas fa-chevron-down ml-2" style="font-size: 0.95rem;"></i>
                         </h3>
                         <p class="text-white-50 mb-0" style="font-size: 0.85rem;">
                             {{ __tr('Suivez ces étapes pour configurer pleinement votre compte et commencer vos campagnes.') }}
@@ -131,11 +132,12 @@ $vendorViewBySuperAdmin = null;
                     </div>
                     <div class="d-flex align-items-center mt-2 mt-md-0">
                         <span class="h2 text-white font-weight-bold mb-0 mr-2" style="font-size: 1.8rem;">{{ $percentage }}%</span>
-                        <span class="text-white-50" style="font-size: 0.85rem;">{{ __tr('terminé') }}</span>
+                        <span class="text-white-50 mr-3" style="font-size: 0.85rem;">{{ __tr('terminé') }}</span>
                     </div>
                 </div>
                 
-                <div class="card-body p-4">
+                <div id="onboardingCollapse" class="collapse {{ $percentage == 100 ? '' : 'show' }}">
+                    <div class="card-body p-4">
                     <!-- Progress Bar -->
                     <div class="onboarding-progress-wrapper mb-4">
                         <div class="progress rounded-pill shadow-inner" style="height: 10px; background-color: #f0f2f5; overflow: hidden;">
@@ -322,6 +324,7 @@ $vendorViewBySuperAdmin = null;
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 </div>
