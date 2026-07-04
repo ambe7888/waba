@@ -972,11 +972,9 @@ if (! function_exists('formatAmount')) {
     function formatAmount($amount = null, $currencyCode = false, $currencySymbol = false, $options = [])
     {
         if ($currencyCode === true) {
-            $currencyCode = ' ' . getCurrency();
+            $currencyCode = getCurrency();
         } elseif ($currencyCode === false) {
             $currencyCode = '';
-        } else {
-            $currencyCode = ' ' . $currencyCode;
         }
 
         if ($currencySymbol === true) {
@@ -985,7 +983,15 @@ if (! function_exists('formatAmount')) {
             $currencySymbol = '';
         }
 
-        $formattedCurrency = html_entity_decode($currencySymbol) . number_format((float) $amount, 2) . $currencyCode;
+        $currencySymbolStr = html_entity_decode($currencySymbol);
+        $cleanSymbol = strtolower(trim($currencySymbolStr));
+        $cleanCode = strtolower(trim($currencyCode));
+
+        if ($cleanSymbol === $cleanCode) {
+            $currencyCode = '';
+        }
+
+        $formattedCurrency = $currencySymbolStr . number_format((float) $amount, 2) . ($currencyCode ? ' ' . trim($currencyCode) : '');
 
         return __tr($formattedCurrency);
     }
