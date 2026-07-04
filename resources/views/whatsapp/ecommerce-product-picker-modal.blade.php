@@ -53,15 +53,8 @@
             this.isSending = true;
             var self = this;
             
-            // Get current active contact UID from Alpine context
-            var contactUid = null;
-            var chatData = document.querySelector('[x-data=\'initialMessageData\']');
-            if (chatData) {
-                var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
-                if (alpineData && alpineData.contact) {
-                    contactUid = alpineData.contact._uid;
-                }
-            }
+            // Get current active contact UID from hidden input in the chat page
+            var contactUid = document.querySelector('input[name=contact_uid]') ? document.querySelector('input[name=contact_uid]').value : null;
             
             if (!contactUid) {
                 showErrorMessage('{{ __tr('No active chat selected.') }}');
