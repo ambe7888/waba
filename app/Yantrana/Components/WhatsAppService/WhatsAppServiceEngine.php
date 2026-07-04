@@ -3117,11 +3117,41 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $replyText = trim($replyText);
 
             if ($interactiveType) {
+                $headerType = '';
+                $mediaLink = '';
+                $headerText = '';
+
+                // Try to find if the URL belongs to a registered product of this vendor
+                if ($interactiveType === 'cta_url' && isset($buttonUrl)) {
+                    $cleanUrl = strtok($buttonUrl, '?');
+                    $cleanUrl = rtrim($cleanUrl, '/');
+                    $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+                        ->where(function($query) use ($buttonUrl, $cleanUrl) {
+                            $query->where('direct_link', $buttonUrl)
+                                  ->orWhere('direct_link', $cleanUrl)
+                                  ->orWhere('direct_link', $cleanUrl . '/');
+                        })->first();
+
+                    if (!empty($product)) {
+                        if (!empty($product->image_url) && isValidUrl($product->image_url)) {
+                            $headerType = 'image';
+                            $mediaLink = $product->image_url;
+                            $headerText = mb_substr($product->name, 0, 60);
+                        } else {
+                            $headerType = 'text';
+                            $headerText = mb_substr($product->name, 0, 60);
+                        }
+                    }
+                }
+
                 $interactionMessageData = [
                     'interactive_type' => $interactiveType,
-                    'body_text' => $replyText,
+                    'body_text' => $replyText ?: 'Product Details',
                     'buttons' => $buttons,
                     'cta_url' => $ctaUrl,
+                    'header_type' => $headerType,
+                    'media_link' => $mediaLink,
+                    'header_text' => $headerText,
                 ];
             }
         }
