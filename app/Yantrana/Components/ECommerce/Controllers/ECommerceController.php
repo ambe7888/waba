@@ -47,6 +47,10 @@ class ECommerceController extends BaseController
             });
         }
 
+        if ($request->filled('source')) {
+            $query->where('source', $request->source);
+        }
+
         $products = $query->latest()->paginate(15);
 
         return $this->processResponse(1, [], [

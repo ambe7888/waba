@@ -1,7 +1,8 @@
-<x-lw.modal id="lwECommerceProductPicker" :header="__tr('Shopify Products')" :hasForm="false">
+<x-lw.modal id="lwECommerceProductPicker" :header="__tr('Produits & Catalogues')" :hasForm="false">
     <div class="p-3" x-data="{
         products: [],
         search: '',
+        source: '',
         page: 1,
         lastPage: 1,
         isLoading: false,
@@ -12,6 +13,7 @@
             var self = this;
             __DataRequest.get('{{ route('vendor.ecommerce.products') }}', {
                 search: this.search,
+                source: this.source,
                 page: this.page
             }, function(response) {
                 self.isLoading = false;
@@ -83,6 +85,18 @@
             <i class="fas fa-info-circle mr-1"></i> {{ __tr('Send interactive product cards with direct store checkout links.') }}
         </div>
 
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <select class="form-control form-control-sm" x-model="source" @change="searchProducts()" style="border-radius: 8px;">
+                    <option value="">{{ __tr('Toutes les sources de produits') }}</option>
+                    <option value="manual">{{ __tr('Catalogue Manuel') }}</option>
+                    <option value="shopify">Shopify</option>
+                    <option value="woocommerce">WooCommerce</option>
+                    <option value="whatsapp_catalog">WhatsApp Catalog</option>
+                </select>
+            </div>
+        </div>
+
         <div class="input-group mb-3">
             <input type="text" class="form-control" placeholder="{{ __tr('Type to filter products...') }}" x-model="search" @input.debounce.300ms="searchProducts()">
             <div class="input-group-append">
@@ -107,7 +121,10 @@
                     <img :src="product.image_url || 'https://via.placeholder.com/50'" class="img-thumbnail mr-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
                     <div class="flex-grow-1">
                         <span class="d-block font-weight-500 text-dark" x-text="product.name"></span>
-                        <span class="badge badge-success small mt-1" x-text="product.price + ' CFA'"></span>
+                        <div class="d-flex align-items-center mt-1" style="gap: 8px;">
+                            <span class="badge badge-success small" x-text="product.price + ' CFA'"></span>
+                            <span class="badge badge-light border text-capitalize text-xs text-muted" x-text="product.source === 'whatsapp_catalog' ? 'WhatsApp' : product.source"></span>
+                        </div>
                     </div>
                 </label>
             </template>
