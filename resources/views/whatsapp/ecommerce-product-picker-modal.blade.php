@@ -17,12 +17,15 @@
                 page: this.page
             }, function(response) {
                 self.isLoading = false;
-                if (response.reaction == 1) {
-                    self.products = response.data.products.data;
-                    self.lastPage = response.data.products.last_page;
+                if (response.reaction == 1 || response.reaction_code == 1) {
+                    var productsData = response.data.products.data ? response.data.products.data : response.data.products;
+                    self.products = productsData || [];
+                    self.lastPage = response.data.products.last_page || 1;
                     if (self.products.length > 0 && !self.selectedProductUid) {
                         self.selectedProductUid = self.products[0]._uid;
                     }
+                } else {
+                    console.error("Products fetch failed:", response);
                 }
             });
         },
@@ -71,9 +74,9 @@
                 product_uid: this.selectedProductUid
             }, function(response) {
                 self.isSending = false;
-                if (response.reaction == 1) {
+                if (response.reaction == 1 || response.reaction_code == 1) {
                     showSuccessMessage('{{ __tr('Product sent successfully!') }}');
-                    $('#lwECommerceProductPicker').modal('hide');
+                    $('#ecommerceProductPickerModal').modal('hide');
                 } else {
                     showErrorMessage(response.message || '{{ __tr('Failed to send product.') }}');
                 }
@@ -115,7 +118,7 @@
         </div>
 
         <div class="list-group mb-3" style="max-height: 350px; overflow-y: auto;">
-            <template x-for="product in products" :key="product._id">
+            <template x-for="product in products" :key="product._uid">
                 <label class="list-group-item list-group-item-action d-flex align-items-center mb-0 py-2" style="cursor: pointer;">
                     <input type="radio" name="selected_product" :value="product._uid" x-model="selectedProductUid" class="mr-3">
                     <img :src="product.image_url || 'https://via.placeholder.com/50'" class="img-thumbnail mr-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
