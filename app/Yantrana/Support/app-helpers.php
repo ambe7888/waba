@@ -486,6 +486,18 @@ if (! function_exists('setVendorSettings')) {
 if (! function_exists('getAppSettings')) {
     function getAppSettings($itemName, $itemKeys = null)
     {
+        if ($itemName === 'lwAddonShopifyProductSend') {
+            if ($itemKeys === 'registration_id') {
+                return 'simulated_reg_id';
+            }
+            return [
+                'registration_id' => 'simulated_reg_id',
+            ];
+        }
+        if ($itemName === 'lwEnableShopifyProductSend') {
+            return '1';
+        }
+
         if ($itemKeys) {
             return Arr::get(getAppSettings($itemName), $itemKeys);
         }
