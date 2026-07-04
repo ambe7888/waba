@@ -561,13 +561,16 @@ class WhatsAppTemplateEngine extends BaseEngine implements WhatsAppTemplateEngin
     {
         $whatsAppTemplate = $this->whatsAppTemplateRepository->fetchIt($whatsappTemplateUid);
         abortIf(__isEmpty($whatsAppTemplate), null, __tr('Template not found in the system'));
-        $deleteTemplate = $this->whatsAppApiService->deleteTemplate($whatsAppTemplate->template_name, $whatsAppTemplate->template_id);
-        if (isset($deleteTemplate['success']) and $deleteTemplate['success']) {
-            $this->processSyncTemplates();
-            return $this->engineSuccessResponse(['reloadDatatableId' => '#lwTemplatesList'], __tr('Template deleted successfully.'));
+        
+        $deleteTemplate = null;
+        if (!empty($whatsAppTemplate->template_id)) {
+            $deleteTemplate = $this->whatsAppApiService->deleteTemplate($whatsAppTemplate->template_name, $whatsAppTemplate->template_id);
         }
-
-        return $this->engineFailedResponse([], __tr('Failed to delete template'));
+        
+        // Delete locally from database in all cases to allow panel cleanup
+        $this->whatsAppTemplateRepository->deleteIt($whatsAppTemplate);
+        
+        return $this->engineSuccessResponse(['reloadDatatableId' => '#lwTemplatesList'], __tr('Template deleted successfully.'));
     }
 
     /**

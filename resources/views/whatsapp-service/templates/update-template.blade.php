@@ -266,6 +266,44 @@
                             <input type="hidden" name="template_uid" value="{{ $whatsAppTemplateUid }}">
                             <input type="hidden" name="template_type" :value="templateType">
 
+                            <!-- Template Info Fields -->
+                            <div class="card mb-4 border-light shadow-sm">
+                                <div class="card-body bg-light">
+                                    <h4 class="mb-3 text-primary"><i class="fas fa-info-circle"></i> {{ __tr('Propriétés du Template') }}</h4>
+                                    
+                                    <div class="form-group">
+                                        <label for="lwTemplateName"><strong>{{ __tr('Nom du Template (Meta)') }}</strong></label>
+                                        <input type="text" name="template_name" id="lwTemplateName" class="form-control" value="{{ $whatsAppTemplateData['name'] }}" {{ $whatsAppTemplateData['status'] == 'APPROVED' ? 'readonly' : '' }} required>
+                                        @if($whatsAppTemplateData['status'] != 'APPROVED')
+                                            <small class="form-text text-muted">{{ __tr('Lettres minuscules, chiffres et caractères de soulignement uniquement (ex: confirmation_livraison).') }}</small>
+                                        @else
+                                            <small class="form-text text-muted text-success"><i class="fa fa-lock"></i> {{ __tr('Ce template est approuvé sur Meta, le nom ne peut plus être modifié.') }}</small>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label for="lwLanguageCode"><strong>{{ __tr('Code Langue') }}</strong></label>
+                                            <input type="text" name="language_code" id="lwLanguageCode" class="form-control" value="{{ $whatsAppTemplateData['language'] }}" {{ $whatsAppTemplateData['status'] == 'APPROVED' ? 'readonly' : '' }} required>
+                                            <small class="form-text text-muted">Ex: <code>fr</code>, <code>en_US</code></small>
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label for="lwCategory"><strong>{{ __tr('Catégorie') }}</strong></label>
+                                            @if($whatsAppTemplateData['status'] == 'APPROVED')
+                                                <input type="text" class="form-control" value="{{ $whatsAppTemplateData['category'] }}" readonly>
+                                                <input type="hidden" name="category" value="{{ $whatsAppTemplateData['category'] }}">
+                                            @else
+                                                <select name="category" id="lwCategory" class="form-control custom-select" required>
+                                                    <option value="MARKETING" {{ $whatsAppTemplateData['category'] == 'MARKETING' ? 'selected' : '' }}>MARKETING</option>
+                                                    <option value="UTILITY" {{ $whatsAppTemplateData['category'] == 'UTILITY' ? 'selected' : '' }}>UTILITY</option>
+                                                    <option value="AUTHENTICATION" {{ $whatsAppTemplateData['category'] == 'AUTHENTICATION' ? 'selected' : '' }}>AUTHENTICATION</option>
+                                                </select>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div x-show="templateType == 'carousel'">
                                 <fieldset>
                                     <legend>{{ __tr('Body') }}</legend>
