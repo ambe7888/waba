@@ -134,8 +134,14 @@ class FcmService {
         iOS: darwinDetails,
       );
 
+      // Use a consistent ID based on contactUid to group/overwrite notifications from the same sender
+      // This prevents notification pile-up / duplicates in the status bar
+      final int notificationId = contactUid.isNotEmpty 
+          ? contactUid.hashCode.remainder(100000) 
+          : 0;
+
       await _localNotifications.show(
-        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        notificationId,
         title,
         body,
         details,

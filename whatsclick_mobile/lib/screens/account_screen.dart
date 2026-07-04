@@ -10,6 +10,7 @@ import 'qr_code_screen.dart';
 import 'canned_replies_screen.dart';
 import 'notification_settings_screen.dart';
 import 'contact_groups_screen.dart';
+import 'templates_admin_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -19,22 +20,30 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  // We can fetch user details from Dashboard API or store them during login
-  // For now, we will use placeholders or fetch stats to get vendor info
   Map<String, dynamic>? _vendorInfo;
+  int _roleId = 3; // default: agent
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadVendorInfo();
+    _loadData();
   }
 
-  Future<void> _loadVendorInfo() async {
+  Future<void> _loadData() async {
+    // Load role first from cache (instant)
+    _roleId = await ApiService().getUserRoleId();
+    if (mounted) setState(() {});
+
+    // Then fetch vendor info for display
     final stats = await ApiService().fetchDashboardStats();
     if (mounted && stats != null) {
       setState(() {
-        _vendorInfo = stats['vendorInfo'];
+        _vendorInfo = stats['vendorInfo'] ?? stats;
+        _isLoading = false;
       });
+    } else if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -67,6 +76,7 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
+    final bool isAdmin = _roleId == 2;
 
     return Scaffold(
       appBar: AppBar(
@@ -223,6 +233,36 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
           ),
+
+          if (isAdmin) ...[
+            const SizedBox(height: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(
+                'Fonctionnalités Administrateur',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.message_rounded, color: Colors.indigo),
+                title: const Text('Modèles de messages (Templates)'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TemplatesAdminScreen()),
+                  );
+                },
+              ),
+            ),
+          ],
+
         ],
       ),
     );

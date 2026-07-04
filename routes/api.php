@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Broadcast;
 use App\Yantrana\Components\Auth\Controllers\ApiUserController;
 use App\Yantrana\Components\Contact\Controllers\ContactController;
 use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppServiceController;
+use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppTemplateController;
 use App\Yantrana\Components\Media\Controllers\MediaController;
 use App\Yantrana\Components\User\Controllers\UserController;
 
@@ -397,6 +398,46 @@ Route::group([
             'deleteCannedReply',
         ])->name('app_api.vendor.canned_replies.delete');
 
+        // Contact Groups (Mobile) - inline for guaranteed flat response
+        Route::get('/contact/groups', function () {
+            validateVendorAccess('manage_contacts');
+            $vendorId = getVendorId();
+            $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($g) {
+                    $count = \DB::table('group_contacts')
+                        ->where('contact_groups__id', $g->_id)
+                        ->count();
+                    return [
+                        '_uid'           => $g->_uid,
+                        'title'          => $g->title,
+                        'description'    => $g->description,
+                        'total_contacts' => $count,
+                    ];
+                });
+            return response()->json([
+                'reaction' => 1,
+                'data'     => ['groups' => $groups],
+            ]);
+        })->name('app_api.vendor.contact.read.group_list');
+        Route::post('/contact/groups/create', [
+            \App\Yantrana\Components\Contact\Controllers\ContactGroupController::class,
+            'processGroupCreate',
+        ])->name('app_api.vendor.contact.group.write.create');
+        Route::post('/contact/groups/{contactGroupIdOrUid}/delete', [
+            \App\Yantrana\Components\Contact\Controllers\ContactGroupController::class,
+            'processGroupDelete',
+        ])->name('app_api.vendor.contact.group.write.delete');
+        Route::get('/contact/groups/{groupUid}/contacts', [
+            ContactController::class,
+            'apiGetGroupContacts',
+        ])->name('app_api.vendor.contact.group.contacts');
+        Route::post('/contact/assign-groups', [
+            ContactController::class,
+            'apiAssignGroupsToContact',
+        ])->name('app_api.vendor.contact.assign_groups.update.process');
+
         // Block contact
         Route::post('/whatsapp/contact/{contactIdOrUid}/block-process', [
             ContactController::class,
@@ -482,6 +523,21 @@ Route::group([
             CampaignController::class,
             'apiGetCampaignList',
         ])->name('app_api.vendor.campaign.read.mobile_list');
+        // Sync templates from Meta
+        Route::post('/whatsapp/templates/sync', [
+            WhatsAppTemplateController::class,
+            'syncTemplates',
+        ])->name('app_api.vendor.whatsapp.templates.sync');
+        // Create WhatsApp Template
+        Route::post('/whatsapp/templates/create', [
+            WhatsAppTemplateController::class,
+            'createNewTemplateProcess',
+        ])->name('app_api.vendor.whatsapp.templates.create');
+        // Create and schedule campaign
+        Route::post('/whatsapp/campaign/schedule', [
+            WhatsAppServiceController::class,
+            'scheduleCampaign',
+        ])->name('app_api.vendor.campaign.schedule.process');
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
             CampaignController::class,
