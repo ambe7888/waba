@@ -571,6 +571,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                             class="fas fa-exclamation-triangle ml-1"></i>@endif
                                     </a></strong>
                             </li>
+                              @if(vendorPlanDetails('ai_chat_bot', 1)['is_limit_available'])
                               <li class="nav-item">
                                   <a class="nav-link <?= (isset($pageType) and $pageType == 'ai-chat-bot-setup') ? 'active' : '' ?>"
                                       href="<?= route('vendor.settings.read', ['pageType' => 'ai-chat-bot-setup']) ?>">
@@ -585,6 +586,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                       {!! __tr('Recharge AI Credits') !!}
                                   </a>
                               </li>
+                              @endif
                             <li class="nav-item">
                                 <a class="nav-link <?= (isset($pageType) and $pageType == 'api-access') ? 'active' : '' ?>"
                                     href="<?= route('vendor.settings.read', ['pageType' => 'api-access']) ?>">
