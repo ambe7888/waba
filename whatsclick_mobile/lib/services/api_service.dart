@@ -24,6 +24,7 @@ class ApiService {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('auth_token');
+    _cachedRoleId = prefs.getInt('user_role_id');
   }
 
   bool get isAuthenticated => _token != null;
@@ -36,16 +37,33 @@ class ApiService {
     return 0;
   }
 
+  int? _cachedRoleId;
+
   Future<void> _saveToken(String token) async {
     _token = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
   }
 
+  Future<void> _saveRoleId(int roleId) async {
+    _cachedRoleId = roleId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_role_id', roleId);
+  }
+
+  /// Returns the current user role ID (2 = vendor admin, 3 = agent)
+  Future<int> getUserRoleId() async {
+    if (_cachedRoleId != null) return _cachedRoleId!;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_role_id') ?? 3;
+  }
+
   Future<void> logout() async {
     _token = null;
+    _cachedRoleId = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    await prefs.remove('user_role_id');
   }
 
   Map<String, String> _getHeaders({bool requireAuth = true}) {
@@ -78,9 +96,18 @@ class ApiService {
         final body = jsonDecode(response.body);
         final reaction = body['reaction'];
         if (reaction == 1) {
-          final token = body['data']['access_token'];
+          final data = body['data'];
+          final token = data['access_token'];
           if (token != null) {
             await _saveToken(token);
+            // Save role_id from auth_info (2 = vendor admin, 3 = agent)
+            final authInfo = data['auth_info'];
+            if (authInfo != null) {
+              final roleId = authInfo['role_id'];
+              if (roleId != null) {
+                await _saveRoleId((roleId as num).toInt());
+              }
+            }
             return true;
           }
         }
@@ -951,11 +978,20 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/contact/groups');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (debug) debugPrint('fetchContactGroups status: ${response.statusCode}');
+      if (debug) debugPrint('fetchContactGroups body: ${response.body.substring(0, response.body.length.clamp(0, 500))}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
-          final list = body['data']?['contactGroups'] as List?;
-          if (list != null) {
+          final data = body['data'];
+          // Inline route returns 'groups' key directly
+          dynamic list = data?['groups']              // new inline route
+              ?? data?['contactList']?['data']        // old paginated
+              ?? data?['contactList']                 // plain array
+              ?? data?['contactGroups']?['data']
+              ?? data?['contactGroups']
+              ?? data?['data'];
+          if (list is List) {
             return List<Map<String, dynamic>>.from(list);
           }
         }
@@ -1052,6 +1088,89 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Fetch Group Contacts Error: $e');
       return [];
+    }
+  }
+
+  /// Synchronize templates from Meta (Admin Only)
+  Future<bool> syncTemplates() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/sync');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 40));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Sync Templates Error: $e');
+      return false;
+    }
+  }
+
+  /// Create and schedule campaign (Admin Only)
+  Future<Map<String, dynamic>?> scheduleCampaign(Map<String, dynamic> data) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/schedule');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 35));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return Map<String, dynamic>.from(body);
+        } else {
+          return {
+            'success': false,
+            'message': body['message'] ?? 'Erreur inconnue',
+          };
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Schedule Campaign Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch Campaign Dashboard / Status (Admin Only)
+  Future<Map<String, dynamic>?> fetchCampaignDashboard(String campaignUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/dashboard/$campaignUid/status');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 25));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Campaign Dashboard Error: $e');
+      return null;
+    }
+  }
+
+  /// Create WhatsApp Template (Admin Only)
+  Future<Map<String, dynamic>?> createTemplate(Map<String, dynamic> data) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/create');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 35));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return Map<String, dynamic>.from(body);
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Create Template Error: $e');
+      return null;
     }
   }
 }
