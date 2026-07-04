@@ -92,11 +92,16 @@ class ECommerceController extends BaseController
             'contactUid' => $request->contact_uid,
         ];
 
+        // Force the current vendor's phone number ID to avoid using a stale
+        // phone number from the contact's last message (which may belong to another vendor account).
+        $currentPhoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
+
         // Ask WhatsAppServiceEngine to send this chat message
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
 
         if (!empty($product->image_url) && isValidUrl($product->image_url)) {
             $options = [
+                'from_phone_number_id' => $currentPhoneNumberId,
                 'media_message_data' => [
                     'header_type' => 'image',
                     'media_link' => $product->image_url,
@@ -111,10 +116,14 @@ class ECommerceController extends BaseController
                 $options
             );
         } else {
+            $options = [
+                'from_phone_number_id' => $currentPhoneNumberId,
+            ];
             $processReaction = $whatsAppServiceEngine->processSendChatMessage(
                 $sendRequest,
                 false, // not media
-                $vendorId
+                $vendorId,
+                $options
             );
         }
 
