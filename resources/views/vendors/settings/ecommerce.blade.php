@@ -5,6 +5,11 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
     ->latest()
     ->get();
 $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
+
+$isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
+$isWooCommerceConnected = !empty(getVendorSettings('woocommerce_shop_url')) && !empty(getVendorSettings('woocommerce_consumer_key')) && !empty(getVendorSettings('woocommerce_consumer_secret'));
+$isWhatsAppCatalogConnected = !empty(getVendorSettings('whatsapp_catalog_id'));
+$isManualConnected = true;
 @endphp
 
 <style>
@@ -84,7 +89,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
         this.isSyncing = true;
         this.syncMessage = '';
         var self = this;
-        __DataRequest.post('{{ route('vendor.ecommerce.sync') }}', {}, function(response) {
+        __DataRequest.post('{{ route('vendor.ecommerce.sync') }}', { source: this.integration }, function(response) {
             self.isSyncing = false;
             if (response.reaction_code == 1) {
                 self.syncMessage = response.message;
@@ -210,7 +215,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="platform-card" :class="[
                     integration === 'shopify' ? 'selected-shopify' : '',
-                    '{{ $activeIntegration }}' === 'shopify' ? 'active-green-card' : ''
+                    {{ $isShopifyConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'shopify'">
                     <template x-if="integration === 'shopify'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
@@ -218,7 +223,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     <i class="fab fa-shopify mb-3 text-success" style="font-size: 3rem; color: #96bf48 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">Shopify</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Synchronisation anonyme sans clé API nécessaire.') }}</p>
-                    @if($activeIntegration === 'shopify')
+                    @if($isShopifyConnected)
                         <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
@@ -228,7 +233,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="platform-card" :class="[
                     integration === 'woocommerce' ? 'selected-woocommerce' : '',
-                    '{{ $activeIntegration }}' === 'woocommerce' ? 'active-green-card' : ''
+                    {{ $isWooCommerceConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'woocommerce'">
                     <template x-if="integration === 'woocommerce'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
@@ -236,7 +241,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     <i class="fab fa-wordpress mb-3" style="font-size: 3rem; color: #7f54b3 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">WooCommerce</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Liaison via clés d\'API Consumer Key / Secret.') }}</p>
-                    @if($activeIntegration === 'woocommerce')
+                    @if($isWooCommerceConnected)
                         <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
@@ -246,7 +251,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="platform-card" :class="[
                     integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
-                    '{{ $activeIntegration }}' === 'whatsapp_catalog' ? 'active-green-card' : ''
+                    {{ $isWhatsAppCatalogConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'whatsapp_catalog'">
                     <template x-if="integration === 'whatsapp_catalog'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
@@ -254,7 +259,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     <i class="fab fa-whatsapp mb-3 text-success" style="font-size: 3rem; color: #25d366 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue WhatsApp') }}</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Associer l\'ID de votre catalogue Meta natif.') }}</p>
-                    @if($activeIntegration === 'whatsapp_catalog')
+                    @if($isWhatsAppCatalogConnected)
                         <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
@@ -264,7 +269,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="platform-card" :class="[
                     integration === 'manual' ? 'selected-manual' : '',
-                    '{{ $activeIntegration }}' === 'manual' ? 'active-green-card' : ''
+                    {{ $isManualConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'manual'">
                     <template x-if="integration === 'manual'">
                         <div class="selected-badge"><i class="fas fa-check"></i></div>
@@ -272,7 +277,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
                     <i class="fas fa-edit mb-3 text-info" style="font-size: 3rem;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Manuel / Excel') }}</h4>
                     <p class="text-xs text-muted mb-0">{{ __tr('Créez vos produits manuellement ou via import Excel.') }}</p>
-                    @if($activeIntegration === 'manual')
+                    @if($isManualConnected)
                         <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
