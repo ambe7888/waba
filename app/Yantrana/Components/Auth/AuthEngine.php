@@ -304,12 +304,20 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
     public function processRegistration($inputData)
     {
         $transactionResponse = $this->authRepository->processTransaction(function () use ($inputData) {
+            $getFreePlan = getFreePlan();
+            $defaultFreeCredits = 0;
+            if (!__isEmpty($getFreePlan) && !empty($getFreePlan['enabled'])) {
+                $defaultFreeCredits = (int) \Illuminate\Support\Arr::get($getFreePlan, 'features.ai_credits.limit', 0);
+            }
+            $planAiCredits = ($defaultFreeCredits == -1) ? 999999999 : $defaultFreeCredits;
+
             // add to to title
             $vendor = $this->vendorRepository->storeVendor([
                 'title' => $inputData['vendor_title'],
                 'slug' => Str::lower(Str::slug($inputData['username'],'_')),
                 'status' => 1, // Active
                 'type' => 1, // types of vendor restaurant etc
+                'plan_ai_credits' => $planAiCredits,
             ]);
             if (! $vendor) {
                 return $this->authRepository->transactionResponse(2, ['show_message' => true], __tr('Failed to register user'));
