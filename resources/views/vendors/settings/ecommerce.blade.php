@@ -80,7 +80,7 @@ $isManualConnected = true;
     catalogSourceFilter: '',
     filteredCatalogProducts() {
         return this.allProducts.filter(p => {
-            var matchesSearch = !this.catalogSearch || p.name.toLowerCase().includes(this.catalogSearch.toLowerCase()) || (p.description && p.description.toLowerCase().includes(this.catalogSearch.toLowerCase()));
+            var matchesSearch = !this.catalogSearch || (p.name && p.name.toLowerCase().includes(this.catalogSearch.toLowerCase())) || (p.description && p.description.toLowerCase().includes(this.catalogSearch.toLowerCase()));
             var matchesSource = !this.catalogSourceFilter || p.source === this.catalogSourceFilter;
             return matchesSearch && matchesSource;
         });
