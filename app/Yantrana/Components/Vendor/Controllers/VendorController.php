@@ -293,6 +293,7 @@ class VendorController extends BaseController
     public function updateCustomPlanData(CommonPostRequest $request)
     {
         $request->validate([
+            'vendorIdOrUid' => 'required',
             'ai_credits' => 'nullable|integer|min:-1',
             'contacts' => 'nullable|integer|min:-1',
             'campaigns' => 'nullable|integer|min:-1',
