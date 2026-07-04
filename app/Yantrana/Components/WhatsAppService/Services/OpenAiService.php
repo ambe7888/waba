@@ -51,12 +51,14 @@ class OpenAiService extends BaseEngine
             throw new Exception("Insufficient AI Credits");
         }
 
-        // Priority: passed accessKey > global admin key > .env key
+        // Priority: passed accessKey > vendor key > global admin key > .env key
         $apiKey = $accessKey 
+            ?: getVendorSettings('open_ai_access_key', null, null, $vendorId)
             ?: getAppSettings('openai_api_key') 
             ?: env('OPENAI_API_KEY');
         
         $orgId = $orgKey 
+            ?: getVendorSettings('open_ai_organization_id', null, null, $vendorId)
             ?: getAppSettings('openai_organization_id') 
             ?: env('OPENAI_ORGANIZATION');
 

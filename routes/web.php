@@ -1119,6 +1119,11 @@ Route::middleware([
                 'importProducts',
             ])->name('vendor.ecommerce.products.import');
 
+            Route::post('/ecommerce/products/clear', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'clearProducts',
+            ])->name('vendor.ecommerce.products.clear');
+
             Route::post('/ecommerce/send-product', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'sendProductMessage',
