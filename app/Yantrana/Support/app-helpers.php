@@ -2015,7 +2015,7 @@ if (! function_exists('isAiBotAvailable')) {
         if (!$vendorId) {
             $vendorId = getVendorId();
         }
-        return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and getVendorSettings('open_ai_access_key', null, null, $vendorId));
+        return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and (getAppSettings('openai_api_key') or env('OPENAI_API_KEY')));
     }
 }
 

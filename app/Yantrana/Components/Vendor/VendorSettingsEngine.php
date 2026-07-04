@@ -393,10 +393,7 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
                     // if existing data is changed needs to create embedding again
                     if (getVendorSettings('open_ai_input_training_data') != $inputData['open_ai_input_training_data']) {
                         try {
-                            $inputData['open_ai_embedded_training_data'] = app()->make(\App\Yantrana\Components\WhatsAppService\Services\OpenAiService::class)->embedLargeData($inputData['open_ai_input_training_data'], [
-                                'open_ai_access_key' => $inputData['open_ai_access_key'] ?? null,
-                                'open_ai_organization_id' => $inputData['open_ai_organization_id'] ?? null,
-                            ]);
+                            $inputData['open_ai_embedded_training_data'] = app()->make(\App\Yantrana\Components\WhatsAppService\Services\OpenAiService::class)->embedLargeData($inputData['open_ai_input_training_data']);
                         } catch (\Throwable $th) {
                             return $this->engineFailedResponse(['show_message' => true], __tr($th->getMessage()));
                         }

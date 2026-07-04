@@ -51,21 +51,26 @@ class OpenAiService extends BaseEngine
             throw new Exception("Insufficient AI Credits");
         }
 
+        // Priority: passed accessKey > global admin key > .env key
+        $apiKey = $accessKey 
+            ?: getAppSettings('openai_api_key') 
+            ?: env('OPENAI_API_KEY');
+        
+        $orgId = $orgKey 
+            ?: getAppSettings('openai_organization_id') 
+            ?: env('OPENAI_ORGANIZATION');
+
         config([
-            'openai.api_key' =>  getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY'),
-            'openai.organization' => getAppSettings('openai_organization_id') ?: env('OPENAI_ORGANIZATION'),
+            'openai.api_key' => $apiKey,
+            'openai.organization' => $orgId,
         ]);
     }
     /**
      * Generate embeddings for large data and store it in the database.
      */
-    public function embedLargeData($largeData, $options = [])
+    public function embedLargeData($largeData)
     {
-        $options  = array_merge([
-            'open_ai_access_key' => null,
-            'open_ai_organization_id' => null
-        ], $options);
-        $this->initConfiguration(null, $options['open_ai_access_key'], $options['open_ai_organization_id']);
+        $this->initConfiguration(null);
         // Step 1: Split the large data into meaningful chunks
         $sections = $this->splitDataIntoChunks($largeData);
 
