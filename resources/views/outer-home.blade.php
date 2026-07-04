@@ -1454,16 +1454,16 @@ $appName = getAppSettings('name');
                 <!-- 17. Meta AI (Agent IA natif Meta) -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
-                        <div class="feature-icon-wrap"><i class="fab fa-meta" style="color: #0064E0;"></i></div>
+                        <div class="feature-icon-wrap"><i class="bi bi-infinity" style="color: #0064E0; font-size: 1.8rem;"></i></div>
                         <h3>{{ __tr('Meta AI (Agent IA natif Meta)') }}</h3>
                         <p>{{ __tr('Intégrez et basculez facilement vers le chatbot IA natif de Meta (Llama) hébergé directement sur leurs serveurs pour répondre à vos clients.') }}</p>
                     </div>
                 </div>
-                <!-- 18. Intégration Page Facebook & Messenger -->
+                <!-- 18. Intégration Page Facebook et Messenger -->
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon-wrap"><i class="fab fa-facebook-messenger" style="color: #0064E0;"></i></div>
-                        <h3>{{ __tr('Intégration Page Facebook & Messenger') }}</h3>
+                        <h3>{{ __tr('Intégration Page Facebook et Messenger') }}</h3>
                         <p>{{ __tr('Centralisez tous vos canaux en intégrant vos pages Facebook et Messenger pour gérer vos discussions dans une boîte de réception unique.') }}</p>
                     </div>
                 </div>
