@@ -25,7 +25,7 @@
                         self.selectedProductUid = self.products[0]._uid;
                     }
                 } else {
-                    console.error("Products fetch failed:", response);
+                    console.error('Products fetch failed:', response);
                 }
             });
         },
@@ -55,7 +55,7 @@
             
             // Get current active contact UID from Alpine context
             var contactUid = null;
-            var chatData = document.querySelector('[x-data=\"initialMessageData\"]');
+            var chatData = document.querySelector('[x-data=\'initialMessageData\']');
             if (chatData) {
                 var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
                 if (alpineData && alpineData.contact) {
