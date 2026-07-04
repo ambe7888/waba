@@ -92,11 +92,19 @@ class ECommerceController extends BaseController
             'contactUid' => $request->contact_uid,
         ];
 
-        // Get the real (decrypted) phone number ID from whatsapp_phone_numbers
-        // current_phone_number_id is encrypted and cannot be passed directly to the API.
-        // whatsapp_phone_numbers returns a decoded JSON array with the actual phone number IDs.
+        // Get the contact to find the real wa_id (phone number)
+        $contactRepository = app(\App\Yantrana\Components\Contact\Repositories\ContactRepository::class);
+        $contact = $contactRepository->getVendorContact($request->contact_uid, $vendorId);
+        if (empty($contact)) {
+            return $this->processResponse(2, [], ['message' => __tr('Contact not found.')]);
+        }
+
+        // Get the vendor's real phone number ID from whatsapp_phone_numbers (already decrypted as JSON array)
         $phoneNumbers = getVendorSettings('whatsapp_phone_numbers', null, null, $vendorId) ?: [];
         $currentPhoneNumberId = !empty($phoneNumbers) ? ($phoneNumbers[0]['id'] ?? null) : null;
+
+        // Set the phone number for this request so the API service uses the correct one
+        fromPhoneNumberIdForRequest($currentPhoneNumberId);
 
         // Ask WhatsAppServiceEngine to send this chat message
         $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
@@ -113,7 +121,7 @@ class ECommerceController extends BaseController
             ];
             $processReaction = $whatsAppServiceEngine->processSendChatMessage(
                 $sendRequest,
-                true, // isMediaMessage
+                true,
                 $vendorId,
                 $options
             );
@@ -123,7 +131,7 @@ class ECommerceController extends BaseController
             ];
             $processReaction = $whatsAppServiceEngine->processSendChatMessage(
                 $sendRequest,
-                false, // not media
+                false,
                 $vendorId,
                 $options
             );
