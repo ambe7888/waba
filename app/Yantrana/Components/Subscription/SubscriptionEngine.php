@@ -281,10 +281,16 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
                 $processedData->update(['type' => $getPlanDetails['id']]);
 
                 $aiCreditsLimit = Arr::get($getPlanDetails, 'features.ai_credits.limit', 0);
-                if ($aiCreditsLimit > 0) {
-                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
-                        ->update(['plan_ai_credits' => $aiCreditsLimit]);
+                $vendorRecord = \App\Yantrana\Components\Vendor\Models\VendorModel::find(getVendorId());
+                if ($vendorRecord && $vendorRecord->plan_custom_limits) {
+                    $customLimits = is_string($vendorRecord->plan_custom_limits) ? json_decode($vendorRecord->plan_custom_limits, true) : $vendorRecord->plan_custom_limits;
+                    if (is_array($customLimits) && isset($customLimits['ai_credits'])) {
+                        $aiCreditsLimit = $customLimits['ai_credits'];
+                    }
                 }
+                $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
+                    ->update(['plan_ai_credits' => $planAiCredits]);
             }
         } catch (IncompletePayment $exception) {
             return $this->engineResponse(21, [
@@ -343,10 +349,16 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
             $subscription->allowPaymentFailures()->create($request->paymentMethod);
 
             $aiCreditsLimit = Arr::get($getPlanDetails, 'features.ai_credits.limit', 0);
-            if ($aiCreditsLimit > 0) {
-                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
-                    ->update(['plan_ai_credits' => $aiCreditsLimit]);
+            $vendorRecord = \App\Yantrana\Components\Vendor\Models\VendorModel::find(getVendorId());
+            if ($vendorRecord && $vendorRecord->plan_custom_limits) {
+                $customLimits = is_string($vendorRecord->plan_custom_limits) ? json_decode($vendorRecord->plan_custom_limits, true) : $vendorRecord->plan_custom_limits;
+                if (is_array($customLimits) && isset($customLimits['ai_credits'])) {
+                    $aiCreditsLimit = $customLimits['ai_credits'];
+                }
             }
+            $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+            \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', getVendorId())
+                ->update(['plan_ai_credits' => $planAiCredits]);
         } catch (IncompletePayment $exception) {
             return redirect()->route(
                 'cashier.payment',
