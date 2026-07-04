@@ -211,15 +211,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               color: isDark ? Colors.white70 : Colors.black87,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Crédits IA : ${_stats?['ai_credits']?['display_credits'] ?? '0'}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: isDark ? Colors.white60 : Colors.black54,
+                                          if (_stats?['ai_credits']?['is_enabled'] == true) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Crédits IA : ${_stats?['ai_credits']?['display_credits'] ?? '0'}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: isDark ? Colors.white60 : Colors.black54,
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ],
                                       ),
                                     ),

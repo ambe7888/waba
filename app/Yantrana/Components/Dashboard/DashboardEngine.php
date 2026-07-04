@@ -252,6 +252,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->count(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'ai_credits' => [
+                'is_enabled' => (bool) vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'],
                 'plan_credits' => $planCredits,
                 'extra_credits' => $extraCredits,
                 'total_credits' => $totalCredits,
