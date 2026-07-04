@@ -63,19 +63,72 @@
                                 {{ __tr('Leave fields empty to use the default limits from the assigned plan.') }}
                             </div>
                             
-                            <div class="form-group mb-3">
-                                <label for="ai_credits">{{ __tr('AI Credits') }}</label>
-                                <input type="number" class="form-control" name="ai_credits" id="ai_credits" placeholder="<%- __tData.plan_defaults.ai_credits === -1 ? 'Unlimited' : (__tData.plan_defaults.ai_credits !== '' ? 'Default: ' + __tData.plan_defaults.ai_credits : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="ai_credits">{{ __tr('AI Credits') }}</label>
+                                    <input type="number" class="form-control" name="ai_credits" id="ai_credits" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.ai_credits === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.ai_credits !== '' ? 'Default: ' + __tData.plan_defaults.ai_credits : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
+                                </div>
+
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="contacts">{{ __tr('Contacts Limit') }}</label>
+                                    <input type="number" class="form-control" name="contacts" id="contacts" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.contacts === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.contacts !== '' ? 'Default: ' + __tData.plan_defaults.contacts : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.contacts : '' %>">
+                                </div>
                             </div>
 
-                            <div class="form-group mb-3">
-                                <label for="contact_limit">{{ __tr('Contact Limit') }}</label>
-                                <input type="number" class="form-control" name="contact_limit" id="contact_limit" placeholder="<%- __tData.plan_defaults.contact_limit === -1 ? 'Unlimited' : (__tData.plan_defaults.contact_limit !== '' ? 'Default: ' + __tData.plan_defaults.contact_limit : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.contact_limit : '' %>">
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="campaigns">{{ __tr('Campaigns Limit') }}</label>
+                                    <input type="number" class="form-control" name="campaigns" id="campaigns" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.campaigns === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.campaigns !== '' ? 'Default: ' + __tData.plan_defaults.campaigns : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.campaigns : '' %>">
+                                </div>
+
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="drip_campaigns">{{ __tr('Drip Campaigns Limit') }}</label>
+                                    <input type="number" class="form-control" name="drip_campaigns" id="drip_campaigns" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.drip_campaigns === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.drip_campaigns !== '' ? 'Default: ' + __tData.plan_defaults.drip_campaigns : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.drip_campaigns : '' %>">
+                                </div>
                             </div>
 
-                            <div class="form-group mb-3">
-                                <label for="campaign_limit">{{ __tr('Campaign Limit') }}</label>
-                                <input type="number" class="form-control" name="campaign_limit" id="campaign_limit" placeholder="<%- __tData.plan_defaults.campaign_limit === -1 ? 'Unlimited' : (__tData.plan_defaults.campaign_limit !== '' ? 'Default: ' + __tData.plan_defaults.campaign_limit : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.campaign_limit : '' %>">
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="bot_replies">{{ __tr('Bot Replies Limit') }}</label>
+                                    <input type="number" class="form-control" name="bot_replies" id="bot_replies" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.bot_replies === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.bot_replies !== '' ? 'Default: ' + __tData.plan_defaults.bot_replies : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.bot_replies : '' %>">
+                                </div>
+
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="bot_flows">{{ __tr('Bot Flows Limit') }}</label>
+                                    <input type="number" class="form-control" name="bot_flows" id="bot_flows" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.bot_flows === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.bot_flows !== '' ? 'Default: ' + __tData.plan_defaults.bot_flows : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.bot_flows : '' %>">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="contact_custom_fields">{{ __tr('Contact Custom Fields Limit') }}</label>
+                                    <input type="number" class="form-control" name="contact_custom_fields" id="contact_custom_fields" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.contact_custom_fields === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.contact_custom_fields !== '' ? 'Default: ' + __tData.plan_defaults.contact_custom_fields : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.contact_custom_fields : '' %>">
+                                </div>
+
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="system_users">{{ __tr('Team Members Limit') }}</label>
+                                    <input type="number" class="form-control" name="system_users" id="system_users" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.system_users === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.system_users !== '' ? 'Default: ' + __tData.plan_defaults.system_users : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.system_users : '' %>">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="ai_chat_bot">{{ __tr('AI Chat Bot') }}</label>
+                                    <select name="ai_chat_bot" id="ai_chat_bot" class="form-control">
+                                        <option value="" <%= __tData.custom_limits && (__tData.custom_limits.ai_chat_bot === '' || __tData.custom_limits.ai_chat_bot === undefined) ? 'selected' : '' %>>Default (<%- __tData.plan_defaults && __tData.plan_defaults.ai_chat_bot === 1 ? 'Enabled' : 'Disabled' %>)</option>
+                                        <option value="1" <%= __tData.custom_limits && String(__tData.custom_limits.ai_chat_bot) === '1' ? 'selected' : '' %>>Enable</option>
+                                        <option value="0" <%= __tData.custom_limits && String(__tData.custom_limits.ai_chat_bot) === '0' ? 'selected' : '' %>>Disable</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 form-group mb-3">
+                                    <label for="api_access">{{ __tr('API and Webhook Access') }}</label>
+                                    <select name="api_access" id="api_access" class="form-control">
+                                        <option value="" <%= __tData.custom_limits && (__tData.custom_limits.api_access === '' || __tData.custom_limits.api_access === undefined) ? 'selected' : '' %>>Default (<%- __tData.plan_defaults && __tData.plan_defaults.api_access === 1 ? 'Enabled' : 'Disabled' %>)</option>
+                                        <option value="1" <%= __tData.custom_limits && String(__tData.custom_limits.api_access) === '1' ? 'selected' : '' %>>Enable</option>
+                                        <option value="0" <%= __tData.custom_limits && String(__tData.custom_limits.api_access) === '0' ? 'selected' : '' %>>Disable</option>
+                                    </select>
+                                </div>
                             </div>
                         </fieldset>
 

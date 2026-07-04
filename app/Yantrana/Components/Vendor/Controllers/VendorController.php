@@ -293,9 +293,16 @@ class VendorController extends BaseController
     public function updateCustomPlanData(CommonPostRequest $request)
     {
         $request->validate([
-            'ai_credits' => 'nullable|integer|min:0',
-            'contact_limit' => 'nullable|integer|min:0',
-            'campaign_limit' => 'nullable|integer|min:0',
+            'ai_credits' => 'nullable|integer|min:-1',
+            'contacts' => 'nullable|integer|min:-1',
+            'campaigns' => 'nullable|integer|min:-1',
+            'drip_campaigns' => 'nullable|integer|min:-1',
+            'bot_replies' => 'nullable|integer|min:-1',
+            'bot_flows' => 'nullable|integer|min:-1',
+            'contact_custom_fields' => 'nullable|integer|min:-1',
+            'system_users' => 'nullable|integer|min:-1',
+            'ai_chat_bot' => 'nullable|integer|in:0,1',
+            'api_access' => 'nullable|integer|in:0,1',
             'custom_plan_charge' => 'nullable|numeric|min:0',
             'custom_plan_frequency' => 'nullable|string|in:monthly,yearly',
         ]);

@@ -310,6 +310,19 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
         $manualSubscriptionArray['ends_at'] = formatDate($manualSubscriptionArray['ends_at'], 'Y-m-d');
         
         $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->first();
+        $featuresList = [
+            'ai_credits',
+            'contacts',
+            'campaigns',
+            'drip_campaigns',
+            'bot_replies',
+            'bot_flows',
+            'contact_custom_fields',
+            'system_users',
+            'ai_chat_bot',
+            'api_access'
+        ];
+
         if ($vendor) {
             $customLimits = $vendor->plan_custom_limits;
             if (is_string($customLimits)) {
@@ -318,25 +331,26 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             if (!is_array($customLimits)) {
                 $customLimits = [];
             }
-            $manualSubscriptionArray['custom_limits'] = [
-                'ai_credits' => \Illuminate\Support\Arr::get($customLimits, 'ai_credits', ''),
-                'contact_limit' => \Illuminate\Support\Arr::get($customLimits, 'contact_limit', ''),
-                'campaign_limit' => \Illuminate\Support\Arr::get($customLimits, 'campaign_limit', ''),
-            ];
+            
+            $customLimitsResponse = [];
+            foreach ($featuresList as $feat) {
+                $customLimitsResponse[$feat] = \Illuminate\Support\Arr::get($customLimits, $feat, '');
+            }
+            $manualSubscriptionArray['custom_limits'] = $customLimitsResponse;
             $manualSubscriptionArray['custom_plan_charge'] = $vendor->custom_plan_charge;
             $manualSubscriptionArray['custom_plan_frequency'] = $vendor->custom_plan_frequency;
         }
 
-        $planDefaults = [
-            'ai_credits' => '',
-            'contact_limit' => '',
-            'campaign_limit' => '',
-        ];
+        $planDefaults = [];
+        foreach ($featuresList as $feat) {
+            $planDefaults[$feat] = '';
+        }
+
         if ($manualSubscription->plan_id) {
             $planDetails = getPaidPlans($manualSubscription->plan_id);
-            $planDefaults['ai_credits'] = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', '');
-            $planDefaults['contact_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.contact_limit.limit', '');
-            $planDefaults['campaign_limit'] = \Illuminate\Support\Arr::get($planDetails, 'features.campaign_limit.limit', '');
+            foreach ($featuresList as $feat) {
+                $planDefaults[$feat] = \Illuminate\Support\Arr::get($planDetails, "features.{$feat}.limit", '');
+            }
         }
         $manualSubscriptionArray['plan_defaults'] = $planDefaults;
 
@@ -375,15 +389,24 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             // Save custom limits to Vendor
             $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->first();
             if ($vendor) {
+                $featuresList = [
+                    'ai_credits',
+                    'contacts',
+                    'campaigns',
+                    'drip_campaigns',
+                    'bot_replies',
+                    'bot_flows',
+                    'contact_custom_fields',
+                    'system_users',
+                    'ai_chat_bot',
+                    'api_access'
+                ];
+
                 $customLimits = [];
-                if (isset($inputData['ai_credits']) && $inputData['ai_credits'] !== '') {
-                    $customLimits['ai_credits'] = (int) $inputData['ai_credits'];
-                }
-                if (isset($inputData['contact_limit']) && $inputData['contact_limit'] !== '') {
-                    $customLimits['contact_limit'] = (int) $inputData['contact_limit'];
-                }
-                if (isset($inputData['campaign_limit']) && $inputData['campaign_limit'] !== '') {
-                    $customLimits['campaign_limit'] = (int) $inputData['campaign_limit'];
+                foreach ($featuresList as $feat) {
+                    if (isset($inputData[$feat]) && $inputData[$feat] !== '') {
+                        $customLimits[$feat] = (int) $inputData[$feat];
+                    }
                 }
 
                 $vendorUpdateData = [
