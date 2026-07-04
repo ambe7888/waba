@@ -290,7 +290,7 @@ class VendorController extends BaseController
      *
      * @return json object
      */
-    public function updateCustomPlanData(CommonPostRequest $request)
+    public function updateCustomPlanData(CommonRequest $request)
     {
         $request->validate([
             'vendorIdOrUid' => 'required',

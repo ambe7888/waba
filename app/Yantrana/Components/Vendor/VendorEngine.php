@@ -538,10 +538,23 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
         $updateData = [
             'plan_custom_limits' => empty($customLimits) ? null : json_encode($customLimits),
             'custom_plan_charge' => (isset($inputData['custom_plan_charge']) && $inputData['custom_plan_charge'] !== '') ? (float) $inputData['custom_plan_charge'] : null,
-            'custom_plan_frequency' => $inputData['custom_plan_frequency'] ?: null,
+            'custom_plan_frequency' => (isset($inputData['custom_plan_frequency']) && $inputData['custom_plan_frequency']) ? $inputData['custom_plan_frequency'] : null,
         ];
 
         if ($this->vendorRepository->updateIt($vendor, $updateData)) {
+            // Sync AI credits if custom ai_credits was set
+            $vendorSubscription = getVendorCurrentActiveSubscription($vendor->_id);
+            if ($vendorSubscription) {
+                $activePlanId = $vendorSubscription->plan_id ?? $vendorSubscription->type;
+                $planDetails = getPaidPlans($activePlanId);
+                $aiCreditsLimit = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', 0);
+                if (isset($customLimits['ai_credits'])) {
+                    $aiCreditsLimit = $customLimits['ai_credits'];
+                }
+                $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                    ->update(['plan_ai_credits' => $planAiCredits]);
+            }
             return $this->engineReaction(1, null, __tr('Custom plan overrides updated successfully.'));
         }
 
