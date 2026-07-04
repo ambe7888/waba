@@ -466,16 +466,28 @@ class WhatsAppTemplateEngine extends BaseEngine implements WhatsAppTemplateEngin
             $whatsAppTemplate = $this->whatsAppTemplateRepository->fetchIt($request->template_uid);
             abortIf(__isEmpty($whatsAppTemplate), null, __tr('Template not found'));
             $whatsAppTemplateData = Arr::get($whatsAppTemplate->toArray(), '__data.template');
-            $createTemplateRequest = $this->whatsAppApiService->updateTemplate(
-                $whatsAppTemplateData['id'],
-                $whatsAppTemplateData['name'],
-                $components,
-                $vendorId
-            );
-            if($createTemplateRequest['success'] == 1) {
-                return $this->engineSuccessResponse([], __tr('Your template has been updated'));
+            $metaTemplateId = $whatsAppTemplateData['id'] ?? $whatsAppTemplate->template_id ?? null;
+            
+            if (empty($metaTemplateId) || in_array($whatsAppTemplate->status, ['DRAFT', 'REJECTED', 'PENDING'])) {
+                $createTemplateRequest = $this->whatsAppApiService->createTemplate(
+                    $request->template_name,
+                    $request->language_code,
+                    $request->category,
+                    $components,
+                    $vendorId
+                );
+            } else {
+                $createTemplateRequest = $this->whatsAppApiService->updateTemplate(
+                    $metaTemplateId,
+                    $whatsAppTemplateData['name'] ?? $request->template_name,
+                    $components,
+                    $vendorId
+                );
+                if($createTemplateRequest['success'] == 1) {
+                    return $this->engineSuccessResponse([], __tr('Your template has been updated'));
+                }
+                return $this->engineSuccessResponse([], __tr('Failed to update template'));
             }
-            return $this->engineSuccessResponse([], __tr('Failed to update template'));
         } else  {
             // create new template
             $createTemplateRequest = $this->whatsAppApiService->createTemplate(
