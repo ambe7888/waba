@@ -3102,6 +3102,29 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 // Remove BUTTON tags from the text
                 $replyText = preg_replace('/\[BUTTON:\s*.*?\]/i', '', $replyText);
             }
+            // Fallback: If OpenAI output has standard markdown link format [Text](Url), convert it to a cta_url button
+            elseif (preg_match('/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/i', $replyText, $matches)) {
+                $interactiveType = 'cta_url';
+                $buttonText = trim($matches[1]);
+                $buttonUrl = trim($matches[2]);
+                $ctaUrl = [
+                    [
+                        'name' => 'display_text',
+                        'value' => mb_substr($buttonText, 0, 20),
+                    ],
+                    [
+                        'name' => 'url',
+                        'value' => $buttonUrl,
+                    ],
+                ];
+                // Remove the markdown link along with any typical preceding words like "cliquez ici : ", "cliquez ici", "ici : ", etc.
+                $replyText = preg_replace('/(cliquez\s+ici\s*:?\s*|cliquez\s+ici\s*|ici\s*:?\s*)?\[[^\]]+\]\([^\s\)]+\)/ui', '', $replyText);
+            }
+
+            // Convert double asterisks to single asterisks for WhatsApp bold formatting
+            $replyText = str_replace('**', '*', $replyText);
+            // Remove markdown headers (###, ##, #) since WhatsApp doesn't support them
+            $replyText = preg_replace('/^#+\s+/m', '', $replyText);
 
             $replyText = trim($replyText);
 
