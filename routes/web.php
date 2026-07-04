@@ -1099,6 +1099,11 @@ Route::middleware([
                 'getProducts',
             ])->name('vendor.ecommerce.products');
 
+            Route::get('/ecommerce/meta-catalogs', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'getMetaCatalogs',
+            ])->name('vendor.ecommerce.meta_catalogs');
+
             Route::post('/ecommerce/products/add', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'addProduct',

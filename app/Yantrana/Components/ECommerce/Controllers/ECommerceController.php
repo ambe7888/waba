@@ -249,4 +249,46 @@ class ECommerceController extends BaseController
             'message' => __tr('Importation réussie de __count__ produits.', ['__count__' => $importedCount])
         ]);
     }
+
+    /**
+     * Get Catalogs associated with WABA from Meta
+     */
+    public function getMetaCatalogs()
+    {
+        $vendorId = getVendorId();
+        $wabaId = getVendorSettings('whatsapp_business_account_id', null, null, $vendorId);
+        $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
+
+        if (empty($wabaId) || empty($accessToken)) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('WhatsApp Business Account must be connected first.')
+            ]);
+        }
+
+        // Decrypt values if they are encrypted
+        try {
+            $wabaId = decrypt($wabaId);
+        } catch (\Exception $e) {}
+
+        try {
+            $accessToken = decrypt($accessToken);
+        } catch (\Exception $e) {}
+
+        // Make HTTP Request to Meta API
+        $response = \Http::withToken($accessToken)
+            ->get("https://graph.facebook.com/v25.0/{$wabaId}/commerce_settings");
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $catalogs = $data['data'] ?? [];
+            return $this->processResponse(1, [], [
+                'catalogs' => $catalogs
+            ]);
+        }
+
+        $errorMsg = $response->json()['error']['message'] ?? $response->body() ?? __tr('Failed to fetch catalogs from Meta Graph API.');
+        return $this->processResponse(2, [], [
+            'message' => $errorMsg
+        ]);
+    }
 }
