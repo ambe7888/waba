@@ -341,15 +341,21 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             $manualSubscriptionArray['custom_plan_frequency'] = $vendor->custom_plan_frequency;
         }
 
+        $activeFrequency = $manualSubscription->charges_frequency ?: 'monthly';
+
         $planDefaults = [];
         foreach ($featuresList as $feat) {
             $planDefaults[$feat] = '';
         }
+        $planDefaults['charge'] = '';
 
         if ($manualSubscription->plan_id) {
             $planDetails = getPaidPlans($manualSubscription->plan_id);
             foreach ($featuresList as $feat) {
                 $planDefaults[$feat] = \Illuminate\Support\Arr::get($planDetails, "features.{$feat}.limit", '');
+            }
+            if ($activeFrequency) {
+                $planDefaults['charge'] = \Illuminate\Support\Arr::get($planDetails, "charges.{$activeFrequency}.charge", '');
             }
         }
         $manualSubscriptionArray['plan_defaults'] = $planDefaults;
