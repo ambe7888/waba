@@ -1809,7 +1809,8 @@ if (! function_exists('formatWhatsAppText')) {
      */
     function formatWhatsAppText($text)
     {
-        // Bold: Wrap text marked with * in <strong> tags
+        // Bold: Wrap text marked with ** or * in <strong> tags
+        $text = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $text);
         $text = preg_replace('/\*(.*?)\*/', '<strong>$1</strong>', $text);
 
         // Italics: Wrap text marked with _ in <em> tags
