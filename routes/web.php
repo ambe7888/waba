@@ -1099,6 +1099,21 @@ Route::middleware([
                 'getProducts',
             ])->name('vendor.ecommerce.products');
 
+            Route::post('/ecommerce/products/add', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'addProduct',
+            ])->name('vendor.ecommerce.products.add');
+
+            Route::post('/ecommerce/products/delete/{productUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'deleteProduct',
+            ])->name('vendor.ecommerce.products.delete');
+
+            Route::post('/ecommerce/products/import', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'importProducts',
+            ])->name('vendor.ecommerce.products.import');
+
             Route::post('/ecommerce/send-product', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'sendProductMessage',
