@@ -308,6 +308,25 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             $manualSubscriptionArray['transactionDate'] = formatDateTime($manualSubscriptionArray['__data']['manual_txn_details']['txn_date']);
         }
         $manualSubscriptionArray['ends_at'] = formatDate($manualSubscriptionArray['ends_at'], 'Y-m-d');
+        
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->first();
+        if ($vendor) {
+            $customLimits = $vendor->plan_custom_limits;
+            if (is_string($customLimits)) {
+                $customLimits = json_decode($customLimits, true);
+            }
+            if (!is_array($customLimits)) {
+                $customLimits = [];
+            }
+            $manualSubscriptionArray['custom_limits'] = [
+                'ai_credits' => \Illuminate\Support\Arr::get($customLimits, 'ai_credits', ''),
+                'contact_limit' => \Illuminate\Support\Arr::get($customLimits, 'contact_limit', ''),
+                'campaign_limit' => \Illuminate\Support\Arr::get($customLimits, 'campaign_limit', ''),
+            ];
+            $manualSubscriptionArray['custom_plan_charge'] = $vendor->custom_plan_charge;
+            $manualSubscriptionArray['custom_plan_frequency'] = $vendor->custom_plan_frequency;
+        }
+
         return $this->engineResponse(1, $manualSubscriptionArray);
     }
 
@@ -339,9 +358,39 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
 
         // Check if ManualSubscription updated
         if ($this->manualSubscriptionRepository->updateIt($manualSubscription, $updateData)) {
+            
+            // Save custom limits to Vendor
+            $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->first();
+            if ($vendor) {
+                $customLimits = [];
+                if (isset($inputData['ai_credits']) && $inputData['ai_credits'] !== '') {
+                    $customLimits['ai_credits'] = (int) $inputData['ai_credits'];
+                }
+                if (isset($inputData['contact_limit']) && $inputData['contact_limit'] !== '') {
+                    $customLimits['contact_limit'] = (int) $inputData['contact_limit'];
+                }
+                if (isset($inputData['campaign_limit']) && $inputData['campaign_limit'] !== '') {
+                    $customLimits['campaign_limit'] = (int) $inputData['campaign_limit'];
+                }
+
+                $vendorUpdateData = [
+                    'plan_custom_limits' => empty($customLimits) ? null : json_encode($customLimits),
+                    'custom_plan_charge' => (isset($inputData['custom_plan_charge']) && $inputData['custom_plan_charge'] !== '') ? (float) $inputData['custom_plan_charge'] : null,
+                    'custom_plan_frequency' => $inputData['custom_plan_frequency'] ?: null,
+                ];
+                
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->update($vendorUpdateData);
+            }
+            
             if ($updateData['status'] === 'active') {
                 $planDetails = getPaidPlans($manualSubscription->plan_id);
-                $aiCreditsLimit = Arr::get($planDetails, 'features.ai_credits.limit', 0);
+                $aiCreditsLimit = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', 0);
+                
+                // Use custom ai_credits limit if it exists
+                if ($vendor && isset($customLimits['ai_credits'])) {
+                    $aiCreditsLimit = $customLimits['ai_credits'];
+                }
+                
                 if ($aiCreditsLimit > 0) {
                     \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
                         ->update(['plan_ai_credits' => $aiCreditsLimit]);
