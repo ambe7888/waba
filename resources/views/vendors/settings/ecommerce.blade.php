@@ -224,7 +224,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                     <input type="hidden" name="ecommerce_integration" :value="integration">
 
                     <!-- Shopify Config -->
-                    <div x-show="integration === 'shopify'" class="p-4 border rounded bg-light mb-4" x-cloak>
+                    <div x-show="integration === 'shopify'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
                         <div class="form-group">
                             <label class="font-weight-bold" for="shopify_shop_url">{{ __tr('Shopify Shop URL') }}</label>
                             <input type="text" class="form-control form-control-lg" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="e.g. mystore.myshopify.com">
@@ -233,7 +233,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                     </div>
 
                     <!-- WooCommerce Config -->
-                    <div x-show="integration === 'woocommerce'" class="p-4 border rounded bg-light mb-4" x-cloak>
+                    <div x-show="integration === 'woocommerce'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
                         <div class="form-group">
                             <label class="font-weight-bold" for="woocommerce_shop_url">{{ __tr('WooCommerce Shop URL') }}</label>
                             <input type="text" class="form-control form-control-lg" id="woocommerce_shop_url" value="{{ getVendorSettings('woocommerce_shop_url') }}" name="woocommerce_shop_url" placeholder="e.g. https://mywordpressstore.com">
@@ -251,7 +251,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
                     </div>
 
                     <!-- WhatsApp Catalog Config -->
-                    <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded bg-light mb-4" x-cloak>
+                    <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
                         <div class="form-group">
                             <label class="font-weight-bold" for="whatsapp_catalog_id">{{ __tr('WhatsApp Catalog ID') }}</label>
                             <input type="text" class="form-control form-control-lg" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="e.g. 128392193892182">
@@ -357,7 +357,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
 
                     <!-- TAB 2: Add Product Form -->
                     <div x-show="manualTab === 'add'">
-                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-4 border rounded bg-light" enctype="multipart/form-data">
+                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-4 border rounded bg-white shadow-sm" enctype="multipart/form-data">
                             <div class="row">
                                 <div class="col-md-6 form-group">
                                     <label class="font-weight-bold" for="prod_name">Nom du Produit *</label>
@@ -400,7 +400,7 @@ $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where(
 
                     <!-- TAB 3: Import CSV -->
                     <div x-show="manualTab === 'import'">
-                        <div class="p-4 border rounded bg-light">
+                        <div class="p-4 border rounded bg-white shadow-sm">
                             <h4 class="font-weight-bold text-dark mb-3"><i class="fas fa-file-csv mr-1"></i> Importer des produits en masse</h4>
                             <p class="text-muted">Importez facilement votre liste de produits à partir d'un fichier CSV. Assurez-vous que votre fichier comporte les en-têtes corrects.</p>
 
