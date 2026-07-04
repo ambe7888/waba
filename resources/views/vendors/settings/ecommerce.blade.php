@@ -227,6 +227,7 @@ $isManualConnected = true;
             {{ __tr('Sélectionnez et configurez votre catalogue produits pour le lier à votre compte WhatsApp. Recommandez des produits directement dans les chats et suivez vos ventes.') }}
         </p>
 
+        @if ($vendorPlanDetails['is_limit_available'])
         <!-- Enable/Disable E-commerce Integration Toggle -->
         <div class="card shadow-sm mb-4 border-left-primary">
             <div class="card-body d-flex align-items-center justify-content-between py-3">
