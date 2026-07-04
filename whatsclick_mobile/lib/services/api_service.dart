@@ -1003,6 +1003,27 @@ class ApiService {
     }
   }
 
+  /// Fetch simple non-paginated contact list for campaign wizard targeting
+  Future<List<Map<String, dynamic>>> fetchSimpleContactsList() async {
+    final url = Uri.parse('${baseApiUrl}vendor/contacts/simple-list');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['contacts'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Simple Contacts Error: $e');
+      return [];
+    }
+  }
+
   /// Create a contact group
   Future<bool> createContactGroup(String title) async {
     final url = Uri.parse('${baseApiUrl}vendor/contact/groups/create');

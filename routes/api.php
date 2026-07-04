@@ -400,8 +400,13 @@ Route::group([
 
         // Contact Groups (Mobile) - inline for guaranteed flat response
         Route::get('/contact/groups', function () {
-            validateVendorAccess('manage_contacts');
             $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json([
+                    'reaction' => 2,
+                    'message' => 'Non autorisé.'
+                ], 401);
+            }
             $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -421,6 +426,30 @@ Route::group([
                 'data'     => ['groups' => $groups],
             ]);
         })->name('app_api.vendor.contact.read.group_list');
+
+        Route::get('/contacts/simple-list', function () {
+            $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json([
+                    'reaction' => 2,
+                    'message' => 'Non autorisé.'
+                ], 401);
+            }
+            $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->orderBy('first_name', 'asc')
+                ->get()
+                ->map(function ($c) {
+                    return [
+                        '_uid' => $c->_uid,
+                        'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
+                        'wa_id' => $c->wa_id,
+                    ];
+                });
+            return response()->json([
+                'reaction' => 1,
+                'data'     => ['contacts' => $contacts],
+            ]);
+        })->name('app_api.vendor.contacts.simple_list');
         Route::post('/contact/groups/create', [
             \App\Yantrana\Components\Contact\Controllers\ContactGroupController::class,
             'processGroupCreate',
@@ -533,11 +562,45 @@ Route::group([
             WhatsAppTemplateController::class,
             'createNewTemplateProcess',
         ])->name('app_api.vendor.whatsapp.templates.create');
-        // Create and schedule campaign
-        Route::post('/whatsapp/campaign/schedule', [
-            WhatsAppServiceController::class,
-            'scheduleCampaign',
-        ])->name('app_api.vendor.campaign.schedule.process');
+        // Create and schedule campaign (supports contact_uids)
+        Route::post('/whatsapp/campaign/schedule', function (Illuminate\Http\Request $request) {
+            validateVendorAccess('manage_campaigns');
+            $contactUids = $request->get('contact_uids');
+            if ($contactUids && is_array($contactUids)) {
+                $vendorId = getVendorId();
+                $groupUid = (string) \Str::uuid();
+                // Create a temporary group for this specific campaign audience
+                $newGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::create([
+                    '_uid' => $groupUid,
+                    'title' => 'Audience: ' . $request->get('title') . ' (' . now()->format('d-m-Y H:i') . ')',
+                    'description' => 'Groupe temporaire créé pour envoi direct',
+                    'vendors__id' => $vendorId,
+                    'status' => 1
+                ]);
+                // Fetch contact primary IDs from their UIDs
+                $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                    ->whereIn('_uid', $contactUids)
+                    ->get();
+                $insertData = [];
+                foreach ($contacts as $contact) {
+                    $insertData[] = [
+                        '_uid' => (string) \Str::uuid(),
+                        'contact_groups__id' => $newGroup->_id,
+                        'contacts__id' => $contact->_id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+                if (!empty($insertData)) {
+                    \DB::table('group_contacts')->insert($insertData);
+                }
+                // Replace contact_group parameter with the created group
+                $request->merge([
+                    'contact_group' => [$groupUid]
+                ]);
+            }
+            return app(WhatsAppServiceController::class)->scheduleCampaign($request);
+        })->name('app_api.vendor.campaign.schedule.process');
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
             CampaignController::class,
