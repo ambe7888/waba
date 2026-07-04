@@ -216,6 +216,24 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
         $totalCredits = $planCredits + $extraCredits;
         $displayCredits = $planCredits >= 99999999 ? __tr('Unlimited') : (string)$totalCredits;
 
+        $messageHistory = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $incoming = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 1)
+                ->whereDate('created_at', $date)
+                ->count();
+            $outgoing = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', '!=', 1)
+                ->whereDate('created_at', $date)
+                ->count();
+            $messageHistory[] = [
+                'label' => $date->format('d/m'),
+                'incoming' => $incoming,
+                'outgoing' => $outgoing,
+            ];
+        }
+
         return array_merge([
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
@@ -252,6 +270,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->count(),
             'ordersCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->count() : 0,
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
+            'messageHistory' => $messageHistory,
             'ai_credits' => [
                 'is_enabled' => (bool) vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'],
                 'plan_credits' => $planCredits,

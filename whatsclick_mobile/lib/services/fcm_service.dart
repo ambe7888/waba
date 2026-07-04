@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -82,45 +83,67 @@ class FcmService {
 
   /// Show a visible local notification from an FCM message
   static Future<void> _showLocalNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    final data = message.data;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dnd = prefs.getBool('notifications_dnd') ?? false;
+      if (dnd) {
+        if (kDebugMode) print('Notification ignored due to DND mode.');
+        return;
+      }
 
-    final title = notification?.title ?? data['title'] ?? 'Nouveau message';
-    final body = notification?.body ?? data['body'] ?? 'Vous avez reçu un nouveau message';
-    final contactUid = data['contact_uid'] ?? data['contactUid'] ?? '';
+      final sound = prefs.getBool('notifications_sound') ?? true;
+      final filter = prefs.getString('notifications_filter') ?? 'all';
 
-    const androidDetails = AndroidNotificationDetails(
-      'whatsclick_messages',
-      'Messages WhatsClick',
-      channelDescription: 'Notifications pour les messages WhatsApp reçus',
-      importance: Importance.high,
-      priority: Priority.high,
-      playSound: true,
-      enableVibration: true,
-      showWhen: true,
-      icon: 'ic_launcher_foreground',
-      color: Color(0xFF198754),
-      styleInformation: BigTextStyleInformation(''),
-    );
+      final notification = message.notification;
+      final data = message.data;
 
-    const darwinDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      if (filter == 'new_chats') {
+        final isNewChat = data['is_new_chat'] == 'true' || data['is_new_chat'] == '1' || data['is_new'] == '1';
+        if (!isNewChat) {
+          if (kDebugMode) print('Notification ignored because it is not a new chat.');
+          return;
+        }
+      }
 
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: darwinDetails,
-    );
+      final title = notification?.title ?? data['title'] ?? 'Nouveau message';
+      final body = notification?.body ?? data['body'] ?? 'Vous avez reçu un nouveau message';
+      final contactUid = data['contact_uid'] ?? data['contactUid'] ?? '';
 
-    await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      details,
-      payload: jsonEncode({'contact_uid': contactUid}),
-    );
+      final androidDetails = AndroidNotificationDetails(
+        'whatsclick_messages',
+        'Messages WhatsClick',
+        channelDescription: 'Notifications pour les messages WhatsApp reçus',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: sound,
+        enableVibration: true,
+        showWhen: true,
+        icon: 'ic_launcher_foreground',
+        color: const Color(0xFF198754),
+        styleInformation: const BigTextStyleInformation(''),
+      );
+
+      final darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: sound,
+      );
+
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title,
+        body,
+        details,
+        payload: jsonEncode({'contact_uid': contactUid}),
+      );
+    } catch (e) {
+      if (kDebugMode) print('Error showing local notification: $e');
+    }
   }
 
   bool _isInitialized = false;

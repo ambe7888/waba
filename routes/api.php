@@ -104,6 +104,21 @@ Route::group([
         ContactController::class,
         'apiGetContactGroupList',
     ])->name('api.vendor.contact.read.group_list');
+    // create contact group
+    Route::post('contact/groups/create', [
+        \App\Yantrana\Components\Contact\Controllers\ContactGroupController::class,
+        'processGroupCreate',
+    ])->name('api.vendor.contact.group.write.create');
+    // delete contact group
+    Route::post('contact/groups/{contactGroupIdOrUid}/delete', [
+        \App\Yantrana\Components\Contact\Controllers\ContactGroupController::class,
+        'processGroupDelete',
+    ])->name('api.vendor.contact.group.write.delete');
+    // get contacts in group
+    Route::get('contact/groups/{groupUid}/contacts', [
+        ContactController::class,
+        'apiGetGroupContacts',
+    ])->name('api.vendor.contact.group.contacts');
     // get contact labels and tags
     Route::get('contact/labels-tags', [
         ContactController::class,
@@ -353,10 +368,35 @@ Route::group([
             'updateLabel',
         ])->name('app_api.vendor.chat.label.update.write');
             //whatsapp contact delete lable
-            Route::post('/whatsapp/contact/chat/delete-label/{labelUid}', [
+             Route::post('/whatsapp/contact/chat/delete-label/{labelUid}', [
             ContactController::class,
             'deleteLabelProcess',
         ])->name('app_api.vendor.chat.label.delete.write');
+
+        // E-commerce products
+        Route::get('/ecommerce/products', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'getProducts',
+        ])->name('app_api.vendor.ecommerce.products');
+        Route::post('/ecommerce/send-product', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'sendProductMessage',
+        ])->name('app_api.vendor.ecommerce.send_product');
+
+        // Canned replies
+        Route::get('/canned-replies', [
+            \App\Yantrana\Components\WhatsAppService\Controllers\CannedReplyController::class,
+            'getCannedReplies',
+        ])->name('app_api.vendor.canned_replies.read');
+        Route::post('/canned-replies/save', [
+            \App\Yantrana\Components\WhatsAppService\Controllers\CannedReplyController::class,
+            'saveCannedReply',
+        ])->name('app_api.vendor.canned_replies.save');
+        Route::delete('/canned-replies/{uid}', [
+            \App\Yantrana\Components\WhatsAppService\Controllers\CannedReplyController::class,
+            'deleteCannedReply',
+        ])->name('app_api.vendor.canned_replies.delete');
+
         // Block contact
         Route::post('/whatsapp/contact/{contactIdOrUid}/block-process', [
             ContactController::class,
@@ -368,7 +408,7 @@ Route::group([
             'processContactUnblock',
         ])->name('app_api.vendor.contact.write.unblock');
         // Contact datatable list
-        Route::get('/contacts/list-data', [
+        Route::get('/contacts/list-data/{groupUid?}', [
             ContactController::class,
             'prepareContactList',
         ])->name('app_api.vendor.contact.read.list');
