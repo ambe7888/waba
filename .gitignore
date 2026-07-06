@@ -63,3 +63,5 @@ update.md
 campagne.sql
 storage/firebase/firebase-service-account.json
 all_templates_dump.sql
+scratch/check_products.php
+scratch/test_api.php
