@@ -303,7 +303,7 @@ class OpenAiService extends BaseEngine
             // Check if use existing chat history to message smartly
             if ($useExistingChatHistory) {
                 $existingHistoryData = array_filter(
-                    array_reverse($this->getExistingChatHistory($contactUid)),
+                    $this->getExistingChatHistory($contactUid),
                     fn($msg) => !empty(trim($msg['content'] ?? ''))
                 );
                 $messages = array_merge($messages, array_slice($existingHistoryData, 0, 30));
@@ -336,14 +336,30 @@ class OpenAiService extends BaseEngine
             return $messageList->data[0]->content[0]->text->value;
         }
         // Text Based Source type
-        // Step 1: Find the top relevant sections
-        $topSections = $this->findTopRelevantSections($question, $vendorId);
-        $combinedSections = implode("\n\n", array_column($topSections, 'section'));
+        $rawTrainingData = getVendorSettings('open_ai_input_training_data', null, null, $vendorId);
+        
+        if (!empty($rawTrainingData) && strlen($rawTrainingData) < 20000) {
+            $contextText = $rawTrainingData;
+        } else {
+            // Fallback to top relevant sections if too large or empty
+            $topSections = $this->findTopRelevantSections($question, $vendorId);
+            $contextText = implode("\n\n", array_column($topSections, 'section'));
+        }
+
+        $systemPrompt = "You are a helpful and smart AI assistant. "
+            . ($botName ? "Your name is " . $botName . ". " : "")
+            . "You are having a conversation with " . ($contact->full_name ?: 'a customer') . ". "
+            . "Please answer their questions based on the following business information and guidelines. "
+            . "If their question is a general greeting or unrelated to the business, answer politely and guide them back to the business. "
+            . "Format your response in a well-structured way with appropriate new lines and paragraphs.\n\n"
+            . "Business Information & Guidelines:\n" . $contextText
+            . $productContext
+            . $interactiveInstructions;
 
         $messages = [
             [
                 'role' => 'system',
-                'content' => ($botName ? ' your name is ' . $botName : '') . '. You are a smart AI agent that continues helpful, coherent conversations based on the full context. If the question is out of context tell the user that its out of scope. Strictly do not answer out of given context, your answer should be based on the given context and content. Based on the following content, answer the question in a well-formatted, structured way with appropriate new lines and paragraphs:\n\nContent: ' . $combinedSections . $productContext . $interactiveInstructions . " You are talking with " . ($contact->full_name ?: ''),
+                'content' => $systemPrompt,
             ]
         ];
 
@@ -401,6 +417,7 @@ class OpenAiService extends BaseEngine
                     'content' => $existingChat->message
                 ];
             }
+            $recentMessages = array_reverse($recentMessages);
         }
 
         $messages = [
