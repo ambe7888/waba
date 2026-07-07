@@ -1805,7 +1805,7 @@ $appName = getAppSettings('name');
                         <!-- Badges Grid -->
                         <div class="d-flex flex-wrap gap-3 align-items-center">
                             <!-- Android (Available) -->
-                            <a href="#" class="app-badge-link" title="{{ __tr('Telecharger pour Android') }}">
+                            <a href="{{ asset('downloads/whatsclick.apk') }}" download class="app-badge-link" title="{{ __tr('Telecharger pour Android') }}">
                                 <img src="{{ asset('imgs/outer-home/google-play-badge.svg') }}" alt="{{ __tr('Disponible sur Google Play') }}" class="app-badge-img img-fluid" style="height: 48px;" />
                             </a>
                             
