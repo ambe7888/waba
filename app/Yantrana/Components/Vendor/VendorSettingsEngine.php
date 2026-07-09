@@ -395,7 +395,16 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
                         try {
                             $inputData['open_ai_embedded_training_data'] = app()->make(\App\Yantrana\Components\WhatsAppService\Services\OpenAiService::class)->embedLargeData($inputData['open_ai_input_training_data']);
                         } catch (\Throwable $th) {
-                            return $this->engineFailedResponse(['show_message' => true], __tr($th->getMessage()));
+                            // If the training data is short/medium (under 20000 chars), embeddings are not required for chat response.
+                            // We save the text anyway and set a dummy embedding array so the save operation succeeds.
+                            if (strlen($inputData['open_ai_input_training_data']) < 20000) {
+                                $inputData['open_ai_embedded_training_data'] = [
+                                    'data' => [$inputData['open_ai_input_training_data']],
+                                    'embedding' => []
+                                ];
+                            } else {
+                                return $this->engineFailedResponse(['show_message' => true], __tr('Failed to generate embeddings. Please check your OpenAI API key and connection. Error: ' . $th->getMessage()));
+                            }
                         }
                     }
                 }
