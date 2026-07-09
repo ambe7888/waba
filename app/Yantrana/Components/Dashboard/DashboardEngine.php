@@ -336,7 +336,8 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 'extra_credits' => $extraCredits,
                 'total_credits' => $totalCredits,
                 'display_credits' => $displayCredits,
-            ]
+            ],
+            'vendorUserData' => getUserAuthInfo('profile'),
         ]);
     }
 
