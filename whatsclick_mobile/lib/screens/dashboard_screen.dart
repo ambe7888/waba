@@ -22,10 +22,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DateTimeRange? _selectedDateRange;
   String? _selectedAgentId;
   List<dynamic> _agents = [];
-  final List<String?> _selectedLabelUidsForStats = [null, null, null];
+  String? _selectedLabelUidForStats;  // single label selection
+  bool? _botActive;                   // optimistic bot switch state
   int _roleId = 3;
   String _firstName = '';
-
 
   @override
   void initState() {
@@ -58,17 +58,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _stats = data;
           _agents = data?['agents'] ?? [];
+          // Initialise single label selection
           final List<dynamic> labelStats = data?['label_date_stats'] ?? [];
-          for (int i = 0; i < 3; i++) {
-            if (_selectedLabelUidsForStats[i] == null || !labelStats.any((l) => l['label_uid'] == _selectedLabelUidsForStats[i])) {
-              if (labelStats.length > i) {
-                _selectedLabelUidsForStats[i] = labelStats[i]['label_uid'];
-              } else {
-                _selectedLabelUidsForStats[i] = null;
-              }
-            }
+          if (_selectedLabelUidForStats == null && labelStats.isNotEmpty) {
+            _selectedLabelUidForStats = labelStats[0]['label_uid'];
           }
-          
+          // Sync bot active state
+          _botActive = data?['ai_credits']?['bot_active'] as bool? ?? false;
+
           final vendorUserData = data?['vendorUserData'];
           if (vendorUserData != null) {
             String name = vendorUserData['first_name'] ?? '';
@@ -249,6 +246,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final isCustomDateActive = _selectedDateRange != null;
 
+    // Current selected label (fallback to first)
+    final currentSelectedUid = _selectedLabelUidForStats ?? labelStats[0]['label_uid'];
+    final selectedLabel = labelStats.firstWhere(
+      (l) => l['label_uid'] == currentSelectedUid,
+      orElse: () => labelStats.first,
+    );
+    final String selectedLabelUid = selectedLabel['label_uid'] ?? '';
+    final bgColorHex = selectedLabel['bg_color'];
+    Color labelBgColor = ThemeService.primaryColor;
+    try {
+      if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
+        labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
+      }
+    } catch (_) {}
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
@@ -286,78 +298,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Build 3 rows of customizable labels
-              ...List.generate(3, (rowIndex) {
-                final currentSelectedUid = _selectedLabelUidsForStats[rowIndex];
-                final selectedLabel = labelStats.firstWhere(
-                  (l) => l['label_uid'] == currentSelectedUid,
-                  orElse: () => labelStats.first,
-                );
-
-                final String selectedLabelUid = selectedLabel['label_uid'] ?? '';
-                final textColorHex = selectedLabel['text_color'];
-                final bgColorHex = selectedLabel['bg_color'];
-
-                Color labelBgColor = ThemeService.primaryColor;
-                try {
-                  if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
-                    labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
-                  }
-                } catch (_) {}
-
-                return Column(
-                  children: [
-                    if (rowIndex > 0) Divider(color: isDark ? Colors.white12 : Colors.black12, height: 16),
-                    Row(
-                      children: [
-                        // Label Picker Dropdown instead of simple text badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: labelBgColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: labelBgColor.withOpacity(0.4)),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: currentSelectedUid,
-                              dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-                              icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: labelBgColor,
-                              ),
-                              items: labelStats.map((l) {
-                                return DropdownMenuItem<String>(
-                                  value: l['label_uid'],
-                                  child: Text(l['label_title'] ?? 'Sans nom'),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedLabelUidsForStats[rowIndex] = val;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        // Count Columns
-                        if (isCustomDateActive) ...[
-                          _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
-                        ] else ...[
-                          _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
-                          const SizedBox(width: 8),
-                          _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
-                          const SizedBox(width: 8),
-                          _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
-                        ],
-                      ],
+              // Single row: one label dropdown + stats
+              Row(
+                children: [
+                  // Label Picker Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: labelBgColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: labelBgColor.withOpacity(0.4)),
                     ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: currentSelectedUid,
+                        dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                        icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: labelBgColor,
+                        ),
+                        items: labelStats.map<DropdownMenuItem<String>>((l) {
+                          return DropdownMenuItem<String>(
+                            value: l['label_uid'],
+                            child: Text(l['label_title'] ?? 'Sans nom'),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedLabelUidForStats = val;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Period count columns
+                  if (isCustomDateActive) ...[
+                    _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
+                  ] else ...[
+                    _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
+                    const SizedBox(width: 8),
+                    _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
+                    const SizedBox(width: 8),
+                    _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
                   ],
-                );
-              }),
+                ],
+              ),
             ],
           ),
         ),
@@ -618,13 +606,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Switch(
-                                            value: _stats?['ai_credits']?['bot_active'] ?? false,
+                                            value: _botActive ?? (_stats?['ai_credits']?['bot_active'] ?? false),
                                             activeColor: ThemeService.primaryColor,
                                             onChanged: (value) async {
+                                              // Optimistic update: toggle immediately
+                                              setState(() => _botActive = value);
                                               final success = await ApiService().toggleBotReply();
-                                              if (success) {
-                                                _fetchDashboardStats();
-                                              } else {
+                                              if (!success) {
+                                                // Revert if API failed
+                                                setState(() => _botActive = !value);
                                                 if (mounted) {
                                                   ScaffoldMessenger.of(context).showSnackBar(
                                                     const SnackBar(content: Text('Échec de la modification du statut du Bot')),

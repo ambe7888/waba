@@ -266,6 +266,28 @@ class ApiService {
     }
   }
 
+  /// Fetch unread message counts (for notification badges)
+  /// Returns: { 'unreadMessagesCount': int, 'myAssignedUnreadMessagesCount': int }
+  Future<Map<String, int>> fetchUnreadCounts() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/chat/unread-count');
+    try {
+      final response = await http.get(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final models = body['client_models'] ?? {};
+          return {
+            'unreadMessagesCount': (models['unreadMessagesCount'] as num?)?.toInt() ?? 0,
+            'myAssignedUnreadMessagesCount': (models['myAssignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
+          };
+        }
+      }
+    } catch (e) {
+      if (debug) debugPrint('Fetch Unread Counts Error: $e');
+    }
+    return {'unreadMessagesCount': 0, 'myAssignedUnreadMessagesCount': 0};
+  }
+
   /// Fetch support tickets
   Future<Map<String, dynamic>?> fetchSupportTickets({int page = 1}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets?page=$page');
