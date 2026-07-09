@@ -76,9 +76,46 @@ class DashboardController extends BaseController
      *
      * @return json object
      */
-    public function apiVendorDashboardStats()
+    public function apiVendorDashboardStats(CommonRequest $request)
     {
-        return $this->processResponse(1, [], $this->dashboardEngine->prepareVendorDashboardData());
+        $filters = [
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+            'agent_id' => $request->input('agent_id'),
+        ];
+        return $this->processResponse(1, [], $this->dashboardEngine->prepareVendorDashboardData(null, $filters));
+    }
+
+    /**
+     * Toggle OpenAI Bot replies status
+     *
+     * @return json object
+     */
+    public function toggleBotReply()
+    {
+        $vendorId = getVendorId();
+        $currentState = getVendorSettings('enable_open_ai_bot', null, null, $vendorId);
+        $newState = $currentState ? 0 : 1;
+
+        $settingsRepository = new \App\Yantrana\Components\Vendor\Repositories\VendorSettingsRepository();
+        $success = $settingsRepository->storeOrUpdate([
+            'enable_open_ai_bot' => [
+                'value' => $newState,
+                'data_type' => 3,
+                'name' => 'enable_open_ai_bot',
+            ]
+        ], $vendorId);
+
+        if ($success) {
+            return $this->processResponse(1, [], [
+                'enable_open_ai_bot' => $newState,
+                'message' => $newState ? __tr('Bot replies enabled.') : __tr('Bot replies disabled.')
+            ]);
+        }
+
+        return $this->processResponse(2, [], [
+            'message' => __tr('Failed to toggle bot replies.')
+        ]);
     }
 
     /**

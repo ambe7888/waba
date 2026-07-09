@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import '../services/theme_service.dart';
+import '../services/fcm_service.dart';
+import '../services/api_service.dart';
+import '../models/contact.dart';
 import 'home_screen.dart';
 import 'dashboard_screen.dart';
 import 'contacts_screen.dart';
 import 'campaign_list_screen.dart';
 import 'account_screen.dart';
+import 'chat_box_screen.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -16,6 +21,77 @@ class MainLayoutScreen extends StatefulWidget {
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _currentIndex = 1; // Default to Discussions (Chats)
+  StreamSubscription<String>? _notificationTapSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationTapSubscription = FcmService.onNotificationTap.listen((contactUid) {
+      if (mounted) {
+        _handleNotificationTap(contactUid);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationTapSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleNotificationTap(String contactUid) async {
+    // Show a loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: ThemeService.primaryColor,
+        ),
+      ),
+    );
+
+    try {
+      final contactData = await ApiService().fetchContactDetails(contactUid);
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loading dialog
+      }
+
+      Contact contact;
+      if (contactData != null) {
+        contact = Contact.fromJson(contactData);
+      } else {
+        contact = Contact(
+          uid: contactUid,
+          name: 'Contact',
+          phoneNumber: '',
+        );
+      }
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatBoxScreen(contact: contact),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loading dialog
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatBoxScreen(
+              contact: Contact(
+                uid: contactUid,
+                name: 'Contact',
+                phoneNumber: '',
+              ),
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   // List of screens for the bottom navigation bar
   final List<Widget> _screens = [

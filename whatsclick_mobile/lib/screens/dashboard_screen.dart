@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../config/app_config.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'contacts_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,6 +18,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _stats;
   String? _error;
+
+  DateTimeRange? _selectedDateRange;
+  String? _selectedAgentId;
+  List<dynamic> _agents = [];
 
   @override
   void initState() {
@@ -31,10 +36,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final data = await ApiService().fetchDashboardStats();
+      String? startStr;
+      String? endStr;
+      if (_selectedDateRange != null) {
+        startStr = _selectedDateRange!.start.toIso8601String().substring(0, 10);
+        endStr = _selectedDateRange!.end.toIso8601String().substring(0, 10);
+      }
+
+      final data = await ApiService().fetchDashboardStats(
+        startDate: startStr,
+        endDate: endStr,
+        agentId: _selectedAgentId,
+      );
       if (mounted) {
         setState(() {
           _stats = data;
+          _agents = data?['agents'] ?? [];
           _isLoading = false;
         });
       }
@@ -46,6 +63,326 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     }
+  }
+
+  Widget _buildFilterBar() {
+    final isDark = ThemeService().isDark;
+    final isAdmin = _stats?['vendorUserData']?['user_roles__id'] == 2;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Date Range Picker Button
+              Expanded(
+                child: InkWell(
+                  onTap: _selectDateRange,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _selectedDateRange != null 
+                            ? ThemeService.primaryColor 
+                            : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded, 
+                          color: _selectedDateRange != null ? ThemeService.primaryColor : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _selectedDateRange == null 
+                                ? 'Filtrer par date' 
+                                : '${_selectedDateRange!.start.toIso8601String().substring(0, 10)} à ${_selectedDateRange!.end.toIso8601String().substring(0, 10)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedDateRange != null 
+                                  ? ThemeService.primaryColor 
+                                  : (isDark ? Colors.white70 : Colors.black87),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_selectedDateRange != null)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedDateRange = null;
+                              });
+                              _fetchDashboardStats();
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 4.0),
+                              child: Icon(Icons.close, size: 14, color: Colors.grey),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (isAdmin && _agents.isNotEmpty) ...[
+                const SizedBox(width: 10),
+                // Agent Dropdown Filter
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _selectedAgentId != null 
+                            ? ThemeService.primaryColor 
+                            : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedAgentId,
+                        hint: Text(
+                          'Par agent',
+                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
+                        dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down, size: 20),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            child: Text(
+                              'Tous les agents',
+                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'unassigned',
+                            child: Text(
+                              'Non assignés',
+                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ),
+                          ..._agents.map((agent) {
+                            final name = '${agent['first_name'] ?? ''} ${agent['last_name'] ?? ''}'.trim();
+                            return DropdownMenuItem<String>(
+                              value: agent['_id']?.toString(),
+                              child: Text(
+                                name.isNotEmpty ? name : (agent['email'] ?? 'Agent'),
+                                style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedAgentId = val;
+                          });
+                          _fetchDashboardStats();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      initialDateRange: _selectedDateRange,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+      _fetchDashboardStats();
+    }
+  }
+
+  Widget _buildLabelStatsCard() {
+    final isDark = ThemeService().isDark;
+    final List<dynamic> labelStats = _stats?['label_date_stats'] ?? [];
+    if (labelStats.isEmpty) return const SizedBox.shrink();
+
+    final isCustomDateActive = _selectedDateRange != null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.label_outline_rounded, color: ThemeService.primaryColor, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Statistiques des Étiquettes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: labelStats.length,
+                separatorBuilder: (_, __) => Divider(color: isDark ? Colors.white12 : Colors.black12, height: 16),
+                itemBuilder: (context, index) {
+                  final label = labelStats[index];
+                  final String title = label['label_title'] ?? 'Sans nom';
+                  final String labelUid = label['label_uid'] ?? '';
+                  final textColorHex = label['text_color'];
+                  final bgColorHex = label['bg_color'];
+
+                  // Parse color helper
+                  Color labelTextColor = Colors.white;
+                  Color labelBgColor = ThemeService.primaryColor;
+                  try {
+                    if (textColorHex != null && textColorHex.toString().startsWith('#')) {
+                      labelTextColor = Color(int.parse(textColorHex.toString().replaceFirst('#', '0xFF')));
+                    }
+                    if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
+                      labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
+                    }
+                  } catch (_) {}
+
+                  return Row(
+                    children: [
+                      // Badge Label
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: labelBgColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: labelBgColor.withOpacity(0.5)),
+                        ),
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: labelBgColor,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Count Columns
+                      if (isCustomDateActive) ...[
+                        _buildPeriodCountColumn('Période', label['count_total'] ?? 0, labelUid, 'custom'),
+                      ] else ...[
+                        _buildPeriodCountColumn('Auj.', label['count_today'] ?? 0, labelUid, 'today'),
+                        const SizedBox(width: 8),
+                        _buildPeriodCountColumn('Hier', label['count_yesterday'] ?? 0, labelUid, 'yesterday'),
+                        const SizedBox(width: 8),
+                        _buildPeriodCountColumn('Avant-hier', label['count_day_before'] ?? 0, labelUid, 'day_before'),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodCountColumn(String periodName, dynamic count, String labelUid, String dateFilter) {
+    final isDark = ThemeService().isDark;
+    final int cnt = int.tryParse(count.toString()) ?? 0;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              periodName,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white60 : Colors.black54,
+              ),
+            ),
+            Text(
+              cnt.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: Icon(Icons.remove_red_eye_outlined, size: 16, color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: cnt > 0 ? () => _viewLabeledContacts(labelUid, dateFilter) : null,
+        ),
+      ],
+    );
+  }
+
+  void _viewLabeledContacts(String labelUid, String dateFilter) {
+    String? startStr;
+    String? endStr;
+    if (dateFilter == 'custom' && _selectedDateRange != null) {
+      startStr = _selectedDateRange!.start.toIso8601String().substring(0, 10);
+      endStr = _selectedDateRange!.end.toIso8601String().substring(0, 10);
+    }
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ContactsScreen(
+          initialLabelFilter: labelUid,
+          initialLabelDateFilter: dateFilter,
+          initialStartDate: startStr,
+          initialEndDate: endStr,
+          initialAssignedFilter: _selectedAgentId,
+        ),
+      ),
+    );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
@@ -226,12 +563,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ],
                                       ),
                                     ),
+                                    if (_stats?['ai_credits']?['is_enabled'] == true && _stats?['vendorUserData']?['user_roles__id'] == 2) ...[
+                                      const SizedBox(width: 8),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Bot IA',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? Colors.white70 : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Switch(
+                                            value: _stats?['ai_credits']?['bot_active'] ?? false,
+                                            activeColor: ThemeService.primaryColor,
+                                            onChanged: (value) async {
+                                              final success = await ApiService().toggleBotReply();
+                                              if (success) {
+                                                _fetchDashboardStats();
+                                              } else {
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Échec de la modification du statut du Bot')),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _buildFilterBar(),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _buildLabelStatsCard(),
                       ),
                       SliverToBoxAdapter(
                         child: _buildMessageHistoryChart(),

@@ -437,16 +437,26 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // -----------------------------------------
         // ASSIGNMENT FILTER
         // -----------------------------------------
-        if ($assigned === 'to-me') {
-            $query->where('assigned_users__id', $userId);
-        } elseif ($assigned === 'unassigned') {
-            $query->whereNull('assigned_users__id');
-        } elseif (is_numeric($assigned)) {
-            $query->where('assigned_users__id', $assigned);
-        }
-
-        if ($isRestrictedVendorUser && $assigned !== 'unassigned') {
-            $query->where('assigned_users__id', $userId);
+        if ($isRestrictedVendorUser) {
+            if ($assigned === 'to-me') {
+                $query->where('assigned_users__id', $userId);
+            } elseif ($assigned === 'unassigned') {
+                $query->whereNull('assigned_users__id');
+            } else {
+                // Restricted agents see their own assigned contacts OR unassigned (new incoming) contacts
+                $query->where(function ($q) use ($userId) {
+                    $q->where('assigned_users__id', $userId)
+                      ->orWhereNull('assigned_users__id');
+                });
+            }
+        } else {
+            if ($assigned === 'to-me') {
+                $query->where('assigned_users__id', $userId);
+            } elseif ($assigned === 'unassigned') {
+                $query->whereNull('assigned_users__id');
+            } elseif (is_numeric($assigned)) {
+                $query->where('assigned_users__id', $assigned);
+            }
         }
 
         // -----------------------------------------
@@ -489,15 +499,34 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // LABEL FILTER
         // -----------------------------------------
         if (!empty($selectedLabel)) {
+            $labelDateFilter = request()->label_date_filter; // 'today', 'yesterday', 'day_before', 'custom'
+            $startDate = request()->start_date;
+            $endDate = request()->end_date;
 
             $labelJoin = DB::table('contact_labels')
                 ->select('contact_labels.contacts__id', 'contact_labels.labels__id')
                 ->join('labels', 'contact_labels.labels__id', '=', 'labels._id')
-                ->where('labels._id', $selectedLabel);
+                ->where(function ($q) use ($selectedLabel) {
+                    $q->where('labels._id', $selectedLabel)
+                      ->orWhere('labels._uid', $selectedLabel);
+                });
 
-            $query->leftJoinSub($labelJoin, 'label_map', function ($join) {
+            if ($labelDateFilter === 'today') {
+                $labelJoin->whereDate('contact_labels.created_at', Carbon::today());
+            } elseif ($labelDateFilter === 'yesterday') {
+                $labelJoin->whereDate('contact_labels.created_at', Carbon::yesterday());
+            } elseif ($labelDateFilter === 'day_before') {
+                $labelJoin->whereDate('contact_labels.created_at', Carbon::today()->subDays(2));
+            } elseif ($labelDateFilter === 'custom' && !empty($startDate) && !empty($endDate)) {
+                $labelJoin->whereBetween('contact_labels.created_at', [
+                    Carbon::parse($startDate)->startOfDay(),
+                    Carbon::parse($endDate)->endOfDay()
+                ]);
+            }
+
+            $query->joinSub($labelJoin, 'label_map', function ($join) {
                 $join->on('contacts._id', '=', 'label_map.contacts__id');
-            })->where('label_map.labels__id', $selectedLabel);
+            });
         }
 
         // -----------------------------------------

@@ -2190,14 +2190,20 @@ if (! function_exists('sendFCMNotification')) {
             $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
 
             foreach ($deviceTokens as $deviceToken) {
+                $stringData = [
+                    'title' => (string) $title,
+                    'body' => (string) $body,
+                ];
+                if (is_array($data)) {
+                    foreach ($data as $key => $val) {
+                        $stringData[$key] = is_array($val) ? json_encode($val) : (string) $val;
+                    }
+                }
+
                 $payload = [
                     'message' => [
                         'token' => $deviceToken->device_token,
-                        'notification' => [
-                            'title' => $title,
-                            'body' => $body,
-                        ],
-                        'data' => $data,
+                        'data' => $stringData,
                     ],
                 ];
 

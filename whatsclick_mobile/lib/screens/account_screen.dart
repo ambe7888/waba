@@ -11,6 +11,7 @@ import 'canned_replies_screen.dart';
 import 'notification_settings_screen.dart';
 import 'contact_groups_screen.dart';
 import 'templates_admin_screen.dart';
+import 'bot_replies_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -250,15 +251,30 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 8),
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.message_rounded, color: Colors.indigo),
-                title: const Text('Modèles de messages (Templates)'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TemplatesAdminScreen()),
-                  );
-                },
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.message_rounded, color: Colors.indigo),
+                    title: const Text('Modèles de messages (Templates)'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const TemplatesAdminScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.smart_toy_rounded, color: Colors.teal),
+                    title: const Text('Réponses Automatiques (Bot)'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const BotRepliesScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],

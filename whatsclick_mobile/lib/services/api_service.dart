@@ -80,7 +80,7 @@ class ApiService {
   }
 
   /// Authenticate the user and save the token
-  Future<bool> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('${baseApiUrl}user/login-process');
     try {
       final response = await http.post(
@@ -97,6 +97,13 @@ class ApiService {
         final reaction = body['reaction'];
         if (reaction == 1) {
           final data = body['data'];
+          if (data['two_factor_auth_enabled'] == true) {
+            return {
+              'success': true,
+              'two_factor': true,
+              'user_id': data['user_id']?.toString(),
+            };
+          }
           final token = data['access_token'];
           if (token != null) {
             await _saveToken(token);
@@ -108,20 +115,78 @@ class ApiService {
                 await _saveRoleId((roleId as num).toInt());
               }
             }
-            return true;
+            return {'success': true, 'two_factor': false};
           }
         }
       }
-      return false;
+      return {'success': false, 'two_factor': false};
     } catch (e) {
       if (debug) debugPrint('Login Error: $e');
-      return false;
+      return {'success': false, 'two_factor': false};
+    }
+  }
+
+  /// Verify Two Factor Authentication code
+  Future<Map<String, dynamic>> verifyTwoFactor({
+    required String userId,
+    required String code,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}user/two-factor-challenge');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(requireAuth: false),
+        body: jsonEncode({
+          'user_id': userId,
+          'verify_via': 'code',
+          'code': code,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final reaction = body['reaction'];
+        if (reaction == 1) {
+          final data = body['data'];
+          final token = data['access_token'];
+          if (token != null) {
+            await _saveToken(token);
+            final authInfo = data['auth_info'];
+            if (authInfo != null) {
+              final roleId = authInfo['role_id'];
+              if (roleId != null) {
+                await _saveRoleId((roleId as num).toInt());
+              }
+            }
+            return {'success': true};
+          }
+        }
+        return {'success': false, 'message': body['message'] ?? 'Code invalide.'};
+      }
+      return {'success': false, 'message': 'Erreur de connexion.'};
+    } catch (e) {
+      if (debug) debugPrint('2FA Verification Error: $e');
+      return {'success': false, 'message': 'Erreur de connexion.'};
     }
   }
 
   /// Fetch contacts list with pagination
-  Future<Map<String, dynamic>> fetchContacts({int page = 1}) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/contacts-data?page=$page');
+  Future<Map<String, dynamic>> fetchContacts({
+    int page = 1,
+    String? selectedLabel,
+    String? labelDateFilter,
+    String? startDate,
+    String? endDate,
+    String? assigned,
+  }) async {
+    final List<String> params = ['page=$page'];
+    if (selectedLabel != null) params.add('selected_labels=$selectedLabel');
+    if (labelDateFilter != null) params.add('label_date_filter=$labelDateFilter');
+    if (startDate != null) params.add('start_date=$startDate');
+    if (endDate != null) params.add('end_date=$endDate');
+    if (assigned != null) params.add('assigned=$assigned');
+
+    final url = Uri.parse('${baseApiUrl}vendor/contact/contacts-data?' + params.join('&'));
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -148,8 +213,20 @@ class ApiService {
   }
 
   /// Fetch dashboard stats
-  Future<Map<String, dynamic>?> fetchDashboardStats() async {
-    final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats');
+  Future<Map<String, dynamic>?> fetchDashboardStats({
+    String? startDate,
+    String? endDate,
+    String? agentId,
+  }) async {
+    String query = '';
+    final List<String> params = [];
+    if (startDate != null) params.add('start_date=$startDate');
+    if (endDate != null) params.add('end_date=$endDate');
+    if (agentId != null) params.add('agent_id=$agentId');
+    if (params.isNotEmpty) {
+      query = '?' + params.join('&');
+    }
+    final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats$query');
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -168,6 +245,24 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Fetch Dashboard Error: $e');
       return null;
+    }
+  }
+
+  /// Toggle OpenAI Bot replies status
+  Future<bool> toggleBotReply() async {
+    final url = Uri.parse('${baseApiUrl}vendor/settings/toggle-bot');
+    try {
+      final response = await http.post(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Toggle Bot Error: $e');
+      return false;
     }
   }
 
@@ -1191,6 +1286,118 @@ class ApiService {
       return null;
     } catch (e) {
       if (debug) debugPrint('Create Template Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch Bot Replies list
+  Future<Map<String, dynamic>?> fetchBotReplies() async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/list');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Bot Replies Error: $e');
+      return null;
+    }
+  }
+
+  /// Toggle Bot Reply status
+  Future<bool> toggleBotReplyStatus(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/$uid/toggle-status');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Toggle Bot Reply Status Error: $e');
+      return false;
+    }
+  }
+
+  /// Delete Bot Reply
+  Future<bool> deleteBotReply(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/$uid/delete');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Bot Reply Error: $e');
+      return false;
+    }
+  }
+
+  /// Create Bot Reply
+  Future<Map<String, dynamic>?> createBotReply({
+    required String name,
+    required String triggerType,
+    String? replyTrigger,
+    required String replyText,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/add');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'name': name,
+          'trigger_type': triggerType,
+          'reply_trigger': replyTrigger,
+          'reply_text': replyText,
+          'message_type': 'simple',
+        }),
+      ).timeout(const Duration(seconds: 25));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Create Bot Reply Error: $e');
+      return null;
+    }
+  }
+
+  /// Update Bot Reply
+  Future<Map<String, dynamic>?> updateBotReply({
+    required String uid,
+    required String name,
+    required String triggerType,
+    String? replyTrigger,
+    required String replyText,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/update');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          '_uid': uid,
+          'name': name,
+          'trigger_type': triggerType,
+          'reply_trigger': replyTrigger,
+          'reply_text': replyText,
+          'message_type': 'simple',
+        }),
+      ).timeout(const Duration(seconds: 25));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Update Bot Reply Error: $e');
       return null;
     }
   }

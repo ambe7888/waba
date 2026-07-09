@@ -194,7 +194,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
      *
      * @return array
      */
-    public function prepareVendorDashboardData($vendorId = null)
+    public function prepareVendorDashboardData($vendorId = null, $filters = [])
     {
         if (! $vendorId) {
             $vendorId = getVendorId();
@@ -234,6 +234,62 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             ];
         }
 
+        $userId = getUserID();
+        $isRestrictedVendorUser = !hasVendorAccess()
+            ? hasVendorAccess('assigned_chats_only')
+            : false;
+
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+        $dayBeforeYesterday = Carbon::today()->subDays(2);
+
+        $statsQuery = \DB::table('labels')
+            ->leftJoin('contact_labels', 'labels._id', '=', 'contact_labels.labels__id')
+            ->leftJoin('contacts', function($join) use ($isRestrictedVendorUser, $userId, $filters) {
+                $join->on('contact_labels.contacts__id', '=', 'contacts._id');
+                if ($isRestrictedVendorUser) {
+                    $join->where('contacts.assigned_users__id', '=', $userId);
+                } elseif (!empty($filters['agent_id'])) {
+                    if ($filters['agent_id'] === 'unassigned') {
+                        $join->whereNull('contacts.assigned_users__id');
+                    } else {
+                        $join->where('contacts.assigned_users__id', '=', $filters['agent_id']);
+                    }
+                }
+            })
+            ->where('labels.vendors__id', $vendorId)
+            ->where('labels.status', 1);
+
+        // If custom date filter is active
+        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+            $startDate = Carbon::parse($filters['start_date'])->startOfDay();
+            $endDate = Carbon::parse($filters['end_date'])->endOfDay();
+            $statsQuery->whereBetween('contact_labels.created_at', [$startDate, $endDate]);
+        }
+
+        $statsQuery->select(
+            'labels._id as label_id',
+            'labels._uid as label_uid',
+            'labels.title as label_title',
+            'labels.text_color',
+            'labels.bg_color',
+            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$today->toDateString()}' THEN 1 ELSE 0 END) as count_today"),
+            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$yesterday->toDateString()}' THEN 1 ELSE 0 END) as count_yesterday"),
+            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$dayBeforeYesterday->toDateString()}' THEN 1 ELSE 0 END) as count_day_before"),
+            \DB::raw("COUNT(contacts._id) as count_total")
+        )->groupBy('labels._id', 'labels._uid', 'labels.title', 'labels.text_color', 'labels.bg_color');
+
+        $labelStats = $statsQuery->get();
+
+        $agents = [];
+        if (!$isRestrictedVendorUser) {
+            $agents = \DB::table('users')
+                ->where('vendors__id', $vendorId)
+                ->where('status', 1)
+                ->select('_id', '_uid', 'first_name', 'last_name', 'email')
+                ->get();
+        }
+
         return array_merge([
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
@@ -271,8 +327,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'ordersCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->count() : 0,
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'messageHistory' => $messageHistory,
+            'label_date_stats' => $labelStats,
+            'agents' => $agents,
             'ai_credits' => [
                 'is_enabled' => (bool) vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'],
+                'bot_active' => (bool) getVendorSettings('enable_open_ai_bot', null, null, $vendorId),
                 'plan_credits' => $planCredits,
                 'extra_credits' => $extraCredits,
                 'total_credits' => $totalCredits,

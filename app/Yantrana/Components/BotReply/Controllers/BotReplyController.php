@@ -95,6 +95,27 @@ class BotReplyController extends BaseController
     }
 
     /**
+     * Get clean bot replies list for API clients
+     *
+     * @return json object
+     */
+    public function apiIndex()
+    {
+        validateVendorAccess('manage_bot_replies');
+        $botReplies = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where([
+            'vendors__id' => getVendorId()
+        ])->whereNull('bot_flows__id')
+        ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
+        ->select('_id', '_uid', 'name', 'reply_text', 'trigger_type', 'reply_trigger', 'status')
+        ->get();
+
+        return $this->processResponse(1, [], [
+            'bot_replies' => $botReplies,
+            'trigger_types' => configItem('bot_reply_trigger_types')
+        ]);
+    }
+
+    /**
         * BotReply process delete
         *
         * @param  mix $botReplyIdOrUid
