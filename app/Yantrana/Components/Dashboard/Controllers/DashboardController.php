@@ -94,6 +94,12 @@ class DashboardController extends BaseController
     public function toggleBotReply()
     {
         $vendorId = getVendorId();
+        if (!$vendorId) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Non autorisé. Compte vendeur requis.')
+            ]);
+        }
+        
         $currentState = getVendorSettings('enable_open_ai_bot', null, null, $vendorId);
         $newState = $currentState ? 0 : 1;
 

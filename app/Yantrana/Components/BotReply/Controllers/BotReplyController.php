@@ -102,8 +102,17 @@ class BotReplyController extends BaseController
     public function apiIndex()
     {
         validateVendorAccess('manage_bot_replies');
+        $vendorId = getVendorId();
+        
+        if (!$vendorId) {
+            return $this->processResponse(1, [], [
+                'bot_replies' => [],
+                'trigger_types' => configItem('bot_reply_trigger_types')
+            ]);
+        }
+
         $botReplies = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where([
-            'vendors__id' => getVendorId()
+            'vendors__id' => $vendorId
         ])->whereNull('bot_flows__id')
         ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
         ->select('_id', '_uid', 'name', 'reply_text', 'trigger_type', 'reply_trigger', 'status')

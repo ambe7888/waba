@@ -22,6 +22,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DateTimeRange? _selectedDateRange;
   String? _selectedAgentId;
   List<dynamic> _agents = [];
+  final List<String?> _selectedLabelUidsForStats = [null, null, null];
+  int _roleId = 3;
+  String _firstName = '';
+
 
   @override
   void initState() {
@@ -36,6 +40,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
+      _roleId = await ApiService().getUserRoleId();
+      
       String? startStr;
       String? endStr;
       if (_selectedDateRange != null) {
@@ -52,6 +58,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _stats = data;
           _agents = data?['agents'] ?? [];
+          final List<dynamic> labelStats = data?['label_date_stats'] ?? [];
+          for (int i = 0; i < 3; i++) {
+            if (_selectedLabelUidsForStats[i] == null || !labelStats.any((l) => l['label_uid'] == _selectedLabelUidsForStats[i])) {
+              if (labelStats.length > i) {
+                _selectedLabelUidsForStats[i] = labelStats[i]['label_uid'];
+              } else {
+                _selectedLabelUidsForStats[i] = null;
+              }
+            }
+          }
+          
+          final vendorUserData = data?['vendorUserData'];
+          if (vendorUserData != null) {
+            String name = vendorUserData['first_name'] ?? '';
+            if (name.isEmpty) {
+               name = vendorUserData['full_name'] ?? vendorUserData['email'] ?? '';
+            }
+            _firstName = name;
+          }
+          
           _isLoading = false;
         });
       }
@@ -67,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFilterBar() {
     final isDark = ThemeService().isDark;
-    final isAdmin = _stats?['vendorUserData']?['user_roles__id'] == 2;
+    final isAdmin = _roleId == 2;
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -252,72 +278,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Text(
                     'Statistiques des Étiquettes',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: labelStats.length,
-                separatorBuilder: (_, __) => Divider(color: isDark ? Colors.white12 : Colors.black12, height: 16),
-                itemBuilder: (context, index) {
-                  final label = labelStats[index];
-                  final String title = label['label_title'] ?? 'Sans nom';
-                  final String labelUid = label['label_uid'] ?? '';
-                  final textColorHex = label['text_color'];
-                  final bgColorHex = label['bg_color'];
+              const SizedBox(height: 16),
+              // Build 3 rows of customizable labels
+              ...List.generate(3, (rowIndex) {
+                final currentSelectedUid = _selectedLabelUidsForStats[rowIndex];
+                final selectedLabel = labelStats.firstWhere(
+                  (l) => l['label_uid'] == currentSelectedUid,
+                  orElse: () => labelStats.first,
+                );
 
-                  // Parse color helper
-                  Color labelTextColor = Colors.white;
-                  Color labelBgColor = ThemeService.primaryColor;
-                  try {
-                    if (textColorHex != null && textColorHex.toString().startsWith('#')) {
-                      labelTextColor = Color(int.parse(textColorHex.toString().replaceFirst('#', '0xFF')));
-                    }
-                    if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
-                      labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
-                    }
-                  } catch (_) {}
+                final String selectedLabelUid = selectedLabel['label_uid'] ?? '';
+                final textColorHex = selectedLabel['text_color'];
+                final bgColorHex = selectedLabel['bg_color'];
 
-                  return Row(
-                    children: [
-                      // Badge Label
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: labelBgColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: labelBgColor.withOpacity(0.5)),
-                        ),
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: labelBgColor,
+                Color labelBgColor = ThemeService.primaryColor;
+                try {
+                  if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
+                    labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
+                  }
+                } catch (_) {}
+
+                return Column(
+                  children: [
+                    if (rowIndex > 0) Divider(color: isDark ? Colors.white12 : Colors.black12, height: 16),
+                    Row(
+                      children: [
+                        // Label Picker Dropdown instead of simple text badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: labelBgColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: labelBgColor.withOpacity(0.4)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: currentSelectedUid,
+                              dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                              icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: labelBgColor,
+                              ),
+                              items: labelStats.map((l) {
+                                return DropdownMenuItem<String>(
+                                  value: l['label_uid'],
+                                  child: Text(l['label_title'] ?? 'Sans nom'),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedLabelUidsForStats[rowIndex] = val;
+                                });
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      const Spacer(),
-                      // Count Columns
-                      if (isCustomDateActive) ...[
-                        _buildPeriodCountColumn('Période', label['count_total'] ?? 0, labelUid, 'custom'),
-                      ] else ...[
-                        _buildPeriodCountColumn('Auj.', label['count_today'] ?? 0, labelUid, 'today'),
-                        const SizedBox(width: 8),
-                        _buildPeriodCountColumn('Hier', label['count_yesterday'] ?? 0, labelUid, 'yesterday'),
-                        const SizedBox(width: 8),
-                        _buildPeriodCountColumn('Avant-hier', label['count_day_before'] ?? 0, labelUid, 'day_before'),
+                        const Spacer(),
+                        // Count Columns
+                        if (isCustomDateActive) ...[
+                          _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
+                        ] else ...[
+                          _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
+                          const SizedBox(width: 8),
+                          _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
+                          const SizedBox(width: 8),
+                          _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
+                        ],
                       ],
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
         ),
@@ -497,8 +537,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _stats?['vendorUserData']?['first_name'] != null
-                                    ? 'Bienvenue, ${_stats!['vendorUserData']['first_name']} 👋'
+                                _firstName.isNotEmpty
+                                    ? 'Bienvenue, $_firstName 👋'
                                     : 'Bienvenue 👋',
                                 style: TextStyle(
                                   fontSize: 26,
@@ -563,7 +603,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ],
                                       ),
                                     ),
-                                    if (_stats?['ai_credits']?['is_enabled'] == true && _stats?['vendorUserData']?['user_roles__id'] == 2) ...[
+                                     if (_roleId == 2) ...[
                                       const SizedBox(width: 8),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
