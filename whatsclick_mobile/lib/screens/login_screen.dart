@@ -16,10 +16,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = false;
   String? _errorMessage;
+  bool _show2FAInput = false;
+  String? _twoFactorUserId;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -48,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _animController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -111,9 +115,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _errorMessage = null;
     });
 
-    final success = await ApiService().login(email, password);
+    final res = await ApiService().login(email, password);
 
-    if (success) {
+    if (res['success'] == true) {
+      if (res['two_factor'] == true) {
+        setState(() {
+          _isLoading = false;
+          _show2FAInput = true;
+          _twoFactorUserId = res['user_id'];
+        });
+        return;
+      }
+
       TextInput.finishAutofillContext();
       await _saveCredentials();
       // Initialize FCM after successful login
@@ -135,6 +148,50 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       setState(() {
         _isLoading = false;
         _errorMessage = 'Identifiants incorrects ou erreur serveur.';
+      });
+    }
+  }
+
+  Future<void> _handleVerifyOTP() async {
+    final code = _otpController.text.trim();
+    if (code.isEmpty || code.length < 6) {
+      setState(() {
+        _errorMessage = 'Veuillez saisir un code valide de 6 chiffres.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final res = await ApiService().verifyTwoFactor(
+      userId: _twoFactorUserId!,
+      code: code,
+    );
+
+    if (res['success'] == true) {
+      TextInput.finishAutofillContext();
+      await _saveCredentials();
+      try {
+        await FcmService().init();
+      } catch (e) {
+        debugPrint('FCM Init Error after login: $e');
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainLayoutScreen()),
+        );
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = res['message'] ?? 'Code de vérification incorrect.';
       });
     }
   }
@@ -285,169 +342,266 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         SizedBox(height: 16),
                       ],
 
-                      AutofillGroup(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Email Field
-                            Container(
-                              decoration: BoxDecoration(
-                                color: surfaceCard,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: onSurface.withOpacity(0.06)),
-                              ),
-                              child: TextField(
-                                controller: _emailController,
-                                autofillHints: const [AutofillHints.username, AutofillHints.email],
-                                keyboardType: TextInputType.emailAddress,
-                                style: TextStyle(color: onSurface, fontSize: 14),
-                                decoration: InputDecoration(
-                                  labelText: 'Email ou nom d\'utilisateur',
-                                  labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                                  prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                ),
-                              ),
+                      if (_show2FAInput) ...[
+                        // OTP 2FA Input field
+                        Container(
+                          decoration: BoxDecoration(
+                            color: surfaceCard,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: onSurface.withOpacity(0.06)),
+                          ),
+                          child: TextField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(color: onSurface, fontSize: 14),
+                            maxLength: 6,
+                            decoration: InputDecoration(
+                              labelText: 'Code d\'authentification (2FA)',
+                              counterText: '',
+                              labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                              prefixIcon: Icon(Icons.security, color: onSurface.withOpacity(0.31), size: 20),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             ),
-                            SizedBox(height: 14),
-
-                            // Password Field
-                            Container(
-                              decoration: BoxDecoration(
-                                color: surfaceCard,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: onSurface.withOpacity(0.06)),
-                              ),
-                              child: TextField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                autofillHints: const [AutofillHints.password],
-                                style: TextStyle(color: onSurface, fontSize: 14),
-                                decoration: InputDecoration(
-                                  labelText: 'Mot de passe',
-                                  labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                                  prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                      color: onSurface.withOpacity(0.31),
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 14),
-
-                      // Remember Me & Forgot Password
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: Checkbox(
-                                  value: _rememberMe,
-                                  activeColor: primaryColor,
-                                  checkColor: onSurface,
-                                  side: BorderSide(color: onSurface.withOpacity(0.24)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _rememberMe = value ?? false;
-                                    });
-                                  },
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Se souvenir',
-                                style: TextStyle(fontSize: 13, color: onSurface.withOpacity(0.55)),
+                        SizedBox(height: 24),
+                        // Validate 2FA Button
+                        Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryColor, Color(0xFF0F766E)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withAlpha(60),
+                                blurRadius: 16,
+                                offset: Offset(0, 6),
                               ),
                             ],
                           ),
-                          TextButton(
-                            onPressed: _handleForgotPassword,
-                            child: Text(
-                              'Mot de passe oublié ?',
-                              style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 12),
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleVerifyOTP,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
+                            child: _isLoading
+                                ? SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      color: onSurface,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Valider',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: onSurface,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                                    ],
+                                  ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
+                        ),
+                        SizedBox(height: 12),
+                        // Cancel/Back Button
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _show2FAInput = false;
+                              _errorMessage = null;
+                              _otpController.clear();
+                            });
+                          },
+                          child: Text(
+                            'Retour à la connexion',
+                            style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
+                      ] else ...[
+                        AutofillGroup(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Email Field
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: surfaceCard,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: onSurface.withOpacity(0.06)),
+                                ),
+                                child: TextField(
+                                  controller: _emailController,
+                                  autofillHints: const [AutofillHints.username, AutofillHints.email],
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: TextStyle(color: onSurface, fontSize: 14),
+                                  decoration: InputDecoration(
+                                    labelText: 'Email ou nom d\'utilisateur',
+                                    labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                                    prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 14),
 
-                      // Login Button
-                      Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [primaryColor, Color(0xFF0F766E)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                              // Password Field
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: surfaceCard,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: onSurface.withOpacity(0.06)),
+                                ),
+                                child: TextField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  autofillHints: const [AutofillHints.password],
+                                  style: TextStyle(color: onSurface, fontSize: 14),
+                                  decoration: InputDecoration(
+                                    labelText: 'Mot de passe',
+                                    labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
+                                    prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                        color: onSurface.withOpacity(0.31),
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryColor.withAlpha(60),
-                              blurRadius: 16,
-                              offset: Offset(0, 6),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Remember Me & Forgot Password
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: Checkbox(
+                                    value: _rememberMe,
+                                    activeColor: primaryColor,
+                                    checkColor: onSurface,
+                                    side: BorderSide(color: onSurface.withOpacity(0.24)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _rememberMe = value ?? false;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Se souvenir',
+                                  style: TextStyle(fontSize: 13, color: onSurface.withOpacity(0.55)),
+                                ),
+                              ],
+                            ),
+                            TextButton(
+                              onPressed: _handleForgotPassword,
+                              child: Text(
+                                'Mot de passe oublié ?',
+                                style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 12),
+                              ),
                             ),
                           ],
                         ),
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                        SizedBox(height: 20),
+
+                        // Login Button
+                        Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryColor, Color(0xFF0F766E)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
                             ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withAlpha(60),
+                                blurRadius: 16,
+                                offset: Offset(0, 6),
+                              ),
+                            ],
                           ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: onSurface,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Se connecter',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: onSurface,
-                                        letterSpacing: 0.3,
-                                      ),
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      color: onSurface,
+                                      strokeWidth: 2.5,
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                                  ],
-                                ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Se connecter',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: onSurface,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
+                      ],
                       SizedBox(height: 48),
                       Text(
                         '© 2026 WhatsClick - ASAP Communication',

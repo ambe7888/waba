@@ -6,7 +6,20 @@ import '../services/theme_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactsScreen extends StatefulWidget {
-  const ContactsScreen({super.key});
+  final String? initialLabelFilter;
+  final String? initialLabelDateFilter;
+  final String? initialStartDate;
+  final String? initialEndDate;
+  final String? initialAssignedFilter;
+
+  const ContactsScreen({
+    super.key,
+    this.initialLabelFilter,
+    this.initialLabelDateFilter,
+    this.initialStartDate,
+    this.initialEndDate,
+    this.initialAssignedFilter,
+  });
 
   @override
   State<ContactsScreen> createState() => _ContactsScreenState();
@@ -22,9 +35,21 @@ class _ContactsScreenState extends State<ContactsScreen> {
   final _scrollController = ScrollController();
   String? _error;
 
+  String? _labelFilter;
+  String? _labelDateFilter;
+  String? _startDate;
+  String? _endDate;
+  String? _assignedFilter;
+
   @override
   void initState() {
     super.initState();
+    _labelFilter = widget.initialLabelFilter;
+    _labelDateFilter = widget.initialLabelDateFilter;
+    _startDate = widget.initialStartDate;
+    _endDate = widget.initialEndDate;
+    _assignedFilter = widget.initialAssignedFilter;
+
     _loadContacts();
     _searchController.addListener(_applyFilters);
     _scrollController.addListener(() {
@@ -47,7 +72,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
       _error = null;
     });
     try {
-      final result = await ApiService().fetchContacts(page: 1);
+      final result = await ApiService().fetchContacts(
+        page: 1,
+        selectedLabel: _labelFilter,
+        labelDateFilter: _labelDateFilter,
+        startDate: _startDate,
+        endDate: _endDate,
+        assigned: _assignedFilter,
+      );
       if (mounted) {
         setState(() {
           _contacts = result['contacts'] as List<Contact>;
@@ -70,7 +102,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
     if (_isLoadingMore || _nextPage == 0) return;
     setState(() => _isLoadingMore = true);
     try {
-      final result = await ApiService().fetchContacts(page: _nextPage);
+      final result = await ApiService().fetchContacts(
+        page: _nextPage,
+        selectedLabel: _labelFilter,
+        labelDateFilter: _labelDateFilter,
+        startDate: _startDate,
+        endDate: _endDate,
+        assigned: _assignedFilter,
+      );
       if (mounted) {
         setState(() {
           final newContacts = result['contacts'] as List<Contact>;
@@ -167,6 +206,46 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ),
           ),
+          if (_labelFilter != null || _labelDateFilter != null || _assignedFilter != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: ThemeService.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: ThemeService.primaryColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Filtres actifs : ${_labelFilter != null ? "Étiquette" : ""} ${_labelDateFilter != null ? "($_labelDateFilter)" : ""}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeService.primaryColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    color: ThemeService.primaryColor,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      setState(() {
+                        _labelFilter = null;
+                        _labelDateFilter = null;
+                        _startDate = null;
+                        _endDate = null;
+                        _assignedFilter = null;
+                      });
+                      _loadContacts();
+                    },
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator())

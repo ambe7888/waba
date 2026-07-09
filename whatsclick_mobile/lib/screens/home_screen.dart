@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
+import '../services/theme_service.dart';
 import '../models/contact.dart';
 import 'chat_box_screen.dart';
 import 'login_screen.dart';
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Label filter state
   String? _selectedLabelFilter;
   List<ContactLabel> _allUniqueLabels = [];
+  String _assignedFilter = 'all';
 
   // Animation
   late AnimationController _fadeController;
@@ -142,7 +144,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       });
     }
 
-    final result = await ApiService().fetchContacts(page: 1);
+    final result = await ApiService().fetchContacts(
+      page: 1,
+      assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+    );
     final List<Contact> loaded = result['contacts'] as List<Contact>;
     final int next = _parseNextPage(result['nextPage']);
 
@@ -182,7 +187,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _isLoadingMore = true;
     });
 
-    final result = await ApiService().fetchContacts(page: _nextPage);
+    final result = await ApiService().fetchContacts(
+      page: _nextPage,
+      assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+    );
     final List<Contact> loaded = result['contacts'] as List<Contact>;
     final int next = _parseNextPage(result['nextPage']);
 
@@ -339,6 +347,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _selectAssignedFilter(String filter) {
+    setState(() {
+      _assignedFilter = filter;
+    });
+    _loadContacts();
+  }
+
+  Widget _buildSegmentButton(String label, String filter) {
+    final isSelected = _assignedFilter == filter;
+    final isDark = ThemeService().isDark;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _selectAssignedFilter(filter),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? const Color(0xFF198754) 
+                : (isDark ? ThemeService.darkCard : Colors.grey.withOpacity(0.1)),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected 
+                  ? const Color(0xFF198754) 
+                  : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLabelChip(ContactLabel label, {bool compact = false}) {
     final bgColor = _parseColor(label.bgColor);
     final textColor = _parseColor(label.textColor);
@@ -471,6 +520,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 ),
               ),
+            ),
+          ),
+
+          // Segmented filter for assignments
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              children: [
+                _buildSegmentButton('Tous', 'all'),
+                const SizedBox(width: 8),
+                _buildSegmentButton('Mes messages', 'to-me'),
+                const SizedBox(width: 8),
+                _buildSegmentButton('Nouveaux', 'unassigned'),
+              ],
             ),
           ),
 

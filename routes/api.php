@@ -271,6 +271,11 @@ Route::group([
             'apiVendorDashboardStats',
         ])->name('app_api.vendor.dashboard.stats');
 
+        Route::post('/settings/toggle-bot', [
+            \App\Yantrana\Components\Dashboard\Controllers\DashboardController::class,
+            'toggleBotReply',
+        ])->name('app_api.vendor.settings.toggle_bot');
+
         // Support Tickets
         Route::get('/support-tickets', [
             \App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class,
@@ -542,6 +547,34 @@ Route::group([
             BotReplyController::class,
             'processBotQuickReply'
         ])->name('app_api.vendor.bot_reply.write.quick-reply');
+
+        // BotReply Mobile Management Routes
+        Route::prefix('/bot-replies-management')->group(function () {
+            Route::get("/list", [
+                BotReplyController::class,
+                'apiIndex'
+            ])->name('app_api.vendor.bot_reply.management.list');
+
+            Route::post("/add", [
+                BotReplyController::class,
+                'processBotReplyCreate'
+            ])->name('app_api.vendor.bot_reply.management.create');
+
+            Route::post("/update", [
+                BotReplyController::class,
+                'processBotReplyUpdate'
+            ])->name('app_api.vendor.bot_reply.management.update');
+
+            Route::post("/{botReplyIdOrUid}/delete", [
+                BotReplyController::class,
+                'processBotReplyDelete'
+            ])->name('app_api.vendor.bot_reply.management.delete');
+
+            Route::post("/{botReplyIdOrUid}/toggle-status", [
+                BotReplyController::class,
+                'processToggleBotReplyStatus'
+            ])->name('app_api.vendor.bot_reply.management.toggle_status');
+        });
         // Campaign list request
         Route::get('/whatsapp/campaign/{status}/list-data', [
             CampaignController::class,

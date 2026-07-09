@@ -29,6 +29,11 @@ class FcmService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  // Static stream controller for notification taps
+  static final StreamController<String> _notificationTapStreamController =
+      StreamController<String>.broadcast();
+  static Stream<String> get onNotificationTap => _notificationTapStreamController.stream;
+
   // Track whether Firebase was initialized successfully
   bool _isFirebaseAvailable = false;
   bool get isFirebaseAvailable => _isFirebaseAvailable;
@@ -69,7 +74,17 @@ class FcmService {
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (kDebugMode) print('Notification tapped: ${response.payload}');
-        // Future: navigate to the specific chat using payload data
+        if (response.payload != null) {
+          try {
+            final data = jsonDecode(response.payload!);
+            final contactUid = data['contact_uid'] ?? '';
+            if (contactUid.isNotEmpty) {
+              _notificationTapStreamController.add(contactUid);
+            }
+          } catch (e) {
+            if (kDebugMode) print('Error parsing notification payload: $e');
+          }
+        }
       },
     );
 
@@ -213,7 +228,23 @@ class FcmService {
         if (kDebugMode) {
           print('Notification opened app: ${message.data}');
         }
+        final contactUid = message.data['contact_uid'] ?? message.data['contactUid'] ?? '';
+        if (contactUid.isNotEmpty) {
+          _notificationTapStreamController.add(contactUid);
+        }
         _messageStreamController.add(message);
+      });
+
+      // Check if the app was opened by a message when terminated
+      _firebaseMessaging!.getInitialMessage().then((RemoteMessage? initialMessage) {
+        if (initialMessage != null) {
+          final contactUid = initialMessage.data['contact_uid'] ?? initialMessage.data['contactUid'] ?? '';
+          if (contactUid.isNotEmpty) {
+            Future.delayed(const Duration(milliseconds: 1500), () {
+              _notificationTapStreamController.add(contactUid);
+            });
+          }
+        }
       });
 
     } catch (e) {
