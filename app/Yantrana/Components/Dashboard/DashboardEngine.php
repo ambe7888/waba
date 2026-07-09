@@ -295,7 +295,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
             'vendorId' => $vendorId,
             'activeTeamMembers' => $this->userRepository->countVendorsActiveUsers($vendorWhereClause),
-            'vendorUserData' => $this->userRepository->fetchIt($vendorWhereClause),
+            'vendorUserData' => auth()->user(),
             'totalContacts' => $this->contactRepository->totalContactsCountForVendor($vendorId),
             'totalGroups' => $this->contactGroupRepository->countIt($vendorWhereClause),
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),

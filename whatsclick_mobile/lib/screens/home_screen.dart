@@ -137,45 +137,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     } catch (_) {}
   }
 
-  Future<void> _loadContacts({bool silent = false}) async {
-    if (!silent) {
-      setState(() {
-        _isLoading = true;
-      });
+  Future<void> _loadContacts({bool silent = false, bool reset = false}) async {
+    if (_isLoadingMore && !reset) return;
+
+    if (reset) {
+      _nextPage = 0;
+      _contacts.clear();
+      _filteredContacts.clear();
+      _isLoading = true;
+    } else if (!silent && _nextPage == 0) {
+      setState(() => _isLoading = true);
+    } else if (_nextPage > 0) {
+      setState(() => _isLoadingMore = true);
     }
 
-    final result = await ApiService().fetchContacts(
-      page: 1,
-      assigned: _assignedFilter == 'all' ? null : _assignedFilter,
-    );
-    final List<Contact> loaded = result['contacts'] as List<Contact>;
-    final int next = _parseNextPage(result['nextPage']);
+    try {
+      final data = await ApiService().fetchContacts(
+        page: _nextPage > 0 ? _nextPage : 1,
+        assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+      );
+      if (!mounted) return;
 
-    // Extract unique labels from all contacts
-    final Set<ContactLabel> labelsSet = {};
-    for (var c in loaded) {
-      labelsSet.addAll(c.labels);
-    }
+      final List<Contact> loaded = data['contacts'] ?? [];
+      final next = _parseNextPage(data['nextPage']);
+      
+      final labelsSet = <ContactLabel>{};
+      for (final c in loaded) {
+        labelsSet.addAll(c.labels);
+      }
 
-    if (mounted) {
       setState(() {
-        if (silent && _contacts.isNotEmpty) {
+        if (reset || _nextPage == 0) {
+          _contacts = loaded;
+        } else {
           final Map<String, Contact> merged = {
             for (final existing in _contacts) existing.uid: existing,
             for (final fresh in loaded) fresh.uid: fresh,
           };
           _contacts = merged.values.toList();
-          _nextPage = _nextPage == 0 ? next : (_nextPage > next ? _nextPage : next);
-        } else {
-          _contacts = loaded;
-          _nextPage = next;
         }
-        _allUniqueLabels = labelsSet.toList();
+        
+        _nextPage = next;
+        _allUniqueLabels = _contacts.expand((c) => c.labels).toSet().toList();
         _isLoading = false;
       });
       _applyFilters();
       if (!silent) {
         _fadeController.forward(from: 0);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement: $e')),
+        );
       }
     }
   }
@@ -348,15 +366,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _selectAssignedFilter(String filter) {
+    if (_assignedFilter == filter) return;
     setState(() {
       _assignedFilter = filter;
     });
-    _loadContacts();
+    _loadContacts(reset: true);
   }
 
   Widget _buildSegmentButton(String label, String filter) {
     final isSelected = _assignedFilter == filter;
     final isDark = ThemeService().isDark;
+    
+    // Calculate unread count globally. 
+    // Since we don't have global counts without fetching, we will use the local unread count if it's the selected filter.
+    // Actually, a better UX is just a red dot if there are unread messages, but we can compute it from the list.
+    int unreadCount = 0;
+    if (isSelected) {
+      unreadCount = _contacts.where((c) => c.unreadCount > 0).length;
+    }
+    
     return Expanded(
       child: InkWell(
         onTap: () => _selectAssignedFilter(filter),
@@ -373,15 +401,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
+              if (unreadCount > 0) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    unreadCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
