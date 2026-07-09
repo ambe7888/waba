@@ -33,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<ContactLabel> _allUniqueLabels = [];
   String _assignedFilter = 'all';
 
+  // Notification badge counts
+  int _unreadNewCount = 0;       // nouveaux (unassigned)
+  int _unreadMyCount = 0;        // mes messages (assigned to me)
+
   // Animation
   late AnimationController _fadeController;
 
@@ -67,10 +71,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     });
 
+    // Load badge counts on start
+    _refreshBadgeCounts();
+
     // Background polling every 5s for real-time feel
     _pollingTimer = Timer.periodic(
       const Duration(seconds: pollingIntervalSeconds),
-      (_) => _loadContacts(silent: true),
+      (_) {
+        _loadContacts(silent: true);
+        _refreshBadgeCounts();
+      },
     );
   }
 
@@ -373,16 +383,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadContacts(reset: true);
   }
 
+  // Fetch global unread counts for badge display
+  Future<void> _refreshBadgeCounts() async {
+    try {
+      final counts = await ApiService().fetchUnreadCounts();
+      if (mounted) {
+        setState(() {
+          _unreadNewCount = counts['unreadMessagesCount'] ?? 0;
+          _unreadMyCount = counts['myAssignedUnreadMessagesCount'] ?? 0;
+        });
+      }
+    } catch (_) {}
+  }
+
   Widget _buildSegmentButton(String label, String filter) {
     final isSelected = _assignedFilter == filter;
     final isDark = ThemeService().isDark;
-    
-    // Calculate unread count globally. 
-    // Since we don't have global counts without fetching, we will use the local unread count if it's the selected filter.
-    // Actually, a better UX is just a red dot if there are unread messages, but we can compute it from the list.
+
+    // Use global badge counts from API
     int unreadCount = 0;
-    if (isSelected) {
-      unreadCount = _contacts.where((c) => c.unreadCount > 0).length;
+    if (filter == 'all' || filter == 'unassigned') {
+      unreadCount = _unreadNewCount;
+    } else if (filter == 'mine') {
+      unreadCount = _unreadMyCount;
     }
     
     return Expanded(
