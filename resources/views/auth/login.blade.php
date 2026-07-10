@@ -79,6 +79,28 @@
     .saas-input-wrapper .saas-form-control {
         padding-left: 3rem !important;
     }
+    .saas-input-wrapper .saas-form-control.has-toggle {
+        padding-right: 3rem !important;
+    }
+    .saas-password-toggle-btn {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        z-index: 10;
+        padding: 0.25rem;
+        transition: color 0.2s ease;
+    }
+    .saas-password-toggle-btn:hover {
+        color: #198754;
+    }
+    .saas-password-toggle-btn:focus {
+        outline: none;
+    }
     .btn.btn-primary.saas-btn-primary,
     .btn.btn-primary.saas-btn-primary:focus,
     .btn.btn-primary.saas-btn-primary:active,
@@ -267,7 +289,10 @@
                             </div>
                             <div class="saas-input-wrapper">
                                 <i class="fa fa-key saas-input-icon"></i>
-                                <input id="lwLoginPassword" class="form-control saas-form-control{{ $errors->has('password') ? ' is-invalid' : '' }}" name="password" placeholder="••••••••" type="password" value="" required autocomplete="current-password">
+                                <input id="lwLoginPassword" class="form-control saas-form-control has-toggle{{ $errors->has('password') ? ' is-invalid' : '' }}" name="password" placeholder="••••••••" type="password" value="" required autocomplete="current-password">
+                                <button type="button" class="saas-password-toggle-btn" onclick="togglePasswordVisibility('lwLoginPassword', this)">
+                                    <i class="fa fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                         
@@ -313,4 +338,19 @@
         </div>
     </div>
 </div>
+<script>
+    function togglePasswordVisibility(fieldId, buttonEl) {
+        const field = document.getElementById(fieldId);
+        const icon = buttonEl.querySelector('i');
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            field.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+</script>
 @endsection
