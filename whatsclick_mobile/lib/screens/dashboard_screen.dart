@@ -82,9 +82,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           final vendorUserData = data?['vendorUserData'];
           if (vendorUserData != null) {
-            String name = vendorUserData['first_name'] ?? '';
+            // getUserAuthInfo('profile') returns the profile object directly
+            // which has: first_name, last_name, full_name, email
+            String name = '';
+            // Try direct profile keys first
+            name = vendorUserData['first_name']?.toString() ?? '';
             if (name.isEmpty) {
-               name = vendorUserData['full_name'] ?? vendorUserData['email'] ?? '';
+              name = vendorUserData['full_name']?.toString() ?? '';
+            }
+            // Try nested profile key (in case full auth info is returned)
+            if (name.isEmpty && vendorUserData['profile'] != null) {
+              name = vendorUserData['profile']['first_name']?.toString() ?? '';
+              if (name.isEmpty) {
+                name = vendorUserData['profile']['full_name']?.toString() ?? '';
+              }
+            }
+            // Last resort: email
+            if (name.isEmpty) {
+              name = vendorUserData['email']?.toString() ?? '';
+              // Use only the part before @
+              if (name.contains('@')) name = name.split('@').first;
             }
             _firstName = name;
           }
@@ -562,16 +579,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                '${DateTime.now().day} ${[
-                                  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-                                ][DateTime.now().month - 1]} ${DateTime.now().year}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark ? Colors.white60 : Colors.black54,
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: (_roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor).withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: (_roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor).withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _roleId == 2 ? Icons.admin_panel_settings_rounded : Icons.support_agent_rounded,
+                                          size: 12,
+                                          color: _roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _roleId == 2 ? 'Administrateur' : 'Agent',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: _roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    '${DateTime.now().day} ${[
+                                      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+                                      'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+                                    ][DateTime.now().month - 1]} ${DateTime.now().year}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? Colors.white60 : Colors.black54,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 8),
                               Container(
