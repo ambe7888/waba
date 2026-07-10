@@ -403,8 +403,8 @@ Route::group([
             'deleteCannedReply',
         ])->name('app_api.vendor.canned_replies.delete');
 
-        // Contact Groups (Mobile) - inline for guaranteed flat response
-        Route::get('/contact/groups', function () {
+        // Contact Groups (Mobile) - unique path to avoid conflict with {vendorUid}/contact/groups wildcard
+        Route::get('/contact/mobile-groups', function () {
             $vendorId = getVendorId();
             if (!$vendorId) {
                 return response()->json([
@@ -430,7 +430,7 @@ Route::group([
                 'reaction' => 1,
                 'data'     => ['groups' => $groups],
             ]);
-        })->name('app_api.vendor.contact.read.group_list');
+        })->name('app_api.vendor.contact.read.mobile_group_list');
 
         Route::get('/contacts/simple-list', function () {
             $vendorId = getVendorId();
