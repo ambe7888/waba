@@ -318,7 +318,7 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                                 final group = _filteredGroups[index];
                                 final title = group['title'] ?? 'Sans nom';
                                 final uid = group['_uid'] ?? '';
-                                final count = group['contacts_count'] ?? 0;
+                                final count = group['total_contacts'] ?? group['contacts_count'] ?? 0;
 
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 12.0),

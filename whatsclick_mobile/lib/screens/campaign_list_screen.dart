@@ -476,6 +476,10 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   List<Map<String, dynamic>> _groups = [];
   bool _loadingGroups = true;
 
+  // Step 2: Labels
+  List<Map<String, dynamic>> _labels = [];
+  bool _loadingLabels = true;
+
   // Step 2: Contacts
   List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _filteredContacts = [];
@@ -496,6 +500,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     super.initState();
     _loadAudiences();
     _loadGroups();
+    _loadLabels();
     _loadContacts();
     _loadTemplates();
     _contactsSearchController.addListener(_onSearchChanged);
@@ -517,6 +522,11 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   Future<void> _loadGroups() async {
     final groups = await ApiService().fetchContactGroups();
     if (mounted) setState(() { _groups = groups; _loadingGroups = false; });
+  }
+
+  Future<void> _loadLabels() async {
+    final labels = await ApiService().fetchAllLabels();
+    if (mounted) setState(() { _labels = labels; _loadingLabels = false; });
   }
 
   Future<void> _loadContacts() async {
@@ -983,6 +993,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   void _showCreateAudienceDialog() {
     final titleCtrl = TextEditingController();
     List<String> selectedG = [];
+    List<String> selectedL = [];
     List<String> selectedC = [];
     String contactsSearch = '';
     
@@ -1050,6 +1061,45 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                         );
                       }),
                       const SizedBox(height: 16),
+                      // Labels section
+                      const Text('Étiquettes', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      if (_loadingLabels)
+                        const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(),
+                        )
+                      else if (_labels.isEmpty)
+                        const Text('Aucune étiquette disponible', style: TextStyle(color: Colors.grey))
+                      else
+                        ..._labels.map((l) {
+                          final uid = (l['_uid'] ?? l['uid'] ?? '').toString();
+                          final name = l['title'] ?? l['label_title'] ?? '';
+                          final colorHex = (l['bg_color'] ?? l['color'] ?? '#25D366').replaceAll('#', '');
+                          Color labelColor = Colors.teal;
+                          try {
+                            labelColor = Color(int.parse('FF$colorHex', radix: 16));
+                          } catch (_) {}
+                          final has = selectedL.contains(uid);
+                          return CheckboxListTile(
+                            value: has,
+                            title: Text(name),
+                            secondary: Container(
+                              width: 16, height: 16,
+                              decoration: BoxDecoration(
+                                color: labelColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              setModalState(() {
+                                if (val == true) selectedL.add(uid);
+                                else selectedL.remove(uid);
+                              });
+                            },
+                          );
+                        }),
+                      const SizedBox(height: 16),
                       const Text('Contacts individuels', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
@@ -1104,6 +1154,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                       title: titleCtrl.text.trim(),
                       contacts: selectedC,
                       groups: selectedG,
+                      labels: selectedL,
                     );
                     if (res != null && res['reaction'] == 1) {
                       ScaffoldMessenger.of(context).showSnackBar(

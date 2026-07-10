@@ -57,7 +57,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         setState(() {
           _stats = data;
-          _agents = data?['agents'] ?? [];
+          // Preserve agents list between refreshes so admin always sees agents
+          final newAgents = data?['agents'] as List? ?? [];
+          if (newAgents.isNotEmpty) {
+            _agents = newAgents;
+          }
           // Initialise single label selection
           final List<dynamic> labelStats = data?['label_date_stats'] ?? [];
           if (labelStats.isNotEmpty) {
@@ -342,8 +346,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               );
                             }).toList(),
                             onChanged: (val) {
+                              // Create new list reference to force Flutter rebuild
+                              final newUids = List<String?>.from(_selectedLabelUids);
+                              newUids[index] = val;
                               setState(() {
-                                _selectedLabelUids[index] = val;
+                                _selectedLabelUids = newUids;
                               });
                             },
                           ),
@@ -631,7 +638,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               // Optimistic update: toggle immediately
                                               setState(() => _botActive = value);
                                               final success = await ApiService().toggleBotReply();
-                                              if (!success) {
+                                              if (success) {
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(value ? 'IA Activée' : 'IA Désactivée'),
+                                                      backgroundColor: value ? Colors.green : Colors.orange,
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              } else {
                                                 // Revert if API failed
                                                 setState(() => _botActive = !value);
                                                 if (mounted) {
