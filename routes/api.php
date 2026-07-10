@@ -407,10 +407,7 @@ Route::group([
         Route::get('/contact/mobile-groups', function () {
             $vendorId = getVendorId();
             if (!$vendorId) {
-                return response()->json([
-                    'reaction' => 2,
-                    'message' => 'Non autorisé.'
-                ], 401);
+                return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
             }
             $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
                 ->orderBy('created_at', 'desc')
@@ -431,6 +428,40 @@ Route::group([
                 'data'     => ['groups' => $groups],
             ]);
         })->name('app_api.vendor.contact.read.mobile_group_list');
+
+        // Group contacts (Mobile) - unique path to avoid {vendorUid} wildcard conflict
+        Route::get('/contact/mobile-group-contacts/{groupUid}', function ($groupUid) {
+            $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
+            }
+            $group = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where([
+                '_uid' => $groupUid,
+                'vendors__id' => $vendorId,
+            ])->first();
+            if (!$group) {
+                return response()->json(['reaction' => 2, 'message' => 'Groupe introuvable.']);
+            }
+            $contactIds = \DB::table('group_contacts')
+                ->where('contact_groups__id', $group->_id)
+                ->pluck('contacts__id');
+            $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::whereIn('_id', $contactIds)
+                ->orderBy('first_name', 'asc')
+                ->get()
+                ->map(function ($c) {
+                    return [
+                        '_uid'       => $c->_uid,
+                        'first_name' => $c->first_name,
+                        'last_name'  => $c->last_name,
+                        'wa_id'      => $c->wa_id,
+                        'phone'      => $c->phone,
+                    ];
+                });
+            return response()->json([
+                'reaction' => 1,
+                'data'     => ['contacts' => $contacts],
+            ]);
+        })->name('app_api.vendor.contact.mobile_group_contacts');
 
         Route::get('/contacts/simple-list', function () {
             $vendorId = getVendorId();
@@ -471,6 +502,64 @@ Route::group([
             ContactController::class,
             'apiAssignGroupsToContact',
         ])->name('app_api.vendor.contact.assign_groups.update.process');
+
+        // Contacts by label (Mobile) - direct query without messages join requirement
+        Route::get('/contact/by-label/{labelUid}', function ($labelUid) {
+            $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
+            }
+            $label = \App\Yantrana\Components\Contact\Models\LabelModel::where(function($q) use ($labelUid) {
+                $q->where('_uid', $labelUid)->orWhere('_id', $labelUid);
+            })->where('vendors__id', $vendorId)->first();
+
+            if (!$label) {
+                return response()->json(['reaction' => 2, 'message' => 'Étiquette introuvable.']);
+            }
+
+            $dateFilter = request()->label_date_filter;
+            $startDate  = request()->start_date;
+            $endDate    = request()->end_date;
+
+            $query = \DB::table('contact_labels')
+                ->join('contacts', 'contact_labels.contacts__id', '=', 'contacts._id')
+                ->where('contact_labels.labels__id', $label->_id)
+                ->where('contacts.vendors__id', $vendorId);
+
+            if ($dateFilter === 'today') {
+                $query->whereDate('contact_labels.created_at', \Carbon\Carbon::today());
+            } elseif ($dateFilter === 'yesterday') {
+                $query->whereDate('contact_labels.created_at', \Carbon\Carbon::yesterday());
+            } elseif ($dateFilter === 'day_before') {
+                $query->whereDate('contact_labels.created_at', \Carbon\Carbon::today()->subDays(2));
+            } elseif ($dateFilter === 'custom' && !empty($startDate) && !empty($endDate)) {
+                $query->whereBetween('contact_labels.created_at', [
+                    \Carbon\Carbon::parse($startDate)->startOfDay(),
+                    \Carbon\Carbon::parse($endDate)->endOfDay()
+                ]);
+            }
+
+            $contacts = $query->select(
+                'contacts._uid',
+                'contacts.first_name',
+                'contacts.last_name',
+                'contacts.wa_id',
+                'contacts.phone'
+            )->orderBy('contacts.first_name')->get()->map(function($c) {
+                return [
+                    '_uid'       => $c->_uid,
+                    'first_name' => $c->first_name,
+                    'last_name'  => $c->last_name,
+                    'wa_id'      => $c->wa_id,
+                    'phone'      => $c->phone,
+                ];
+            });
+
+            return response()->json([
+                'reaction' => 1,
+                'data'     => ['contacts' => $contacts, 'total' => count($contacts)],
+            ]);
+        })->name('app_api.vendor.contact.by_label');
 
         // Block contact
         Route::post('/whatsapp/contact/{contactIdOrUid}/block-process', [

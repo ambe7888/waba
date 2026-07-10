@@ -6,6 +6,7 @@ import '../services/theme_service.dart';
 import '../config/app_config.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'contacts_screen.dart';
+import 'label_contacts_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -428,12 +429,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ContactsScreen(
-          initialLabelFilter: labelUid,
-          initialLabelDateFilter: dateFilter,
-          initialStartDate: startStr,
-          initialEndDate: endStr,
-          initialAssignedFilter: _selectedAgentId,
+        builder: (_) => LabelContactsScreen(
+          labelUid: labelUid,
+          dateFilter: dateFilter,
+          startDate: startStr,
+          endDate: endStr,
         ),
       ),
     );

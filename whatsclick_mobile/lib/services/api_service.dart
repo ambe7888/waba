@@ -29,6 +29,13 @@ class ApiService {
 
   bool get isAuthenticated => _token != null;
 
+  /// Returns the current auth token (for screens that need it directly)
+  Future<String?> getToken() async {
+    if (_token != null) return _token;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
   int _parseNextPage(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
@@ -1304,7 +1311,7 @@ class ApiService {
 
   /// Fetch contacts belonging to a specific group
   Future<List<Contact>> fetchGroupContacts(String groupUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/groups/$groupUid/contacts');
+    final url = Uri.parse('${baseApiUrl}vendor/contact/mobile-group-contacts/$groupUid');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
