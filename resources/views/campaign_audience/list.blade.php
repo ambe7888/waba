@@ -10,19 +10,19 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
     'class' => 'col-lg-7'
 ])
 
-<div class="container-fluid mt--7">
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800">
-        <?= __tr('Audiences de Campagne') ?>
-    </h1>
-    <!-- Action buttons -->
-    @if($hasManageAccess)
-    <button type="button" class="btn btn-primary btn-sm lw-btn" data-toggle="modal" data-target="#lwCreateAudienceModal">
-        <i class="fa fa-plus"></i> <?= __tr('Créer une Audience') ?>
-    </button>
-    @endif
-</div>
+<div class="container-fluid mt-lg--6">
+    <div class="row">
+        <!-- button -->
+        <div class="col-xl-12 mb-3">
+            <div class="float-right">
+                @if($hasManageAccess)
+                <button type="button" class="btn btn-primary btn-sm lw-btn" data-toggle="modal" data-target="#lwCreateAudienceModal">
+                    <i class="fa fa-plus"></i> <?= __tr('Créer une Audience') ?>
+                </button>
+                @endif
+            </div>
+        </div>
+    </div>
 
 <!-- Datatable Container -->
 <div class="row">
@@ -31,9 +31,9 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             <div class="card-body">
                 <x-lw.datatable id="lwAudienceList" :url="route('vendor.campaign_audience.read.list')">
                     <th data-orderable="true" data-name="title"><?= __tr('Titre') ?></th>
-                    <th data-orderable="false" data-name="contacts"><?= __tr('Contacts (IDs)') ?></th>
-                    <th data-orderable="false" data-name="groups"><?= __tr('Groupes (IDs)') ?></th>
-                    <th data-orderable="false" data-name="labels"><?= __tr('Étiquettes (IDs)') ?></th>
+                    <th data-orderable="false" data-name="contacts_formatted"><?= __tr('Contacts') ?></th>
+                    <th data-orderable="false" data-name="groups_formatted"><?= __tr('Groupes') ?></th>
+                    <th data-orderable="false" data-name="labels_formatted"><?= __tr('Étiquettes') ?></th>
                     <th data-orderable="true" data-name="created_at"><?= __tr('Créé le') ?></th>
                     <th data-template="#audienceActionsTemplate" data-name="_uid"><?= __tr('Actions') ?></th>
                 </x-lw.datatable>
@@ -50,7 +50,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         </button>
         <div class="dropdown-menu dropdown-menu-right">
             @if($hasManageAccess)
-            <a class="dropdown-item lw-ajax-link-action" href="#" onclick="editAudience('<%- __tData._uid %>', '<%- __tData.title %>', '<%- __tData.contacts || [] %>', '<%- __tData.groups || [] %>', '<%- __tData.labels || [] %>'); return false;"><i class="fa fa-edit"></i> <?= __tr('Modifier') ?></a>
+            <a class="dropdown-item lw-ajax-link-action" href="#" onclick="editAudience('<%- __tData._uid %>', '<%- __tData.title %>', <%- JSON.stringify(__tData.contacts_raw) %>, <%- JSON.stringify(__tData.groups_raw) %>, <%- JSON.stringify(__tData.labels_raw) %>); return false;"><i class="fa fa-edit"></i> <?= __tr('Modifier') ?></a>
             <a data-method="post" href="<%= __Utils.apiURL('{{ route('vendor.campaign_audience.write.delete', ['audienceUid' => 'audienceUid']) }}', {'audienceUid': __tData._uid}) %>" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwDeleteAudience-template"><i class="fa fa-trash text-danger"></i> <?= __tr('Supprimer') ?></a>
             @endif
         </div>
@@ -80,19 +80,31 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     </div>
 
                     <div class="form-group">
-                        <label for="contacts"><?= __tr('Contacts Individuels (IDs séparés par virgule)') ?></label>
-                        <input type="text" name="contacts" id="contacts" class="form-control">
-                        <small><?= __tr('Laissez vide si vous utilisez des groupes ou étiquettes') ?></small>
+                        <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
+                        <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize">
+                            @foreach($contacts as $contact)
+                                <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
+                            @endforeach
+                        </select>
+                        <small><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
                     </div>
 
                     <div class="form-group">
-                        <label for="groups"><?= __tr('Groupes de contacts (IDs séparés par virgule)') ?></label>
-                        <input type="text" name="groups" id="groups" class="form-control">
+                        <label for="groups"><?= __tr('Groupes de contacts') ?></label>
+                        <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize">
+                            @foreach($groups as $group)
+                                <option value="{{ $group->_id }}">{{ $group->title }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="labels"><?= __tr('Étiquettes (IDs séparés par virgule)') ?></label>
-                        <input type="text" name="labels" id="labels" class="form-control">
+                        <label for="labels"><?= __tr('Étiquettes') ?></label>
+                        <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize">
+                            @foreach($labels as $label)
+                                <option value="{{ $label->_id }}">{{ $label->title }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -117,9 +129,31 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let form = $('#audienceForm');
         form.attr('action', "{{ route('vendor.campaign_audience.write.process') }}/" + uid);
         form.find('#title').val(title);
-        form.find('#contacts').val(Array.isArray(contacts) ? contacts.join(',') : contacts);
-        form.find('#groups').val(Array.isArray(groups) ? groups.join(',') : groups);
-        form.find('#labels').val(Array.isArray(labels) ? labels.join(',') : labels);
+
+        let parseItems = function(data) {
+            if (!data) return [];
+            if (Array.isArray(data)) return data.map(String);
+            if (typeof data === 'string') {
+                if (data.startsWith('[') && data.endsWith(']')) {
+                    try {
+                        return JSON.parse(data).map(String);
+                    } catch(e) {}
+                }
+                return data.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [String(data)];
+        };
+
+        if(form.find('#contacts')[0].selectize) {
+            form.find('#contacts')[0].selectize.setValue(parseItems(contacts));
+        }
+        if(form.find('#groups')[0].selectize) {
+            form.find('#groups')[0].selectize.setValue(parseItems(groups));
+        }
+        if(form.find('#labels')[0].selectize) {
+            form.find('#labels')[0].selectize.setValue(parseItems(labels));
+        }
+        
         $('#lwCreateAudienceModal').modal('show');
     }
 
@@ -127,6 +161,15 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let form = $('#audienceForm');
         form.attr('action', "{{ route('vendor.campaign_audience.write.process') }}");
         form.trigger('reset');
+        if(form.find('#contacts')[0].selectize) {
+            form.find('#contacts')[0].selectize.clear();
+        }
+        if(form.find('#groups')[0].selectize) {
+            form.find('#groups')[0].selectize.clear();
+        }
+        if(form.find('#labels')[0].selectize) {
+            form.find('#labels')[0].selectize.clear();
+        }
     });
 </script>
 @endpush

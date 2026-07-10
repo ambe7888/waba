@@ -33,9 +33,25 @@ class CampaignAudienceRepository extends BaseRepository
                 'title',
             ]
         ];
-        return CampaignAudienceModel::where('vendors__id', getVendorId())
+        $data = CampaignAudienceModel::where('vendors__id', getVendorId())
             ->dataTables($dataTableConfig)
             ->toArray();
+
+        if (!empty($data['data'])) {
+            foreach ($data['data'] as &$row) {
+                // Keep originals for edit (mapped to numeric/string values)
+                $row['contacts_raw'] = $row['contacts'] ?: [];
+                $row['groups_raw'] = $row['groups'] ?: [];
+                $row['labels_raw'] = $row['labels'] ?: [];
+
+                // Display formats
+                $row['contacts_formatted'] = !empty($row['contacts']) ? count($row['contacts']) . ' contact(s)' : '0 contact';
+                $row['groups_formatted'] = !empty($row['groups']) ? count($row['groups']) . ' groupe(s)' : '0 groupe';
+                $row['labels_formatted'] = !empty($row['labels']) ? count($row['labels']) . ' étiquette(s)' : '0 étiquette';
+            }
+        }
+
+        return $data;
     }
 
     /**
