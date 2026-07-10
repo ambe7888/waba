@@ -523,4 +523,56 @@ class SupportTicketController extends BaseController
 
         return response()->download($path, $data['attachment']['file_name']);
     }
+
+    /**
+     * Delete ticket and its replies and attachments.
+     */
+    public function destroy($uid)
+    {
+        $ticket = TicketModel::where('_uid', $uid)->firstOrFail();
+        
+        if (!hasCentralAccess() && $ticket->vendors__id != getVendorId()) {
+            abort(403);
+        }
+
+        // Delete ticket attachments if any
+        $ticketData = $ticket->__data ?? [];
+        if (!empty($ticketData['attachment']['file_path'])) {
+            $path = storage_path('app/public/' . $ticketData['attachment']['file_path']);
+            if (file_exists($path)) {
+                @unlink($path);
+            }
+        }
+
+        // Delete replies and their attachments
+        $replies = TicketReplyModel::where('tickets__id', $ticket->_id)->get();
+        foreach ($replies as $reply) {
+            $replyData = $reply->__data ?? [];
+            if (!empty($replyData['attachments'])) {
+                foreach ($replyData['attachments'] as $attachment) {
+                    if (!empty($attachment['file_path'])) {
+                        $path = storage_path('app/public/' . $attachment['file_path']);
+                        if (file_exists($path)) {
+                            @unlink($path);
+                        }
+                    }
+                }
+            }
+            if (!empty($replyData['attachment']['file_path'])) {
+                $path = storage_path('app/public/' . $replyData['attachment']['file_path']);
+                if (file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+            $reply->delete();
+        }
+
+        // Detach labels
+        $ticket->labels()->detach();
+
+        // Delete ticket
+        $ticket->delete();
+
+        return redirect()->route('support_ticket.index')->with('success', 'Ticket deleted successfully.');
+    }
 }
