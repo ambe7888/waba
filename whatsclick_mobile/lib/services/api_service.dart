@@ -1094,7 +1094,7 @@ class ApiService {
 
   /// Fetch contact groups
   Future<List<Map<String, dynamic>>> fetchContactGroups() async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/groups');
+    final url = Uri.parse('${baseApiUrl}vendor/contact/mobile-groups');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
       if (debug) debugPrint('fetchContactGroups status: ${response.statusCode}');
