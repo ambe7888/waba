@@ -1852,9 +1852,7 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
         }
 
         if ($this->contactRepository->updateIt($contact, [
-            '__data' => [
-                'contact_notes' => $request->contact_notes ?: '',
-            ]
+            '__data->contact_notes' => $request->contact_notes ?: '',
         ])) {
             return $this->engineSuccessResponse([], __tr('Notes updated'));
         }

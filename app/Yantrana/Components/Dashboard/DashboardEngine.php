@@ -273,9 +273,9 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'labels.title as label_title',
             'labels.text_color',
             'labels.bg_color',
-            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$today->toDateString()}' THEN 1 ELSE 0 END) as count_today"),
-            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$yesterday->toDateString()}' THEN 1 ELSE 0 END) as count_yesterday"),
-            \DB::raw("SUM(CASE WHEN contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$dayBeforeYesterday->toDateString()}' THEN 1 ELSE 0 END) as count_day_before"),
+            \DB::raw("SUM(CASE WHEN contacts._id IS NOT NULL AND contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$today->toDateString()}' THEN 1 ELSE 0 END) as count_today"),
+            \DB::raw("SUM(CASE WHEN contacts._id IS NOT NULL AND contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$yesterday->toDateString()}' THEN 1 ELSE 0 END) as count_yesterday"),
+            \DB::raw("SUM(CASE WHEN contacts._id IS NOT NULL AND contact_labels.created_at IS NOT NULL AND DATE(contact_labels.created_at) = '{$dayBeforeYesterday->toDateString()}' THEN 1 ELSE 0 END) as count_day_before"),
             \DB::raw("COUNT(contacts._id) as count_total")
         )->groupBy('labels._id', 'labels._uid', 'labels.title', 'labels.text_color', 'labels.bg_color');
 

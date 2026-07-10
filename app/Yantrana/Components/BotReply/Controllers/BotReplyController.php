@@ -101,7 +101,12 @@ class BotReplyController extends BaseController
      */
     public function apiIndex()
     {
-        validateVendorAccess('manage_bot_replies');
+        if (!hasVendorAccess('manage_bot_replies')) {
+            return $this->processResponse(1, [], [
+                'bot_replies' => [],
+                'trigger_types' => configItem('bot_reply_trigger_types')
+            ]);
+        }
         $vendorId = getVendorId();
         
         if (!$vendorId) {

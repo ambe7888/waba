@@ -18,10 +18,7 @@
     selectedTemplate: '',
     selectedNonTemplatePresetMessage: '',
     campaignTitle: '',
-    contactGroup: '',
-    labelTags: [],
-    contactGroupIds: [],
-    labelTagIds: [],
+    audienceUid: '',
     restrictByTemplatedContactLanguage: '',
     campaignTimeZone: '{{ getVendorSettings('timezone') }}',
     scheduleAt: '',
@@ -44,8 +41,7 @@
 
         var self = this;
         __DataRequest.post('{{ route('vendor.campaign.read.targeted_contact_count') }}', {
-                'group_contact_ids': this.contactGroupIds,
-                'label_ids': this.labelTagIds,
+                'audience_uid': this.audienceUid,
                 'restrict_by_language': this.restrictByTemplatedContactLanguage,
                 'template_id': this.selectedTemplate
             }, function(responseData) {
@@ -212,32 +208,24 @@
                                         </button>
                                     </x-slot>
                                 </x-lw.input-field>
-                                 <fieldset class="shadow-none">
-                                    <legend>{{  __tr('Target Contacts') }}</legend>
-                                    {{-- select group --}}
-                                 <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectGroupsField"
-                                 data-form-group-class="" data-selected=" " :label="__tr('Groups/Contact')" name="contact_group[]" multiple>
-                                 <x-slot name="selectOptions">
-                                     <option value="">{{ __tr('Select Contacts Group') }}</option>
-                                     <option value="all_contacts">{{ __tr('All Contacts') }}</option>
-                                     @foreach($vendorContactGroups as $vendorContactGroup)
-                                     <option value="{{ $vendorContactGroup['_id'] }}">{{ $vendorContactGroup['title'] }}</option>
-                                     @endforeach
-                                 </x-slot>
-                             </x-lw.input-field>
-                             <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
-                                     {{-- /select group --}}
-                                     @if (isset($allLabels) && count($allLabels) > 0)
-                                     <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="" name="contact_labels[]" multiple >
-                                        <x-slot name="selectOptions">
-                                        <option value="">{{ __tr('Select Labels') }}</option>
-                                            @foreach($allLabels as $label)
-                                                <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
-                                            @endforeach
-                                        </x-slot>
-                                    </x-lw.input-field>
-                                     @endif
-                                      <!-- Restrict by Template Language field -->
+                                     <fieldset class="shadow-none">
+                                        <legend>{{  __tr('Audience Cible') }}</legend>
+                                        {{-- select audience --}}
+                                        <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectAudiencesField"
+                                        data-form-group-class="" data-selected=" " :label="__tr('Audience')" name="audience_uid" required="required">
+                                            <x-slot name="selectOptions">
+                                                <option value="">{{ __tr('Sélectionnez une Audience') }}</option>
+                                                @if(isset($vendorAudiences))
+                                                    @foreach($vendorAudiences as $vendorAudience)
+                                                    <option value="{{ $vendorAudience['_uid'] }}">{{ $vendorAudience['title'] }}</option>
+                                                    @endforeach
+                                                @endif
+                                            </x-slot>
+                                        </x-lw.input-field>
+                                        <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
+                                        {{-- /select audience --}}
+                                        
+                                        <!-- Restrict by Template Language field -->
                                     <div class="form-group pt-3">
                                         <label for="lwOnlyForTemplateLanguageMatchingContact">
                                             <input type="checkbox" id="lwOnlyForTemplateLanguageMatchingContact" data-lw-plugin="lwSwitchery" data-color="#ff0000" 
@@ -394,40 +382,11 @@
                         const lwCreateNewCampaignContainer = document.getElementById('lwCreateNewCampaignContainer');
                         var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
 
-                        // Track change event on contact group selectize
-                        if (!_.isUndefined($('#lwSelectGroupsField')[0])) {
-                            const groupSelectize = $('#lwSelectGroupsField')[0].selectize;
-                            groupSelectize.on('change', function(value) {
-
-                                if (value.includes('all_contacts')) {
-                                    // Force single selection
-                                    this.clear(true);
-                                    this.addItem('all_contacts', true);
-                                    this.settings.maxItems = 1;
-                                    campaignData.contactGroup = 'all_contacts';
-                                    campaignData.contactGroupIds.push('all_contacts');
-                                } else {
-                                    // Normal multi select
-                                    this.settings.maxItems = null;
-                                    const selectedTexts = this.items
-                                        .map(v => this.options[v]?.text)
-                                        .filter(Boolean)
-                                        .join(',');
-                                    campaignData.contactGroup = selectedTexts;
-                                    campaignData.contactGroupIds = value;
-                                }
-                            });
-                        }
-                        
-                        // Track change event on labels
-                        if (!_.isUndefined($('#lwAssignLabelsField')[0])) {
-                            const lwAssignLabelsField = $('#lwAssignLabelsField')[0].selectize;
-                            lwAssignLabelsField.on('change', function(values) {
-                                var labels = values
-                                        .map(v => lwAssignLabelsField.options[v]?.text)
-                                        .filter(Boolean);
-                                campaignData.labelTags = labels;
-                                campaignData.labelTagIds = values;
+                        // Track change event on audience selectize
+                        if (!_.isUndefined($('#lwSelectAudiencesField')[0])) {
+                            const audienceSelectize = $('#lwSelectAudiencesField')[0].selectize;
+                            audienceSelectize.on('change', function(value) {
+                                campaignData.audienceUid = value;
                             });
                         }
                         

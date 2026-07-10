@@ -415,6 +415,13 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                     {{ __tr('Standard Campaigns') }}
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ markAsActiveLink('vendor.campaign_audience.read.list_view') }}"
+                                    href="{{ route('vendor.campaign_audience.read.list_view') }}">
+                                    <i class="fa fa-users text-primary"></i>
+                                    {{ __tr('Audiences') }}
+                                </a>
+                            </li>
                             @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
                             <li class="nav-item">
                                 <a class="nav-link {{ markAsActiveLink('addon.WhatsJetDripCampaignAddon.index') }}"
