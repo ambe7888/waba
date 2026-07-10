@@ -1098,20 +1098,39 @@ class ApiService {
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
       if (debug) debugPrint('fetchContactGroups status: ${response.statusCode}');
-      if (debug) debugPrint('fetchContactGroups body: ${response.body.substring(0, response.body.length.clamp(0, 500))}');
+      // Log FULL body to diagnose production issue
+      if (debug) debugPrint('fetchContactGroups FULL body: ${response.body}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
           final data = body['data'];
-          // Inline route returns 'groups' key directly
-          dynamic list = data?['groups']              // new inline route
-              ?? data?['contactList']?['data']        // old paginated
+          // Try every possible key structure
+          dynamic list = data?['groups']              // inline route
+              ?? data?['contactList']?['data']        // paginated old route
               ?? data?['contactList']                 // plain array
               ?? data?['contactGroups']?['data']
               ?? data?['contactGroups']
               ?? data?['data'];
+          if (debug) debugPrint('fetchContactGroups resolved list type: ${list?.runtimeType}, length: ${list is List ? (list as List).length : "N/A"}');
           if (list is List) {
             return List<Map<String, dynamic>>.from(list);
+          }
+          // Last resort: search all values in data for a List
+          if (data is Map) {
+            for (final val in data.values) {
+              if (val is List && val.isNotEmpty) {
+                if (debug) debugPrint('fetchContactGroups found list in data values: length ${val.length}');
+                try { return List<Map<String, dynamic>>.from(val); } catch (_) {}
+              }
+              if (val is Map) {
+                for (final innerVal in val.values) {
+                  if (innerVal is List && innerVal.isNotEmpty) {
+                    if (debug) debugPrint('fetchContactGroups found nested list: length ${innerVal.length}');
+                    try { return List<Map<String, dynamic>>.from(innerVal); } catch (_) {}
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1138,6 +1157,27 @@ class ApiService {
       return [];
     } catch (e) {
       if (debug) debugPrint('Fetch Audiences Error: $e');
+      return [];
+    }
+  }
+
+  /// Fetch all available contact labels for audience creation
+  Future<List<Map<String, dynamic>>> fetchAllLabels() async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/labels-tags');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['labels'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch All Labels Error: $e');
       return [];
     }
   }
