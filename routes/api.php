@@ -580,6 +580,16 @@ Route::group([
             CampaignController::class,
             'prepareCampaignList',
         ])->name('app_api.vendor.campaign.read.list');
+        // Campaign Audiences Mobile API Routes
+        Route::get('/whatsapp/audiences/list-data', [
+            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+            'prepareAudienceDataTable'
+        ])->name('app_api.vendor.campaign_audience.list');
+        Route::post('/whatsapp/audiences/create', [
+            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+            'processAddOrUpdate'
+        ])->name('app_api.vendor.campaign_audience.create');
+
         // Campaign list for mobile app (clean JSON)
         Route::get('/campaign-list', [
             CampaignController::class,

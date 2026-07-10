@@ -465,11 +465,15 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   DateTime? _scheduledAt;
 
   // Step 2 General
-  String _audienceType = 'groups'; // 'groups' or 'contacts'
+  String _audienceType = 'audiences'; // 'audiences' or 'contacts'
 
-  // Step 2: Groups
+  // Step 2: Audiences
+  List<Map<String, dynamic>> _audiences = [];
+  String? _selectedAudienceUid;
+  bool _loadingAudiences = true;
+
+  // Step 2: Groups (needed for creating audience)
   List<Map<String, dynamic>> _groups = [];
-  List<String> _selectedGroupUids = [];
   bool _loadingGroups = true;
 
   // Step 2: Contacts
@@ -490,6 +494,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   @override
   void initState() {
     super.initState();
+    _loadAudiences();
     _loadGroups();
     _loadContacts();
     _loadTemplates();
@@ -502,6 +507,11 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     _contactsSearchController.dispose();
     for (var c in _varControllers) c.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAudiences() async {
+    final audiences = await ApiService().fetchAudiences();
+    if (mounted) setState(() { _audiences = audiences; _loadingAudiences = false; });
   }
 
   Future<void> _loadGroups() async {
@@ -551,7 +561,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   Future<void> _submit() async {
     if (_selectedTemplateUid == null) return;
-    if (_audienceType == 'groups' && _selectedGroupUids.isEmpty) return;
+    if (_audienceType == 'audiences' && _selectedAudienceUid == null) return;
     if (_audienceType == 'contacts' && _selectedContactUids.isEmpty) return;
     setState(() => _isSubmitting = true);
 
@@ -564,7 +574,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
       'title': _titleController.text.trim(),
       'template_uid': _selectedTemplateUid,
       'timezone': 'Africa/Douala', // Standard default expected by API
-      if (_audienceType == 'groups') 'group_uids': _selectedGroupUids,
+      if (_audienceType == 'audiences') 'audience_uid': _selectedAudienceUid,
       if (_audienceType == 'contacts') 'contact_uids': _selectedContactUids,
       if (_scheduledAt != null) 'scheduled_at': _scheduledAt!.toIso8601String(),
       ...vars,
@@ -659,9 +669,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                           return;
                         }
                         if (_step == 1) {
-                          if (_audienceType == 'groups' && _selectedGroupUids.isEmpty) {
+                          if (_audienceType == 'audiences' && _selectedAudienceUid == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sélectionnez au moins un groupe.')));
+                              const SnackBar(content: Text('Sélectionnez une audience.')));
                             return;
                           }
                           if (_audienceType == 'contacts' && _selectedContactUids.isEmpty) {
@@ -762,19 +772,19 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
             children: [
               Expanded(
                 child: InkWell(
-                  onTap: () => setState(() => _audienceType = 'groups'),
+                  onTap: () => setState(() => _audienceType = 'audiences'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: _audienceType == 'groups' ? ThemeService.primaryColor : Colors.transparent,
+                      color: _audienceType == 'audiences' ? ThemeService.primaryColor : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
                       child: Text(
-                        'Groupes',
+                        'Audiences',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _audienceType == 'groups' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                          color: _audienceType == 'audiences' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
                         ),
                       ),
                     ),
@@ -808,43 +818,62 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
         // Display list based on type
         Expanded(
-          child: _audienceType == 'groups'
-              ? _buildGroupsList()
+          child: _audienceType == 'audiences'
+              ? _buildAudiencesList()
               : _buildContactsList(),
         ),
       ],
     );
   }
 
-  Widget _buildGroupsList() {
-    if (_loadingGroups) return const Center(child: CircularProgressIndicator());
-    if (_groups.isEmpty) {
-      return const Center(child: Text('Aucun groupe de contacts trouvé.'));
-    }
-    return ListView.builder(
-      itemCount: _groups.length,
-      itemBuilder: (_, i) {
-        final g = _groups[i];
-        final uid = (g['_uid'] ?? g['uid'] ?? '').toString();
-        final name = g['title'] ?? g['name'] ?? 'Groupe $i';
-        final count = g['total_contacts'] ?? g['contacts_count'] ?? '';
-        final selected = _selectedGroupUids.contains(uid);
-        return CheckboxListTile(
-          value: selected,
-          onChanged: (val) {
-            setState(() {
-              if (val == true) _selectedGroupUids.add(uid);
-              else _selectedGroupUids.remove(uid);
-            });
-          },
-          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: count.toString().isNotEmpty ? Text('$count contacts') : null,
-          secondary: CircleAvatar(
-            backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.15),
-            child: Icon(Icons.group_rounded, color: ThemeService.primaryColor, size: 20),
+  Widget _buildAudiencesList() {
+    if (_loadingAudiences) return const Center(child: CircularProgressIndicator());
+    return Column(
+      children: [
+        // Create Audience Button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              minimumSize: const Size(double.infinity, 45),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: _showCreateAudienceDialog,
+            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            label: const Text('Créer une nouvelle Audience', style: TextStyle(color: Colors.white)),
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: _audiences.isEmpty
+              ? const Center(child: Text('Aucune audience de campagne trouvée.'))
+              : ListView.builder(
+                  itemCount: _audiences.length,
+                  itemBuilder: (_, i) {
+                    final a = _audiences[i];
+                    final uid = (a['_uid'] ?? a['uid'] ?? '').toString();
+                    final title = a['title'] ?? 'Audience $i';
+                    final contactsText = a['contacts_formatted'] ?? '';
+                    final selected = _selectedAudienceUid == uid;
+                    return RadioListTile<String>(
+                      value: uid,
+                      groupValue: _selectedAudienceUid,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedAudienceUid = val;
+                        });
+                      },
+                      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: contactsText.isNotEmpty ? Text(contactsText) : null,
+                      secondary: CircleAvatar(
+                        backgroundColor: Colors.teal.withValues(alpha: 0.15),
+                        child: const Icon(Icons.people_alt_rounded, color: Colors.teal, size: 20),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
@@ -949,5 +978,154 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
         )),
       ],
     ]);
+  }
+
+  void _showCreateAudienceDialog() {
+    final titleCtrl = TextEditingController();
+    List<String> selectedG = [];
+    List<String> selectedC = [];
+    String contactsSearch = '';
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final isDark = ThemeService().isDark;
+          final filtered = _contacts.where((c) {
+            final name = (c['name'] ?? '').toString().toLowerCase();
+            final waId = (c['wa_id'] ?? '').toString().toLowerCase();
+            final query = contactsSearch.toLowerCase();
+            return name.contains(query) || waId.contains(query);
+          }).toList();
+
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              top: 20, left: 16, right: 16,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            height: MediaQuery.of(context).size.height * 0.8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Nouvelle Audience', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Nom de l\'audience *',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      const Text('Groupes de contacts', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ..._groups.map((g) {
+                        final uid = (g['_uid'] ?? g['uid'] ?? '').toString();
+                        final name = g['title'] ?? g['name'] ?? '';
+                        final has = selectedG.contains(uid);
+                        return CheckboxListTile(
+                          value: has,
+                          title: Text(name),
+                          onChanged: (val) {
+                            setModalState(() {
+                              if (val == true) selectedG.add(uid);
+                              else selectedG.remove(uid);
+                            });
+                          },
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                      const Text('Contacts individuels', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher un contact...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        onChanged: (val) {
+                          setModalState(() {
+                            contactsSearch = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      ...filtered.map((c) {
+                        final uid = (c['_uid'] ?? c['uid'] ?? '').toString();
+                        final name = c['name'] ?? 'Sans nom';
+                        final waId = c['wa_id'] ?? '';
+                        final has = selectedC.contains(uid);
+                        return CheckboxListTile(
+                          value: has,
+                          title: Text(name),
+                          subtitle: Text(waId),
+                          onChanged: (val) {
+                            setModalState(() {
+                              if (val == true) selectedC.add(uid);
+                              else selectedC.remove(uid);
+                            });
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeService.primaryColor,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () async {
+                    if (titleCtrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Veuillez saisir un nom d\'audience')),
+                      );
+                      return;
+                    }
+                    final res = await ApiService().createAudience(
+                      title: titleCtrl.text.trim(),
+                      contacts: selectedC,
+                      groups: selectedG,
+                    );
+                    if (res != null && res['reaction'] == 1) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Audience créée avec succès !'), backgroundColor: Colors.green),
+                      );
+                      Navigator.pop(context);
+                      _loadAudiences();
+                    } else {
+                      final msg = res?['message'] ?? 'Erreur lors de la création de l\'audience';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Enregistrer l\'Audience', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
