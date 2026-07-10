@@ -97,6 +97,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Color _parseColor(String? colorHex) {
+    if (colorHex == null || colorHex.isEmpty) return Colors.grey;
+    String hex = colorHex.replaceAll('#', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex';
+    }
+    return Color(int.parse(hex, radix: 16));
+  }
+
   Widget _buildFilterBar() {
     final isDark = ThemeService().isDark;
     final isAdmin = _roleId == 2;

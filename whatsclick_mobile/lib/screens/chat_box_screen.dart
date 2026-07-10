@@ -1430,7 +1430,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           IconButton(
             icon: Icon(Icons.refresh_rounded, size: 20),
             tooltip: 'Rafraîchir',
-            onPressed: () => _loadChatHistory(reset: true),
+            onPressed: () => _loadMessages(),
           ),
           IconButton(
             icon: Icon(Icons.phone_rounded, size: 20),
