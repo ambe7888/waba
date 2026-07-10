@@ -1122,6 +1122,56 @@ class ApiService {
     }
   }
 
+  /// Fetch campaign audiences
+  Future<List<Map<String, dynamic>>> fetchAudiences() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (debug) debugPrint('fetchAudiences status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final list = body['data'] as List?;
+        if (list != null) {
+          return List<Map<String, dynamic>>.from(list);
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Audiences Error: $e');
+      return [];
+    }
+  }
+
+  /// Create a campaign audience
+  Future<Map<String, dynamic>?> createAudience({
+    required String title,
+    List<String>? contacts,
+    List<String>? groups,
+    List<String>? labels,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/create');
+    try {
+      final payload = {
+        'title': title,
+        'contacts': contacts ?? [],
+        'groups': groups ?? [],
+        'labels': labels ?? [],
+      };
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Create Audience Error: $e');
+      return null;
+    }
+  }
+
   /// Fetch simple non-paginated contact list for campaign wizard targeting
   Future<List<Map<String, dynamic>>> fetchSimpleContactsList() async {
     final url = Uri.parse('${baseApiUrl}vendor/contacts/simple-list');
