@@ -665,8 +665,30 @@ Route::middleware([
                 ])->name('vendor.read.message.data');
               
 
-                Route::prefix('/campaign')->group(function () {
+                    // Campaign Audiences
+                    Route::prefix('/audiences')->group(function () {
+                        Route::get('/list', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'showAudienceView',
+                        ])->name('vendor.campaign_audience.read.list_view');
 
+                        Route::get('/list-data', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'prepareAudienceDataTable',
+                        ])->name('vendor.campaign_audience.read.list');
+
+                        Route::post('/process/{audienceUid?}', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'processAddOrUpdate',
+                        ])->name('vendor.campaign_audience.write.process');
+
+                        Route::post('/{audienceUid}/delete', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'processDelete',
+                        ])->name('vendor.campaign_audience.write.delete');
+                    });
+
+                Route::prefix('/campaign')->group(function () {
                     Route::get('/new/{campaignType?}', [
                         WhatsAppServiceController::class,
                         'createNewCampaign',

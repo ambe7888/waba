@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   late final StreamSubscription<RemoteMessage> _fcmSubscription;
   Timer? _pollingTimer;
+  Timer? _searchDebouncer;
 
   // Label filter state
   String? _selectedLabelFilter;
@@ -57,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _loadContacts();
     _checkUpdate();
-    _searchController.addListener(_applyFilters);
+    _searchController.addListener(_onSearchChanged);
     
 
     // Initialize FCM for push notifications
@@ -162,12 +163,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     try {
-      final data = await ApiService().fetchContacts(
-        page: _nextPage > 0 ? _nextPage : 1,
+      final result = await ApiService().fetchContacts(
+        page: 1,
         assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+        search: _searchController.text,
       );
-      if (!mounted) return;
-
+      final data = result;
+      if (data.isEmpty) return;
       final List<Contact> loaded = data['contacts'] ?? [];
       final next = _parseNextPage(data['nextPage']);
       
@@ -218,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final result = await ApiService().fetchContacts(
       page: _nextPage,
       assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+      search: _searchController.text,
     );
     final List<Contact> loaded = result['contacts'] as List<Contact>;
     final int next = _parseNextPage(result['nextPage']);
@@ -239,6 +242,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _isLoadingMore = false;
     });
     _applyFilters();
+  }
+
+  void _onSearchChanged() {
+    if (_searchDebouncer?.isActive ?? false) _searchDebouncer!.cancel();
+    _searchDebouncer = Timer(const Duration(milliseconds: 500), () {
+      _loadContacts(reset: true);
+    });
   }
 
   void _applyFilters() {
@@ -496,10 +506,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _searchController.dispose();
-    
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
+    _searchDebouncer?.cancel();
+    _searchController.dispose();
     _fadeController.dispose();
     super.dispose();
   }

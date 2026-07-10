@@ -1428,6 +1428,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           )
         else ...[
           IconButton(
+            icon: Icon(Icons.refresh_rounded, size: 20),
+            tooltip: 'Rafraîchir',
+            onPressed: () => _loadChatHistory(reset: true),
+          ),
+          IconButton(
             icon: Icon(Icons.phone_rounded, size: 20),
             tooltip: 'Appeler',
             onPressed: _makePhoneCall,

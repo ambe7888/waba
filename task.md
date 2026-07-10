@@ -1,0 +1,28 @@
+# Liste des tâches - Implémentation des 11 points
+
+- [x] **1. Notes rapide non fonctionnel**
+  - [x] Mettre à jour `ContactEngine.php` (`processUpdateNotes`) pour utiliser la syntaxe JSON `__data->contact_notes` afin de ne pas écraser les autres données.
+- [x] **2. Groupe de contacts non fonctionnel**
+  - [x] Dans `api_service.dart` (`assignGroupsToContact`), ajouter `selected_contacts` et `selected_groups` au payload.
+- [x] **3. Ajouter Déconnexion avec confirmation**
+  - [x] Modifier `account_screen.dart` (et potentiellement `home_screen.dart`) pour afficher un `AlertDialog` de confirmation avant le logout.
+- [x] **4. Liste des Réponses du bot non visible dans les paramètres**
+  - [x] Vérifier/corriger `bot_replies_screen.dart` et s'assurer que l'appel API récupère les bonnes données.
+- [x] **5. Créateur de campagne avec "Audience"**
+  - [x] Migration Backend (création table `audiences`, `audience_contacts`).
+  - [x] Création du CRUD Web pour Audiences.
+  - [x] Refactor Web : Créateur de campagnes (utiliser Audience au lieu de Groupes).
+  - [x] Refactor Mobile : Créateur de campagnes (utiliser Audience).
+  - [x] Refactor Backend : `CampaignEngine.php` pour résoudre l'audience à l'envoi.
+- [x] **6. Afficher 3 lignes sur le tableau des statistiques des étiquettes**
+  - [x] Modifier `dashboard_screen.dart` pour rétablir les 3 lignes de stats d'étiquettes par défaut.
+- [x] **7. Le bouton œil non fonctionnel sur la table étiquettes**
+  - [x] Corriger `_viewLabeledContacts` dans `dashboard_screen.dart` pour qu'il redirige vers `ContactsScreen` avec le bon filtre, et s'assurer que `ContactsScreen` l'accepte.
+- [x] **8. Liste de tous les agents dans le dashboard admin et table étiquettes**
+  - [x] Vérifier la récupération de la liste des agents dans `DashboardEngine.php` et s'assurer que le filtre `agent_id` s'applique aux étiquettes.
+- [x] **9. Bouton rafraîchir en haut à droite de discussion ne fonctionne plus**
+  - [x] Rebrancher le bouton `onPressed` dans `chat_box_screen.dart`.
+- [x] **10. Optimisez la recherche**
+  - [x] Dans `home_screen.dart`, ajouter un `Timer` (Debouncer) pour appeler l'API `/vendor/contact/contacts-data` avec le mot-clé `search`.
+- [x] **11. Ordre de listage des messages à changer**
+  - [x] Ajouter un `orderByDesc` avec une sous-requête dans `ContactRepository.php` (ligne 574).

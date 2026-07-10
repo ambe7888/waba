@@ -133,6 +133,9 @@ $campaignUid=$campaign->_uid;
                             <p class="mt-3 mb-0 text-muted text-sm">
                                 @if ($isAllContacts)
                                 {{ __tr('All contacts') }}
+                                @elseif(isset($campaign->__data['audience_title']))
+                                {{ __tr('Audience: ') }}
+                                <strong class="text-nowrap text-warning">{{ $campaign->__data['audience_title'] }}</strong>
                                 @else
                                 {{ __tr('All contacts from: ') }}
                                 @foreach ($selectedGroups as $selectedGroup)

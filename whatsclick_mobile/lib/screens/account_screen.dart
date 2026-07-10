@@ -49,6 +49,27 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Déconnexion', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     await ApiService().logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -234,25 +255,23 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
           ),
-
-          if (isAdmin) ...[
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.0),
-              child: Text(
-                'Fonctionnalités Administrateur',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                  letterSpacing: 0.5,
-                ),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text(
+              'Fonctionnalités & Paramètres',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+                letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 8),
-            Card(
-              child: Column(
-                children: [
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
                   ListTile(
                     leading: const Icon(Icons.message_rounded, color: Colors.indigo),
                     title: const Text('Modèles de messages (Templates)'),
@@ -277,9 +296,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 ],
               ),
             ),
-          ],
-
-        ],
+              ],
+            ),
+          ),
       ),
     );
   }

@@ -22,7 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   DateTimeRange? _selectedDateRange;
   String? _selectedAgentId;
   List<dynamic> _agents = [];
-  String? _selectedLabelUidForStats;  // single label selection
+  List<String?> _selectedLabelUids = [null, null, null];
   bool? _botActive;                   // optimistic bot switch state
   int _roleId = 3;
   String _firstName = '';
@@ -60,8 +60,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _agents = data?['agents'] ?? [];
           // Initialise single label selection
           final List<dynamic> labelStats = data?['label_date_stats'] ?? [];
-          if (_selectedLabelUidForStats == null && labelStats.isNotEmpty) {
-            _selectedLabelUidForStats = labelStats[0]['label_uid'];
+          if (labelStats.isNotEmpty) {
+            for (int i = 0; i < 3; i++) {
+              if (_selectedLabelUids[i] == null) {
+                // Pre-select different labels if available
+                if (i < labelStats.length) {
+                  _selectedLabelUids[i] = labelStats[i]['label_uid'];
+                } else {
+                  _selectedLabelUids[i] = labelStats[0]['label_uid'];
+                }
+              }
+            }
           }
           // Sync bot active state
           _botActive = data?['ai_credits']?['bot_active'] as bool? ?? false;
@@ -246,21 +255,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final isCustomDateActive = _selectedDateRange != null;
 
-    // Current selected label (fallback to first)
-    final currentSelectedUid = _selectedLabelUidForStats ?? labelStats[0]['label_uid'];
-    final selectedLabel = labelStats.firstWhere(
-      (l) => l['label_uid'] == currentSelectedUid,
-      orElse: () => labelStats.first,
-    );
-    final String selectedLabelUid = selectedLabel['label_uid'] ?? '';
-    final bgColorHex = selectedLabel['bg_color'];
-    Color labelBgColor = ThemeService.primaryColor;
-    try {
-      if (bgColorHex != null && bgColorHex.toString().startsWith('#')) {
-        labelBgColor = Color(int.parse(bgColorHex.toString().replaceFirst('#', '0xFF')));
-      }
-    } catch (_) {}
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
@@ -298,54 +292,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Single row: one label dropdown + stats
-              Row(
-                children: [
-                  // Label Picker Dropdown
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: labelBgColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: labelBgColor.withOpacity(0.4)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: currentSelectedUid,
-                        dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-                        icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: labelBgColor,
+              
+              // 3 lines for label stats
+              ...List.generate(3, (index) {
+                final currentSelectedUid = _selectedLabelUids[index] ?? labelStats[0]['label_uid'];
+                final selectedLabel = labelStats.firstWhere(
+                  (l) => l['label_uid'] == currentSelectedUid,
+                  orElse: () => labelStats[0],
+                );
+                final selectedLabelUid = selectedLabel['label_uid'] as String;
+                final labelColorHex = selectedLabel['label_color'] ?? '#808080';
+                final labelBgColor = _parseColor(labelColorHex);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    children: [
+                      // Label Picker Dropdown
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: labelBgColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: labelBgColor.withOpacity(0.4)),
                         ),
-                        items: labelStats.map<DropdownMenuItem<String>>((l) {
-                          return DropdownMenuItem<String>(
-                            value: l['label_uid'],
-                            child: Text(l['label_title'] ?? 'Sans nom'),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedLabelUidForStats = val;
-                          });
-                        },
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: currentSelectedUid,
+                            dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                            icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: labelBgColor,
+                            ),
+                            items: labelStats.map<DropdownMenuItem<String>>((l) {
+                              return DropdownMenuItem<String>(
+                                value: l['label_uid'],
+                                child: Text(l['label_title'] ?? 'Sans nom'),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedLabelUids[index] = val;
+                              });
+                            },
+                          ),
+                        ),
                       ),
-                    ),
+                      const Spacer(),
+                      // Period count columns
+                      if (isCustomDateActive) ...[
+                        _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
+                      ] else ...[
+                        _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
+                        const SizedBox(width: 8),
+                        _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
+                        const SizedBox(width: 8),
+                        _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
+                      ],
+                    ],
                   ),
-                  const Spacer(),
-                  // Period count columns
-                  if (isCustomDateActive) ...[
-                    _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
-                  ] else ...[
-                    _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
-                    const SizedBox(width: 8),
-                    _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
-                    const SizedBox(width: 8),
-                    _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
-                  ],
-                ],
-              ),
+                );
+              }),
             ],
           ),
         ),
@@ -383,9 +392,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 4),
         IconButton(
-          icon: Icon(Icons.remove_red_eye_outlined, size: 16, color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
+          icon: Icon(Icons.remove_red_eye_outlined, size: 18, color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
+          tooltip: 'Voir les contacts',
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           onPressed: cnt > 0 ? () => _viewLabeledContacts(labelUid, dateFilter) : null,
         ),
       ],

@@ -178,8 +178,10 @@ class ApiService {
     String? startDate,
     String? endDate,
     String? assigned,
+    String? search,
   }) async {
     final List<String> params = ['page=$page'];
+    if (search != null && search.isNotEmpty) params.add('search=$search');
     if (selectedLabel != null) params.add('selected_labels=$selectedLabel');
     if (labelDateFilter != null) params.add('label_date_filter=$labelDateFilter');
     if (startDate != null) params.add('start_date=$startDate');
@@ -1194,6 +1196,8 @@ class ApiService {
         body: jsonEncode({
           'contacts_uid': contactUids,
           'groups_uid': groupUids,
+          'selected_contacts': contactUids,
+          'selected_groups': groupUids,
         }),
       ).timeout(const Duration(seconds: 20));
 
