@@ -229,7 +229,6 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
                                           uid: c['_uid'] ?? '',
                                           name: name.isEmpty ? phone : name,
                                           phoneNumber: phone,
-                                          profilePicUrl: null,
                                         );
                                         Navigator.push(context, MaterialPageRoute(
                                           builder: (_) => ChatBoxScreen(contact: contact),
