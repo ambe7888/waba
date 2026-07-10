@@ -2,8 +2,17 @@
 $hasManageAccess = hasVendorAccess('manage_campaigns');
 @endphp
 
-<!-- Page Heading -->
-<div class="d-sm-flex align-items-center justify-content-between mb-4">
+@extends('layouts.app', ['title' => __tr('Audiences')])
+@section('content')
+@include('users.partials.header', [
+    'title' => __tr('Audiences de Campagne'),
+    'description' => '',
+    'class' => 'col-lg-7'
+])
+
+<div class="container-fluid mt--7">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">
         <?= __tr('Audiences de Campagne') ?>
     </h1>
@@ -121,3 +130,5 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
     });
 </script>
 @endpush
+</div>
+@endsection
