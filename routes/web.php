@@ -1559,6 +1559,7 @@ Route::middleware([
         Route::post('/{uid}/priority', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'updatePriority'])->name('support_ticket.update_priority');
         Route::post('/{uid}/assign', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'assignTicket'])->name('support_ticket.assign');
         Route::post('/{uid}/labels', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'updateLabels'])->name('support_ticket.update_labels');
+        Route::post('/{uid}/destroy', [App\Yantrana\Components\SupportTicket\Controllers\SupportTicketController::class, 'destroy'])->name('support_ticket.destroy');
     });
 
     Route::middleware(['web', 'auth'])->prefix('info-materials')->group(function () {

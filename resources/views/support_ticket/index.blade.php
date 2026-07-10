@@ -143,6 +143,10 @@
                                     <td>{{ formatDiffForHumans($ticket->updated_at) }}</td>
                                     <td class="text-right">
                                         <a href="{{ route('support_ticket.show', ['uid' => $ticket->_uid]) }}" class="btn btn-neutral btn-sm"><i class="fas fa-eye text-primary mr-1"></i>{{ __tr('View') }}</a>
+                                        <form action="{{ route('support_ticket.destroy', ['uid' => $ticket->_uid]) }}" method="POST" class="d-inline-block" onsubmit="return confirm('{{ __tr('Are you sure you want to delete this ticket?') }}');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash mr-1"></i>{{ __tr('Delete') }}</button>
+                                        </form>
                                     </td>
                                 </tr>
                                 @empty
