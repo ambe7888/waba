@@ -28,7 +28,14 @@ class CampaignAudienceRepository extends BaseRepository
      *---------------------------------------------------------------- */
     public function fetchItDataTableSource()
     {
-        return CampaignAudienceModel::where('vendors__id', getVendorId());
+        $dataTableConfig = [
+            'searchable' => [
+                'title',
+            ]
+        ];
+        return CampaignAudienceModel::where('vendors__id', getVendorId())
+            ->dataTables($dataTableConfig)
+            ->toArray();
     }
 
     /**
