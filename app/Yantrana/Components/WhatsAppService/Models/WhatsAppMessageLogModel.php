@@ -217,6 +217,40 @@ class WhatsAppMessageLogModel extends BaseModel
     }
 
     /**
+     * Get message attribute and dynamically prepend Facebook Ad referral details if present.
+     */
+    protected function message(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $messageText = $attributes['message'] ?? '';
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                if (!empty($data['referral'])) {
+                    $referral = $data['referral'];
+                    $headline = $referral['headline'] ?? '';
+                    $body = $referral['body'] ?? '';
+                    $url = $referral['source_url'] ?? '';
+                    
+                    $prefix = "📢 *[Provenance Pub Facebook]*\n";
+                    if ($headline) {
+                        $prefix .= "*Titre*: {$headline}\n";
+                    }
+                    if ($body) {
+                        $prefix .= "*Texte*: {$body}\n";
+                    }
+                    if ($url) {
+                        $prefix .= "*Lien*: {$url}\n";
+                    }
+                    $prefix .= "--------------------------------\n";
+                    
+                    return $prefix . $messageText;
+                }
+                return $messageText;
+            }
+        );
+    }
+
+    /**
      * Get file URL attribute (alias of media_url).
      */
     protected function fileUrl(): Attribute
