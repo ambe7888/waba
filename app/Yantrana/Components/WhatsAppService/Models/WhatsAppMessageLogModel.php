@@ -92,6 +92,9 @@ class WhatsAppMessageLogModel extends BaseModel
         'formatted_message_ago_time',
         'whatsapp_message_error',
         'formatted_updated_time',
+        'type',
+        'media_url',
+        'file_url',
     ];
 
     /**
@@ -156,6 +159,70 @@ class WhatsAppMessageLogModel extends BaseModel
                 }
                 return $errorMessage;
             }
+        );
+    }
+
+    /**
+     * Get message type attribute.
+     */
+    protected function type(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                return $data['media_values']['type'] ?? 'text';
+            }
+        );
+    }
+
+    /**
+     * Get media URL attribute.
+     */
+    protected function mediaUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                $link = $data['media_values']['link'] ?? '';
+                if ($link) {
+                    if (str_starts_with($link, 'http://localhost') || str_starts_with($link, 'http://127.0.0.1:8000') || str_starts_with($link, 'http://127.0.0.1')) {
+                        $parsedUrl = parse_url($link);
+                        $path = $parsedUrl['path'] ?? '';
+                        
+                        $baseUrl = null;
+                        try {
+                            if (function_exists('request') && request()) {
+                                $baseUrl = request()->getSchemeAndHttpHost();
+                            }
+                        } catch (\Exception $e) {}
+                        
+                        if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                            $baseUrl = config('app.url');
+                        }
+                        if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                            $baseUrl = 'https://wb.4adev.com'; // last fallback
+                        }
+                        
+                        $baseUrl = rtrim($baseUrl, '/');
+                        if (substr($path, 0, 1) !== '/') {
+                            $path = '/' . $path;
+                        }
+                        
+                        $link = $baseUrl . $path;
+                    }
+                }
+                return $link;
+            }
+        );
+    }
+
+    /**
+     * Get file URL attribute (alias of media_url).
+     */
+    protected function fileUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn(mixed $value, array $attributes) => $this->media_url,
         );
     }
 
