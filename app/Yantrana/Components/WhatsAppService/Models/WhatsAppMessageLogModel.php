@@ -158,4 +158,46 @@ class WhatsAppMessageLogModel extends BaseModel
             }
         );
     }
+
+    /**
+     * Override getAttribute to dynamically clean up localhost media URLs.
+     */
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+
+        if ($key === '__data') {
+            if (is_array($value) && !empty($value['media_values']['link'])) {
+                $link = $value['media_values']['link'];
+                if (str_starts_with($link, 'http://localhost') || str_starts_with($link, 'http://127.0.0.1:8000') || str_starts_with($link, 'http://127.0.0.1')) {
+                    $parsedUrl = parse_url($link);
+                    $path = $parsedUrl['path'] ?? '';
+                    
+                    // Determine base URL dynamically
+                    $baseUrl = null;
+                    try {
+                        if (function_exists('request') && request()) {
+                            $baseUrl = request()->getSchemeAndHttpHost();
+                        }
+                    } catch (\Exception $e) {}
+                    
+                    if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                        $baseUrl = config('app.url');
+                    }
+                    if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                        $baseUrl = 'https://wb.4adev.com'; // last fallback
+                    }
+                    
+                    $baseUrl = rtrim($baseUrl, '/');
+                    if (substr($path, 0, 1) !== '/') {
+                        $path = '/' . $path;
+                    }
+                    
+                    $value['media_values']['link'] = $baseUrl . $path;
+                }
+            }
+        }
+
+        return $value;
+    }
 }
