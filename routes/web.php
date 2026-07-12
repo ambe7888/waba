@@ -1664,7 +1664,7 @@ Route::post('yoomoney/yoomoney-webhook-order-payment', [
 ])->name('yoomoney-webhook');
 
 Route::get('/debug-last-messages', function() {
-    $messages = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::latest('messaged_at')->limit(5)->get();
+    $messages = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::where('contact_wa_id', '22578887019')->latest('messaged_at')->limit(5)->get();
     return response()->json($messages);
 });
 
