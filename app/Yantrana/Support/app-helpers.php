@@ -915,10 +915,18 @@ if (! function_exists('getMediaUrl')) {
         } else {
             $currentDisc = YesFileStorage::on($currentFileSystemDriver);
             // check if file is exists
-            if (config("filesystems.disks.$currentFileSystemDriver.full_url")) {
-                return config("filesystems.disks.$currentFileSystemDriver.full_url", asset('/')) . $storagePath;
+            $fullUrl = config("filesystems.disks.$currentFileSystemDriver.full_url");
+            if ($fullUrl) {
+                if (substr($fullUrl, -1) !== '/') {
+                    $fullUrl .= '/';
+                }
+                return $fullUrl . $storagePath;
             }
-            return config("filesystems.disks.$currentFileSystemDriver.url", asset('/')) . $storagePath;
+            $diskUrl = config("filesystems.disks.$currentFileSystemDriver.url", asset('/'));
+            if (substr($diskUrl, -1) !== '/') {
+                $diskUrl .= '/';
+            }
+            return $diskUrl . $storagePath;
         }
 
         return null;
