@@ -68,6 +68,7 @@ class WhatsAppMessageLogModel extends BaseModel
             'campaign_type' => 'string',
             'preset_message_id' => 'string', // bot reply id for preset message
             'send_message_via_marketing_message_api' => 'boolean',
+            'referral' => 'array',
         ],
     ];
 

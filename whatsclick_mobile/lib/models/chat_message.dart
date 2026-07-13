@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ChatMessage {
   final String uid;
   final String body;
@@ -35,7 +37,17 @@ class ChatMessage {
     String resolvedBody = json['message'] ?? json['body'] ?? '';
     Map<String, dynamic>? resolvedReferral;
 
-    final dynamic dataField = json['__data'];
+    dynamic dataField = json['__data'];
+    // __data can arrive as a JSON string or a pre-decoded Map
+    if (dataField is String && dataField.isNotEmpty) {
+      try {
+        dataField = Map<String, dynamic>.from(
+          const JsonDecoder().convert(dataField) as Map,
+        );
+      } catch (_) {
+        dataField = null;
+      }
+    }
     if (dataField is Map) {
       // Parse referral data if exists
       final dynamic refVal = dataField['referral'];
