@@ -160,10 +160,15 @@ Route::group([
         CampaignController::class,
         'apiGetCampaignStatus',
     ])->name('api.vendor.campaign.read.status_details');
-});
+    Route::get('/app-version', function () {
+        return response()->json([
+            'version' => '1.0.2',
+            'apk_url' => 'https://wb.4adev.com/whatsclick-latest.apk'
+        ]);
+    })->name('api.app_version');
 
-// Mobile app apis
-Route::group(['middleware' => 'guest'], function () {
+    // Mobile app apis
+    Route::group(['middleware' => 'guest'], function () {
 
      //vendor registration
     Route::post('/register/vendor', [
