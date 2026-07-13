@@ -1,4 +1,5 @@
 {
-  "version": "1.0.0",
-  "change_log": "Tableau de bord amélioré, correctifs des pièces jointes et des notifications Firebase."
+  "version": "1.0.1",
+  "change_log": "Optimisations de performances et de batterie, responsive du dashboard, et affichage des publicites Facebook Ads.",
+  "apk_url": "https://wb.4adev.com/downloads/whatsclick.apk"
 }

@@ -1593,6 +1593,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (message.referral != null)
+              _buildReferralWidget(message.referral!, textColor),
             // IMAGE
             if (msgType == 'image' || (message.mediaUrl != null &&
                 (message.mediaUrl!.toLowerCase().endsWith('.jpg') ||
@@ -1843,6 +1845,132 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildReferralWidget(Map<String, dynamic> referral, Color textColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final String title = referral['headline'] ?? referral['title'] ?? 'Publicité Facebook Ads';
+    final String body = referral['body'] ?? referral['description'] ?? '';
+    final String? imageUrl = referral['image_url'];
+    final String? sourceUrl = referral['source_url'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.campaign_rounded,
+                color: Color(0xFF1877F2),
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'Provenance Facebook Ads',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1877F2),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imageUrl != null && imageUrl.isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.network(
+                    imageUrl,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (body.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        body,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textColor.withOpacity(0.7),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (sourceUrl != null && sourceUrl.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () => launchUrl(Uri.parse(sourceUrl), mode: LaunchMode.externalApplication),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1877F2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Voir la publicité',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1877F2),
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 10,
+                      color: Color(0xFF1877F2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

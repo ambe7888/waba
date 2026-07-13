@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   final _searchController = TextEditingController();
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -84,6 +85,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       },
     );
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    } else if (state == AppLifecycleState.resumed) {
+      _loadContacts(silent: true);
+      _refreshBadgeCounts();
+      _pollingTimer?.cancel();
+      _pollingTimer = Timer.periodic(
+        const Duration(seconds: pollingIntervalSeconds),
+        (_) {
+          _loadContacts(silent: true);
+          _refreshBadgeCounts();
+        },
+      );
+    }
+  }
+
 
   Future<void> _checkUpdate() async {
     try {
@@ -506,6 +527,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
     _searchDebouncer?.cancel();

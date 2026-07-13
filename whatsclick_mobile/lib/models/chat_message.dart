@@ -7,6 +7,7 @@ class ChatMessage {
   final String? mediaUrl;
   final bool isSystemMessage;
   final String status;
+  final Map<String, dynamic>? referral;
 
   ChatMessage({
     required this.uid,
@@ -17,6 +18,7 @@ class ChatMessage {
     this.mediaUrl,
     this.isSystemMessage = false,
     this.status = 'initialize',
+    this.referral,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -31,9 +33,16 @@ class ChatMessage {
     String resolvedType = json['type'] ?? 'text';
     String? resolvedMediaUrl = json['media_url'] ?? json['file_url'];
     String resolvedBody = json['message'] ?? json['body'] ?? '';
+    Map<String, dynamic>? resolvedReferral;
 
     final dynamic dataField = json['__data'];
     if (dataField is Map) {
+      // Parse referral data if exists
+      final dynamic refVal = dataField['referral'];
+      if (refVal is Map) {
+        resolvedReferral = Map<String, dynamic>.from(refVal);
+      }
+
       final dynamic mediaValues = dataField['media_values'];
       if (mediaValues is Map) {
         final String? mvType = mediaValues['type']?.toString();
@@ -62,6 +71,7 @@ class ChatMessage {
       mediaUrl: resolvedMediaUrl,
       isSystemMessage: system,
       status: json['status'] ?? 'initialize',
+      referral: resolvedReferral,
     );
   }
 
@@ -71,6 +81,7 @@ class ChatMessage {
         body != other.body ||
         type != other.type ||
         status != other.status ||
-        mediaUrl != other.mediaUrl;
+        mediaUrl != other.mediaUrl ||
+        referral != other.referral;
   }
 }
