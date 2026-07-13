@@ -53,6 +53,12 @@ class ChatMessage {
       final dynamic refVal = dataField['referral'];
       if (refVal is Map) {
         resolvedReferral = Map<String, dynamic>.from(refVal);
+        // Strip the referral prefix that Laravel's message accessor prepends
+        // Pattern: "📢 *[Provenance Pub Facebook]*\n...\n--------------------------------\n"
+        final sepIndex = resolvedBody.indexOf('--------------------------------');
+        if (sepIndex != -1) {
+          resolvedBody = resolvedBody.substring(sepIndex + '--------------------------------'.length).trim();
+        }
       }
 
       final dynamic mediaValues = dataField['media_values'];

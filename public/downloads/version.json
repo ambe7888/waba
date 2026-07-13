@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
-  "change_log": "Correctif affichage provenance publicites Facebook Ads, optimisations de performances.",
+  "version": "1.0.4",
+  "change_log": "Correction des doublons de messages de provenance publicitaire Facebook Ads, support des miniatures video et optimisations de performance.",
   "apk_url": "https://wb.4adev.com/downloads/whatsclick.apk"
 }

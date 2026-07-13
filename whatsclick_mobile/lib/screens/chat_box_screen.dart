@@ -1853,8 +1853,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String title = referral['headline'] ?? referral['title'] ?? 'Publicité Facebook Ads';
     final String body = referral['body'] ?? referral['description'] ?? '';
-    final String? imageUrl = referral['image_url'];
+    final String? imageUrl = referral['image_url'] ?? referral['thumbnail_url'];
     final String? sourceUrl = referral['source_url'];
+    final String mediaType = referral['media_type']?.toString().toLowerCase() ?? 'image';
+    final bool isVideo = mediaType == 'video';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1894,15 +1896,34 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (imageUrl != null && imageUrl.isNotEmpty) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    imageUrl,
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        imageUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                    if (isVideo)
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 8),
               ],
@@ -1948,19 +1969,19 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   color: const Color(0xFF1877F2).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Voir la publicité',
-                      style: TextStyle(
+                      isVideo ? 'Voir la vidéo' : 'Voir la publicité',
+                      style: const TextStyle(
                         fontSize: 9.5,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1877F2),
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(
+                    const SizedBox(width: 4),
+                    const Icon(
                       Icons.open_in_new_rounded,
                       size: 10,
                       color: Color(0xFF1877F2),
