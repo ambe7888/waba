@@ -3272,10 +3272,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         ];
         if ($testBotId) {
             $dataFetchConditions['_id'] = $testBotId;
-        } else {
-            if (!$messageBody) {
-                return $this->engineFailedResponse([], __tr('Message body is empty'));
-            }
         }
 
         $isBotTimingsEnabled = getVendorSettings('enable_bot_timing_restrictions', null, null, $contact->vendors__id);
@@ -3716,7 +3712,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // contact ai bot replies is not disabled
         // has in subscription plan
         $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $contact->vendors__id);
-        if (!$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
+        if (!empty($messageBody) and !$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
             // Meta AI Bot
             if (getVendorSettings('enable_meta_ai_bot', null, null, $contact->vendors__id)) {
                 return false;
@@ -4376,10 +4372,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 );
             }
 
-            if ($messageBody and !$isFromBizAppReplied) {
+            if (!$isFromBizAppReplied) {
                 fromPhoneNumberIdForRequest($phoneNumberId);
                 // process the bot if needed any
-                $this->processReplyBot($contact, $messageBody, null, [
+                $this->processReplyBot($contact, $messageBody ?? '', null, [
                     'fromPhoneNumberId' => $phoneNumberId,
                     'messageWamid' => $messageWamid,
                 ]);

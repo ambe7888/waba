@@ -233,10 +233,18 @@ class WhatsAppMessageLogModel extends BaseModel
                     $url = $referral['source_url'] ?? '';
                     
                     $prefix = "📢 *[Provenance Pub Facebook]*\n";
+                    
+                    // Display image thumbnail/miniature if available (for web version only - mobile app will strip this anyway)
+                    $imageUrl = $referral['image_url'] ?? $referral['thumbnail_url'] ?? '';
+                    if ($imageUrl) {
+                        $prefix .= "<div class='my-2'><a href='{$url}' target='_blank'><img src='{$imageUrl}' style='max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: cover; display: block; border: 1px solid #ccc;' /></a></div>";
+                    }
+                    
                     if ($headline) {
                         $prefix .= "*Titre*: {$headline}\n";
                     }
-                    if ($body) {
+                    // Prevent duplicate if body text is identical or contains the message text
+                    if ($body && trim(strtolower($body)) !== trim(strtolower($messageText))) {
                         $prefix .= "*Texte*: {$body}\n";
                     }
                     if ($url) {
