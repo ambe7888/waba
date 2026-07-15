@@ -236,7 +236,6 @@ class WhatsAppMessageLogModel extends BaseModel
                 
                 if (!empty($referral)) {
                     $headline = $referral['headline'] ?? '';
-                    $body = $referral['body'] ?? '';
                     $url = $referral['source_url'] ?? '';
                     
                     $prefix = "📢 *[Provenance Pub Facebook]*\n";
@@ -244,18 +243,15 @@ class WhatsAppMessageLogModel extends BaseModel
                     // Display image placeholder - actual HTML will be replaced after formatting to prevent URL parser from breaking it
                     $imageUrl = $referral['image_url'] ?? $referral['thumbnail_url'] ?? '';
                     if ($imageUrl) {
-                        $prefix .= "[REFERRAL_IMAGE_PLACEHOLDER]\n";
+                        $prefix .= "[REFERRAL-IMAGE-PLACEHOLDER]\n";
                     }
                     
                     if ($headline) {
                         $prefix .= "*Titre*: {$headline}\n";
                     }
-                    // Prevent duplicate if body text is identical or contains the message text
-                    if ($body && trim(strtolower($body)) !== trim(strtolower($messageText))) {
-                        $prefix .= "*Texte*: {$body}\n";
-                    }
+                    
                     if ($url) {
-                        $prefix .= "*Lien*: {$url}\n";
+                        $prefix .= "🔗 *Lien vers la pub*: {$url}\n";
                     }
                     $prefix .= "--------------------------------\n";
                     

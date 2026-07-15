@@ -2461,10 +2461,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     $url = $referral['source_url'] ?? '';
                     if ($imageUrl) {
                         $imgHtml = "<div class='my-2'><a href='{$url}' target='_blank'><img src='{$imageUrl}' style='max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover; display: block; border: 1px solid #ccc;' /></a></div>";
-                        $item->message = str_replace('[REFERRAL_IMAGE_PLACEHOLDER]', $imgHtml, $item->message);
+                        $item->message = str_replace('[REFERRAL-IMAGE-PLACEHOLDER]', $imgHtml, $item->message);
                     } else {
-                        $item->message = str_replace("[REFERRAL_IMAGE_PLACEHOLDER]\n", '', $item->message);
-                        $item->message = str_replace('[REFERRAL_IMAGE_PLACEHOLDER]', '', $item->message);
+                        $item->message = str_replace("[REFERRAL-IMAGE-PLACEHOLDER]\n", '', $item->message);
+                        $item->message = str_replace('[REFERRAL-IMAGE-PLACEHOLDER]', '', $item->message);
                     }
                 }
             }
