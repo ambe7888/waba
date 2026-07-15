@@ -225,19 +225,26 @@ class WhatsAppMessageLogModel extends BaseModel
         return Attribute::make(
             get: function (mixed $value, array $attributes) {
                 $messageText = $attributes['message'] ?? '';
+                
+                // If it already has the referral prefix formatted, do not prepend it again
+                if (str_contains($messageText, '[Provenance Pub Facebook]')) {
+                    return $messageText;
+                }
+                
                 $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
-                if (!empty($data['referral'])) {
-                    $referral = $data['referral'];
+                $referral = $data['referral'] ?? data_get($data, 'webhook_responses.incoming.0.changes.0.value.messages.0.referral') ?? null;
+                
+                if (!empty($referral)) {
                     $headline = $referral['headline'] ?? '';
                     $body = $referral['body'] ?? '';
                     $url = $referral['source_url'] ?? '';
                     
                     $prefix = "📢 *[Provenance Pub Facebook]*\n";
                     
-                    // Display image thumbnail/miniature if available (for web version only - mobile app will strip this anyway)
+                    // Display image placeholder - actual HTML will be replaced after formatting to prevent URL parser from breaking it
                     $imageUrl = $referral['image_url'] ?? $referral['thumbnail_url'] ?? '';
                     if ($imageUrl) {
-                        $prefix .= "<div class='my-2'><a href='{$url}' target='_blank'><img src='{$imageUrl}' style='max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: cover; display: block; border: 1px solid #ccc;' /></a></div>";
+                        $prefix .= "[REFERRAL_IMAGE_PLACEHOLDER]\n";
                     }
                     
                     if ($headline) {

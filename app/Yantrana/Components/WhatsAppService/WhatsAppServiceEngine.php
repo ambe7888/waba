@@ -2452,6 +2452,21 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $item->message = $this->formatSystemMessage(data_get($item->__data, 'system_message_data'));
             } else {
                 $item->message = $this->formatWhatsAppText($item->message);
+                
+                // Replace referral image placeholder with actual HTML after formatting is done
+                $data = $item->__data;
+                $referral = $data['referral'] ?? data_get($data, 'webhook_responses.incoming.0.changes.0.value.messages.0.referral') ?? null;
+                if (!empty($referral)) {
+                    $imageUrl = $referral['image_url'] ?? $referral['thumbnail_url'] ?? '';
+                    $url = $referral['source_url'] ?? '';
+                    if ($imageUrl) {
+                        $imgHtml = "<div class='my-2'><a href='{$url}' target='_blank'><img src='{$imageUrl}' style='max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover; display: block; border: 1px solid #ccc;' /></a></div>";
+                        $item->message = str_replace('[REFERRAL_IMAGE_PLACEHOLDER]', $imgHtml, $item->message);
+                    } else {
+                        $item->message = str_replace("[REFERRAL_IMAGE_PLACEHOLDER]\n", '', $item->message);
+                        $item->message = str_replace('[REFERRAL_IMAGE_PLACEHOLDER]', '', $item->message);
+                    }
+                }
             }
             $item->template_message = null;
             if (! $item->message || Arr::get($item->__data, 'interaction_message_data')) {
