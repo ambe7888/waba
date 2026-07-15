@@ -299,6 +299,7 @@
                                     </button>
                                     
                                 </form>
+                                @endif
                                 @if(getAppSettings('enable_wave'))
                                 <form action="{{ route('wave.checkout') }}" method="post" id="wave-pay-form">
                                     @csrf
@@ -327,7 +328,6 @@
                                     </div>
                                 </form>
                                 @endif
-                               @else
                                @if ((getAppSettings('enable_upi_payment') or getAppSettings('enable_bank_transfer') or getAppSettings('enable_paypal') or getAppSettings('enable_razorpay') or getAppSettings('enable_paystack') or getAppSettings('enable_yoomoney') or getAppSettings('enable_phonepe')) and !$isRazorpaySubscription or ($isRazorpaySubscription and $isSubscriptionManuallyCancelled))
                                <fieldset>
                                 <!-- ---------- This form for when change Subscription -------------- -->
@@ -388,7 +388,6 @@
                                     <!-- ----------/change Subscription -------------- -->
                                 </fieldset>
                                 @endif
-                               @endif
                        </div>
                    </div>
                @endif
