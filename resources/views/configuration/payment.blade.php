@@ -351,6 +351,54 @@
         </fieldset>
         <!-- / Wave Mobile Money checkout end -->
 
+        <!-- MoneyFusion checkout start -->
+        <fieldset class="lw-fieldset mb-3" x-data="{panelOpened:false}" x-cloak>
+            <legend class="lw-fieldset-legend" @click="panelOpened = !panelOpened">
+                <i class="fa fa-wallet"></i> <?= __tr('MoneyFusion') ?>
+                <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small>
+            </legend>
+            <!-- Payment Setting Form -->
+            <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" data-callback="onPaymentGatewayFormCallback"
+                action="<?= route('manage.configuration.write', ['pageType' => 'moneyfusion_payment']) ?>">
+                <!-- input field body -->
+                <div class="form-group mt-2">
+                    <!-- Enable MoneyFusion Checkout field -->
+                    <div class="form-group pt-3">
+                        <label for="lwEnableMoneyFusion">
+                            <input type="hidden" name="enable_moneyfusion" value="0">
+                            <input type="checkbox" id="lwEnableMoneyFusion" data-lw-plugin="lwSwitchery" name="enable_moneyfusion"
+                                <?= getAppSettings('enable_moneyfusion')==true ? 'checked' : '' ?>>
+                            <?= __tr('Enable MoneyFusion Checkout') ?>
+                        </label>
+                    </div>
+
+                    <div id="lwMoneyFusionInputField">
+                        <!-- MoneyFusion API URL -->
+                        <div class="mb-3">
+                            <label for="lwMoneyFusionApiUrl">
+                                <?= __tr('MoneyFusion API URL') ?>
+                            </label>
+                            <input type="text" class="form-control form-control-user" value="<?= getAppSettings('moneyfusion_api_url') ?>"
+                                id="lwMoneyFusionApiUrl" name="moneyfusion_api_url"
+                                placeholder="<?= __tr('MoneyFusion API URL') ?>">
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>{{ __tr('Webhook URL:') }}</strong><br>
+                            <code>{{ getViaSharedUrl(route('moneyfusion.webhook')) }}</code><br>
+                            <small>{{ __tr('Copy this URL and add it to your MoneyFusion Dashboard as Webhook URL.') }}</small>
+                        </div>
+                    </div>
+                </div>
+                <!-- Update Button -->
+                <div class="form-group">
+                    <button type="submit" class="lw-ajax-form-submit-action btn btn-primary btn-user lw-btn-block-mobile">
+                        <?= __tr('Save') ?>
+                    </button>
+                </div>
+            </form>
+        </fieldset>
+        <!-- / MoneyFusion checkout end -->
+
 
         <!-- For one time Payment Only -->
         @stack('oneTimeGatewaySettingStackStart')

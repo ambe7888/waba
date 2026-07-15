@@ -19,6 +19,10 @@
                         {{ __tr('Optional. Set the organization ID if applicable.') }}
                     </div>
                 </div>
+                <div class="col-md-12 mt-3">
+                    <input type="hidden" name="allow_vendors_to_use_system_openai_key" value="0">
+                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true)" :label="__tr('Allow vendors to use system OpenAI key (If disabled, vendors must provide their own OpenAI key)')]" />
+                </div>
             </div>
             <div class="mt-3">
                 <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Save') }}</button>

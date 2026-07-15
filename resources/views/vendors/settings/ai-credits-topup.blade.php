@@ -57,12 +57,29 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @if(getAppSettings('enable_wave'))
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="2.00">
                                         <input type="hidden" name="credits" value="1000">
                                         <button type="submit" class="btn btn-success btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
+                                    @endif
+
+                                    @if(getAppSettings('enable_moneyfusion'))
+                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
+                                        @csrf
+                                        <input type="hidden" name="amount" value="2.00">
+                                        <input type="hidden" name="credits" value="1000">
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
+                                        </div>
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -81,12 +98,29 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @if(getAppSettings('enable_wave'))
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="8.00">
                                         <input type="hidden" name="credits" value="5000">
                                         <button type="submit" class="btn btn-info btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
+                                    @endif
+
+                                    @if(getAppSettings('enable_moneyfusion'))
+                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
+                                        @csrf
+                                        <input type="hidden" name="amount" value="8.00">
+                                        <input type="hidden" name="credits" value="5000">
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
+                                        </div>
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -105,12 +139,29 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @if(getAppSettings('enable_wave'))
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="15.00">
                                         <input type="hidden" name="credits" value="10000">
                                         <button type="submit" class="btn btn-warning btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
+                                    @endif
+
+                                    @if(getAppSettings('enable_moneyfusion'))
+                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
+                                        @csrf
+                                        <input type="hidden" name="amount" value="15.00">
+                                        <input type="hidden" name="credits" value="10000">
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
+                                        </div>
+                                        <div class="form-group mb-2">
+                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         </div>

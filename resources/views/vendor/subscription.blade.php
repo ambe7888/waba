@@ -308,6 +308,25 @@
                                     </button>
                                 </form>
                                 @endif
+                                @if(getAppSettings('enable_moneyfusion'))
+                                <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form" class="mt-3">
+                                    @csrf
+                                    <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                    <div class="form-row align-items-center">
+                                        <div class="col-sm-5 my-1">
+                                            <input type="text" class="form-control" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Client Name') }}" required>
+                                        </div>
+                                        <div class="col-sm-5 my-1">
+                                            <input type="text" class="form-control" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
+                                        </div>
+                                        <div class="col-sm-2 my-1">
+                                            <button value="moneyfusion" type="submit" class="btn btn-primary btn-block">
+                                                <i class="fa fa-wallet"></i> {{ __tr('MoneyFusion') }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                                @endif
                                @else
                                @if ((getAppSettings('enable_upi_payment') or getAppSettings('enable_bank_transfer') or getAppSettings('enable_paypal') or getAppSettings('enable_razorpay') or getAppSettings('enable_paystack') or getAppSettings('enable_yoomoney') or getAppSettings('enable_phonepe')) and !$isRazorpaySubscription or ($isRazorpaySubscription and $isSubscriptionManuallyCancelled))
                                <fieldset>
@@ -478,6 +497,29 @@
                                              <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
                                              <button value="wave" type="submit" class="btn btn-primary mt-2">
                                                  {{ __tr('Pay via Wave') }}
+                                             </button>
+                                         </form>
+                                    </fieldset>
+                                    @endif
+                                    @if(getAppSettings('enable_moneyfusion'))
+                                    <fieldset class="mt-3">
+                                         <legend>
+                                             <i class="fa fa-wallet"></i> {{ __tr('MoneyFusion (Mobile Money / Cards)') }}
+                                         </legend>
+                                         <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form-new">
+                                             @csrf
+                                             <input type="hidden" name="plan_id" value="{{ $planId ?? '' }}">
+                                             <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                             <div class="form-group col-md-6 px-0">
+                                                 <label>{{ __tr('Client Name') }}</label>
+                                                 <input type="text" class="form-control" name="nomclient" value="{{ auth()->user()->name }}" required>
+                                             </div>
+                                             <div class="form-group col-md-6 px-0">
+                                                 <label>{{ __tr('Phone Number') }}</label>
+                                                 <input type="text" class="form-control" name="numeroSend" placeholder="e.g. 07070707" required>
+                                             </div>
+                                             <button value="moneyfusion" type="submit" class="btn btn-primary mt-2">
+                                                 {{ __tr('Pay via MoneyFusion') }}
                                              </button>
                                          </form>
                                     </fieldset>

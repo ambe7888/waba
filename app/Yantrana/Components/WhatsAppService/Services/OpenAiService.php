@@ -57,10 +57,16 @@ class OpenAiService extends BaseEngine
             $vendorKey = null; // Ignore invalid encrypted keys
         }
         
-        $apiKey = $accessKey 
-            ?: $vendorKey
-            ?: getAppSettings('openai_api_key') 
-            ?: env('OPENAI_API_KEY');
+        $allowSystemKey = getAppSettings('allow_vendors_to_use_system_openai_key', true);
+        $apiKey = $accessKey ?: $vendorKey;
+
+        if (!$apiKey) {
+            if ($allowSystemKey) {
+                $apiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
+            } else {
+                throw new \Exception(__tr("Please configure your own OpenAI API Key in your settings to use AI features."));
+            }
+        }
         
         $vendorOrg = getVendorSettings('open_ai_organization_id', null, null, $vendorId);
         if ($vendorOrg && !Str::startsWith($vendorOrg, 'org-')) {
@@ -253,7 +259,11 @@ class OpenAiService extends BaseEngine
             'max_tokens' => getVendorSettings('open_ai_max_token', null, null, $vendorId),
         ]);
 
-        $this->deductVendorCredit($vendorId);
+        $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
+        $completionTokens = $response['usage']['completion_tokens'] ?? 0;
+        $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
+        $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
+        $this->deductVendorCredit($vendorId, $credits);
 
         return trim($response['choices'][0]['text']);
     }
@@ -332,7 +342,20 @@ class OpenAiService extends BaseEngine
             $messageList = OpenAI::threads()->messages()->list(
                 threadId: $threadRun->threadId,
             );
-            $this->deductVendorCredit($vendorId);
+            $promptTokens = 0;
+            $completionTokens = 0;
+            if (isset($threadRun->usage)) {
+                if (is_array($threadRun->usage)) {
+                    $promptTokens = $threadRun->usage['prompt_tokens'] ?? 0;
+                    $completionTokens = $threadRun->usage['completion_tokens'] ?? 0;
+                } else {
+                    $promptTokens = $threadRun->usage->promptTokens ?? $threadRun->usage->prompt_tokens ?? 0;
+                    $completionTokens = $threadRun->usage->completionTokens ?? $threadRun->usage->completion_tokens ?? 0;
+                }
+            }
+            $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
+            $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
+            $this->deductVendorCredit($vendorId, $credits);
             return $messageList->data[0]->content[0]->text->value;
         }
         // Text Based Source type
@@ -382,7 +405,11 @@ class OpenAiService extends BaseEngine
                 'temperature' => 0.7,
                 'messages' => $messages
             ]);
-            $this->deductVendorCredit($vendorId);
+            $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
+            $completionTokens = $response['usage']['completion_tokens'] ?? 0;
+            $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
+            $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
+            $this->deductVendorCredit($vendorId, $credits);
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -470,7 +497,7 @@ class OpenAiService extends BaseEngine
         return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
     }
 
-    protected function deductVendorCredit($vendorId)
+    protected function deductVendorCredit($vendorId, $credits = 1)
     {
         $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
         if ($vendor) {
@@ -478,12 +505,46 @@ class OpenAiService extends BaseEngine
             if ($vendor->plan_ai_credits >= 99999999) {
                 return;
             }
-            if ($vendor->plan_ai_credits > 0) {
-                $vendor->plan_ai_credits -= 1;
-            } elseif ($vendor->extra_ai_credits > 0) {
-                $vendor->extra_ai_credits -= 1;
+            if ($vendor->plan_ai_credits >= $credits) {
+                $vendor->plan_ai_credits -= $credits;
+            } else {
+                $remaining = $credits - $vendor->plan_ai_credits;
+                $vendor->plan_ai_credits = 0;
+                $vendor->extra_ai_credits = max(0, $vendor->extra_ai_credits - $remaining);
             }
             $vendor->save();
         }
+    }
+
+    protected function calculateCredits($model, $promptTokens, $completionTokens)
+    {
+        // Default base cost is 1 credit per request if usage is empty
+        if ($promptTokens === 0 && $completionTokens === 0) {
+            return 1;
+        }
+
+        // Define token multipliers based on model
+        // Translate OpenAI cost in USD to Credits.
+        // Assume 1000 credits = $1.00 USD.
+        // Therefore, $0.001 USD = 1 credit.
+        
+        $inputCostPer1k = 0.5; // default gpt-3.5-turbo input cost: $0.0005 = 0.5 credits
+        $outputCostPer1k = 1.5; // default gpt-3.5-turbo output cost: $0.0015 = 1.5 credits
+
+        if (str_contains($model, 'gpt-4o-mini')) {
+            $inputCostPer1k = 0.15; // $0.00015
+            $outputCostPer1k = 0.6; // $0.0006
+        } elseif (str_contains($model, 'gpt-4o') || str_contains($model, 'gpt-4')) {
+            $inputCostPer1k = 5.0; // $0.005
+            $outputCostPer1k = 15.0; // $0.015
+        }
+
+        $inputCredits = ($promptTokens / 1000) * $inputCostPer1k;
+        $outputCredits = ($completionTokens / 1000) * $outputCostPer1k;
+
+        $totalCredits = $inputCredits + $outputCredits;
+
+        // Minimum 1 credit, rounded up to the nearest integer
+        return max(1, (int) ceil($totalCredits));
     }
 }

@@ -3723,7 +3723,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             }
             $aiBotReplyText = null;
             // open ai
-            if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and (getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) or getAppSettings('openai_api_key') or env('OPENAI_API_KEY'))) {
+            $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) 
+                || (getAppSettings('allow_vendors_to_use_system_openai_key', true) && (getAppSettings('openai_api_key') || env('OPENAI_API_KEY')));
+            if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and $hasOpenAiKey) {
                 try {
                     $aiBotReplyText = app()->make(OpenAiService::class)->generateAnswerFromMultipleSections($messageBody, $contact, $contact->vendors__id);
                     // check if got the reply

@@ -243,6 +243,14 @@ class ConfigurationRequest extends BaseRequest
                             }
                         }
                     break;
+                    case 'moneyfusion_payment':
+                        $enableMoneyFusion = Arr::get($inputData, 'enable_moneyfusion');
+                        if ($enableMoneyFusion) {
+                            $rules = [
+                                'moneyfusion_api_url' => 'required|url',
+                            ];
+                        }
+                    break;
             case 'email':
 
                 //driver specific rules

@@ -70,6 +70,12 @@ Route::post('webhook/wave', [
     'handleWebhook',
 ])->name('wave.webhook');
 
+// MoneyFusion Webhook
+Route::post('webhook/moneyfusion', [
+    \App\Yantrana\Components\Subscription\Controllers\MoneyFusionPaymentController::class,
+    'handleWebhook',
+])->name('moneyfusion.webhook');
+
 // authentication routes
 require __DIR__ . '/auth.php';
 // Authenticated Routes
@@ -1094,6 +1100,11 @@ Route::middleware([
                 'createAiCreditsCheckoutSession',
             ])->name('vendor.ai_credits.checkout');
 
+            Route::post('/ai-credits/moneyfusion-checkout', [
+                \App\Yantrana\Components\Subscription\Controllers\MoneyFusionPaymentController::class,
+                'createAiCreditsCheckoutSession',
+            ])->name('vendor.ai_credits.moneyfusion.checkout');
+
             // Vendor Settings update
             Route::post('/settings', [
                 VendorSettingsController::class,
@@ -1274,6 +1285,12 @@ Route::middleware([
                 \App\Yantrana\Components\Subscription\Controllers\WavePaymentController::class,
                 'createCheckoutSession',
             ])->name('wave.checkout');
+
+            // moneyfusion checkout
+            Route::post('/payment/moneyfusion/checkout', [
+                \App\Yantrana\Components\Subscription\Controllers\MoneyFusionPaymentController::class,
+                'createCheckoutSession',
+            ])->name('moneyfusion.checkout');
 
              //paystack order checkout
              Route::post('/paystack-verify/{reference}', [

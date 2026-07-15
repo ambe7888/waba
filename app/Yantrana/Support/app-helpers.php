@@ -2030,7 +2030,9 @@ if (! function_exists('isAiBotAvailable')) {
         if (!$vendorId) {
             $vendorId = getVendorId();
         }
-        return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and (getAppSettings('openai_api_key') or env('OPENAI_API_KEY')));
+        $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $vendorId) 
+            || (getAppSettings('allow_vendors_to_use_system_openai_key', true) && (getAppSettings('openai_api_key') || env('OPENAI_API_KEY')));
+        return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and $hasOpenAiKey);
     }
 }
 
