@@ -2,66 +2,56 @@
 node_modules/
 npm-debug.log
 yarn-error.log
+composer.lock
+composer.phar
 
-# Laravel 4 specific
-bootstrap/compiled.php
-app/storage/
-
-# Laravel 5 & Lumen specific
-public/storage
-public/hot
-
-# Laravel 5 & Lumen specific with changed public path
-public_html/storage
-public_html/hot
-
+# Laravel
+/public/build
+/public/storage
+/public/hot
+/storage/pail
 storage/*.key
+.phpunit.result.cache
+
+# Environnement & secrets — ne jamais commiter
 .env
+.env.backup
+.env.production
+envweb
+auth.json
+cred.txt
+storage/firebase/firebase-service-account.json
+
+# Logs
+laravel.log
+*.log
+
+# Outils locaux / IDE
+/.vscode/
+.phpactor.json
+__pycache__/
 Homestead.yaml
 Homestead.json
 /.vagrant
-.phpunit.result.cache
 
-/public/build
-/storage/pail
-.env.backup
-.env.production
-.phpactor.json
-auth.json
+# Fichiers de travail locaux (scripts de test, brouillons, dumps)
+/scratch/
+PROJECT_LOG.md
+update.md
 Echange WABA.md
-envweb
 translations_modifie.xlsx
 scratch_schema.php
+scratch_license.php
 test.php
-scratch_license.php
-scratch_license.php
-composer.lock
-scratch_license.php
-scratch_license.php
-/design template create whatsapp wizard
-design template create wizard/FireShot Capture 001 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 002 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-.gitignore
-design template create wizard/FireShot Capture 003 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 005 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 004 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 006 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-new-data-schema.sql
-composer.phar
-
-carousel_steps.html
-carousel_steps_generator.py
-design template create wizard/
 temp_alpine.js
 temp_script.js
 temp_test.js
 update_alpine.py
 update_preview.py
-__pycache__/
-PROJECT_LOG.md
-update.md
+carousel_steps.html
+carousel_steps_generator.py
 campagne.sql
-storage/firebase/firebase-service-account.json
+new-data-schema.sql
 all_templates_dump.sql
-scratch/check_products.php
-scratch/test_api.php
+design template create wizard/
+design template create whatsapp wizard/
