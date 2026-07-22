@@ -23,10 +23,7 @@ class VerifyCsrfToken extends Middleware
         'yoomoney/*',
         'yoomoney/yoomoney-webhook-order-payment',
         'webhook/wave',
-<<<<<<< HEAD
-=======
         'webhook/moneyfusion',
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     ];
 
     /**

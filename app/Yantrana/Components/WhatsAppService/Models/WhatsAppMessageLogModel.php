@@ -68,10 +68,7 @@ class WhatsAppMessageLogModel extends BaseModel
             'campaign_type' => 'string',
             'preset_message_id' => 'string', // bot reply id for preset message
             'send_message_via_marketing_message_api' => 'boolean',
-<<<<<<< HEAD
-=======
             'referral' => 'array',
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         ],
     ];
 
@@ -96,12 +93,9 @@ class WhatsAppMessageLogModel extends BaseModel
         'formatted_message_ago_time',
         'whatsapp_message_error',
         'formatted_updated_time',
-<<<<<<< HEAD
-=======
         'type',
         'media_url',
         'file_url',
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     ];
 
     /**
@@ -168,8 +162,7 @@ class WhatsAppMessageLogModel extends BaseModel
             }
         );
     }
-<<<<<<< HEAD
-=======
+
 
     /**
      * Get message type attribute.
@@ -321,5 +314,5 @@ class WhatsAppMessageLogModel extends BaseModel
 
         return $value;
     }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+
 }

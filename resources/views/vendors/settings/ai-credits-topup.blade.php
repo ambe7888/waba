@@ -57,18 +57,13 @@
                                             </div>
                                         </div>
                                     </div>
-<<<<<<< HEAD
-=======
                                     @if(getAppSettings('enable_wave'))
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="2.00">
                                         <input type="hidden" name="credits" value="1000">
                                         <button type="submit" class="btn btn-success btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
-<<<<<<< HEAD
-=======
                                     @endif
 
                                     @if(getAppSettings('enable_moneyfusion'))
@@ -85,7 +80,6 @@
                                         <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
                                     </form>
                                     @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                 </div>
                             </div>
                         </div>
@@ -104,18 +98,13 @@
                                             </div>
                                         </div>
                                     </div>
-<<<<<<< HEAD
-=======
                                     @if(getAppSettings('enable_wave'))
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="8.00">
                                         <input type="hidden" name="credits" value="5000">
                                         <button type="submit" class="btn btn-info btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
-<<<<<<< HEAD
-=======
                                     @endif
 
                                     @if(getAppSettings('enable_moneyfusion'))
@@ -132,7 +121,6 @@
                                         <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
                                     </form>
                                     @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                 </div>
                             </div>
                         </div>
@@ -151,18 +139,13 @@
                                             </div>
                                         </div>
                                     </div>
-<<<<<<< HEAD
-=======
                                     @if(getAppSettings('enable_wave'))
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                     <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
                                         @csrf
                                         <input type="hidden" name="amount" value="15.00">
                                         <input type="hidden" name="credits" value="10000">
                                         <button type="submit" class="btn btn-warning btn-block">{{ __tr('Pay with Wave') }}</button>
                                     </form>
-<<<<<<< HEAD
-=======
                                     @endif
 
                                     @if(getAppSettings('enable_moneyfusion'))
@@ -179,7 +162,6 @@
                                         <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
                                     </form>
                                     @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                 </div>
                             </div>
                         </div>

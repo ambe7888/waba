@@ -351,8 +351,6 @@
         </fieldset>
         <!-- / Wave Mobile Money checkout end -->
 
-<<<<<<< HEAD
-=======
         <!-- MoneyFusion checkout start -->
         <fieldset class="lw-fieldset mb-3" x-data="{panelOpened:false}" x-cloak>
             <legend class="lw-fieldset-legend" @click="panelOpened = !panelOpened">
@@ -400,8 +398,6 @@
             </form>
         </fieldset>
         <!-- / MoneyFusion checkout end -->
-
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 
         <!-- For one time Payment Only -->
         @stack('oneTimeGatewaySettingStackStart')

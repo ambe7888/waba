@@ -457,8 +457,6 @@ return [
                 'ignore_empty' => true,
             ],
         ],
-<<<<<<< HEAD
-=======
         // MoneyFusion payment gateway
         'moneyfusion_payment' => [
             'enable_moneyfusion' => [
@@ -475,7 +473,6 @@ return [
                 'ignore_empty' => true,
             ],
         ],
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         //paystack
            'paystack_payment' => [
                 // Payment method
@@ -890,14 +887,11 @@ return [
                     'nullable',
                 ],
             ],
-<<<<<<< HEAD
-=======
             'allow_vendors_to_use_system_openai_key' => [
                 'key' => 'allow_vendors_to_use_system_openai_key',
                 'data_type' => 2,     // boolean
                 'default' => true,
             ],
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             'current_home_page_view' => [
                 'key' => 'current_home_page_view',
                 'data_type' => 1,     // string

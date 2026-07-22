@@ -57,12 +57,6 @@ class OpenAiService extends BaseEngine
             $vendorKey = null; // Ignore invalid encrypted keys
         }
         
-<<<<<<< HEAD
-        $apiKey = $accessKey 
-            ?: $vendorKey
-            ?: getAppSettings('openai_api_key') 
-            ?: env('OPENAI_API_KEY');
-=======
         $allowSystemKey = getAppSettings('allow_vendors_to_use_system_openai_key', true);
         $apiKey = $accessKey ?: $vendorKey;
 
@@ -73,7 +67,6 @@ class OpenAiService extends BaseEngine
                 throw new \Exception(__tr("Please configure your own OpenAI API Key in your settings to use AI features."));
             }
         }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         
         $vendorOrg = getVendorSettings('open_ai_organization_id', null, null, $vendorId);
         if ($vendorOrg && !Str::startsWith($vendorOrg, 'org-')) {
@@ -266,15 +259,11 @@ class OpenAiService extends BaseEngine
             'max_tokens' => getVendorSettings('open_ai_max_token', null, null, $vendorId),
         ]);
 
-<<<<<<< HEAD
-        $this->deductVendorCredit($vendorId);
-=======
         $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
         $completionTokens = $response['usage']['completion_tokens'] ?? 0;
         $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
         $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
         $this->deductVendorCredit($vendorId, $credits);
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 
         return trim($response['choices'][0]['text']);
     }
@@ -353,9 +342,6 @@ class OpenAiService extends BaseEngine
             $messageList = OpenAI::threads()->messages()->list(
                 threadId: $threadRun->threadId,
             );
-<<<<<<< HEAD
-            $this->deductVendorCredit($vendorId);
-=======
             $promptTokens = 0;
             $completionTokens = 0;
             if (isset($threadRun->usage)) {
@@ -370,7 +356,6 @@ class OpenAiService extends BaseEngine
             $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
             $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
             $this->deductVendorCredit($vendorId, $credits);
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             return $messageList->data[0]->content[0]->text->value;
         }
         // Text Based Source type
@@ -420,15 +405,11 @@ class OpenAiService extends BaseEngine
                 'temperature' => 0.7,
                 'messages' => $messages
             ]);
-<<<<<<< HEAD
-            $this->deductVendorCredit($vendorId);
-=======
             $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
             $completionTokens = $response['usage']['completion_tokens'] ?? 0;
             $model = getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo';
             $credits = $this->calculateCredits($model, $promptTokens, $completionTokens);
             $this->deductVendorCredit($vendorId, $credits);
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -516,11 +497,7 @@ class OpenAiService extends BaseEngine
         return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
     }
 
-<<<<<<< HEAD
-    protected function deductVendorCredit($vendorId)
-=======
     protected function deductVendorCredit($vendorId, $credits = 1)
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     {
         $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
         if ($vendor) {
@@ -528,25 +505,17 @@ class OpenAiService extends BaseEngine
             if ($vendor->plan_ai_credits >= 99999999) {
                 return;
             }
-<<<<<<< HEAD
-            if ($vendor->plan_ai_credits > 0) {
-                $vendor->plan_ai_credits -= 1;
-            } elseif ($vendor->extra_ai_credits > 0) {
-                $vendor->extra_ai_credits -= 1;
-=======
             if ($vendor->plan_ai_credits >= $credits) {
                 $vendor->plan_ai_credits -= $credits;
             } else {
                 $remaining = $credits - $vendor->plan_ai_credits;
                 $vendor->plan_ai_credits = 0;
                 $vendor->extra_ai_credits = max(0, $vendor->extra_ai_credits - $remaining);
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+            }
             }
             $vendor->save();
         }
     }
-<<<<<<< HEAD
-=======
 
     protected function calculateCredits($model, $promptTokens, $completionTokens)
     {
@@ -579,5 +548,4 @@ class OpenAiService extends BaseEngine
         // Minimum 1 credit, rounded up to the nearest integer
         return max(1, (int) ceil($totalCredits));
     }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 }

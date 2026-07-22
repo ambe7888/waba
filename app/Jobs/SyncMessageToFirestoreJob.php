@@ -45,27 +45,17 @@ class SyncMessageToFirestoreJob implements ShouldQueue
             'timestamp' => $messageLog->messaged_at ? $messageLog->messaged_at->toIso8601String() : now()->toIso8601String(),
             'type' => 'text', // default
             'status' => $messageLog->status,
-<<<<<<< HEAD
-            'is_system_message' => false,
-            // For now, simplify media URL check
-=======
             'is_system_message' => (bool)$messageLog->is_system_message,
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         ];
 
         // Basic check for media (if __data contains media values)
         if (!empty($messageLog->__data['media_values'])) {
-<<<<<<< HEAD
-            $data['type'] = 'media';
-            // We would extract the URL if possible, but keep it simple first
-=======
             $mediaValues = $messageLog->__data['media_values'];
             $data['type'] = $mediaValues['type'] ?? 'media';
             $data['media_url'] = $mediaValues['link'] ?? '';
             if (empty($data['message']) && !empty($mediaValues['caption'])) {
                 $data['message'] = $mediaValues['caption'];
             }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         }
 
         $collectionPath = "chats/{$contact->_uid}/messages";

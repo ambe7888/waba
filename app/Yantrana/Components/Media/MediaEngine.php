@@ -266,10 +266,6 @@ class MediaEngine extends BaseMediaEngine implements MediaEngineInterface
             if ($fileData) {
                 $permanentFolderPath = getPathByKey("whatsapp_$mediaType", ['{_uid}' => $vendorUid]);
                 $tempUploadFolderPath = getPathByKey('user_temp_uploads', ['{_uid}' => $vendorUid]);
-<<<<<<< HEAD
-                $filename = uniqid().'.'.$mimeTypesToExtension[$fileValue['mime_type']];
-=======
-                
                 // Nettoyer le type MIME (ex: "audio/ogg; codecs=opus" devient "audio/ogg")
                 $rawMimeType = $fileValue['mime_type'] ?? 'application/octet-stream';
                 $mimeTypeParts = explode(';', $rawMimeType);
@@ -279,7 +275,6 @@ class MediaEngine extends BaseMediaEngine implements MediaEngineInterface
                 $extension = $mimeTypesToExtension[$cleanMimeType] ?? 'bin';
                 
                 $filename = uniqid().'.'.$extension;
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                 // temp file storage
                 $writtenFile = $this->disk->writeFile($tempUploadFolderPath.'/'.$filename, $fileData);
                 // move to permanent storage

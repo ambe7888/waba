@@ -168,13 +168,10 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
                 'incoming' => $messageEntry,
             ],
         ];
-<<<<<<< HEAD
-=======
         $referral = \Illuminate\Support\Arr::get($messageEntry, '0.changes.0.value.messages.0.referral');
         if (! empty($referral)) {
             $additionalData['referral'] = $referral;
         }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         if (! empty($mediaData)) {
             $additionalData['media_values'] = $mediaData;
         }

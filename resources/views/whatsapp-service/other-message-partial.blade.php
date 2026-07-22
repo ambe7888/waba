@@ -25,19 +25,6 @@
     </div>
 </div>
 @elseif ($otherMessageType == 'contacts')
-<<<<<<< HEAD
-    @foreach ($messageDataValues as $contact)
-        <h3><strong>{{ $contact['name']['formatted_name'] ?? '' }}</strong></h3>
-        @foreach ($contact as $contactDataKey => $contactDataValue)
-            @if ($contactDataKey != 'name')
-                @foreach ($contactDataValue as $contactDataItemKey => $contactDataItemValue)
-                    <div>{{ $contactDataItemValue['type'] ?? '' }}: {{ $contactDataItemValue[Str::singular($contactDataKey)] ?? '' }}</div>
-                @endforeach
-            @endif
-        @endforeach
-        <hr>
-    @endforeach
-=======
     @if (is_array($messageDataValues) || is_object($messageDataValues))
         @foreach ($messageDataValues as $contact)
             @if (is_array($contact) || is_object($contact))
@@ -55,7 +42,6 @@
             @endif
         @endforeach
     @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 @endif
 @else
 <div class="lw-whatsapp-preview-message-container">

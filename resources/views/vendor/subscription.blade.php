@@ -299,10 +299,7 @@
                                     </button>
                                     
                                 </form>
-<<<<<<< HEAD
-=======
                                 @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                 @if(getAppSettings('enable_wave'))
                                 <form action="{{ route('wave.checkout') }}" method="post" id="wave-pay-form">
                                     @csrf
@@ -312,9 +309,6 @@
                                     </button>
                                 </form>
                                 @endif
-<<<<<<< HEAD
-                               @else
-=======
                                 @if(getAppSettings('enable_moneyfusion'))
                                 <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form" class="mt-3">
                                     @csrf
@@ -395,10 +389,7 @@
                                     <!-- ----------/change Subscription -------------- -->
                                 </fieldset>
                                 @endif
-<<<<<<< HEAD
-                               @endif
-=======
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+
                        </div>
                    </div>
                @endif
@@ -511,8 +502,6 @@
                                          </form>
                                     </fieldset>
                                     @endif
-<<<<<<< HEAD
-=======
                                     @if(getAppSettings('enable_moneyfusion'))
                                     <fieldset class="mt-3">
                                          <legend>
@@ -536,7 +525,6 @@
                                          </form>
                                     </fieldset>
                                     @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                                     <!-- Stack for recurring payment Subscribe Now Button -->
                                     @stack('autoSubscriptionSubscribeNowStack')
                                     <!-- Stack for recurring payment Subscribe Now Button -->

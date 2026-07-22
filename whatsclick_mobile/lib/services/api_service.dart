@@ -932,19 +932,6 @@ class ApiService {
 
   /// Check if a new version is available on the server
   Future<Map<String, dynamic>?> checkForUpdate() async {
-<<<<<<< HEAD
-    final url = Uri.parse('${baseUrl}downloads/version.json');
-    try {
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final serverVersion = data['version']?.toString() ?? '';
-        if (serverVersion.isNotEmpty && serverVersion != version) {
-          return {
-            'version': serverVersion,
-            'change_log': data['change_log']?.toString() ?? '',
-            'apk_url': '${baseUrl}downloads/whatsclick.apk',
-=======
     final url = Uri.parse('${baseApiUrl}app-version');
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
@@ -957,7 +944,6 @@ class ApiService {
             'version': latestVersion,
             'apk_url': data['apk_url'] ?? 'https://wb.4adev.com/whatsclick-latest.apk',
             'change_log': data['change_log'] ?? 'Correctifs et améliorations générales.',
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
           };
         }
       }
@@ -967,8 +953,6 @@ class ApiService {
     return null;
   }
 
-<<<<<<< HEAD
-=======
   bool _isNewerVersion(String current, String latest) {
     try {
       final currentParts = current.split('.').map(int.parse).toList();
@@ -983,8 +967,6 @@ class ApiService {
     }
     return false;
   }
-
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
   /// Create a new contact label on the server
   Future<Map<String, dynamic>?> createContactLabel({
     required String title,

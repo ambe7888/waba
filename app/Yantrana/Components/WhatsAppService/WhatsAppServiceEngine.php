@@ -2452,9 +2452,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $item->message = $this->formatSystemMessage(data_get($item->__data, 'system_message_data'));
             } else {
                 $item->message = $this->formatWhatsAppText($item->message);
-<<<<<<< HEAD
-=======
-                
                 // Replace referral image placeholder with actual HTML after formatting is done
                 $data = $item->__data;
                 $referral = $data['referral'] ?? data_get($data, 'webhook_responses.incoming.0.changes.0.value.messages.0.referral') ?? null;
@@ -2469,7 +2466,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         $item->message = str_replace('[REFERRAL-IMAGE-PLACEHOLDER]', '', $item->message);
                     }
                 }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             }
             $item->template_message = null;
             if (! $item->message || Arr::get($item->__data, 'interaction_message_data')) {
@@ -3290,13 +3286,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         ];
         if ($testBotId) {
             $dataFetchConditions['_id'] = $testBotId;
-<<<<<<< HEAD
-        } else {
-            if (!$messageBody) {
-                return $this->engineFailedResponse([], __tr('Message body is empty'));
-            }
-=======
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         }
 
         $isBotTimingsEnabled = getVendorSettings('enable_bot_timing_restrictions', null, null, $contact->vendors__id);
@@ -3737,24 +3726,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // contact ai bot replies is not disabled
         // has in subscription plan
         $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $contact->vendors__id);
-<<<<<<< HEAD
-        if (!$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
-=======
         if (!empty($messageBody) and !$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             // Meta AI Bot
             if (getVendorSettings('enable_meta_ai_bot', null, null, $contact->vendors__id)) {
                 return false;
             }
             $aiBotReplyText = null;
             // open ai
-<<<<<<< HEAD
-            if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and (getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) or getAppSettings('openai_api_key') or env('OPENAI_API_KEY'))) {
-=======
             $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) 
                 || (getAppSettings('allow_vendors_to_use_system_openai_key', true) && (getAppSettings('openai_api_key') || env('OPENAI_API_KEY')));
             if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and $hasOpenAiKey) {
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                 try {
                     $aiBotReplyText = app()->make(OpenAiService::class)->generateAnswerFromMultipleSections($messageBody, $contact, $contact->vendors__id);
                     // check if got the reply
@@ -4405,17 +4386,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 );
             }
 
-<<<<<<< HEAD
-            if ($messageBody and !$isFromBizAppReplied) {
-                fromPhoneNumberIdForRequest($phoneNumberId);
-                // process the bot if needed any
-                $this->processReplyBot($contact, $messageBody, null, [
-=======
             if (!$isFromBizAppReplied) {
                 fromPhoneNumberIdForRequest($phoneNumberId);
                 // process the bot if needed any
                 $this->processReplyBot($contact, $messageBody ?? '', null, [
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                     'fromPhoneNumberId' => $phoneNumberId,
                     'messageWamid' => $messageWamid,
                 ]);

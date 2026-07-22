@@ -2,11 +2,7 @@ name: whatsjet_mobile
 description: "WhatsClick Mobile - Application de messagerie WhatsApp Business"
 publish_to: 'none'
 
-<<<<<<< HEAD
-version: 1.0.0+1
-=======
 version: 1.0.4+4
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 
 environment:
   sdk: '>=3.1.5 <4.0.0'

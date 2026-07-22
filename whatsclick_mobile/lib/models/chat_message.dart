@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-=======
 import 'dart:convert';
 
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 class ChatMessage {
   final String uid;
   final String body;
@@ -12,10 +9,7 @@ class ChatMessage {
   final String? mediaUrl;
   final bool isSystemMessage;
   final String status;
-<<<<<<< HEAD
-=======
   final Map<String, dynamic>? referral;
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 
   ChatMessage({
     required this.uid,
@@ -26,10 +20,7 @@ class ChatMessage {
     this.mediaUrl,
     this.isSystemMessage = false,
     this.status = 'initialize',
-<<<<<<< HEAD
-=======
     this.referral,
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -44,11 +35,6 @@ class ChatMessage {
     String resolvedType = json['type'] ?? 'text';
     String? resolvedMediaUrl = json['media_url'] ?? json['file_url'];
     String resolvedBody = json['message'] ?? json['body'] ?? '';
-<<<<<<< HEAD
-
-    final dynamic dataField = json['__data'];
-    if (dataField is Map) {
-=======
     Map<String, dynamic>? resolvedReferral;
 
     dynamic dataField = json['__data'];
@@ -75,7 +61,6 @@ class ChatMessage {
         }
       }
 
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
       final dynamic mediaValues = dataField['media_values'];
       if (mediaValues is Map) {
         final String? mvType = mediaValues['type']?.toString();
@@ -104,10 +89,7 @@ class ChatMessage {
       mediaUrl: resolvedMediaUrl,
       isSystemMessage: system,
       status: json['status'] ?? 'initialize',
-<<<<<<< HEAD
-=======
       referral: resolvedReferral,
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     );
   }
 
@@ -117,11 +99,7 @@ class ChatMessage {
         body != other.body ||
         type != other.type ||
         status != other.status ||
-<<<<<<< HEAD
-        mediaUrl != other.mediaUrl;
-=======
         mediaUrl != other.mediaUrl ||
         referral != other.referral;
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
   }
 }

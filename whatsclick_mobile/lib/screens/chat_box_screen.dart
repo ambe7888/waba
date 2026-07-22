@@ -1593,11 +1593,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-<<<<<<< HEAD
-=======
             if (message.referral != null)
               _buildReferralWidget(message.referral!, textColor),
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             // IMAGE
             if (msgType == 'image' || (message.mediaUrl != null &&
                 (message.mediaUrl!.toLowerCase().endsWith('.jpg') ||
@@ -1851,8 +1848,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ),
     );
   }
-<<<<<<< HEAD
-=======
+
 
   Widget _buildReferralWidget(Map<String, dynamic> referral, Color textColor) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -2000,7 +1996,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ),
     );
   }
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+
 }
 
 // Custom Voice note component
