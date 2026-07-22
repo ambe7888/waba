@@ -233,6 +233,19 @@
     .step-line.filled {
         background-color: #198754;
     }
+    .step-indicator-item {
+        cursor: pointer;
+    }
+    .step-indicator-item.has-error .step-num {
+        background-color: #fee2e2 !important;
+        color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+    }
+    .step-indicator-item.has-error .step-label {
+        color: #dc2626 !important;
+        font-weight: 700;
+    }
     @media (max-width: 576px) {
         .saas-login-card {
             border-radius: 1.25rem;
@@ -267,17 +280,17 @@
 
                     <!-- Step Progress Bar -->
                     <div class="saas-steps-indicator d-flex justify-content-between align-items-center px-4 mt-3">
-                        <div class="step-indicator-item active" id="ind-1">
+                        <div class="step-indicator-item active" id="ind-1" onclick="goToStep(1)" title="{{ __tr('Step 1: Company') }}">
                             <span class="step-num">1</span>
                             <span class="step-label">{{ __tr('Company') }}</span>
                         </div>
                         <div class="step-line flex-grow-1 mx-2" id="line-1"></div>
-                        <div class="step-indicator-item" id="ind-2">
+                        <div class="step-indicator-item" id="ind-2" onclick="goToStep(2)" title="{{ __tr('Step 2: Profile') }}">
                             <span class="step-num">2</span>
                             <span class="step-label">{{ __tr('Profile') }}</span>
                         </div>
                         <div class="step-line flex-grow-1 mx-2" id="line-2"></div>
-                        <div class="step-indicator-item" id="ind-3">
+                        <div class="step-indicator-item" id="ind-3" onclick="goToStep(3)" title="{{ __tr('Step 3: Security') }}">
                             <span class="step-num">3</span>
                             <span class="step-label">{{ __tr('Security') }}</span>
                         </div>
@@ -294,6 +307,17 @@
 
                     <x-lw.form :action="$formSignUpRoute" data-secured="true" id="saasMultiStepForm">
                         
+                        <!-- Error Banner for Form Steps -->
+                        <div id="saasFormStepErrorAlert" class="alert alert-danger mb-4" style="display: none; border-radius: 0.75rem;">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-exclamation-triangle fa-lg mr-3"></i>
+                                <div>
+                                    <strong class="d-block">{{ __tr('Saisie incomplète ou incorrecte') }}</strong>
+                                    <span id="saasFormStepErrorMessage" class="small">{{ __tr('Des erreurs sont survenues. Vous avez été réorienté vers l\'étape contenant le champ à corriger.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- STEP 1: COMPANY INFO -->
                         <div class="saas-step" id="step-1">
                             <div class="form-group mb-4">
@@ -472,21 +496,26 @@
 
     function showStep(step) {
         document.querySelectorAll('.saas-step').forEach(el => el.style.display = 'none');
-        document.getElementById('step-' + step).style.display = 'block';
+        const targetStep = document.getElementById('step-' + step);
+        if (targetStep) {
+            targetStep.style.display = 'block';
+        }
 
         // Update Indicators
         for (let i = 1; i <= 3; i++) {
             const ind = document.getElementById('ind-' + i);
             const line = document.getElementById('line-' + (i - 1));
             
-            if (i < step) {
-                ind.classList.add('completed');
-                ind.classList.remove('active');
-            } else if (i === step) {
-                ind.classList.add('active');
-                ind.classList.remove('completed');
-            } else {
-                ind.classList.remove('active', 'completed');
+            if (ind) {
+                if (i < step) {
+                    ind.classList.add('completed');
+                    ind.classList.remove('active');
+                } else if (i === step) {
+                    ind.classList.add('active');
+                    ind.classList.remove('completed');
+                } else {
+                    ind.classList.remove('active', 'completed');
+                }
             }
 
             if (line) {
@@ -499,6 +528,9 @@
         }
         currentStep = step;
         
+        // Re-evaluate step errors to highlight indicators
+        checkStepErrors();
+
         // Scroll to card top smoothly
         const card = document.querySelector('.saas-login-card');
         if (card) {
@@ -506,12 +538,57 @@
         }
     }
 
+    function checkStepErrors() {
+        let firstErrorStep = null;
+
+        for (let i = 1; i <= 3; i++) {
+            const stepEl = document.getElementById('step-' + i);
+            const ind = document.getElementById('ind-' + i);
+            if (!stepEl || !ind) continue;
+
+            // Check for fields with validation errors or server error labels
+            const errorNodes = stepEl.querySelectorAll('.is-invalid, .has-danger, label.error, div.error, .invalid-feedback');
+            let hasError = false;
+            
+            errorNodes.forEach(err => {
+                if (err.classList.contains('is-invalid') || err.classList.contains('has-danger')) {
+                    hasError = true;
+                } else if (err.textContent && err.textContent.trim().length > 0 && getComputedStyle(err).display !== 'none') {
+                    hasError = true;
+                }
+            });
+
+            if (hasError) {
+                ind.classList.add('has-error');
+                if (!firstErrorStep) {
+                    firstErrorStep = i;
+                }
+            } else {
+                ind.classList.remove('has-error');
+            }
+        }
+
+        const alertEl = document.getElementById('saasFormStepErrorAlert');
+        if (alertEl) {
+            if (firstErrorStep) {
+                alertEl.style.display = 'block';
+            } else {
+                alertEl.style.display = 'none';
+            }
+        }
+
+        return firstErrorStep;
+    }
+
     function validateStep(step) {
         const stepContainer = document.getElementById('step-' + step);
+        if (!stepContainer) return true;
+
         const inputs = stepContainer.querySelectorAll('input[required]');
         let isValid = true;
         for (let input of inputs) {
             if (!input.checkValidity()) {
+                showStep(step);
                 input.reportValidity();
                 isValid = false;
                 break;
@@ -534,6 +611,19 @@
         }
     }
 
+    function goToStep(step) {
+        if (step < currentStep) {
+            showStep(step);
+        } else if (step > currentStep) {
+            for (let s = currentStep; s < step; s++) {
+                if (!validateStep(s)) {
+                    return;
+                }
+            }
+            showStep(step);
+        }
+    }
+
     function togglePasswordVisibility(fieldId, buttonEl) {
         const field = document.getElementById(fieldId);
         const icon = buttonEl.querySelector('i');
@@ -547,5 +637,53 @@
             icon.classList.add('fa-eye');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('saasMultiStepForm');
+        if (!form) return;
+
+        // Monitor DOM changes for server-side validation error injection
+        const observer = new MutationObserver(function() {
+            const errorStep = checkStepErrors();
+            if (errorStep && errorStep !== currentStep) {
+                showStep(errorStep);
+                const firstErrInput = document.querySelector('#step-' + errorStep + ' .is-invalid, #step-' + errorStep + ' input:invalid');
+                if (firstErrInput) {
+                    firstErrInput.focus();
+                }
+            }
+        });
+
+        observer.observe(form, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
+
+        // Hook into jQuery AJAX completion if available
+        if (window.jQuery) {
+            $(document).ajaxComplete(function() {
+                setTimeout(function() {
+                    const errorStep = checkStepErrors();
+                    if (errorStep) {
+                        showStep(errorStep);
+                    }
+                }, 50);
+            });
+        }
+
+        // Pre-validate all steps when submit is clicked
+        form.addEventListener('submit', function(e) {
+            for (let step = 1; step <= 3; step++) {
+                if (!validateStep(step)) {
+                    showStep(step);
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }
+        }, true);
+    });
 </script>
 @endsection

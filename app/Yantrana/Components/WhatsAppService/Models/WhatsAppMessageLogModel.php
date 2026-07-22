@@ -68,6 +68,10 @@ class WhatsAppMessageLogModel extends BaseModel
             'campaign_type' => 'string',
             'preset_message_id' => 'string', // bot reply id for preset message
             'send_message_via_marketing_message_api' => 'boolean',
+<<<<<<< HEAD
+=======
+            'referral' => 'array',
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         ],
     ];
 
@@ -92,6 +96,12 @@ class WhatsAppMessageLogModel extends BaseModel
         'formatted_message_ago_time',
         'whatsapp_message_error',
         'formatted_updated_time',
+<<<<<<< HEAD
+=======
+        'type',
+        'media_url',
+        'file_url',
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     ];
 
     /**
@@ -158,4 +168,158 @@ class WhatsAppMessageLogModel extends BaseModel
             }
         );
     }
+<<<<<<< HEAD
+=======
+
+    /**
+     * Get message type attribute.
+     */
+    protected function type(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                return $data['media_values']['type'] ?? 'text';
+            }
+        );
+    }
+
+    /**
+     * Get media URL attribute.
+     */
+    protected function mediaUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                $link = $data['media_values']['link'] ?? '';
+                if ($link) {
+                    if (str_starts_with($link, 'http://localhost') || str_starts_with($link, 'http://127.0.0.1:8000') || str_starts_with($link, 'http://127.0.0.1')) {
+                        $parsedUrl = parse_url($link);
+                        $path = $parsedUrl['path'] ?? '';
+                        
+                        $baseUrl = null;
+                        try {
+                            if (function_exists('request') && request()) {
+                                $baseUrl = request()->getSchemeAndHttpHost();
+                            }
+                        } catch (\Exception $e) {}
+                        
+                        if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                            $baseUrl = config('app.url');
+                        }
+                        if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                            $baseUrl = 'https://wb.4adev.com'; // last fallback
+                        }
+                        
+                        $baseUrl = rtrim($baseUrl, '/');
+                        if (substr($path, 0, 1) !== '/') {
+                            $path = '/' . $path;
+                        }
+                        
+                        $link = $baseUrl . $path;
+                    }
+                }
+                return $link;
+            }
+        );
+    }
+
+    /**
+     * Get message attribute and dynamically prepend Facebook Ad referral details if present.
+     */
+    protected function message(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value, array $attributes) {
+                $messageText = $attributes['message'] ?? '';
+                
+                // If it already has the referral prefix formatted, do not prepend it again
+                if (str_contains($messageText, '[Provenance Pub Facebook]')) {
+                    return $messageText;
+                }
+                
+                $data = isset($attributes['__data']) ? json_decode($attributes['__data'], true) : [];
+                $referral = $data['referral'] ?? data_get($data, 'webhook_responses.incoming.0.changes.0.value.messages.0.referral') ?? null;
+                
+                if (!empty($referral)) {
+                    $headline = $referral['headline'] ?? '';
+                    $url = $referral['source_url'] ?? '';
+                    
+                    $prefix = "📢 *[Provenance Pub Facebook]*\n";
+                    
+                    // Display image placeholder - actual HTML will be replaced after formatting to prevent URL parser from breaking it
+                    $imageUrl = $referral['image_url'] ?? $referral['thumbnail_url'] ?? '';
+                    if ($imageUrl) {
+                        $prefix .= "[REFERRAL-IMAGE-PLACEHOLDER]\n";
+                    }
+                    
+                    if ($headline) {
+                        $prefix .= "*Titre*: {$headline}\n";
+                    }
+                    
+                    if ($url) {
+                        $prefix .= "🔗 *Lien vers la pub*: {$url}\n";
+                    }
+                    $prefix .= "--------------------------------\n";
+                    
+                    return $prefix . $messageText;
+                }
+                return $messageText;
+            }
+        );
+    }
+
+    /**
+     * Get file URL attribute (alias of media_url).
+     */
+    protected function fileUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn(mixed $value, array $attributes) => $this->media_url,
+        );
+    }
+
+    /**
+     * Override getAttribute to dynamically clean up localhost media URLs.
+     */
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+
+        if ($key === '__data') {
+            if (is_array($value) && !empty($value['media_values']['link'])) {
+                $link = $value['media_values']['link'];
+                if (str_starts_with($link, 'http://localhost') || str_starts_with($link, 'http://127.0.0.1:8000') || str_starts_with($link, 'http://127.0.0.1')) {
+                    $parsedUrl = parse_url($link);
+                    $path = $parsedUrl['path'] ?? '';
+                    
+                    // Determine base URL dynamically
+                    $baseUrl = null;
+                    try {
+                        if (function_exists('request') && request()) {
+                            $baseUrl = request()->getSchemeAndHttpHost();
+                        }
+                    } catch (\Exception $e) {}
+                    
+                    if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                        $baseUrl = config('app.url');
+                    }
+                    if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
+                        $baseUrl = 'https://wb.4adev.com'; // last fallback
+                    }
+                    
+                    $baseUrl = rtrim($baseUrl, '/');
+                    if (substr($path, 0, 1) !== '/') {
+                        $path = '/' . $path;
+                    }
+                    
+                    $value['media_values']['link'] = $baseUrl . $path;
+                }
+            }
+        }
+
+        return $value;
+    }
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 }

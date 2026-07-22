@@ -340,6 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     children: [
                       // Label Picker Dropdown
+<<<<<<< HEAD
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
@@ -385,6 +386,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 8),
                         _buildPeriodCountColumn('Avant-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
                       ],
+=======
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(
+                            color: labelBgColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: labelBgColor.withOpacity(0.4)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: currentSelectedUid,
+                              dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                              icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: labelBgColor,
+                              ),
+                              items: labelStats.map<DropdownMenuItem<String>>((l) {
+                                return DropdownMenuItem<String>(
+                                  value: l['label_uid'],
+                                  child: Text(
+                                    l['label_title'] ?? 'Sans nom',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                // Create new list reference to force Flutter rebuild
+                                final newUids = List<String?>.from(_selectedLabelUids);
+                                newUids[index] = val;
+                                setState(() {
+                                  _selectedLabelUids = newUids;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Period count columns
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isCustomDateActive) ...[
+                            _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
+                          ] else ...[
+                            _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
+                            const SizedBox(width: 4),
+                            _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
+                            const SizedBox(width: 4),
+                            _buildPeriodCountColumn('Av.-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
+                          ],
+                        ],
+                      ),
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
                     ],
                   ),
                 );

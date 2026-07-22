@@ -290,12 +290,14 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->get();
         }
 
+        $vendorUserData = \App\Yantrana\Components\Auth\Models\AuthModel::where('vendors__id', $vendorId)->first() ?: auth()->user();
+
         return array_merge([
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
             'vendorId' => $vendorId,
             'activeTeamMembers' => $this->userRepository->countVendorsActiveUsers($vendorWhereClause),
-            'vendorUserData' => auth()->user(),
+            'vendorUserData' => $vendorUserData,
             'totalContacts' => $this->contactRepository->totalContactsCountForVendor($vendorId),
             'totalGroups' => $this->contactGroupRepository->countIt($vendorWhereClause),
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),
@@ -337,7 +339,6 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 'total_credits' => $totalCredits,
                 'display_credits' => $displayCredits,
             ],
-            'vendorUserData' => getUserAuthInfo('profile'),
         ]);
     }
 

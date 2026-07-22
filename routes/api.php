@@ -162,6 +162,16 @@ Route::group([
     ])->name('api.vendor.campaign.read.status_details');
 });
 
+<<<<<<< HEAD
+=======
+Route::get('/app-version', function () {
+    return response()->json([
+        'version' => '1.0.4',
+        'apk_url' => 'https://wb.4adev.com/whatsclick-latest.apk'
+    ]);
+})->name('api.app_version');
+
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 // Mobile app apis
 Route::group(['middleware' => 'guest'], function () {
 

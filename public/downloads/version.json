@@ -1,4 +1,10 @@
 {
+<<<<<<< HEAD
   "version": "1.0.0",
   "change_log": "Tableau de bord amélioré, correctifs des pièces jointes et des notifications Firebase."
+=======
+  "version": "1.0.4",
+  "change_log": "Correction des doublons de messages de provenance publicitaire Facebook Ads, support des miniatures video et optimisations de performance.",
+  "apk_url": "https://wb.4adev.com/downloads/whatsclick.apk"
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 }

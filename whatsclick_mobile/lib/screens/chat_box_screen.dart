@@ -1593,6 +1593,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+<<<<<<< HEAD
+=======
+            if (message.referral != null)
+              _buildReferralWidget(message.referral!, textColor),
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
             // IMAGE
             if (msgType == 'image' || (message.mediaUrl != null &&
                 (message.mediaUrl!.toLowerCase().endsWith('.jpg') ||
@@ -1846,6 +1851,156 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ),
     );
   }
+<<<<<<< HEAD
+=======
+
+  Widget _buildReferralWidget(Map<String, dynamic> referral, Color textColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final String title = referral['headline'] ?? referral['title'] ?? 'Publicité Facebook Ads';
+    final String body = referral['body'] ?? referral['description'] ?? '';
+    final String? imageUrl = referral['image_url'] ?? referral['thumbnail_url'];
+    final String? sourceUrl = referral['source_url'];
+    final String mediaType = referral['media_type']?.toString().toLowerCase() ?? 'image';
+    final bool isVideo = mediaType == 'video';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.campaign_rounded,
+                color: Color(0xFF1877F2),
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'Provenance Facebook Ads',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1877F2),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imageUrl != null && imageUrl.isNotEmpty) ...[
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        imageUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                    if (isVideo)
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (body.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        body,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textColor.withOpacity(0.7),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (sourceUrl != null && sourceUrl.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () => launchUrl(Uri.parse(sourceUrl), mode: LaunchMode.externalApplication),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1877F2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isVideo ? 'Voir la vidéo' : 'Voir la publicité',
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1877F2),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.open_in_new_rounded,
+                      size: 10,
+                      color: Color(0xFF1877F2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 }
 
 // Custom Voice note component

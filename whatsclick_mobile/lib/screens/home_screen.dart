@@ -17,7 +17,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+<<<<<<< HEAD
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+=======
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
   final _searchController = TextEditingController();
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
@@ -52,6 +56,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+=======
+    WidgetsBinding.instance.addObserver(this);
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -85,6 +93,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+<<<<<<< HEAD
+=======
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    } else if (state == AppLifecycleState.resumed) {
+      _loadContacts(silent: true);
+      _refreshBadgeCounts();
+      _pollingTimer?.cancel();
+      _pollingTimer = Timer.periodic(
+        const Duration(seconds: pollingIntervalSeconds),
+        (_) {
+          _loadContacts(silent: true);
+          _refreshBadgeCounts();
+        },
+      );
+    }
+  }
+
+
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
   Future<void> _checkUpdate() async {
     try {
       final updateInfo = await ApiService().checkForUpdate();
@@ -506,6 +537,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+<<<<<<< HEAD
+=======
+    WidgetsBinding.instance.removeObserver(this);
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
     _searchDebouncer?.cancel();

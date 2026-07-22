@@ -354,33 +354,33 @@ $vendorViewBySuperAdmin = null;
                     </div>
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Created On:') }}</h4>
-                        <p class="card-text">{{formatDate($vendorUserData['created_at'])}}</p>
+                        <p class="card-text">{{ formatDate($vendorUserData['created_at'] ?? ($vendorInfo['created_at'] ?? '')) }}</p>
                     </div>
                     <hr>
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Admin User Name:') }}</h4>
-                        <p class="card-text">{{maskForDemo($vendorUserData['first_name'] . ' ' . $vendorUserData['last_name'])}}</p>
+                        <p class="card-text">{{ maskForDemo(($vendorUserData['first_name'] ?? '') . ' ' . ($vendorUserData['last_name'] ?? '')) }}</p>
                     </div>
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Username:') }}</h4>
-                        <p class="card-text">{{maskForDemo($vendorUserData['username'])}}</p>
+                        <p class="card-text">{{ maskForDemo($vendorUserData['username'] ?? '') }}</p>
                     </div>
-                    @if($vendorUserData['mobile_number'])
+                    @if(!empty($vendorUserData['mobile_number']))
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Phone Number:') }}</h4>
-                        <p class="card-text">{{maskForDemo($vendorUserData['mobile_number'])}}</p>
+                        <p class="card-text">{{ maskForDemo($vendorUserData['mobile_number']) }}</p>
                     </div>
                     @endif
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Email:') }}</h4>
-                        <p class="card-text">{{maskForDemo($vendorUserData['email'])}}</p>
+                        <p class="card-text">{{ maskForDemo($vendorUserData['email'] ?? '') }}</p>
                     </div>
                     <div class="my-2">
                         <h4 class="text-dark font-weight-bold">{{ __tr('Admin User Status:') }}</h4>
-                        @if($vendorUserData['status']==0)
-                        <p class="card-text">{{__tr('Inactive') }}</p>
+                        @if(($vendorUserData['status'] ?? 0) == 0)
+                        <p class="card-text">{{ __tr('Inactive') }}</p>
                         @else
-                        <p class="card-text">{{configItem('status_codes', $vendorUserData['status'])}}</p>
+                        <p class="card-text">{{ configItem('status_codes', $vendorUserData['status']) }}</p>
                         @endif
                     </div>
                 </fieldset>

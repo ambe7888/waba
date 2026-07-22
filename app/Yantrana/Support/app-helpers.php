@@ -915,10 +915,25 @@ if (! function_exists('getMediaUrl')) {
         } else {
             $currentDisc = YesFileStorage::on($currentFileSystemDriver);
             // check if file is exists
+<<<<<<< HEAD
             if (config("filesystems.disks.$currentFileSystemDriver.full_url")) {
                 return config("filesystems.disks.$currentFileSystemDriver.full_url", asset('/')) . $storagePath;
             }
             return config("filesystems.disks.$currentFileSystemDriver.url", asset('/')) . $storagePath;
+=======
+            $fullUrl = config("filesystems.disks.$currentFileSystemDriver.full_url");
+            if ($fullUrl) {
+                if (substr($fullUrl, -1) !== '/') {
+                    $fullUrl .= '/';
+                }
+                return $fullUrl . $storagePath;
+            }
+            $diskUrl = config("filesystems.disks.$currentFileSystemDriver.url", asset('/'));
+            if (substr($diskUrl, -1) !== '/') {
+                $diskUrl .= '/';
+            }
+            return $diskUrl . $storagePath;
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
         }
 
         return null;
@@ -2022,7 +2037,13 @@ if (! function_exists('isAiBotAvailable')) {
         if (!$vendorId) {
             $vendorId = getVendorId();
         }
+<<<<<<< HEAD
         return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and (getAppSettings('openai_api_key') or env('OPENAI_API_KEY')));
+=======
+        $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $vendorId) 
+            || (getAppSettings('allow_vendors_to_use_system_openai_key', true) && (getAppSettings('openai_api_key') || env('OPENAI_API_KEY')));
+        return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and $hasOpenAiKey);
+>>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
     }
 }
 
