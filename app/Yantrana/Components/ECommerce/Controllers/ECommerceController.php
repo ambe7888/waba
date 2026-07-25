@@ -518,7 +518,8 @@ class ECommerceController extends BaseController
         $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
             ->where(function($q) use ($request) {
                 $q->where('_id', $request->contact_id)
-                  ->orWhere('_uid', $request->contact_id);
+                  ->orWhere('_uid', $request->contact_id)
+                  ->orWhere('wa_id', $request->contact_id);
             })->first();
 
         if (empty($contact)) {
@@ -577,6 +578,8 @@ class ECommerceController extends BaseController
                 'contact' => $contact
             ]);
         }
+
+        $newOrder->load('contact');
 
         return $this->processResponse(1, [
             1 => __tr('Commande créée avec succès !')

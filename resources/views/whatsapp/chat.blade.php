@@ -1204,12 +1204,19 @@
                                             delivery_date: this.orderDate
                                         }, function(response) {
                                             self.isCreatingOrder = false;
-                                            if(response.reaction_code == 1) {
-                                                showSuccessMessage(response.message || 'Commande créée avec succès !');
+                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            if (isSuccess) {
+                                                var msg = response.message || (response.data && response.data.message) || 'Commande créée avec succès !';
+                                                showSuccessMessage(msg);
                                                 self.showCreateOrderForm = false;
+                                                var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
+                                                if (newOrd) {
+                                                    self.ordersList.unshift(newOrd);
+                                                }
                                                 self.fetchOrders();
                                             } else {
-                                                showErrorMessage(response.message || 'Erreur de création.');
+                                                var errMsg = response.message || (response.data && response.data.message) || 'Erreur de création.';
+                                                showErrorMessage(errMsg);
                                             }
                                         });
                                     }

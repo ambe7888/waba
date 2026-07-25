@@ -174,16 +174,20 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
             delivery_date: this.newOrderDate
         }, function(response) {
             self.isSavingManualOrder = false;
-            if (response.reaction_code == 1) {
-                showSuccessMessage(response.message || 'Commande enregistrée avec succès !');
+            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+            if (isSuccess) {
+                var msg = response.message || (response.data && response.data.message) || 'Commande enregistrée avec succès !';
+                showSuccessMessage(msg);
                 $('#createManualOrderModal').modal('hide');
-                if (response.data && response.data.order) {
-                    self.allOrders.unshift(response.data.order);
+                var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
+                if (newOrd) {
+                    self.allOrders.unshift(newOrd);
                 } else {
                     setTimeout(() => { window.location.reload(); }, 1000);
                 }
             } else {
-                showErrorMessage(response.message || 'Erreur lors de la création.');
+                var errMsg = response.message || (response.data && response.data.message) || 'Erreur lors de la création.';
+                showErrorMessage(errMsg);
             }
         });
     },
