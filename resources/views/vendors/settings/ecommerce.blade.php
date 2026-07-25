@@ -18,7 +18,7 @@ $isManualConnected = true;
 
 <style>
 .platform-card-pro {
-    border: 2px solid #e2e8f0;
+    border: 2px solid #94a3b8 !important;
     border-radius: 16px;
     padding: 1.5rem;
     cursor: pointer;
@@ -27,26 +27,32 @@ $isManualConnected = true;
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 .platform-card-pro:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.08);
+    border-color: #64748b !important;
+    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.15);
 }
 .platform-card-pro.selected-shopify {
-    border-color: #96bf48 !important;
-    background-color: #ffffff !important;
+    border: 3px solid #96bf48 !important;
+    background-color: #f7fee7 !important;
+    box-shadow: 0 6px 20px rgba(150, 191, 72, 0.25) !important;
 }
 .platform-card-pro.selected-woocommerce {
-    border-color: #7f54b3 !important;
-    background-color: #ffffff !important;
+    border: 3px solid #7f54b3 !important;
+    background-color: #faf5ff !important;
+    box-shadow: 0 6px 20px rgba(127, 84, 179, 0.25) !important;
 }
 .platform-card-pro.selected-whatsapp_catalog {
-    border-color: #10b981 !important;
-    background-color: #ffffff !important;
+    border: 3px solid #10b981 !important;
+    background-color: #ecfdf5 !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25) !important;
 }
 .platform-card-pro.selected-manual {
-    border-color: #0284c7 !important;
-    background-color: #ffffff !important;
+    border: 3px solid #0284c7 !important;
+    background-color: #f0f9ff !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.25) !important;
 }
 .platform-card-pro .selected-badge {
     position: absolute;
@@ -61,21 +67,22 @@ $isManualConnected = true;
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
-    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
 }
 .nav-pill-tab {
     padding: 0.75rem 1.5rem;
     font-weight: 600;
-    color: #64748b;
+    color: #334155;
     border-radius: 12px;
     transition: all 0.2s ease;
     cursor: pointer;
-    border: none;
-    background: transparent;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
 }
 .nav-pill-tab.active {
     background: #10b981;
     color: #ffffff;
+    border-color: #10b981;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 .order-status-badge {
@@ -89,12 +96,18 @@ $isManualConnected = true;
 .custom-input-white {
     background: #ffffff !important;
     color: #0f172a !important;
-    border: 1.5px solid #cbd5e1 !important;
+    border: 2px solid #94a3b8 !important;
     border-radius: 10px !important;
 }
 .custom-input-white:focus {
     border-color: #10b981 !important;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
+}
+.sharp-card {
+    border: 2px solid #cbd5e1 !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
 }
 </style>
 
@@ -275,7 +288,7 @@ $isManualConnected = true;
     <!-- Top Key Metrics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff !important;">
+            <div class="card sharp-card p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Total Produits') }}</small>
@@ -289,7 +302,7 @@ $isManualConnected = true;
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff !important;">
+            <div class="card sharp-card p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Commandes Reçues') }}</small>
@@ -303,7 +316,7 @@ $isManualConnected = true;
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff !important;">
+            <div class="card sharp-card p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Canal Actif') }}</small>
@@ -317,7 +330,7 @@ $isManualConnected = true;
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff !important;">
+            <div class="card sharp-card p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Statut Intégration') }}</small>
@@ -331,8 +344,8 @@ $isManualConnected = true;
         </div>
     </div>
 
-    <!-- SECTION 1: PLATFORM INTEGRATION SELECTION (PURE WHITE CLEAN CARDS) -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #ffffff !important;">
+    <!-- SECTION 1: PLATFORM INTEGRATION SELECTION (HIGH VISIBILITY BORDERS) -->
+    <div class="card sharp-card mb-4">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
             <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-plug text-emerald mr-2"></i>{{ __tr('Configuration des Canaux & Plateformes E-Commerce') }}</h5>
             <p class="text-muted small mb-0">{{ __tr('Cliquez sur une plateforme ci-dessous pour saisir vos paramètres d\'intégration et synchroniser vos produits') }}</p>
@@ -414,8 +427,8 @@ $isManualConnected = true;
                 </div>
             </div>
 
-            <!-- DYNAMIC PARAMETERS FORM PANEL (BRIGHT PURE WHITE WITH EMERALD ACCENT BORDER) -->
-            <div class="p-4 shadow-sm" style="background: #ffffff !important; border: 1.5px solid #e2e8f0; border-top: 4px solid #10b981; border-radius: 14px;">
+            <!-- DYNAMIC PARAMETERS FORM PANEL (HIGH VISIBILITY BORDER) -->
+            <div class="p-4 shadow-sm" style="background: #ffffff !important; border: 2.5px solid #94a3b8 !important; border-top: 5px solid #10b981 !important; border-radius: 14px;">
                 
                 <!-- Main Form for saving settings (Shopify / WooCommerce / WhatsApp) -->
                 <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
@@ -468,7 +481,7 @@ $isManualConnected = true;
                             <small class="form-text text-muted mt-1">{{ __tr('Renseignez l\'identifiant de votre catalogue Meta Business Manager ou cliquez pour le récupérer.') }}</small>
 
                             <!-- Meta Catalogs List Selector -->
-                            <div x-show="showCatalogList" class="mt-3 border rounded p-3" style="background: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 10px;" x-cloak>
+                            <div x-show="showCatalogList" class="mt-3 p-3" style="background: #ffffff !important; border: 2px solid #cbd5e1; border-radius: 10px;" x-cloak>
                                 <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list mr-1 text-emerald"></i> {{ __tr('Catalogues trouvés sur votre compte Facebook :') }}</h6>
                                 <div class="list-group">
                                     <template x-for="cat in metaCatalogs" :key="cat.id">
@@ -518,7 +531,7 @@ $isManualConnected = true;
 
                     <!-- TAB: Add Product Form -->
                     <div x-show="manualTab === 'add'">
-                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-3 border rounded-lg shadow-sm" style="background: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 12px;" enctype="multipart/form-data">
+                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-3 shadow-sm" style="background: #ffffff !important; border: 2px solid #cbd5e1; border-radius: 12px;" enctype="multipart/form-data">
                             <div class="row">
                                 <div class="col-md-6 form-group">
                                     <label class="font-weight-bold text-dark" for="prod_name">{{ __tr('Nom du Produit *') }}</label>
@@ -561,10 +574,10 @@ $isManualConnected = true;
 
                     <!-- TAB: Import CSV -->
                     <div x-show="manualTab === 'import'">
-                        <div class="p-3 border rounded-lg shadow-sm" style="background: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 12px;">
+                        <div class="p-3 shadow-sm" style="background: #ffffff !important; border: 2px solid #cbd5e1; border-radius: 12px;">
                             <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-file-csv text-emerald mr-1"></i> {{ __tr('Importer des produits en masse via CSV') }}</h6>
                             
-                            <div class="p-3 border rounded mb-3" style="background: #f8fafc !important; border: 1px solid #e2e8f0; border-radius: 10px;">
+                            <div class="p-3 mb-3" style="background: #f8fafc !important; border: 1.5px solid #cbd5e1; border-radius: 10px;">
                                 <h6 class="font-weight-bold text-dark mb-1"><i class="fa fa-info-circle text-info mr-1"></i> {{ __tr('En-têtes requis dans votre fichier CSV :') }}</h6>
                                 <p class="small text-muted mb-2"><code>name</code> (ou <code>nom</code>), <code>price</code> (ou <code>prix</code>), <code>description</code>, <code>image_url</code>, <code>direct_link</code> (ou <code>lien</code>).</p>
                                 <a href="data:text/csv;charset=utf-8,name,description,price,image_url,direct_link%0AExemple%20Produit,Description%20du%20produit%20ici,15000,https://example.com/image.jpg,https://example.com/buy" download="template_produits.csv" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
@@ -609,7 +622,7 @@ $isManualConnected = true;
     </div>
 
     <!-- SECTION 2: PRODUCTS CATALOG & CLIENT ORDERS TABS -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #ffffff !important;">
+    <div class="card sharp-card mb-4">
         <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between">
             <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
                 <button type="button" @click="mainTab = 'products'" class="nav-pill-tab" :class="mainTab === 'products' ? 'active' : ''">
@@ -625,7 +638,7 @@ $isManualConnected = true;
 
     <!-- TAB 1: PRODUCTS CATALOG -->
     <div x-show="mainTab === 'products'" class="space-y-4">
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #ffffff !important;">
+        <div class="card sharp-card mb-4">
             <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex flex-wrap align-items-center justify-content-between">
                 <div>
                     <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Tous les Produits du Catalogue') }}</h5>
@@ -646,7 +659,7 @@ $isManualConnected = true;
                         <div class="input-group">
                             <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom ou description...') }}" x-model="catalogSearch">
                             <div class="input-group-append">
-                                <span class="input-group-text bg-white" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
+                                <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                             </div>
                         </div>
                     </div>
@@ -664,16 +677,16 @@ $isManualConnected = true;
 
                 <!-- Products Table -->
                 <div class="table-responsive">
-                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden;">
+                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden; border: 1.5px solid #cbd5e1;">
                         <thead class="text-muted small text-uppercase" style="background: #f8fafc !important;">
                             <tr>
-                                <th style="border: none;">{{ __tr('Visuel') }}</th>
-                                <th style="border: none;">{{ __tr('Produit') }}</th>
-                                <th style="border: none;">{{ __tr('Source') }}</th>
-                                <th style="border: none;">{{ __tr('Prix') }}</th>
-                                <th style="border: none;">{{ __tr('Description') }}</th>
-                                <th style="border: none;">{{ __tr('Lien') }}</th>
-                                <th style="border: none;" class="text-right">{{ __tr('Actions') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Visuel') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Produit') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Prix') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Description') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Lien') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;" class="text-right">{{ __tr('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -710,7 +723,7 @@ $isManualConnected = true;
                                     <td class="align-middle text-muted small" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || '-'"></td>
                                     <td class="align-middle">
                                         <template x-if="product.direct_link">
-                                            <a :href="product.direct_link" target="_blank" class="badge badge-light px-3 py-2 text-dark font-weight-bold shadow-sm" style="border-radius: 8px;">
+                                            <a :href="product.direct_link" target="_blank" class="badge badge-light px-3 py-2 text-dark font-weight-bold shadow-sm" style="border: 1px solid #cbd5e1; border-radius: 8px;">
                                                 <i class="fa fa-external-link-alt mr-1"></i> {{ __tr('Voir') }}
                                             </a>
                                         </template>
@@ -738,7 +751,7 @@ $isManualConnected = true;
 
     <!-- TAB 2: CLIENT ORDERS -->
     <div x-show="mainTab === 'orders'" class="space-y-4">
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; background: #ffffff !important;">
+        <div class="card sharp-card mb-4">
             <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
                 <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes Client') }}</h5>
                 <p class="text-muted small mb-0">{{ __tr('Suivez les commandes passées par vos clients sur WhatsApp et modifiez leur statut en temps réel') }}</p>
@@ -752,7 +765,7 @@ $isManualConnected = true;
                         <div class="input-group">
                             <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom ou numéro WhatsApp...') }}" x-model="orderSearch">
                             <div class="input-group-append">
-                                <span class="input-group-text bg-white" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
+                                <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                             </div>
                         </div>
                     </div>
@@ -772,14 +785,14 @@ $isManualConnected = true;
 
                 <!-- Orders Table -->
                 <div class="table-responsive">
-                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden;">
+                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden; border: 1.5px solid #cbd5e1;">
                         <thead class="text-muted small text-uppercase" style="background: #f8fafc !important;">
                             <tr>
-                                <th style="border: none;">{{ __tr('Réf / Date') }}</th>
-                                <th style="border: none;">{{ __tr('Client WhatsApp') }}</th>
-                                <th style="border: none;">{{ __tr('Détails de la commande') }}</th>
-                                <th style="border: none;">{{ __tr('Statut Actuel') }}</th>
-                                <th style="border: none;" class="text-right">{{ __tr('Changer le statut / Actions') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Réf / Date') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Client WhatsApp') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Détails de la commande') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Statut Actuel') }}</th>
+                                <th style="border-bottom: 2px solid #cbd5e1;" class="text-right">{{ __tr('Changer le statut / Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
