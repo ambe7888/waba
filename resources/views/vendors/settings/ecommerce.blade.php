@@ -822,8 +822,8 @@ $isManualConnected = true;
                     <div class="col-md-4 mb-3">
                         <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
                         <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
-                            <option value="desc">{{ __tr('Plus récentes d\'abord (Récent -> Ancien)') }}</option>
-                            <option value="asc">{{ __tr('Plus anciennes d\'abord (Ancien -> Récent)') }}</option>
+                            <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
+                            <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                         </select>
                     </div>
                 </div>

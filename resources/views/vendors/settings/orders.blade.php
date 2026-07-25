@@ -5,6 +5,8 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->where('vendors__id', $vendorId)
     ->latest()
     ->get();
+$contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
+$productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
 @endphp
 
 <style>
@@ -36,11 +38,24 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
 
 <div class="container-fluid pb-5" x-data="{
     allOrders: {{ json_encode($orders) }},
+    allContacts: {{ json_encode($contactsList) }},
+    allProducts: {{ json_encode($productsList) }},
     orderSearch: '',
     orderStatusFilter: '',
     orderDateFilter: '',
+    orderSourceFilter: '',
     orderDateSort: 'desc',
     selectedOrder: null,
+    
+    // Manual order form
+    newOrderContactId: '',
+    newOrderProductId: '',
+    newOrderQuantity: 1,
+    newOrderCustomPrice: '',
+    newOrderAddress: '',
+    newOrderDate: '',
+    isSavingManualOrder: false,
+
     filteredOrders() {
         let result = this.allOrders.filter(o => {
             var contactName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name + ' ' + o.contact.wa_id) : '';
@@ -48,12 +63,15 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
             var matchesSearch = !this.orderSearch || contactName.toLowerCase().includes(this.orderSearch.toLowerCase()) || orderRef.toLowerCase().includes(this.orderSearch.toLowerCase());
             var matchesStatus = !this.orderStatusFilter || o.status === this.orderStatusFilter;
             
+            var orderSource = o.order_details ? (o.order_details.source || '') : '';
+            var matchesSource = !this.orderSourceFilter || orderSource.toLowerCase().includes(this.orderSourceFilter.toLowerCase());
+
             var matchesDate = true;
             if (this.orderDateFilter) {
                 var orderCreatedStr = new Date(o.created_at).toISOString().split('T')[0];
                 matchesDate = (orderCreatedStr === this.orderDateFilter);
             }
-            return matchesSearch && matchesStatus && matchesDate;
+            return matchesSearch && matchesStatus && matchesSource && matchesDate;
         });
 
         return result.sort((a, b) => {
@@ -124,6 +142,91 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
         var total = 0;
         items.forEach(i => { total += (Number(i.price) || 0) * (Number(i.quantity) || 1); });
         return total;
+    },
+    getOrderSourceLabel(order) {
+        if (!order || !order.order_details) return 'WhatsApp';
+        var details = order.order_details;
+        if (typeof details === 'string') {
+            try { details = JSON.parse(details); } catch(e) {}
+        }
+        return details.source || 'WhatsApp';
+    },
+    onProductSelectChange() {
+        var prod = this.allProducts.find(p => p._id == this.newOrderProductId || p._uid == this.newOrderProductId);
+        if (prod) {
+            this.newOrderCustomPrice = prod.price;
+        }
+    },
+    submitManualOrder() {
+        if (!this.newOrderContactId || !this.newOrderProductId) {
+            showErrorMessage('Veuillez sélectionner un client et un produit.');
+            return;
+        }
+        this.isSavingManualOrder = true;
+        var self = this;
+        __DataRequest.post('{{ route("vendor.ecommerce.orders.create_manual") }}', {
+            contact_id: this.newOrderContactId,
+            product_id: this.newOrderProductId,
+            quantity: this.newOrderQuantity,
+            custom_price: this.newOrderCustomPrice,
+            delivery_address: this.newOrderAddress,
+            delivery_date: this.newOrderDate
+        }, function(response) {
+            self.isSavingManualOrder = false;
+            if (response.reaction_code == 1) {
+                showSuccessMessage(response.message || 'Commande enregistrée avec succès !');
+                $('#createManualOrderModal').modal('hide');
+                if (response.data && response.data.order) {
+                    self.allOrders.unshift(response.data.order);
+                } else {
+                    setTimeout(() => { window.location.reload(); }, 1000);
+                }
+            } else {
+                showErrorMessage(response.message || 'Erreur lors de la création.');
+            }
+        });
+    },
+    exportOrdersCSV() {
+        var list = this.filteredOrders();
+        if (list.length === 0) {
+            showErrorMessage('Aucune commande à exporter.');
+            return;
+        }
+        var csvRows = [];
+        csvRows.push(['Reference', 'Date', 'Client', 'Telephone WhatsApp', 'Produits', 'Montant Total (CFA)', 'Statut', 'Source'].join(';'));
+
+        list.forEach(o => {
+            var ref = '#' + o._uid.substring(0, 8);
+            var dateStr = new Date(o.created_at).toLocaleString('fr-FR');
+            var clientName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name) : 'Inconnu';
+            var phone = o.contact ? o.contact.wa_id : '';
+            var items = this.parseOrderItems(o).map(i => (i.name || 'Produit') + ' (x' + (i.quantity||1) + ')').join(' | ');
+            var total = this.getOrderTotal(o);
+            var status = o.status;
+            var source = this.getOrderSourceLabel(o);
+
+            var row = [
+                '\"' + ref + '\"',
+                '\"' + dateStr + '\"',
+                '\"' + clientName + '\"',
+                '\"' + phone + '\"',
+                '\"' + items + '\"',
+                '\"' + total + '\"',
+                '\"' + status + '\"',
+                '\"' + source + '\"'
+            ];
+            csvRows.push(row.join(';'));
+        });
+
+        var csvString = '\uFEFF' + csvRows.join('\n');
+        var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        var url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'export_commandes_' + (this.orderDateFilter || 'toutes') + '.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 }">
 
@@ -131,16 +234,20 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
         <div>
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
-            <p class="text-muted small mb-0">{{ __tr('Suivez, imprimer vos reçus et gérez l\'ensemble des commandes reçues sur WhatsApp') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Suivez, enregistrez, exportez vos rapports et imprimer vos reçus de commande') }}</p>
         </div>
-        <div class="mt-2 mt-sm-0 d-flex align-items-center" style="gap: 10px;">
-            <button type="button" onclick="window.print()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
-                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer la liste affichée') }}
+        <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
+            <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
+                <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Enregistrer une Commande') }}
             </button>
 
-            <a href="<?= route('vendor.settings.read', ['pageType' => 'ecommerce']) ?>" class="btn btn-outline-emerald font-weight-bold px-4 py-2" style="border-radius: 10px; color: #10b981; border-color: #10b981;">
-                <i class="fa fa-boxes mr-1"></i> {{ __tr('Gérer le Catalogue') }}
-            </a>
+            <button type="button" @click="exportOrdersCSV()" class="btn btn-outline-success font-weight-bold" style="border-radius: 10px; border-color: #10b981; color: #10b981;">
+                <i class="fa fa-file-excel mr-1"></i> {{ __tr('Télécharger Excel / CSV') }}
+            </button>
+
+            <button type="button" onclick="window.print()" class="btn btn-outline-dark font-weight-bold" style="border-radius: 10px;">
+                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer la Liste') }}
+            </button>
         </div>
     </div>
 
@@ -209,7 +316,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     <div class="card sharp-card mb-4" id="printableOrdersListArea">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0 no-print">
             <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-list text-emerald mr-2"></i>{{ __tr('Liste Complète des Commandes') }}</h5>
-            <p class="text-muted small mb-0">{{ __tr('Filtrez par date ou statut, et cliquez sur le reçu pour voir/imprimer la facture') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Filtrez par date, source ou statut, et cliquez sur le reçu pour voir/imprimer la facture') }}</p>
         </div>
 
         <div class="card-body p-4">
@@ -224,6 +331,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter">
@@ -236,20 +344,35 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                         <option value="cancelled">{{ __tr('Annulée') }}</option>
                     </select>
                 </div>
+
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par jour spécifique') }}</label>
-                    <div class="input-group">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par source') }}</label>
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter">
+                        <option value="">{{ __tr('Toutes les sources') }}</option>
+                        <option value="whatsapp">{{ __tr('WhatsApp AI / Bot') }}</option>
+                        <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
+                        <option value="web">{{ __tr('Site Web / Webhook') }}</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique & Export') }}</label>
+                    <div class="d-flex align-items-center" style="gap: 5px;">
                         <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter">
                         <template x-if="orderDateFilter">
-                            <button type="button" @click="orderDateFilter = ''" class="btn btn-sm btn-link text-danger ml-1" title="{{ __tr('Effacer la date') }}">&times;</button>
+                            <button type="button" @click="orderDateFilter = ''" class="btn btn-sm btn-link text-danger p-0" title="{{ __tr('Effacer la date') }}">&times;</button>
                         </template>
+                        <button type="button" @click="exportOrdersCSV()" class="btn btn-sm btn-success font-weight-bold shadow-sm" style="border-radius: 8px; padding: 6px 12px;" title="{{ __tr('Télécharger les commandes affichées au format Excel') }}">
+                            <i class="fa fa-download"></i>
+                        </button>
                     </div>
                 </div>
+
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
-                        <option value="desc">{{ __tr('Plus récentes d\'abord (Récent -> Ancien)') }}</option>
-                        <option value="asc">{{ __tr('Plus anciennes d\'abord (Ancien -> Récent)') }}</option>
+                        <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
+                        <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
                 </div>
             </div>
@@ -262,8 +385,9 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Réf / Date') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Client WhatsApp') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Montant Total') }}</th>
+                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Statut Actuel') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;" class="text-right no-print">{{ __tr('Changer le statut / Actions') }}</th>
+                            <th style="border-bottom: 2px solid #cbd5e1;" class="text-right no-print">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -284,6 +408,9 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                                     <small class="text-muted" x-text="parseOrderItems(order).length + ' article(s)'"></small>
                                 </td>
                                 <td class="align-middle">
+                                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getOrderSourceLabel(order)"></span>
+                                </td>
+                                <td class="align-middle">
                                     <span class="order-status-badge text-white"
                                           :class="{
                                               'bg-success': order.status === 'delivered',
@@ -297,7 +424,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                                 </td>
                                 <td class="align-middle text-right no-print">
                                     <div class="d-inline-flex align-items-center" style="gap: 8px;">
-                                        <button type="button" @click="viewOrderDetails(order)" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;" title="{{ __tr('Voir les détails et imprimer le reçu') }}">
+                                        <button type="button" @click="viewOrderDetails(order)" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;" title="{{ __tr('Voir le reçu officiel') }}">
                                             <i class="fa fa-receipt mr-1"></i> {{ __tr('Reçu') }}
                                         </button>
 
@@ -327,13 +454,79 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                 </table>
                 <div x-show="filteredOrders().length === 0" class="text-center py-5 text-muted">
                     <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
-                    <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée.') }}</p>
+                    <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée pour le moment.') }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ORDER DETAILS & PRINTABLE RECEIPT MODAL -->
+    <!-- MODAL 1: CREATE MANUAL ORDER BY VENDOR -->
+    <div class="modal fade" id="createManualOrderModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
+                    <h5 class="modal-title font-weight-bold text-white"><i class="fa fa-cart-plus mr-2"></i> {{ __tr('Enregistrer une Commande Client (Vendeur)') }}</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true" style="font-size: 1.8rem;">&times;</span>
+                    </button>
+                </div>
+                <form @submit.prevent="submitManualOrder()" class="p-4">
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
+                            <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
+                                <option value="">-- {{ __tr('Choisir un client') }} --</option>
+                                <template x-for="c in allContacts" :key="c._id">
+                                    <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Produit du Catalogue *') }}</label>
+                            <select class="form-control custom-input-white p-2" x-model="newOrderProductId" @change="onProductSelectChange()" required>
+                                <option value="">-- {{ __tr('Choisir un produit') }} --</option>
+                                <template x-for="p in allProducts" :key="p._id">
+                                    <option :value="p._id" x-text="p.name + ' — ' + Number(p.price).toLocaleString() + ' CFA'"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Quantité *') }}</label>
+                            <input type="number" min="1" class="form-control custom-input-white p-3" x-model="newOrderQuantity" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Prix Unitaire (CFA) *') }}</label>
+                            <input type="number" class="form-control custom-input-white p-3" x-model="newOrderCustomPrice" required placeholder="ex: 15000">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Adresse / Lieu de livraison') }}</label>
+                            <input type="text" class="form-control custom-input-white p-3" x-model="newOrderAddress" placeholder="ex: Abidjan, Cocody Angré">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark">{{ __tr('Date de livraison souhaitée') }}</label>
+                            <input type="date" class="form-control custom-input-white p-3" x-model="newOrderDate">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer px-0 pb-0 border-top mt-3 pt-3">
+                        <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">{{ __tr('Annuler') }}</button>
+                        <button type="submit" class="btn btn-emerald font-weight-bold px-4 text-white" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isSavingManualOrder">
+                            <span x-show="!isSavingManualOrder"><i class="fa fa-save mr-1"></i> {{ __tr('Valider & Créer la Commande') }}</span>
+                            <span x-show="isSavingManualOrder"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Enregistrement...') }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ORDER DETAILS & PRINTABLE RECEIPT MODAL -->
     <div class="modal fade" id="orderDetailsModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
@@ -393,7 +586,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
                             <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
                                 <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-info-circle text-emerald mr-1"></i> {{ __tr('Détails de Commande') }}</h6>
                                 <p class="small text-dark mb-1"><strong>{{ __tr('Référence:') }}</strong> <span x-text="selectedOrder ? '#' + selectedOrder._uid.substring(0, 8) : ''"></span></p>
-                                <p class="small text-dark mb-1"><strong>{{ __tr('Source:') }}</strong> <span x-text="selectedOrder && selectedOrder.order_details ? (selectedOrder.order_details.source || 'WhatsApp') : 'WhatsApp'"></span></p>
+                                <p class="small text-dark mb-1"><strong>{{ __tr('Source:') }}</strong> <span x-text="getOrderSourceLabel(selectedOrder)"></span></p>
                                 <p class="small text-dark mb-0"><strong>{{ __tr('Date de création:') }}</strong> <span x-text="selectedOrder ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : ''"></span></p>
                             </div>
                         </div>

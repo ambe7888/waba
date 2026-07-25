@@ -1179,6 +1179,11 @@ Route::middleware([
                 'getContactOrders',
             ])->name('vendor.ecommerce.contact_orders');
 
+            Route::post('/ecommerce/orders/create-manual', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'createManualOrder',
+            ])->name('vendor.ecommerce.orders.create_manual');
+
             Route::post('/ecommerce/orders/create-test-order', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'createTestOrder',

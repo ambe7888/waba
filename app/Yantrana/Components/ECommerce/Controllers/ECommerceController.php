@@ -505,6 +505,88 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * Create Manual Order by Vendor
+     */
+    public function createManualOrder(Request $request)
+    {
+        $vendorId = getVendorId();
+        $request->validate([
+            'contact_id' => 'required',
+            'product_id' => 'required',
+        ]);
+
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->where(function($q) use ($request) {
+                $q->where('_id', $request->contact_id)
+                  ->orWhere('_uid', $request->contact_id);
+            })->first();
+
+        if (empty($contact)) {
+            return $this->processResponse(2, [2 => __tr('Client introuvable.')], ['message' => __tr('Client introuvable.')]);
+        }
+
+        $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+            ->where(function($q) use ($request) {
+                $q->where('_id', $request->product_id)
+                  ->orWhere('_uid', $request->product_id);
+            })->first();
+
+        if (empty($product)) {
+            return $this->processResponse(2, [2 => __tr('Produit introuvable.')], ['message' => __tr('Produit introuvable.')]);
+        }
+
+        $qty = intval($request->quantity) ?: 1;
+        $unitPrice = floatval($request->custom_price) ?: floatval($product->price);
+        $totalPrice = $qty * $unitPrice;
+        $vendorName = getUserAuthInfo('profile.full_name') ?: 'Vendeur';
+
+        $orderDetails = [
+            'source' => 'Manuel (Vendeur: ' . $vendorName . ')',
+            'items' => [
+                [
+                    'name' => $product->name,
+                    'quantity' => $qty,
+                    'price' => $unitPrice,
+                    'currency' => 'CFA'
+                ]
+            ],
+            'total_price' => $totalPrice,
+            'currency' => 'CFA',
+            'delivery_address' => $request->delivery_address ?: '',
+            'delivery_date' => $request->delivery_date ?: '',
+            'created_by_vendor' => $vendorName
+        ];
+
+        $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+            '_uid' => (string) \Illuminate\Support\Str::uuid(),
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id,
+            'order_details' => $orderDetails,
+            'status' => 'validated',
+        ]);
+
+        $noteEntry = "\n[📦 Commande Vendeur (" . $vendorName . ") #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Produit: " . $product->name . " (Quantité: " . $qty . ", Total: " . number_format($totalPrice, 0, ',', ' ') . " CFA)";
+        $contactData = $contact->__data ?? [];
+        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
+        $contact->__data = $contactData;
+        $contact->save();
+
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        if ($vendor) {
+            updateModelsViaVendorBroadcast($vendor->_uid, [
+                'contact' => $contact
+            ]);
+        }
+
+        return $this->processResponse(1, [
+            1 => __tr('Commande créée avec succès !')
+        ], [
+            'message' => __tr('Commande créée avec succès !'),
+            'order' => $newOrder
+        ]);
+    }
+
+    /**
      * Create Test Order for testing notifications and order flow
      */
     public function createTestOrder(Request $request)
