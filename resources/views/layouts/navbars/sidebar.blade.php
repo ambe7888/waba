@@ -399,6 +399,15 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
+                @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                <li class="nav-item">
+                    <a class="nav-link <?= (isset($pageType) and $pageType == 'orders') ? 'active' : '' ?>"
+                        href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>">
+                        <i class="fa fa-shopping-bag text-emerald" style="color: #10b981;"></i>
+                        <span class="nav-link-text">{{ __tr('Commandes') }}</span>
+                    </a>
+                </li>
+                @endif
                 @if (hasVendorAccess('manage_campaigns'))
                 <li class="nav-item">
                     <a class="nav-link" href="#vendorCampaignSubmenuNav" data-toggle="collapse" role="button"
@@ -433,15 +442,6 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                             @endif
                         </ul>
                     </div>
-                </li>
-                @endif
-                @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
-                <li class="nav-item">
-                    <a class="nav-link <?= (isset($pageType) and $pageType == 'orders') ? 'active' : '' ?>"
-                        href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>">
-                        <i class="fa fa-shopping-bag text-emerald" style="color: #10b981;"></i>
-                        <span class="nav-link-text">{{ __tr('Commandes') }}</span>
-                    </a>
                 </li>
                 @endif
                 @if (hasVendorAccess('manage_contacts'))
