@@ -44,7 +44,8 @@ class WavePaymentController extends BaseController
         
         $clientReference = $vendorId . '|' . $planId . '|' . $planFrequency;
 
-        $totalPriceWithFees = ceil(((float) $planCharge) * 1.056);
+        $rawTotal = ((float) $planCharge) * 1.056;
+        $totalPriceWithFees = ceil($rawTotal / 100) * 100;
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
@@ -97,7 +98,8 @@ class WavePaymentController extends BaseController
         // Prefix with 'aicredits|'
         $clientReference = 'aicredits|' . $vendorId . '|' . $credits;
 
-        $totalPriceWithFees = ceil($amount * 1.056);
+        $rawTotal = $amount * 1.056;
+        $totalPriceWithFees = ceil($rawTotal / 100) * 100;
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,

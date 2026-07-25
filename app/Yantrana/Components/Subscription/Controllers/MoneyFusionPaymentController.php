@@ -54,8 +54,9 @@ class MoneyFusionPaymentController extends BaseController
             $numeroSend = '0000000000';
         }
 
-        // Add 5.6% fee surcharge (3% transaction fee + 2.37% withdrawal fee) so the customer pays all fees
-        $totalPriceWithFees = ceil(((float) $planCharge) * 1.056);
+        // Add 5.6% fee surcharge and round up to the nearest 100 FCFA (e.g. 3,168 -> 3,200 FCFA)
+        $rawTotal = ((float) $planCharge) * 1.056;
+        $totalPriceWithFees = ceil($rawTotal / 100) * 100;
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
@@ -132,8 +133,9 @@ class MoneyFusionPaymentController extends BaseController
             $numeroSend = '0000000000';
         }
 
-        // Add 5.6% fee surcharge (3% transaction fee + 2.37% withdrawal fee) so the customer pays all fees
-        $totalPriceWithFees = ceil($amount * 1.056);
+        // Add 5.6% fee surcharge and round up to the nearest 100 FCFA (e.g. 3,168 -> 3,200 FCFA)
+        $rawTotal = $amount * 1.056;
+        $totalPriceWithFees = ceil($rawTotal / 100) * 100;
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',

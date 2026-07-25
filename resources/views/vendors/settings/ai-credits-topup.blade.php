@@ -98,7 +98,7 @@
                                     $5
                                 </div>
                                 <div class="text-muted small mb-3">
-                                    (~ 3 000 FCFA)
+                                    (~ 3 200 FCFA avec frais)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_5" value="5" x-model="selectedAmount">
@@ -145,7 +145,7 @@
                                     $10
                                 </div>
                                 <div class="text-muted small mb-3">
-                                    (~ 6 000 FCFA)
+                                    (~ 6 400 FCFA avec frais)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_10" value="10" x-model="selectedAmount">
@@ -185,7 +185,7 @@
                                     $20
                                 </div>
                                 <div class="text-muted small mb-3">
-                                    (~ 12 000 FCFA)
+                                    (~ 12 700 FCFA avec frais)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_20" value="20" x-model="selectedAmount">
