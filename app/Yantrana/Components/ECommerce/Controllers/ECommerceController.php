@@ -347,13 +347,17 @@ class ECommerceController extends BaseController
         $catalogsList = array_values(array_unique($catalogsList, SORT_REGULAR));
 
         if (!empty($catalogsList)) {
-            return $this->processResponse(1, [], [
+            return $this->processResponse(1, [
+                1 => __tr('Catalogues récupérés avec succès.')
+            ], [
                 'catalogs' => $catalogsList
             ]);
         }
 
-        return $this->processResponse(2, [], [
-            'message' => __tr('No catalogs found. Please link a catalog to your WhatsApp number in your Meta Business Suite.')
+        return $this->processResponse(2, [
+            2 => __tr('Aucun catalogue trouvé. Veuillez lier un catalogue à votre numéro WhatsApp dans Meta Business Suite.')
+        ], [
+            'message' => __tr('Aucun catalogue trouvé. Veuillez lier un catalogue à votre numéro WhatsApp dans Meta Business Suite.')
         ]);
     }
 
