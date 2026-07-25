@@ -218,74 +218,80 @@
                                            continue;
                                        }
                                    @endphp
-                                   <div class="col-xl-4 col-sm-12">
-                                    <fieldset class="">
-                                        <legend>{{ $plan['title'] }}</legend>
-                                        @foreach ($features as $featureKey => $featureValue)
-                                            @php
-                                                $structureFeatureValue = $featureValue;
-                                                $featureValue = $planDetails[$planKey]['features'][$featureKey];
-                                            @endphp
-                                            <div class="my-2">
-                                             @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
-                                         @if (isset($featureValue['limit']) and $featureValue['limit'])
-                                         <i class="fa fa-check mr-2 text-success"></i>
-                                         @else
-                                         <i class="fa fa-times mr-2 text-danger"></i>
-                                         @endif
-                                         {{ ($structureFeatureValue['description']) }}
-                                         @else
-                                                <i class="fa fa-check text-success mr-2"></i>
-                                                @if (isset($featureValue['limit']) and $featureValue['limit'] < 0)
-                                                    {{ __tr('Unlimited') }}
-                                                @elseif(isset($featureValue['limit']))
-                                                    {{ $featureValue['limit'] }}
-                                                    @if(isset($featureValue['limit_duration']))
-                                                 {{ ($featureValue['limit_duration']) }}
-                                             @endif
-                                                @endif
-                                                {{ ($structureFeatureValue['description']) }}
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                        <div class="text-lg mt-4">
-                                            @foreach ($plan['charges'] as $itemKey => $itemValue)
-                                            @php
-                                                if(!$itemValue['enabled']) {
-                                                    continue;
-                                                }
-                                            @endphp
-                                                @if ($isRazorpaySubscription and $currentSubscription->status != 'cancelled' and $planSelectorId !== $planId . '___' . $itemKey)
-                                                    <div class="form-group my-2 text-primary">
-                                                        <label class="control-label" for="{{ $planId }}{{ $itemKey }}">
-                                                            <input x-model="selectedPlanFrequencyNew" class="form-control-radio" type="radio" name="plan"
-                                                            id="{{ $planId }}{{ $itemKey }}"
-                                                            value="{{ $planId }}___{{ $itemKey }}">
-                                                            {{ formatAmount($itemValue['charge'], true) }} /
-                                                            {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
-                                                            @if ($planSelectorId == $planId . '___' . $itemKey)
-                                                            <small class="text-muted"><em>({{ __tr('Renew Current Plan') }})</em></small>
-                                                            @endif
-                                                        </label>
-                                                    </div>
-                                                @elseif (!$isRazorpaySubscription)
-                                                    <div class="form-group my-2 text-primary">
-                                                        <label class="control-label" for="{{ $planId }}{{ $itemKey }}">
-                                                            <input x-model="selectedPlanFrequencyNew" class="form-control-radio" type="radio" name="plan"
-                                                            id="{{ $planId }}{{ $itemKey }}"
-                                                            value="{{ $planId }}___{{ $itemKey }}">
-                                                            {{ formatAmount($itemValue['charge'], true) }} /
-                                                            {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
-                                                            @if ($planSelectorId == $planId . '___' . $itemKey)
-                                                            <small class="text-muted"><em>({{ __tr('Renew Current Plan') }})</em></small>
-                                                            @endif
-                                                        </label>
-                                                    </div>
-                                                @endif
-                                            @endforeach
-                                        </div>
-                                    </fieldset>
-                                   </div>
+                                   @php
+                                        $firstChargeKey = array_key_first($plan['charges'] ?? ['monthly' => []]);
+                                        $defaultPlanVal = $planId . '___' . ($firstChargeKey ?? 'monthly');
+                                    @endphp
+                                    <div class="col-xl-4 col-sm-12 mb-3">
+                                     <fieldset class="card h-100 p-3 shadow-sm transition-all"
+                                               @click="selectedPlanFrequencyNew = '{{ $defaultPlanVal }}'"
+                                               :style="selectedPlanFrequencyNew == '{{ $defaultPlanVal }}' ? 'border: 2px solid #28a745 !important; background-color: #f4fbf7; cursor: pointer;' : 'border: 1px solid #e3e6f0; cursor: pointer; transition: all 0.2s ease;'">
+                                         <legend class="w-auto px-2 font-weight-bold">{{ $plan['title'] }}</legend>
+                                         @foreach ($features as $featureKey => $featureValue)
+                                             @php
+                                                 $structureFeatureValue = $featureValue;
+                                                 $featureValue = $planDetails[$planKey]['features'][$featureKey];
+                                             @endphp
+                                             <div class="my-2">
+                                              @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
+                                          @if (isset($featureValue['limit']) and $featureValue['limit'])
+                                          <i class="fa fa-check mr-2 text-success"></i>
+                                          @else
+                                          <i class="fa fa-times mr-2 text-danger"></i>
+                                          @endif
+                                          {{ ($structureFeatureValue['description']) }}
+                                          @else
+                                                 <i class="fa fa-check text-success mr-2"></i>
+                                                 @if (isset($featureValue['limit']) and $featureValue['limit'] < 0)
+                                                     {{ __tr('Unlimited') }}
+                                                 @elseif(isset($featureValue['limit']))
+                                                     {{ $featureValue['limit'] }}
+                                                     @if(isset($featureValue['limit_duration']))
+                                                  {{ ($featureValue['limit_duration']) }}
+                                              @endif
+                                                 @endif
+                                                 {{ ($structureFeatureValue['description']) }}
+                                                 @endif
+                                             </div>
+                                         @endforeach
+                                         <div class="text-lg mt-4">
+                                             @foreach ($plan['charges'] as $itemKey => $itemValue)
+                                             @php
+                                                 if(!$itemValue['enabled']) {
+                                                     continue;
+                                                 }
+                                             @endphp
+                                                 @if ($isRazorpaySubscription and $currentSubscription->status != 'cancelled' and $planSelectorId !== $planId . '___' . $itemKey)
+                                                     <div class="form-group my-2 text-primary">
+                                                         <label class="control-label mb-0" style="cursor: pointer;" for="{{ $planId }}{{ $itemKey }}">
+                                                             <input x-model="selectedPlanFrequencyNew" class="form-control-radio" type="radio" name="plan"
+                                                             id="{{ $planId }}{{ $itemKey }}"
+                                                             value="{{ $planId }}___{{ $itemKey }}">
+                                                             <strong>{{ formatAmount($itemValue['charge'], true) }}</strong> /
+                                                             {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
+                                                             @if ($planSelectorId == $planId . '___' . $itemKey)
+                                                             <small class="text-muted"><em>({{ __tr('Renew Current Plan') }})</em></small>
+                                                             @endif
+                                                         </label>
+                                                     </div>
+                                                 @elseif (!$isRazorpaySubscription)
+                                                     <div class="form-group my-2 text-primary">
+                                                         <label class="control-label mb-0" style="cursor: pointer;" for="{{ $planId }}{{ $itemKey }}">
+                                                             <input x-model="selectedPlanFrequencyNew" class="form-control-radio" type="radio" name="plan"
+                                                             id="{{ $planId }}{{ $itemKey }}"
+                                                             value="{{ $planId }}___{{ $itemKey }}">
+                                                             <strong>{{ formatAmount($itemValue['charge'], true) }}</strong> /
+                                                             {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
+                                                             @if ($planSelectorId == $planId . '___' . $itemKey)
+                                                             <small class="text-muted"><em>({{ __tr('Renew Current Plan') }})</em></small>
+                                                             @endif
+                                                         </label>
+                                                     </div>
+                                                 @endif
+                                             @endforeach
+                                         </div>
+                                     </fieldset>
+                                    </div>
                                @endforeach
                             </div>
                                 @stack('autoSubscriptionChangePlanStack')
@@ -313,8 +319,8 @@
                                  <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form" class="mt-3">
                                      @csrf
                                      <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
-                                     <button value="moneyfusion" type="submit" class="btn btn-primary btn-block font-weight-bold py-2">
-                                         <i class="fa fa-wallet mr-2"></i> {{ __tr('Payer avec MoneyFusion (Orange, MTN, Moov, Wave, Cartes)') }}
+                                     <button value="moneyfusion" type="submit" class="btn btn-success btn-block font-weight-bold py-3 shadow-sm" style="font-size: 1.1rem; border-radius: 8px;">
+                                         <i class="fa fa-mobile-alt mr-2"></i> {{ __tr('Payer par Orange Money, MTN, Moov, Wave, Carte') }}
                                      </button>
                                  </form>
                                  @endif
@@ -399,55 +405,62 @@
                                                    continue;
                                                }
                                            @endphp
-                                           <div class="col-xl-4 col-sm-12">
-                                           <fieldset class="">
-                                               <legend>{{ $planDetails[$planKey]['title'] }}</legend>
-                                               @foreach ($features as $featureKey => $featureValue)
-                                                   @php
-                                                       $featureValue = $planDetails[$planKey]['features'][$featureKey];
-                                                   @endphp
-                                                   <div class="my-2">
-                                                    @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
-                                                    @if (isset($featureValue['limit']) and $featureValue['limit'])
-                                                    <i class="fa fa-check mr-2 text-success"></i>
-                                                    @else
-                                                    <i class="fa fa-times mr-2 text-danger"></i>
-                                                    @endif
-                                                    {{ ($featureValue['description']) }}
-                                                    @else
-                                                       <i class="fa fa-check text-success mr-2"></i>
-                                                       @if (isset($featureValue['limit']) and $featureValue['limit'] < 0)
-                                                           {{ __tr('Unlimited') }}
-                                                       @elseif(isset($featureValue['limit']))
-                                                           {{ $featureValue['limit'] }}
-                                                           @if(isset($featureValue['limit_duration']))
-                                                                {{ ($featureValue['limit_duration']) }}
-                                                            @endif
-                                                        @endif
-                                                        {{ ($featureValue['description']) }}
-                                                        </div>
-                                                        @endif
-                                                    @endforeach
-                                                    <div class="text-lg mt-4">
-                                                        @foreach ($charges as $itemKey => $itemValue)
-                                                            @php
-                                                                if(!$itemValue['enabled']) {
-                                                                    continue;
-                                                                }
-                                                            @endphp
-                                                            @if ($planSelectorId !== $planId . '___' . $itemKey)
-                                                                <div class="my-2 text-primary">
-                                                                    <input x-model="selectedPlanFrequencyNew" type="radio" name="plan"
-                                                                        id="{{ $planId }}{{ $itemKey }}"
-                                                                        value="{{ $planId }}___{{ $itemKey }}">
-                                                                    <label for="{{ $planId }}{{ $itemKey }}">
-                                                                        {{ formatAmount($itemValue['charge'], true) }} / {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                </fieldset>
-                                            </div>
+                                           @php
+                                                $firstChargeKeyNew = array_key_first($charges ?? ['monthly' => []]);
+                                                $defaultPlanValNew = $planId . '___' . ($firstChargeKeyNew ?? 'monthly');
+                                            @endphp
+                                            <div class="col-xl-4 col-sm-12 mb-3">
+                                            <fieldset class="card h-100 p-3 shadow-sm transition-all"
+                                                      @click="selectedPlanFrequencyNew = '{{ $defaultPlanValNew }}'"
+                                                      :style="selectedPlanFrequencyNew == '{{ $defaultPlanValNew }}' ? 'border: 2px solid #28a745 !important; background-color: #f4fbf7; cursor: pointer;' : 'border: 1px solid #e3e6f0; cursor: pointer; transition: all 0.2s ease;'">
+                                                <legend class="w-auto px-2 font-weight-bold">{{ $planDetails[$planKey]['title'] }}</legend>
+                                                @foreach ($features as $featureKey => $featureValue)
+                                                    @php
+                                                        $featureValue = $planDetails[$planKey]['features'][$featureKey];
+                                                    @endphp
+                                                    <div class="my-2">
+                                                     @if (isset($featureValue['type']) and ($featureValue['type'] == 'switch'))
+                                                     @if (isset($featureValue['limit']) and $featureValue['limit'])
+                                                     <i class="fa fa-check mr-2 text-success"></i>
+                                                     @else
+                                                     <i class="fa fa-times mr-2 text-danger"></i>
+                                                     @endif
+                                                     {{ ($featureValue['description']) }}
+                                                     @else
+                                                        <i class="fa fa-check text-success mr-2"></i>
+                                                        @if (isset($featureValue['limit']) and $featureValue['limit'] < 0)
+                                                            {{ __tr('Unlimited') }}
+                                                        @elseif(isset($featureValue['limit']))
+                                                            {{ $featureValue['limit'] }}
+                                                            @if(isset($featureValue['limit_duration']))
+                                                                 {{ ($featureValue['limit_duration']) }}
+                                                             @endif
+                                                         @endif
+                                                         {{ ($featureValue['description']) }}
+                                                         </div>
+                                                         @endif
+                                                     @endforeach
+                                                     <div class="text-lg mt-4">
+                                                         @foreach ($charges as $itemKey => $itemValue)
+                                                             @php
+                                                                 if(!$itemValue['enabled']) {
+                                                                     continue;
+                                                                 }
+                                                             @endphp
+                                                             @if ($planSelectorId !== $planId . '___' . $itemKey)
+                                                                 <div class="my-2 text-primary">
+                                                                     <label style="cursor: pointer;" for="{{ $planId }}{{ $itemKey }}">
+                                                                         <input x-model="selectedPlanFrequencyNew" type="radio" name="plan"
+                                                                             id="{{ $planId }}{{ $itemKey }}"
+                                                                             value="{{ $planId }}___{{ $itemKey }}">
+                                                                         <strong>{{ formatAmount($itemValue['charge'], true) }}</strong> / {{ $planStructure[$planId]['charges'][$itemKey]['title'] ?? $itemKey }}
+                                                                     </label>
+                                                                 </div>
+                                                             @endif
+                                                         @endforeach
+                                                     </div>
+                                                 </fieldset>
+                                             </div>
                                        @endforeach
                                    </div>
                                    @if($hasPlansForPurchase)
@@ -496,8 +509,8 @@
                                          @csrf
                                          <input type="hidden" name="plan_id" value="{{ $planId ?? '' }}">
                                          <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
-                                         <button value="moneyfusion" type="submit" class="btn btn-primary btn-block font-weight-bold py-2">
-                                             <i class="fa fa-wallet mr-2"></i> {{ __tr('Payer avec MoneyFusion (Orange, MTN, Moov, Wave, Cartes)') }}
+                                         <button value="moneyfusion" type="submit" class="btn btn-success btn-block font-weight-bold py-3 shadow-sm" style="font-size: 1.1rem; border-radius: 8px;">
+                                             <i class="fa fa-mobile-alt mr-2"></i> {{ __tr('Payer par Orange Money, MTN, Moov, Wave, Carte') }}
                                          </button>
                                      </form>
                                      @endif
