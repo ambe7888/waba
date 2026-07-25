@@ -867,6 +867,26 @@ return [
             ],
         ],
         'misc_settings' => [
+            'ai_provider' => [
+                'key' => 'ai_provider',
+                'data_type' => 1,     // string
+                'default' => 'gemini',
+                'hide_value' => false,
+                'ignore_empty' => false,
+                'validation_rules' => [
+                    'nullable',
+                ],
+            ],
+            'gemini_api_key' => [
+                'key' => 'gemini_api_key',
+                'data_type' => 1,     // string
+                'default' => '',
+                'hide_value' => false,
+                'ignore_empty' => false,
+                'validation_rules' => [
+                    'nullable',
+                ],
+            ],
             'openai_api_key' => [
                 'key' => 'openai_api_key',
                 'data_type' => 1,     // string
