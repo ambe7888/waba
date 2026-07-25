@@ -1104,12 +1104,14 @@
                                     updateStatus(orderUid, newStatus) {
                                         var self = this;
                                         __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
-                                            if (response.reaction_code == 1) {
-                                                showSuccessMessage(response.message);
+                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
+                                            if (isSuccess) {
+                                                showSuccessMessage(msg);
                                                 var ord = self.ordersList.find(o => o._uid === orderUid);
                                                 if(ord) ord.status = newStatus;
                                             } else {
-                                                showErrorMessage(response.message || 'Erreur de mise à jour.');
+                                                showErrorMessage(msg || 'Erreur de mise à jour.');
                                             }
                                         });
                                     }

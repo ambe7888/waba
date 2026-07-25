@@ -391,14 +391,15 @@ class ECommerceController extends BaseController
             'status' => 'required|string|in:validated,confirmed,processing,shipped,delivered,cancelled',
         ]);
 
-        $order = ProductModel::where('vendors__id', $vendorId)->first(); // dummy reference check
         $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
             'vendors__id' => $vendorId,
             '_uid' => $orderUid
         ])->first();
 
         if (empty($order)) {
-            return $this->processResponse(2, [], [
+            return $this->processResponse(2, [
+                2 => __tr('Commande introuvable.')
+            ], [
                 'message' => __tr('Commande introuvable.')
             ]);
         }
@@ -406,8 +407,37 @@ class ECommerceController extends BaseController
         $order->status = $request->status;
         $order->save();
 
-        return $this->processResponse(1, [], [
-            'message' => __tr('Statut de la commande mis à jour avec succès.')
+        // Update contact notes & broadcast real-time contact update to chat frontend
+        if ($order->contacts__id) {
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::find($order->contacts__id);
+            if ($contact) {
+                $statusLabels = [
+                    'validated' => __tr('Nouvelle / En attente'),
+                    'confirmed' => __tr('Confirmée'),
+                    'processing' => __tr('En préparation'),
+                    'shipped' => __tr('En livraison'),
+                    'delivered' => __tr('Livrée'),
+                    'cancelled' => __tr('Annulée'),
+                ];
+                $statusName = $statusLabels[$request->status] ?? $request->status;
+                $noteEntry = "\n[📦 Commande #" . substr($order->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Statut mis à jour -> " . $statusName;
+                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                $contact->save();
+
+                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+                if ($vendor) {
+                    updateModelsViaVendorBroadcast($vendor->_uid, [
+                        'contact' => $contact
+                    ]);
+                }
+            }
+        }
+
+        return $this->processResponse(1, [
+            1 => __tr('Statut de la commande mis à jour avec succès.')
+        ], [
+            'message' => __tr('Statut de la commande mis à jour avec succès.'),
+            'order' => $order
         ]);
     }
 
@@ -424,14 +454,18 @@ class ECommerceController extends BaseController
         ])->first();
 
         if (empty($order)) {
-            return $this->processResponse(2, [], [
+            return $this->processResponse(2, [
+                2 => __tr('Commande introuvable.')
+            ], [
                 'message' => __tr('Commande introuvable.')
             ]);
         }
 
         $order->delete();
 
-        return $this->processResponse(1, [], [
+        return $this->processResponse(1, [
+            1 => __tr('Commande supprimée avec succès.')
+        ], [
             'message' => __tr('Commande supprimée avec succès.')
         ]);
     }

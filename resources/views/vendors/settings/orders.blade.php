@@ -55,12 +55,14 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     updateOrderStatus(orderUid, newStatus) {
         var self = this;
         __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
-            if (response.reaction_code == 1) {
-                showSuccessMessage(response.message);
+            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+            var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
+            if (isSuccess) {
+                showSuccessMessage(msg);
                 var ord = self.allOrders.find(o => o._uid === orderUid);
                 if (ord) ord.status = newStatus;
             } else {
-                showErrorMessage(response.message || 'Erreur de mise à jour.');
+                showErrorMessage(msg || 'Erreur de mise à jour.');
             }
         });
     },
@@ -68,25 +70,16 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
         if (confirm('{{ __tr("Voulez-vous supprimer cette commande ?") }}')) {
             var self = this;
             __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
-                if (response.reaction_code == 1) {
-                    showSuccessMessage(response.message);
+                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                var msg = response.message || (response.data && response.data.message) || 'Commande supprimée avec succès.';
+                if (isSuccess) {
+                    showSuccessMessage(msg);
                     self.allOrders = self.allOrders.filter(o => o._uid !== orderUid);
                 } else {
-                    showErrorMessage(response.message || 'Erreur de suppression.');
+                    showErrorMessage(msg || 'Erreur de suppression.');
                 }
             });
         }
-    },
-    createTestOrder() {
-        var self = this;
-        __DataRequest.post('{{ route("vendor.ecommerce.test_order") }}', {}, function(response) {
-            if (response.reaction_code == 1) {
-                showSuccessMessage(response.message);
-                setTimeout(() => { window.location.reload(); }, 1000);
-            } else {
-                showErrorMessage(response.message || 'Erreur lors de la création.');
-            }
-        });
     },
     viewOrderDetails(order) {
         this.selectedOrder = order;
@@ -100,10 +93,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
             <p class="text-muted small mb-0">{{ __tr('Suivez, mettez à jour et gérez l\'ensemble des commandes reçues depuis votre catalogue WhatsApp') }}</p>
         </div>
-        <div class="mt-2 mt-sm-0 d-flex" style="gap: 8px;">
-            <button type="button" @click="createTestOrder()" class="btn btn-warning font-weight-bold px-3 py-2 text-dark shadow-sm" style="border-radius: 10px;">
-                <i class="fa fa-vial mr-1"></i> {{ __tr('Tester une commande') }}
-            </button>
+        <div class="mt-2 mt-sm-0">
             <a href="<?= route('vendor.settings.read', ['pageType' => 'ecommerce']) ?>" class="btn btn-outline-emerald font-weight-bold px-4 py-2" style="border-radius: 10px; color: #10b981; border-color: #10b981;">
                 <i class="fa fa-boxes mr-1"></i> {{ __tr('Gérer le Catalogue') }}
             </a>
