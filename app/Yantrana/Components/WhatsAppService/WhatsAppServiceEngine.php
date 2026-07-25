@@ -3736,8 +3736,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 || env('OPENAI_API_KEY') 
                 || env('GEMINI_API_KEY');
             if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and $hasOpenAiKey) {
+                \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] [Engine] Attempting AI bot reply for contact ' . $contact->_uid . ' on vendor ' . $contact->vendors__id . ', messageBody="' . Str::limit($messageBody, 50) . '"');
                 try {
                     $aiBotReplyText = app()->make(OpenAiService::class)->generateAnswerFromMultipleSections($messageBody, $contact, $contact->vendors__id);
+                    \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] [Engine] AI reply result: ' . ($aiBotReplyText ? 'GOT REPLY (' . strlen($aiBotReplyText) . ' chars)' : 'EMPTY/NULL'));
                     // check if got the reply
                     if ($aiBotReplyText) {
                         $botName = getVendorSettings('open_ai_bot_name', null, null, $contact->vendors__id);
@@ -3752,6 +3754,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         ]);
                     }
                 } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] [Engine] EXCEPTION in AI bot: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ':' . $e->getLine());
                     // if openai issues
                     if ($e instanceof \OpenAI\Exceptions\ErrorException) {
                         logSystemVendorChatMessage($contact, 'ERROR', $e->getMessage());
@@ -3768,6 +3771,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         ]);
                     }
                 }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] [Engine] AI bot NOT triggered. enable_open_ai_bot=' . var_export(getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id), true) . ', hasOpenAiKey=' . var_export($hasOpenAiKey, true) . ', isBotMatched=' . var_export($isBotMatched, true));
             }
             // flowise ai
             if (!$aiBotReplyText and getVendorSettings('enable_flowise_ai_bot', null, null, $contact->vendors__id) and getVendorSettings('flowise_url', null, null, $contact->vendors__id)) {

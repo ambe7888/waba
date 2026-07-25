@@ -363,15 +363,24 @@ class OpenAiService extends BaseEngine
             $this->deductVendorCredit($vendorId, $credits);
             return $messageList->data[0]->content[0]->text->value;
         }
+        // Initialize configuration (credit check + API key setup)
+        $this->initConfiguration($vendorId);
+
         // Text Based Source type
         $rawTrainingData = getVendorSettings('open_ai_input_training_data', null, null, $vendorId);
+        \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] vendorId=' . $vendorId . ', rawTrainingData=' . (empty($rawTrainingData) ? 'EMPTY' : 'SET (' . strlen($rawTrainingData) . ' chars)') . ', botDataSourceType=' . $botDataSourceType);
         
         if (!empty($rawTrainingData) && strlen($rawTrainingData) < 20000) {
             $contextText = $rawTrainingData;
         } else {
-            // Fallback to top relevant sections if too large or empty
-            $topSections = $this->findTopRelevantSections($question, $vendorId);
-            $contextText = implode("\n\n", array_column($topSections, 'section'));
+            if (empty($rawTrainingData)) {
+                \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Training data is EMPTY for vendor ' . $vendorId . '. AI may not have context to answer.');
+                $contextText = 'No training data available. Answer based on general knowledge.';
+            } else {
+                // Fallback to top relevant sections if too large
+                $topSections = $this->findTopRelevantSections($question, $vendorId);
+                $contextText = implode("\n\n", array_column($topSections, 'section'));
+            }
         }
 
         $systemPrompt = "You are a helpful and smart AI assistant. "
@@ -408,19 +417,28 @@ class OpenAiService extends BaseEngine
                      ?: getAppSettings('gemini_api_key')
                      ?: env('GEMINI_API_KEY');
 
+        \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] aiProvider=' . $aiProvider . ', geminiApiKey=' . (empty($geminiApiKey) ? 'EMPTY' : 'SET (' . substr($geminiApiKey, 0, 10) . '...)') . ', openaiApiKey=' . (empty(getAppSettings('openai_api_key')) ? 'EMPTY' : 'SET'));
+
         if ($aiProvider === 'gemini' || (!empty($geminiApiKey) && empty(getAppSettings('openai_api_key')))) {
+            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Google Gemini for vendor ' . $vendorId);
             try {
                 $geminiResult = $this->generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey);
+                \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Gemini result: ' . json_encode($geminiResult ? array_keys($geminiResult) : 'NULL'));
                 if (!empty($geminiResult['text'])) {
                     $promptTokens = $geminiResult['prompt_tokens'] ?? 0;
                     $completionTokens = $geminiResult['completion_tokens'] ?? 0;
                     $credits = $this->calculateCredits('gemini-1.5-flash', $promptTokens, $completionTokens);
                     $this->deductVendorCredit($vendorId, $credits);
+                    \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Gemini replied successfully: ' . substr($geminiResult['text'], 0, 100));
                     return $geminiResult['text'];
+                } else {
+                    \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Gemini returned empty result for vendor ' . $vendorId);
                 }
             } catch (\Throwable $th) {
-                \Illuminate\Support\Facades\Log::error('Google Gemini AI Error: ' . $th->getMessage());
+                \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] Google Gemini AI Error: ' . $th->getMessage() . ' | File: ' . $th->getFile() . ':' . $th->getLine());
             }
+        } else {
+            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Skipped Gemini, falling through to OpenAI for vendor ' . $vendorId);
         }
 
         // Step 2: Use OpenAI completion API as fallback or primary
