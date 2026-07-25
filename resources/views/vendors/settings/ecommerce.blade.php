@@ -4,6 +4,10 @@ $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
 $manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
     ->latest()
     ->get();
+$orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
+    ->where('vendors__id', $vendorId)
+    ->latest()
+    ->get();
 $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
 
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
@@ -13,76 +17,102 @@ $isManualConnected = true;
 @endphp
 
 <style>
-.platform-card {
+.platform-card-pro {
     border: 2px solid #e2e8f0;
     border-radius: 16px;
     padding: 1.5rem;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: white;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
     text-align: center;
     position: relative;
     overflow: hidden;
 }
-.platform-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+.platform-card-pro:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.08);
 }
-.platform-card.selected-shopify {
+.platform-card-pro.selected-shopify {
     border-color: #96bf48;
     background-color: rgba(150, 191, 72, 0.04);
-    box-shadow: 0 4px 15px rgba(150, 191, 72, 0.15);
 }
-.platform-card.selected-woocommerce {
+.platform-card-pro.selected-woocommerce {
     border-color: #7f54b3;
     background-color: rgba(127, 84, 179, 0.04);
-    box-shadow: 0 4px 15px rgba(127, 84, 179, 0.15);
 }
-.platform-card.selected-whatsapp_catalog {
-    border-color: #25d366;
-    background-color: rgba(37, 211, 102, 0.04);
-    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.15);
+.platform-card-pro.selected-whatsapp_catalog {
+    border-color: #10b981;
+    background-color: #ecfdf5;
 }
-.platform-card.selected-manual {
-    border-color: #17a2b8;
-    background-color: rgba(23, 162, 184, 0.04);
-    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.15);
+.platform-card-pro.selected-manual {
+    border-color: #0284c7;
+    background-color: #f0f9ff;
 }
-.platform-card.active-green-card {
-    border-color: #28a745 !important;
-    background-color: rgba(40, 167, 69, 0.04) !important;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15) !important;
-}
-.platform-card .selected-badge {
+.platform-card-pro .selected-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #28a745;
+    top: 12px;
+    right: 12px;
+    background: #10b981;
     color: white;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+.nav-pill-tab {
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+}
+.nav-pill-tab.active {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+.order-status-badge {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 </style>
 
-<div class="row" x-data="{
+<div class="container-fluid pb-5" x-data="{
+    mainTab: 'products',
     integration: '{{ getVendorSettings('ecommerce_integration') ?: 'none' }}',
     isSyncing: false,
     syncMessage: '',
     manualTab: 'add',
     allProducts: {{ json_encode($manualProducts) }},
+    allOrders: {{ json_encode($orders) }},
     catalogSearch: '',
     catalogSourceFilter: '',
+    orderSearch: '',
+    orderStatusFilter: '',
     filteredCatalogProducts() {
         return this.allProducts.filter(p => {
             var matchesSearch = !this.catalogSearch || (p.name && p.name.toLowerCase().includes(this.catalogSearch.toLowerCase())) || (p.description && p.description.toLowerCase().includes(this.catalogSearch.toLowerCase()));
             var matchesSource = !this.catalogSourceFilter || p.source === this.catalogSourceFilter;
             return matchesSearch && matchesSource;
+        });
+    },
+    filteredOrders() {
+        return this.allOrders.filter(o => {
+            var contactName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name + ' ' + o.contact.wa_id) : '';
+            var matchesSearch = !this.orderSearch || contactName.toLowerCase().includes(this.orderSearch.toLowerCase());
+            var matchesStatus = !this.orderStatusFilter || o.status === this.orderStatusFilter;
+            return matchesSearch && matchesStatus;
         });
     },
     syncProducts() {
@@ -96,7 +126,7 @@ $isManualConnected = true;
                 showSuccessMessage(response.message);
                 setTimeout(() => { window.location.reload(); }, 1200);
             } else {
-                self.syncMessage = response.message || '{{ __tr('Failed to synchronize products.') }}';
+                self.syncMessage = response.message || '{{ __tr('Échec de la synchronisation.') }}';
                 showErrorMessage(self.syncMessage);
             }
         });
@@ -114,18 +144,40 @@ $isManualConnected = true;
             });
         }
     },
+    updateOrderStatus(orderUid, newStatus) {
+        var self = this;
+        __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
+            if (response.reaction_code == 1) {
+                showSuccessMessage(response.message);
+                var ord = self.allOrders.find(o => o._uid === orderUid);
+                if (ord) ord.status = newStatus;
+            } else {
+                showErrorMessage(response.message || 'Erreur de mise à jour.');
+            }
+        });
+    },
+    deleteOrder(orderUid) {
+        if (confirm('{{ __tr("Voulez-vous supprimer cette commande ?") }}')) {
+            var self = this;
+            __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
+                if (response.reaction_code == 1) {
+                    showSuccessMessage(response.message);
+                    self.allOrders = self.allOrders.filter(o => o._uid !== orderUid);
+                } else {
+                    showErrorMessage(response.message || 'Erreur de suppression.');
+                }
+            });
+        }
+    },
     submitProductForm() {
         var form = document.getElementById('addProductForm');
         var formData = new FormData(form);
-        
         fetch('{{ route("vendor.ecommerce.products.add") }}', {
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             body: formData
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.reaction_code == 1) {
                 showSuccessMessage(data.message || 'Produit ajouté avec succès.');
@@ -134,22 +186,17 @@ $isManualConnected = true;
                 showErrorMessage(data.message || 'Erreur lors de l\'ajout.');
             }
         })
-        .catch(error => {
-            showErrorMessage('Erreur réseau.');
-        });
+        .catch(() => showErrorMessage('Erreur réseau.'));
     },
     submitImportForm() {
         var form = document.getElementById('importProductForm');
         var formData = new FormData(form);
-        
         fetch('{{ route("vendor.ecommerce.products.import") }}', {
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             body: formData
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.reaction_code == 1) {
                 showSuccessMessage(data.message || 'Importation réussie.');
@@ -158,9 +205,7 @@ $isManualConnected = true;
                 showErrorMessage(data.message || 'Erreur lors de l\'importation.');
             }
         })
-        .catch(error => {
-            showErrorMessage('Erreur réseau.');
-        });
+        .catch(() => showErrorMessage('Erreur réseau.'));
     },
     isDetectingCatalog: false,
     metaCatalogs: [],
@@ -170,12 +215,8 @@ $isManualConnected = true;
         this.metaCatalogs = [];
         this.showCatalogList = false;
         var self = this;
-        fetch('{{ route('vendor.ecommerce.meta_catalogs') }}', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
+        fetch('{{ route('vendor.ecommerce.meta_catalogs') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
         .then(data => {
             self.isDetectingCatalog = false;
             if (data.reaction_code == 1) {
@@ -183,13 +224,10 @@ $isManualConnected = true;
                 self.showCatalogList = true;
                 showSuccessMessage('{{ __tr("Catalogues récupérés avec succès.") }}');
             } else {
-                showErrorMessage(data.data.message || '{{ __tr("Erreur lors de la récupération des catalogues depuis Meta.") }}');
+                showErrorMessage(data.data.message || '{{ __tr("Erreur lors de la récupération depuis Meta.") }}');
             }
         })
-        .catch(error => {
-            self.isDetectingCatalog = false;
-            showErrorMessage('{{ __tr("Erreur réseau.") }}');
-        });
+        .catch(() => { self.isDetectingCatalog = false; showErrorMessage('{{ __tr("Erreur réseau.") }}'); });
     },
     selectCatalog(catalogId) {
         document.getElementById('whatsapp_catalog_id').value = catalogId;
@@ -206,133 +244,411 @@ $isManualConnected = true;
             __DataRequest.post('{{ route('vendor.ecommerce.products.clear') }}', { source: source }, function(response) {
                 if (response.reaction_code == 1) {
                     showSuccessMessage(response.message);
-                    if (source === 'all') {
-                        self.allProducts = [];
-                    } else {
-                        self.allProducts = self.allProducts.filter(p => p.source !== source);
-                    }
-                } else {
-                    showErrorMessage(response.message || 'Erreur lors de la suppression.');
-                }
+                    if (source === 'all') { self.allProducts = []; } 
+                    else { self.allProducts = self.allProducts.filter(p => p.source !== source); }
+                } else { showErrorMessage(response.message || 'Erreur lors de la suppression.'); }
             });
         }
     }
 }">
-    <div class="col-md-12">
-        <!-- Page Heading -->
-        <h1 class="h3 mb-2 text-gray-800">
-            <?= __tr('E-commerce et Catalogue') ?>
-        </h1>
-        <p class="mb-4 text-muted">
-            {{ __tr('Sélectionnez et configurez votre catalogue produits pour le lier à votre compte WhatsApp. Recommandez des produits directement dans les chats et suivez vos ventes.') }}
-        </p>
 
-        @if ($vendorPlanDetails['is_limit_available'])
-        <!-- Enable/Disable E-commerce Integration Toggle -->
-        <div class="card shadow-sm mb-4 border-left-primary">
-            <div class="card-body d-flex align-items-center justify-content-between py-3">
-                <div>
-                    <h5 class="font-weight-bold text-dark mb-0"><i class="fas fa-toggle-on text-primary mr-2"></i> {{ __tr("Activer l'intégration E-commerce") }}</h5>
-                    <p class="text-xs text-muted mb-0">{{ __tr("Activez ou désactivez complètement l'intégration de votre catalogue produits.") }}</p>
-                </div>
-                <div>
-                    <div class="custom-control custom-switch custom-switch-lg">
-                        <input type="checkbox" class="custom-control-input cursor-pointer" id="toggleEcommerce" :checked="integration !== 'none'" @change="if ($event.target.checked) { integration = 'manual' } else { if (confirm('{{ __tr('Voulez-vous désactiver l\'intégration e-commerce ?') }}')) { integration = 'none'; __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'none', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Intégration désactivée.'); setTimeout(() => { window.location.reload(); }, 1000); } }); } else { $event.target.checked = true; } }">
-                        <label class="custom-control-label font-weight-bold cursor-pointer" for="toggleEcommerce" x-text="integration !== 'none' ? '{{ __tr('Activé') }}' : '{{ __tr('Désactivé') }}'"></label>
+    <!-- Header Section -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('E-Commerce et Gestion du Catalogue') }}</h1>
+            <p class="text-muted small mb-0">{{ __tr('Gérez votre catalogue produits, recevez et traitez vos commandes directement depuis WhatsApp') }}</p>
+        </div>
+    </div>
+
+    @if ($vendorPlanDetails['is_limit_available'])
+
+    <!-- Top Key Metrics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Total Produits') }}</small>
+                        <h3 class="font-weight-bold text-dark mb-0" x-text="allProducts.length"></h3>
+                    </div>
+                    <div class="icon-circle bg-light text-emerald p-3 rounded-circle" style="color: #10b981;">
+                        <i class="fa fa-boxes fa-lg"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div x-show="integration !== 'none'" x-transition x-cloak>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Commandes Reçues') }}</small>
+                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.length"></h3>
+                    </div>
+                    <div class="icon-circle bg-light text-primary p-3 rounded-circle">
+                        <i class="fa fa-shopping-cart fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Canal Actif') }}</small>
+                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Désactivé') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : integration)"></h5>
+                    </div>
+                    <div class="icon-circle bg-light text-warning p-3 rounded-circle">
+                        <i class="fa fa-network-wired fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Intégration') }}</small>
+                        <span class="badge px-3 py-1 font-weight-bold" :class="integration !== 'none' ? 'badge-success' : 'badge-secondary'" style="border-radius: 12px;" x-text="integration !== 'none' ? '{{ __tr('Actif') }}' : '{{ __tr('Inactif') }}'"></span>
+                    </div>
+                    <div class="icon-circle bg-light text-info p-3 rounded-circle">
+                        <i class="fa fa-toggle-on fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Pills Header -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
+                <button type="button" @click="mainTab = 'products'" class="nav-pill-tab" :class="mainTab === 'products' ? 'active' : ''">
+                    <i class="fa fa-store mr-2"></i> {{ __tr('Catalogue Produits') }}
+                </button>
+                <button type="button" @click="mainTab = 'orders'" class="nav-pill-tab" :class="mainTab === 'orders' ? 'active' : ''">
+                    <i class="fa fa-shopping-bag mr-2"></i> {{ __tr('Commandes Client') }}
+                    <span class="badge badge-light ml-1 font-weight-bold" x-text="allOrders.length"></span>
+                </button>
+                <button type="button" @click="mainTab = 'integrations'" class="nav-pill-tab" :class="mainTab === 'integrations' ? 'active' : ''">
+                    <i class="fa fa-plug mr-2"></i> {{ __tr('Intégrations et Canaux') }}
+                </button>
+            </div>
+            
+            <div class="mt-2 mt-md-0" x-show="mainTab === 'products'">
+                <button type="button" @click="mainTab = 'integrations'; manualTab = 'add'" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4 py-2" style="background: #10b981; border-radius: 10px;">
+                    <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Nouveau Produit') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 1: PRODUCTS CATALOG -->
+    <div x-show="mainTab === 'products'" class="space-y-4">
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex flex-wrap align-items-center justify-content-between">
+                <div>
+                    <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Catalogue des Produits') }}</h5>
+                    <p class="text-muted small mb-0">{{ __tr('Recherchez et filtrez l\'ensemble des produits synchronisés ou ajoutés manuellement') }}</p>
+                </div>
+                <div class="mt-2 mt-sm-0">
+                    <button type="button" @click="clearProducts('all')" class="btn btn-outline-danger btn-sm font-weight-bold px-3 py-2" style="border-radius: 8px;">
+                        <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider tout le catalogue') }}
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- Filters & Search -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher un produit') }}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control p-3" style="border-radius: 10px 0 0 10px;" placeholder="{{ __tr('Nom ou description...') }}" x-model="catalogSearch">
+                            <div class="input-group-append">
+                                <span class="input-group-text bg-white" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par source') }}</label>
+                        <select class="form-control" style="border-radius: 10px;" x-model="catalogSourceFilter">
+                            <option value="">{{ __tr('Toutes les sources') }}</option>
+                            <option value="manual">{{ __tr('Catalogue Manuel / Excel') }}</option>
+                            <option value="shopify">Shopify</option>
+                            <option value="woocommerce">WooCommerce</option>
+                            <option value="whatsapp_catalog">{{ __tr('WhatsApp Meta Catalog') }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden;">
+                        <thead class="bg-light text-muted small text-uppercase">
+                            <tr>
+                                <th style="border: none;">{{ __tr('Visuel') }}</th>
+                                <th style="border: none;">{{ __tr('Produit') }}</th>
+                                <th style="border: none;">{{ __tr('Source') }}</th>
+                                <th style="border: none;">{{ __tr('Prix') }}</th>
+                                <th style="border: none;">{{ __tr('Description') }}</th>
+                                <th style="border: none;">{{ __tr('Lien') }}</th>
+                                <th style="border: none;" class="text-right">{{ __tr('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="product in filteredCatalogProducts()" :key="product._uid">
+                                <tr>
+                                    <td class="align-middle">
+                                        <template x-if="product.image_url">
+                                            <img :src="product.image_url" class="rounded shadow-sm" style="width: 52px; height: 52px; object-fit: cover; border-radius: 10px !important;">
+                                        </template>
+                                        <template x-if="!product.image_url">
+                                            <div class="rounded bg-light d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px; color: #94a3b8; border-radius: 10px !important;">
+                                                <i class="fa fa-image fa-lg"></i>
+                                            </div>
+                                        </template>
+                                    </td>
+                                    <td class="align-middle">
+                                        <h6 class="font-weight-bold text-dark mb-0" x-text="product.name"></h6>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="badge border px-3 py-1 font-weight-bold" 
+                                              :class="{
+                                                  'badge-success text-white': product.source === 'whatsapp_catalog',
+                                                  'badge-primary text-white': product.source === 'woocommerce',
+                                                  'badge-info text-white': product.source === 'shopify',
+                                                  'badge-secondary text-white': product.source === 'manual'
+                                              }"
+                                              style="border-radius: 12px;"
+                                              x-text="product.source === 'whatsapp_catalog' ? 'WhatsApp' : product.source">
+                                        </span>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="font-weight-bold text-emerald" style="color: #059669;" x-text="Number(product.price).toLocaleString() + ' CFA'"></span>
+                                    </td>
+                                    <td class="align-middle text-muted small" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || '-'"></td>
+                                    <td class="align-middle">
+                                        <template x-if="product.direct_link">
+                                            <a :href="product.direct_link" target="_blank" class="badge badge-light px-3 py-2 text-dark font-weight-bold shadow-sm" style="border-radius: 8px;">
+                                                <i class="fa fa-external-link-alt mr-1"></i> {{ __tr('Voir') }}
+                                            </a>
+                                        </template>
+                                        <template x-if="!product.direct_link">
+                                            <span class="text-muted small">-</span>
+                                        </template>
+                                    </td>
+                                    <td class="align-middle text-right">
+                                        <button type="button" @click="deleteProduct(product._uid)" class="btn btn-sm btn-outline-danger shadow-sm" style="border-radius: 8px;" title="{{ __tr('Supprimer') }}">
+                                            <i class="fa fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="filteredCatalogProducts().length === 0" class="text-center py-5 text-muted">
+                        <i class="fa fa-box-open fa-3x text-muted mb-3 d-block"></i>
+                        <p class="mb-0 font-weight-bold">{{ __tr('Aucun produit disponible dans le catalogue.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: CLIENT ORDERS -->
+    <div x-show="mainTab === 'orders'" class="space-y-4">
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes Client') }}</h5>
+                <p class="text-muted small mb-0">{{ __tr('Suivez les commandes passées par vos clients sur WhatsApp et modifiez leur statut en temps réel') }}</p>
+            </div>
+
+            <div class="card-body p-4">
+                <!-- Filters & Search -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher un client ou contact') }}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control p-3" style="border-radius: 10px 0 0 10px;" placeholder="{{ __tr('Nom ou numéro WhatsApp...') }}" x-model="orderSearch">
+                            <div class="input-group-append">
+                                <span class="input-group-text bg-white" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
+                        <select class="form-control" style="border-radius: 10px;" x-model="orderStatusFilter">
+                            <option value="">{{ __tr('Tous les statuts') }}</option>
+                            <option value="validated">{{ __tr('Nouvelle / Validée') }}</option>
+                            <option value="confirmed">{{ __tr('Confirmée') }}</option>
+                            <option value="processing">{{ __tr('En préparation') }}</option>
+                            <option value="shipped">{{ __tr('En livraison') }}</option>
+                            <option value="delivered">{{ __tr('Livrée') }}</option>
+                            <option value="cancelled">{{ __tr('Annulée') }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden;">
+                        <thead class="bg-light text-muted small text-uppercase">
+                            <tr>
+                                <th style="border: none;">{{ __tr('Réf / Date') }}</th>
+                                <th style="border: none;">{{ __tr('Client WhatsApp') }}</th>
+                                <th style="border: none;">{{ __tr('Détails de la commande') }}</th>
+                                <th style="border: none;">{{ __tr('Statut Actuel') }}</th>
+                                <th style="border: none;" class="text-right">{{ __tr('Changer le statut / Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="order in filteredOrders()" :key="order._uid">
+                                <tr>
+                                    <td class="align-middle">
+                                        <span class="font-weight-bold text-dark small" x-text="'#' + order._uid.substring(0, 8)"></span>
+                                        <small class="text-muted d-block" x-text="new Date(order.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})"></small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
+                                        <small class="text-emerald" style="color: #059669;" x-text="order.contact ? order.contact.wa_id : ''"></small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="text-sm font-weight-bold text-dark" x-text="order.order_details ? (order.order_details.catalog_id ? '{{ __tr('Commande via Catalogue WhatsApp') }}' : '{{ __tr('Commande directe') }}') : '{{ __tr('Détails enregistrés') }}'"></div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="order-status-badge text-white"
+                                              :class="{
+                                                  'bg-success': order.status === 'delivered',
+                                                  'bg-info': order.status === 'shipped' || order.status === 'processing',
+                                                  'bg-primary': order.status === 'confirmed',
+                                                  'bg-warning text-dark': order.status === 'validated',
+                                                  'bg-danger': order.status === 'cancelled'
+                                              }"
+                                              x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : '{{ __tr('Nouvelle') }}')))">
+                                        </span>
+                                    </td>
+                                    <td class="align-middle text-right">
+                                        <div class="d-inline-flex align-items-center" style="gap: 8px;">
+                                            <select class="form-control form-control-sm font-weight-bold" style="border-radius: 8px; width: 140px;" :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
+                                                <option value="validated">{{ __tr('Nouvelle') }}</option>
+                                                <option value="confirmed">{{ __tr('Confirmer') }}</option>
+                                                <option value="processing">{{ __tr('En préparation') }}</option>
+                                                <option value="shipped">{{ __tr('En livraison') }}</option>
+                                                <option value="delivered">{{ __tr('Livrée') }}</option>
+                                                <option value="cancelled">{{ __tr('Annuler') }}</option>
+                                            </select>
+                                            
+                                            <button type="button" @click="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Supprimer') }}">
+                                                <i class="fa fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="filteredOrders().length === 0" class="text-center py-5 text-muted">
+                        <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
+                        <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée pour le moment.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: INTEGRATIONS & CHANNELS -->
+    <div x-show="mainTab === 'integrations'" class="space-y-4">
         <!-- Platform Selection Cards -->
-        <div class="row mb-5">
+        <div class="row mb-4">
             <!-- Shopify Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="[
+                <div class="platform-card-pro" :class="[
                     integration === 'shopify' ? 'selected-shopify' : '',
                     {{ $isShopifyConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'shopify'">
                     <template x-if="integration === 'shopify'">
-                        <div class="selected-badge"><i class="fas fa-check"></i></div>
+                        <div class="selected-badge"><i class="fa fa-check"></i></div>
                     </template>
                     <i class="fab fa-shopify mb-3 text-success" style="font-size: 3rem; color: #96bf48 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">Shopify</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Synchronisation anonyme sans clé API nécessaire.') }}</p>
+                    <p class="text-xs text-muted mb-0">{{ __tr('Synchronisation anonyme sans clé API requise.') }}</p>
                     @if($isShopifyConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
             </div>
 
             <!-- WooCommerce Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="[
+                <div class="platform-card-pro" :class="[
                     integration === 'woocommerce' ? 'selected-woocommerce' : '',
                     {{ $isWooCommerceConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'woocommerce'">
                     <template x-if="integration === 'woocommerce'">
-                        <div class="selected-badge"><i class="fas fa-check"></i></div>
+                        <div class="selected-badge"><i class="fa fa-check"></i></div>
                     </template>
                     <i class="fab fa-wordpress mb-3" style="font-size: 3rem; color: #7f54b3 !important;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">WooCommerce</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Liaison via clés d\'API Consumer Key / Secret.') }}</p>
+                    <p class="text-xs text-muted mb-0">{{ __tr('Liaison via clés API Consumer Key / Secret.') }}</p>
                     @if($isWooCommerceConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
             </div>
 
             <!-- WhatsApp Catalog Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="[
+                <div class="platform-card-pro" :class="[
                     integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
                     {{ $isWhatsAppCatalogConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'whatsapp_catalog'">
                     <template x-if="integration === 'whatsapp_catalog'">
-                        <div class="selected-badge"><i class="fas fa-check"></i></div>
+                        <div class="selected-badge"><i class="fa fa-check"></i></div>
                     </template>
-                    <i class="fab fa-whatsapp mb-3 text-success" style="font-size: 3rem; color: #25d366 !important;"></i>
-                    <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue WhatsApp') }}</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Associer l\'ID de votre catalogue Meta natif.') }}</p>
+                    <i class="fab fa-whatsapp mb-3 text-emerald" style="font-size: 3rem; color: #10b981 !important;"></i>
+                    <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue WhatsApp Meta') }}</h4>
+                    <p class="text-xs text-muted mb-0">{{ __tr('Liez l\'ID de votre catalogue Meta natif.') }}</p>
                     @if($isWhatsAppCatalogConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
             </div>
 
             <!-- Manual Card -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card" :class="[
+                <div class="platform-card-pro" :class="[
                     integration === 'manual' ? 'selected-manual' : '',
                     {{ $isManualConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
                 ]" @click="integration = 'manual'">
                     <template x-if="integration === 'manual'">
-                        <div class="selected-badge"><i class="fas fa-check"></i></div>
+                        <div class="selected-badge"><i class="fa fa-check"></i></div>
                     </template>
-                    <i class="fas fa-edit mb-3 text-info" style="font-size: 3rem;"></i>
+                    <i class="fa fa-edit mb-3 text-info" style="font-size: 3rem;"></i>
                     <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Manuel / Excel') }}</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Créez vos produits manuellement ou via import Excel.') }}</p>
+                    <p class="text-xs text-muted mb-0">{{ __tr('Créez vos produits manuellement ou importez un CSV.') }}</p>
                     @if($isManualConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fas fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                     @endif
                 </div>
             </div>
         </div>
 
         <!-- Configuration Details Container -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <span x-show="integration === 'shopify'"><i class="fab fa-shopify mr-1"></i> {{ __tr('Configuration Shopify') }}</span>
-                    <span x-show="integration === 'woocommerce'"><i class="fab fa-wordpress mr-1"></i> {{ __tr('Configuration WooCommerce') }}</span>
-                    <span x-show="integration === 'whatsapp_catalog'"><i class="fab fa-whatsapp mr-1"></i> {{ __tr('Configuration Catalogue WhatsApp') }}</span>
-                    <span x-show="integration === 'manual'"><i class="fas fa-edit mr-1"></i> {{ __tr('Gestion du Catalogue Manuel') }}</span>
-                    <span x-show="integration === 'none'"><i class="fas fa-cogs mr-1"></i> {{ __tr('Plateforme de vente non configurée') }}</span>
-                </h6>
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                <h5 class="font-weight-bold text-dark mb-1">
+                    <span x-show="integration === 'shopify'"><i class="fab fa-shopify mr-2 text-success"></i> {{ __tr('Configuration Shopify') }}</span>
+                    <span x-show="integration === 'woocommerce'"><i class="fab fa-wordpress mr-2" style="color: #7f54b3;"></i> {{ __tr('Configuration WooCommerce') }}</span>
+                    <span x-show="integration === 'whatsapp_catalog'"><i class="fab fa-whatsapp mr-2 text-emerald"></i> {{ __tr('Configuration Catalogue WhatsApp Meta') }}</span>
+                    <span x-show="integration === 'manual'"><i class="fa fa-edit mr-2 text-info"></i> {{ __tr('Gestion du Catalogue Manuel et Import') }}</span>
+                    <span x-show="integration === 'none'"><i class="fa fa-cogs mr-2 text-muted"></i> {{ __tr('Intégration non configurée') }}</span>
+                </h5>
             </div>
             
-            <div class="card-body">
+            <div class="card-body p-4">
                 
                 <!-- Main Form for saving settings (Shopify / WooCommerce / WhatsApp / None) -->
                 <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
@@ -340,50 +656,50 @@ $isManualConnected = true;
                     <input type="hidden" name="ecommerce_integration" :value="integration">
 
                     <!-- Shopify Config -->
-                    <div x-show="integration === 'shopify'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
-                        <div class="form-group">
-                            <label class="font-weight-bold" for="shopify_shop_url">{{ __tr('Shopify Shop URL') }}</label>
-                            <input type="text" class="form-control form-control-lg" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="e.g. mystore.myshopify.com">
-                            <small class="form-text text-muted">{{ __tr('Entrez le sous-domaine .myshopify.com de votre boutique.') }}</small>
+                    <div x-show="integration === 'shopify'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold text-dark" for="shopify_shop_url">{{ __tr('Shopify Shop URL') }}</label>
+                            <input type="text" class="form-control form-control-lg p-3" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="ex: maboutique.myshopify.com" style="border-radius: 10px;">
+                            <small class="form-text text-muted mt-2">{{ __tr('Saisissez l\'adresse .myshopify.com de votre boutique.') }}</small>
                         </div>
                     </div>
 
                     <!-- WooCommerce Config -->
-                    <div x-show="integration === 'woocommerce'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
-                        <div class="form-group">
-                            <label class="font-weight-bold" for="woocommerce_shop_url">{{ __tr('WooCommerce Shop URL') }}</label>
-                            <input type="text" class="form-control form-control-lg" id="woocommerce_shop_url" value="{{ getVendorSettings('woocommerce_shop_url') }}" name="woocommerce_shop_url" placeholder="e.g. https://mywordpressstore.com">
+                    <div x-show="integration === 'woocommerce'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="woocommerce_shop_url">{{ __tr('WooCommerce Shop URL') }}</label>
+                            <input type="text" class="form-control form-control-lg p-3" id="woocommerce_shop_url" value="{{ getVendorSettings('woocommerce_shop_url') }}" name="woocommerce_shop_url" placeholder="ex: https://maboutique-wordpress.com" style="border-radius: 10px;">
                         </div>
                         <div class="row">
                             <div class="col-md-6 form-group">
-                                <label class="font-weight-bold" for="woocommerce_consumer_key">{{ __tr('WooCommerce Consumer Key') }}</label>
-                                <input type="text" class="form-control" id="woocommerce_consumer_key" value="{{ getVendorSettings('woocommerce_consumer_key') }}" name="woocommerce_consumer_key" placeholder="ck_...">
+                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_key">{{ __tr('WooCommerce Consumer Key') }}</label>
+                                <input type="text" class="form-control p-3" id="woocommerce_consumer_key" value="{{ getVendorSettings('woocommerce_consumer_key') }}" name="woocommerce_consumer_key" placeholder="ck_..." style="border-radius: 10px;">
                             </div>
                             <div class="col-md-6 form-group">
-                                <label class="font-weight-bold" for="woocommerce_consumer_secret">{{ __tr('WooCommerce Consumer Secret') }}</label>
-                                <input type="password" class="form-control" id="woocommerce_consumer_secret" value="{{ getVendorSettings('woocommerce_consumer_secret') }}" name="woocommerce_consumer_secret" placeholder="cs_...">
+                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_secret">{{ __tr('WooCommerce Consumer Secret') }}</label>
+                                <input type="password" class="form-control p-3" id="woocommerce_consumer_secret" value="{{ getVendorSettings('woocommerce_consumer_secret') }}" name="woocommerce_consumer_secret" placeholder="cs_..." style="border-radius: 10px;">
                             </div>
                         </div>
                     </div>
 
                     <!-- WhatsApp Catalog Config -->
-                    <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded bg-white shadow-sm mb-4" x-cloak>
-                        <div class="form-group">
-                            <label class="font-weight-bold" for="whatsapp_catalog_id">{{ __tr('WhatsApp Catalog ID') }}</label>
+                    <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="whatsapp_catalog_id">{{ __tr('ID du Catalogue WhatsApp Meta') }}</label>
                             <div class="input-group">
-                                <input type="text" class="form-control form-control-lg" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="e.g. 128392193892182">
+                                <input type="text" class="form-control form-control-lg p-3" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="ex: 128392193892182" style="border-radius: 10px 0 0 10px;">
                                 <div class="input-group-append">
-                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-success font-weight-bold shadow-sm" :disabled="isDetectingCatalog">
-                                        <span x-show="!isDetectingCatalog"><i class="fas fa-magic mr-1"></i> {{ __tr('Détecter depuis Facebook') }}</span>
-                                        <span x-show="isDetectingCatalog"><i class="fas fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
+                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4" style="background: #10b981; border-radius: 0 10px 10px 0;" :disabled="isDetectingCatalog">
+                                        <span x-show="!isDetectingCatalog"><i class="fa fa-magic mr-1"></i> {{ __tr('Détecter depuis Meta') }}</span>
+                                        <span x-show="isDetectingCatalog"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
                                     </button>
                                 </div>
                             </div>
-                            <small class="form-text text-muted">{{ __tr('Liez l\'identifiant unique de votre catalogue Meta Business Manager. Ou cliquez sur le bouton pour le récupérer automatiquement.') }}</small>
+                            <small class="form-text text-muted mt-2">{{ __tr('Indiquez l\'ID de votre catalogue Facebook/WhatsApp Manager.') }}</small>
 
                             <!-- Meta Catalogs List Selector -->
-                            <div x-show="showCatalogList" class="mt-3 border rounded p-3 bg-light" x-cloak>
-                                <h6 class="font-weight-bold text-dark mb-2"><i class="fas fa-list mr-1 text-success"></i> Sélectionnez un catalogue disponible sur votre compte :</h6>
+                            <div x-show="showCatalogList" class="mt-3 border rounded p-3 bg-light" style="border-radius: 10px;" x-cloak>
+                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list mr-1 text-emerald"></i> {{ __tr('Catalogues détectés sur votre compte :') }}</h6>
                                 <div class="list-group">
                                     <template x-for="cat in metaCatalogs" :key="cat.id">
                                         <button type="button" @click="selectCatalog(cat.id)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
@@ -391,34 +707,28 @@ $isManualConnected = true;
                                                 <span class="font-weight-bold text-dark text-sm" x-text="cat.name"></span>
                                                 <div class="text-xs text-muted">ID: <span class="text-monospace" x-text="cat.id"></span></div>
                                             </div>
-                                            <span class="badge badge-success px-2 py-1 text-xs"><i class="fas fa-check mr-1"></i> Sélectionner</span>
+                                            <span class="badge badge-success px-3 py-1 text-xs" style="border-radius: 12px;"><i class="fa fa-check mr-1"></i> {{ __tr('Sélectionner') }}</span>
                                         </button>
                                     </template>
                                 </div>
                             </div>
                         </div>
-                        <div class="p-3 mt-3" style="background-color: rgba(40, 167, 69, 0.08) !important; border-left: 5px solid #28a745 !important; border-radius: 8px; color: #000000 !important;">
-                            <h5 class="font-weight-bold mb-1" style="color: #28a745 !important; font-size: 0.95rem;">
-                                <i class="fas fa-info-circle mr-1"></i> {{ __tr('Liaison Facebook Requise') }}
-                            </h5>
-                            <p class="mb-0 text-dark" style="color: #000000 !important; font-size: 0.88rem; line-height: 1.4;">
-                                {{ __tr('Dans votre Meta Business Suite / WhatsApp Manager, vous devez aller dans Paramètres > Catalogues et associer le catalogue à votre numéro.') }}
-                            </p>
-                        </div>
                     </div>
 
                     <!-- Action buttons for platforms -->
-                    <div class="form-group mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm"><i class="fas fa-save mr-2"></i> {{ __tr('Save Settings') }}</button>
+                    <div class="form-group mt-4 mb-0">
+                        <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                            <i class="fa fa-save mr-1"></i> {{ __tr('Enregistrer la configuration') }}
+                        </button>
                         
                         <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog'" x-cloak>
-                            <button type="button" @click="syncProducts()" class="btn btn-success btn-lg ml-2 shadow-sm" :disabled="isSyncing">
-                                <span x-show="!isSyncing"><i class="fas fa-sync mr-2"></i> {{ __tr('Sync Products Now') }}</span>
-                                <span x-show="isSyncing"><i class="fas fa-spinner fa-spin mr-2"></i> {{ __tr('Synchronizing...') }}</span>
+                            <button type="button" @click="syncProducts()" class="btn btn-success font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;" :disabled="isSyncing">
+                                <span x-show="!isSyncing"><i class="fa fa-sync mr-1"></i> {{ __tr('Synchroniser les produits') }}</span>
+                                <span x-show="isSyncing"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Synchronisation...') }}</span>
                             </button>
                             
-                            <button type="button" @click="clearProducts(integration)" class="btn btn-danger btn-lg ml-2 shadow-sm">
-                                <i class="fas fa-trash-alt mr-2"></i> {{ __tr('Vider les produits importés') }}
+                            <button type="button" @click="clearProducts(integration)" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
+                                <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider les produits importés') }}
                             </button>
                         </span>
                     </div>
@@ -426,218 +736,120 @@ $isManualConnected = true;
 
                 <!-- Local Manual / Excel Catalog Panel -->
                 <div x-show="integration === 'manual'" x-cloak>
-                    
-                    <!-- Manual Sub-Tabs -->
+                    <!-- Sub-Tabs -->
                     <div class="d-flex border-bottom mb-4">
-                        <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'add' ? 'active border-bottom border-primary text-primary' : 'text-muted'" style="text-decoration: none;">
-                            <i class="fas fa-plus-circle mr-2"></i> Créer manuellement
+                        <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'add' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
+                            <i class="fa fa-plus-circle mr-2"></i> {{ __tr('Créer un Produit') }}
                         </button>
-                        <button type="button" @click="manualTab = 'import'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'import' ? 'active border-bottom border-primary text-primary' : 'text-muted'" style="text-decoration: none;">
-                            <i class="fas fa-file-excel mr-2"></i> Importer via CSV / Excel
+                        <button type="button" @click="manualTab = 'import'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'import' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
+                            <i class="fa fa-file-excel mr-2"></i> {{ __tr('Importer un Fichier CSV / Excel') }}
                         </button>
                     </div>
 
-                    <!-- TAB 2: Add Product Form -->
+                    <!-- TAB: Add Product Form -->
                     <div x-show="manualTab === 'add'">
-                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-4 border rounded bg-white shadow-sm" enctype="multipart/form-data">
+                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-4 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;" enctype="multipart/form-data">
                             <div class="row">
                                 <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold" for="prod_name">Nom du Produit *</label>
-                                    <input type="text" class="form-control" id="prod_name" name="name" required placeholder="e.g. T-Shirt Coton Premium">
+                                    <label class="font-weight-bold text-dark" for="prod_name">{{ __tr('Nom du Produit *') }}</label>
+                                    <input type="text" class="form-control p-3" id="prod_name" name="name" required placeholder="{{ __tr('ex: Produit de soin Premium') }}" style="border-radius: 10px;">
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold" for="prod_price">Prix (CFA) *</label>
-                                    <input type="number" class="form-control" id="prod_price" name="price" required placeholder="e.g. 15000">
+                                    <label class="font-weight-bold text-dark" for="prod_price">{{ __tr('Prix (CFA) *') }}</label>
+                                    <input type="number" class="form-control p-3" id="prod_price" name="price" required placeholder="ex: 15000" style="border-radius: 10px;">
                                 </div>
                             </div>
                             
-                            <div class="form-group">
-                                <label class="font-weight-bold" for="prod_desc">Description</label>
-                                <textarea class="form-control" id="prod_desc" name="description" rows="3" placeholder="Description courte du produit..."></textarea>
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold text-dark" for="prod_desc">{{ __tr('Description') }}</label>
+                                <textarea class="form-control p-3" id="prod_desc" name="description" rows="3" placeholder="{{ __tr('Description détaillée du produit...') }}" style="border-radius: 10px;"></textarea>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold" for="prod_img_file">Image du produit (Uploader)</label>
+                                    <label class="font-weight-bold text-dark" for="prod_img_file">{{ __tr('Image du produit (Téléverser)') }}</label>
                                     <input type="file" class="form-control-file" id="prod_img_file" name="image_file" accept="image/*">
-                                    <small class="form-text text-muted">Format PNG, JPG ou WEBP. Maximum 5 Mo.</small>
+                                    <small class="form-text text-muted mt-1">{{ __tr('Formats acceptés: PNG, JPG, WEBP. Max 5 Mo.') }}</small>
                                 </div>
                                 <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold" for="prod_img_url">Ou URL de l'image externe</label>
-                                    <input type="url" class="form-control" id="prod_img_url" name="image_url" placeholder="https://site.com/image.jpg">
+                                    <label class="font-weight-bold text-dark" for="prod_img_url">{{ __tr('Ou URL d\'image externe') }}</label>
+                                    <input type="url" class="form-control p-3" id="prod_img_url" name="image_url" placeholder="https://exemple.com/image.jpg" style="border-radius: 10px;">
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label class="font-weight-bold" for="prod_link">Lien Direct / Lien d'achat</label>
-                                <input type="url" class="form-control" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/acheter">
+                            <div class="form-group mb-4">
+                                <label class="font-weight-bold text-dark" for="prod_link">{{ __tr('Lien direct d\'achat / Détails') }}</label>
+                                <input type="url" class="form-control p-3" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/1" style="border-radius: 10px;">
                             </div>
 
                             <div class="form-group mb-0">
-                                <button type="submit" class="btn btn-success px-4 py-2 shadow-sm"><i class="fas fa-plus mr-1"></i> Créer le produit</button>
+                                <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                                    <i class="fa fa-plus mr-1"></i> {{ __tr('Enregistrer le produit') }}
+                                </button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- TAB 3: Import CSV -->
+                    <!-- TAB: Import CSV -->
                     <div x-show="manualTab === 'import'">
-                        <div class="p-4 border rounded bg-white shadow-sm">
-                            <h4 class="font-weight-bold text-dark mb-3"><i class="fas fa-file-csv mr-1"></i> Importer des produits en masse</h4>
-                            <p class="text-muted">Importez facilement votre liste de produits à partir d'un fichier CSV. Assurez-vous que votre fichier comporte les en-têtes corrects.</p>
+                        <div class="p-4 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;">
+                            <h5 class="font-weight-bold text-dark mb-2"><i class="fa fa-file-csv text-emerald mr-1"></i> {{ __tr('Importer des produits en masse') }}</h5>
+                            <p class="text-muted small mb-4">{{ __tr('Téléversez votre fichier CSV contenant vos produits pour les intégrer au catalogue en 1 clic.') }}</p>
 
-                            <div class="bg-white p-3 border rounded mb-4">
-                                <h6 class="font-weight-bold text-dark"><i class="fas fa-info-circle text-primary mr-1"></i> Format et en-têtes requis (CSV) :</h6>
-                                <p class="text-sm text-muted mb-2">Les colonnes suivantes doivent figurer dans la première ligne du fichier (séparées par une virgule) :</p>
-                                <ul>
-                                    <li><code>name</code> (ou <code>nom</code>) : Le nom du produit *(Obligatoire)*</li>
-                                    <li><code>price</code> (ou <code>prix</code>) : Le prix du produit (uniquement des chiffres)</li>
+                            <div class="bg-light p-3 border rounded mb-4" style="border-radius: 10px;">
+                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-info-circle text-info mr-1"></i> {{ __tr('En-têtes requis dans le fichier CSV :') }}</h6>
+                                <ul class="small text-muted mb-3 pl-3">
+                                    <li><code>name</code> (ou <code>nom</code>) : Nom du produit *(Obligatoire)*</li>
+                                    <li><code>price</code> (ou <code>prix</code>) : Prix du produit (ex: 15000)</li>
                                     <li><code>description</code> : Description textuelle</li>
-                                    <li><code>image_url</code> : Lien complet vers l'image du produit</li>
-                                    <li><code>direct_link</code> (ou <code>lien</code>) : Le lien d'achat direct du produit</li>
+                                    <li><code>image_url</code> : URL complète de l'image du produit</li>
+                                    <li><code>direct_link</code> (ou <code>lien</code>) : Lien d'achat direct</li>
                                 </ul>
 
-                                <a href="data:text/csv;charset=utf-8,name,description,price,image_url,direct_link%0AExemple%20Produit,Description%20du%20produit%20ici,15000,https://example.com/image.jpg,https://example.com/buy" download="template_produits.csv" class="btn btn-sm btn-outline-primary shadow-sm">
-                                    <i class="fas fa-download mr-1"></i> Télécharger le modèle CSV
+                                <a href="data:text/csv;charset=utf-8,name,description,price,image_url,direct_link%0AExemple%20Produit,Description%20du%20produit%20ici,15000,https://example.com/image.jpg,https://example.com/buy" download="template_produits.csv" class="btn btn-sm btn-outline-emerald font-weight-bold shadow-sm" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                                    <i class="fa fa-download mr-1"></i> {{ __tr('Télécharger le modèle CSV') }}
                                 </a>
                             </div>
 
                             <form id="importProductForm" @submit.prevent="submitImportForm()" enctype="multipart/form-data">
-                                <div class="form-group">
-                                    <label class="font-weight-bold" for="csv_file">Sélectionner le fichier CSV *</label>
+                                <div class="form-group mb-4">
+                                    <label class="font-weight-bold text-dark" for="csv_file">{{ __tr('Fichier CSV *') }}</label>
                                     <input type="file" class="form-control-file" id="csv_file" name="file" accept=".csv,.txt" required>
-                                    <small class="form-text text-muted">Fichiers autorisés : .csv, .txt (taille maximale 10 Mo).</small>
                                 </div>
 
                                 <div class="form-group mb-0">
-                                    <button type="submit" class="btn btn-success px-4 py-2 shadow-sm"><i class="fas fa-upload mr-1"></i> Lancer l'importation</button>
+                                    <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                                        <i class="fa fa-upload mr-1"></i> {{ __tr('Lancer l\'importation') }}
+                                    </button>
                                 </div>
                             </form>
                         </div>
                     </div>
 
-                    <!-- Hidden configuration field to persist integration value -->
+                    <!-- Hidden configuration field -->
                     <form id="persistManualForm" class="lw-ajax-form lw-form d-none" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
                         <input type="hidden" name="pageType" value="internals">
                         <input type="hidden" name="ecommerce_integration" value="manual">
                     </form>
-                    <div class="mt-4">
-                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-primary btn-lg px-5 shadow-sm">
-                            <i class="fas fa-save mr-2"></i> {{ __tr('Activer le mode Manuel') }}
+                    <div class="mt-4 pt-3 border-top d-flex align-items-center">
+                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-emerald font-weight-bold px-4 py-2 text-white shadow-sm" style="background: #10b981; border-radius: 8px;">
+                            <i class="fa fa-save mr-1"></i> {{ __tr('Activer le mode Manuel / Excel') }}
                         </button>
                         
-                        <button type="button" @click="clearProducts('manual')" class="btn btn-danger btn-lg ml-2 shadow-sm">
-                            <i class="fas fa-trash-alt mr-2"></i> {{ __tr('Vider les produits manuels') }}
+                        <button type="button" @click="clearProducts('manual')" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
+                            <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider les produits manuels') }}
                         </button>
                     </div>
                 </div>
 
-                <div x-show="syncMessage" class="alert mt-3" style="background-color: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; color: #000;" x-text="syncMessage" x-cloak></div>
+                <div x-show="syncMessage" class="alert mt-3 border-0 shadow-sm" style="background-color: #ecfdf5; color: #065f46; border-radius: 10px;" x-text="syncMessage" x-cloak></div>
             </div>
         </div>
-        </div>
-
-        <!-- Unified Product Catalog Card -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-boxes mr-1"></i> {{ __tr('Tous les produits du catalogue') }}
-                </h6>
-                <button type="button" @click="clearProducts('all')" class="btn btn-danger btn-sm shadow-sm">
-                    <i class="fas fa-trash mr-1"></i> {{ __tr('Vider tout le catalogue') }}
-                </button>
-            </div>
-            <div class="card-body">
-                <!-- Filters & Search -->
-                <div class="row mb-4">
-                    <div class="col-md-6 form-group">
-                        <label class="font-weight-bold text-muted small mb-1">{{ __tr('Rechercher un produit') }}</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="{{ __tr('Nom ou description...') }}" x-model="catalogSearch">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label class="font-weight-bold text-muted small mb-1">{{ __tr('Filtrer par source') }}</label>
-                        <select class="form-control" x-model="catalogSourceFilter">
-                            <option value="">{{ __tr('Toutes les sources') }}</option>
-                            <option value="manual">{{ __tr('Catalogue Manuel') }}</option>
-                            <option value="shopify">Shopify</option>
-                            <option value="woocommerce">WooCommerce</option>
-                            <option value="whatsapp_catalog">{{ __tr('WhatsApp Catalog') }}</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Products Table -->
-                <div class="table-responsive">
-                    <table class="table table-hover align-items-center">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>{{ __tr('Image') }}</th>
-                                <th>{{ __tr('Nom') }}</th>
-                                <th>{{ __tr('Source') }}</th>
-                                <th>{{ __tr('Prix') }}</th>
-                                <th>{{ __tr('Description') }}</th>
-                                <th>{{ __tr('Lien Direct') }}</th>
-                                <th class="text-right">{{ __tr('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="product in filteredCatalogProducts()" :key="product._uid">
-                                <tr>
-                                    <td>
-                                        <template x-if="product.image_url">
-                                            <img :src="product.image_url" class="rounded shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
-                                        </template>
-                                        <template x-if="!product.image_url">
-                                            <div class="rounded bg-light d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px; color: #adb5bd;">
-                                                <i class="fas fa-image"></i>
-                                            </div>
-                                        </template>
-                                    </td>
-                                    <td class="font-weight-bold text-dark" x-text="product.name"></td>
-                                    <td>
-                                        <span class="badge border text-capitalize px-3 py-1 font-weight-bold" 
-                                              :class="{
-                                                  'badge-success border-success text-white': product.source === 'whatsapp_catalog',
-                                                  'badge-primary border-primary text-white': product.source === 'woocommerce',
-                                                  'badge-info border-info text-white': product.source === 'shopify',
-                                                  'badge-secondary border-secondary text-white': product.source === 'manual'
-                                              }"
-                                              x-text="product.source === 'whatsapp_catalog' ? 'WhatsApp' : product.source">
-                                        </span>
-                                    </td>
-                                    <td class="text-success font-weight-bold" x-text="Number(product.price).toLocaleString() + ' CFA'"></td>
-                                    <td class="text-muted text-xs" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || 'NA'"></td>
-                                    <td>
-                                        <template x-if="product.direct_link">
-                                            <a :href="product.direct_link" target="_blank" class="badge badge-primary px-3 py-2 text-white shadow-inner" style="border-radius: 6px;"><i class="fas fa-external-link-alt mr-1"></i> {{ __tr('Ouvrir') }}</a>
-                                        </template>
-                                        <template x-if="!product.direct_link">
-                                            <span class="text-muted text-xs">-</span>
-                                        </template>
-                                    </td>
-                                    <td class="text-right">
-                                        <button type="button" @click="deleteProduct(product._uid)" class="btn btn-sm btn-danger shadow-sm" title="{{ __tr('Supprimer') }}">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                    <div x-show="filteredCatalogProducts().length === 0" class="text-center py-4 text-muted" x-cloak>
-                        {{ __tr('Aucun produit correspondant trouvé.') }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        @else
-        <div class="alert alert-danger">
-            {{ __tr('E-commerce & Catalogue feature is not available in your subscription plan. Please upgrade your plan to access this feature.') }}
-        </div>
-        @endif
     </div>
+
+    @else
+    <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <i class="fa fa-lock mr-2"></i> {{ __tr('La fonctionnalité E-commerce et Catalogue n\'est pas incluse dans votre formule actuelle. Veuillez mettre à niveau votre abonnement.') }}
+    </div>
+    @endif
 </div>

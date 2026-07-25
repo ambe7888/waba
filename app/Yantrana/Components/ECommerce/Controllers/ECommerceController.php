@@ -380,4 +380,59 @@ class ECommerceController extends BaseController
             'message' => $message
         ]);
     }
+
+    /**
+     * Update Order Status
+     */
+    public function updateOrderStatus(Request $request, $orderUid)
+    {
+        $vendorId = getVendorId();
+        $request->validate([
+            'status' => 'required|string|in:validated,confirmed,processing,shipped,delivered,cancelled',
+        ]);
+
+        $order = ProductModel::where('vendors__id', $vendorId)->first(); // dummy reference check
+        $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+            'vendors__id' => $vendorId,
+            '_uid' => $orderUid
+        ])->first();
+
+        if (empty($order)) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Commande introuvable.')
+            ]);
+        }
+
+        $order->status = $request->status;
+        $order->save();
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Statut de la commande mis à jour avec succès.')
+        ]);
+    }
+
+    /**
+     * Delete Order
+     */
+    public function deleteOrder($orderUid)
+    {
+        $vendorId = getVendorId();
+
+        $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+            'vendors__id' => $vendorId,
+            '_uid' => $orderUid
+        ])->first();
+
+        if (empty($order)) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Commande introuvable.')
+            ]);
+        }
+
+        $order->delete();
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Commande supprimée avec succès.')
+        ]);
+    }
 }

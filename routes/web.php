@@ -1160,6 +1160,16 @@ Route::middleware([
                 'sendProductMessage',
             ])->name('vendor.ecommerce.send_product');
 
+            Route::post('/ecommerce/orders/update-status/{orderUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'updateOrderStatus',
+            ])->name('vendor.ecommerce.orders.update_status');
+
+            Route::post('/ecommerce/orders/delete/{orderUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'deleteOrder',
+            ])->name('vendor.ecommerce.orders.delete');
+
             Route::post('/disconnect-account', [
                 WhatsAppServiceController::class,
                 'disconnectAccount',
