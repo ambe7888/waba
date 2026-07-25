@@ -452,11 +452,12 @@ class OpenAiService extends BaseEngine
             ?: getAppSettings('gemini_api_key')
             ?: env('GEMINI_API_KEY');
 
+        $apiKey = trim($apiKey);
         if (empty($apiKey)) {
             return null;
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+        $models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
         $contentsArr = [];
         foreach ($messages as $msg) {
@@ -491,20 +492,23 @@ class OpenAiService extends BaseEngine
             ]
         ];
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json'
-        ])->post($url, $payload);
+        foreach ($models as $modelName) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $apiKey;
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json'
+            ])->post($url, $payload);
 
-        if ($response->successful()) {
-            $data = $response->json();
-            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-            if (!empty($text)) {
-                $usage = $data['usageMetadata'] ?? [];
-                return [
-                    'text' => trim($text),
-                    'prompt_tokens' => $usage['promptTokenCount'] ?? 0,
-                    'completion_tokens' => $usage['candidatesTokenCount'] ?? 0,
-                ];
+            if ($response->successful()) {
+                $data = $response->json();
+                $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                if (!empty($text)) {
+                    $usage = $data['usageMetadata'] ?? [];
+                    return [
+                        'text' => trim($text),
+                        'prompt_tokens' => $usage['promptTokenCount'] ?? 0,
+                        'completion_tokens' => $usage['candidatesTokenCount'] ?? 0,
+                    ];
+                }
             }
         }
 

@@ -94,6 +94,52 @@ class ConfigurationController extends BaseController
     }
 
     /**
+     * Test AI API Key (Gemini or OpenAI)
+     */
+    public function testAiKey(BaseRequest $request)
+    {
+        $provider = $request->ai_provider ?: getAppSettings('ai_provider', 'gemini');
+        $geminiKey = trim($request->gemini_api_key ?: getAppSettings('gemini_api_key') ?: env('GEMINI_API_KEY'));
+        $openaiKey = trim($request->openai_api_key ?: getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY'));
+
+        if ($provider === 'gemini') {
+            if (empty($geminiKey)) {
+                return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')], ['message' => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')]);
+            }
+            
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $geminiKey;
+            $payload = [
+                'contents' => [
+                    ['role' => 'user', 'parts' => [['text' => 'Réponds uniquement "OK" en un seul mot.']]]
+                ]
+            ];
+            try {
+                $response = \Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $payload);
+                if ($response->successful()) {
+                    $text = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    if ($text) {
+                        return $this->processResponse(1, [1 => __tr('✅ Clé Gemini 100% Fonctionnelle ! Réponse IA : ') . trim($text)], ['message' => __tr('✅ Clé Gemini 100% Fonctionnelle ! Réponse IA : ') . trim($text)]);
+                    }
+                }
+                $errorMsg = $response->json()['error']['message'] ?? $response->body();
+                return $this->processResponse(2, [2 => __tr('❌ Erreur Clé Gemini : ') . $errorMsg], ['message' => __tr('❌ Erreur Clé Gemini : ') . $errorMsg]);
+            } catch (\Exception $e) {
+                return $this->processResponse(2, [2 => __tr('❌ Erreur réseau : ') . $e->getMessage()], ['message' => __tr('❌ Erreur réseau : ') . $e->getMessage()]);
+            }
+        } else {
+            if (empty($openaiKey)) {
+                return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API OpenAI.')], ['message' => __tr('Veuillez d\'abord saisir votre clé API OpenAI.')]);
+            }
+            try {
+                \OpenAI::client($openaiKey)->models()->list();
+                return $this->processResponse(1, [1 => __tr('✅ Clé OpenAI 100% Fonctionnelle !')], ['message' => __tr('✅ Clé OpenAI 100% Fonctionnelle !')]);
+            } catch (\Exception $e) {
+                return $this->processResponse(2, [2 => __tr('❌ Erreur Clé OpenAI : ') . $e->getMessage()], ['message' => __tr('❌ Erreur Clé OpenAI : ') . $e->getMessage()]);
+            }
+        }
+    }
+
+    /**
      * Setup validation array
      *
      * @param  string  $pageType

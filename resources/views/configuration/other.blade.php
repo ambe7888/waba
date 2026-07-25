@@ -33,8 +33,21 @@
                     <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
                 </div>
             </div>
-            <div class="mt-3">
+            <div class="mt-3 d-flex align-items-center" style="gap: 12px;">
                 <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Save') }}</button>
+                <button type="button" onclick="__DataRequest.post('{{ route('manage.configuration.test_ai_key') }}', {
+                    ai_provider: document.querySelector('select[name=ai_provider]').value,
+                    gemini_api_key: document.querySelector('input[name=gemini_api_key]').value,
+                    openai_api_key: document.querySelector('input[name=openai_api_key]').value
+                }, function(response) {
+                    if (response.reaction_code == 1) {
+                        showSuccessMessage(response.message);
+                    } else {
+                        showErrorMessage(response.message);
+                    }
+                })" class="btn btn-warning font-weight-bold shadow-sm" style="border-radius: 8px;">
+                    <i class="fa fa-vial mr-1"></i> {{ __tr('🧪 Tester la Clé IA') }}
+                </button>
             </div>
         </form>
     </fieldset>

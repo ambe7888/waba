@@ -192,6 +192,11 @@ Route::middleware([
                 'createStripeWebhook',
             ])->name('manage.configuration.create_stripe_webhook');
 
+            Route::post('/test-ai-key', [
+                ConfigurationController::class,
+                'testAiKey',
+            ])->name('manage.configuration.test_ai_key');
+
 
 
 
