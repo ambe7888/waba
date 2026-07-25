@@ -3841,8 +3841,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         'status' => 'validated',
                     ]);
 
-                    $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande confirmée pour a un total de " . number_format($grandTotal, 0, ',', ' ') . " CFA";
-                    $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                    $contactData = $contact->__data ?? [];
+                    $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
+                    $contact->__data = $contactData;
                     $contact->save();
 
                     $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
@@ -3904,8 +3905,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                                     'status' => 'validated',
                                 ]);
 
-                                $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande enregistrée par l'IA (" . $productToOrder->name . ")";
-                                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                                $contactData = $contact->__data ?? [];
+                                $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
+                                $contact->__data = $contactData;
                                 $contact->save();
 
                                 $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
@@ -4305,9 +4307,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                             'status' => 'validated',
                         ]);
                         
-                        // Append to customer notes
-                        $orderNote = "\n[🛒 Order - " . now()->toDateTimeString() . "]: 1 order with info: " . implode(', ', $itemDetails) . " (Total: " . number_format($totalPrice) . " {$currency})";
-                        $contact->contact_notes = ($contact->contact_notes ?? '') . $orderNote;
+                        $contactData = $contact->__data ?? [];
+                        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $orderNote;
+                        $contact->__data = $contactData;
                         $contact->save();
                         
                         // Broadcast updated contact to frontend

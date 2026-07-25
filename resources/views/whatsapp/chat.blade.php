@@ -1091,13 +1091,14 @@
                                     ordersList: [],
                                     isLoadingOrders: false,
                                     fetchOrders() {
-                                        if(!contact?._uid) return;
+                                        var cUid = contact?._uid || contact?._id || contact?.wa_id;
+                                        if(!cUid) return;
                                         this.isLoadingOrders = true;
                                         var self = this;
-                                        __DataRequest.get('{{ route('vendor.ecommerce.contact_orders', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', contact._uid), {}, function(response) {
+                                        __DataRequest.get('{{ route('vendor.ecommerce.contact_orders', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function(response) {
                                             self.isLoadingOrders = false;
                                             if(response.reaction_code == 1) {
-                                                self.ordersList = response.data.orders;
+                                                self.ordersList = response.data.orders || [];
                                             }
                                         });
                                     },
@@ -1114,8 +1115,32 @@
                                                 showErrorMessage(msg || 'Erreur de mise à jour.');
                                             }
                                         });
+                                    },
+                                    getOrderTotal(ord) {
+                                        if (!ord || !ord.order_details) return 0;
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        if (details && details.total_price) return Number(details.total_price);
+                                        var total = 0;
+                                        if (details && details.items && Array.isArray(details.items)) {
+                                            details.items.forEach(i => { total += (Number(i.price) || 0) * (Number(i.quantity) || 1); });
+                                        }
+                                        return total;
+                                    },
+                                    getOrderSummaryText(ord) {
+                                        if (!ord || !ord.order_details) return '';
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        if (details && details.items && Array.isArray(details.items) && details.items.length > 0) {
+                                            return details.items.map(i => (i.name || 'Produit') + ' (x' + (i.quantity || 1) + ')').join(', ');
+                                        }
+                                        return 'Commande WhatsApp';
                                     }
-                                }" x-init="fetchOrders()" x-effect="if(contact?._uid) fetchOrders()">
+                                }" x-init="fetchOrders()" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchOrders()">
                                     <div class="lw-crm-section-header d-flex justify-content-between align-items-center mb-2">
                                         <span><i class="fas fa-shopping-bag text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Commandes du client') }}</span>
                                         <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="fetchOrders()" title="{{ __tr('Rafraîchir') }}">
@@ -1129,7 +1154,7 @@
 
                                     <div x-show="ordersList.length > 0" class="space-y-2">
                                         <template x-for="ord in ordersList" :key="ord._uid">
-                                            <div class="p-2 border rounded mb-2" style="border-radius: 8px; background: #ffffff;">
+                                            <div class="p-2 border rounded mb-2 shadow-sm" style="border-radius: 10px; background: #ffffff; border: 1.5px solid #cbd5e1 !important;">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
                                                     <span class="badge text-white" 
@@ -1144,10 +1169,16 @@
                                                           x-text="ord.status === 'delivered' ? 'Livrée' : (ord.status === 'shipped' ? 'En livraison' : (ord.status === 'confirmed' ? 'Confirmée' : (ord.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))">
                                                     </span>
                                                 </div>
+
+                                                <div class="text-xs font-weight-bold text-emerald mb-1" style="color: #059669;" x-text="'💰 ' + getOrderTotal(ord).toLocaleString() + ' CFA'"></div>
+                                                <div class="text-xs text-dark mb-1 font-weight-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="getOrderSummaryText(ord)"></div>
                                                 <div class="text-xs text-muted mb-2" x-text="new Date(ord.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})"></div>
 
-                                                <div class="form-group mb-0">
-                                                    <select class="form-control form-control-sm text-xs font-weight-bold" style="border-radius: 6px; height: 28px; padding: 2px 6px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
+                                                <div class="d-flex align-items-center justify-content-between">
+                                                    <a :href="'<?= url('/vendor/orders') ?>'" target="_blank" class="btn btn-sm btn-link p-0 text-xs font-weight-bold text-emerald" style="color: #10b981;">
+                                                        <i class="fa fa-receipt mr-1"></i> Voir Reçu
+                                                    </a>
+                                                    <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px; height: 26px; padding: 2px 6px; width: 110px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
                                                         <option value="validated">Nouvelle</option>
                                                         <option value="confirmed">Confirmer</option>
                                                         <option value="processing">En préparation</option>

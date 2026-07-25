@@ -425,7 +425,10 @@ class ECommerceController extends BaseController
                 ];
                 $statusName = $statusLabels[$request->status] ?? $request->status;
                 $noteEntry = "\n[📦 Commande #" . substr($order->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Statut mis à jour -> " . $statusName;
-                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                
+                $contactData = $contact->__data ?? [];
+                $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
+                $contact->__data = $contactData;
                 $contact->save();
 
                 $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
@@ -480,10 +483,12 @@ class ECommerceController extends BaseController
     public function getContactOrders($contactUid)
     {
         $vendorId = getVendorId();
-        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
-            'vendors__id' => $vendorId,
-            '_uid' => $contactUid
-        ])->first();
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->where(function($q) use ($contactUid) {
+                $q->where('_uid', $contactUid)
+                  ->orWhere('_id', $contactUid)
+                  ->orWhere('wa_id', $contactUid);
+            })->first();
 
         if (empty($contact)) {
             return $this->processResponse(2, [], ['orders' => []]);
@@ -610,7 +615,9 @@ class ECommerceController extends BaseController
         ]);
 
         $noteEntry = "\n[🛒 Commande Web #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande passée via Webhook (" . ($request->source ?: 'Site Web') . ")";
-        $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+        $contactData = $contact->__data ?? [];
+        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
+        $contact->__data = $contactData;
         $contact->save();
 
         updateModelsViaVendorBroadcast($vendorUid, [
