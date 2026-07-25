@@ -107,25 +107,56 @@ class ConfigurationController extends BaseController
                 return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')], ['message' => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')]);
             }
             
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $geminiKey;
+            $availableModels = [];
+            try {
+                $listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" . $geminiKey;
+                $listResponse = \Http::withHeaders(['Content-Type' => 'application/json'])->get($listUrl);
+                if ($listResponse->successful()) {
+                    $modelsData = $listResponse->json()['models'] ?? [];
+                    foreach ($modelsData as $m) {
+                        if (in_array('generateContent', $m['supportedGenerationMethods'] ?? [])) {
+                            $availableModels[] = str_replace('models/', '', $m['name']);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {}
+
+            $candidateModels = !empty($availableModels) 
+                ? $availableModels 
+                : ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-1.5-pro-latest', 'gemini-pro', 'gemini-1.5-flash'];
+
+            $lastErrorMsg = '';
             $payload = [
                 'contents' => [
                     ['role' => 'user', 'parts' => [['text' => 'Réponds uniquement "OK" en un seul mot.']]]
                 ]
             ];
-            try {
-                $response = \Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $payload);
-                if ($response->successful()) {
-                    $text = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                    if ($text) {
-                        return $this->processResponse(1, [1 => __tr('✅ Clé Gemini 100% Fonctionnelle ! Réponse IA : ') . trim($text)], ['message' => __tr('✅ Clé Gemini 100% Fonctionnelle ! Réponse IA : ') . trim($text)]);
+
+            foreach ($candidateModels as $modelName) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $geminiKey;
+                try {
+                    $response = \Http::withHeaders(['Content-Type' => 'application/json'])->post($url, $payload);
+                    if ($response->successful()) {
+                        $text = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                        if ($text) {
+                            return $this->processResponse(1, [
+                                1 => __tr('✅ Clé Gemini 100% Fonctionnelle (Modèle : __model__) ! Réponse : __text__', ['__model__' => $modelName, '__text__' => trim($text)])
+                            ], [
+                                'message' => __tr('✅ Clé Gemini 100% Fonctionnelle (Modèle : __model__) ! Réponse : __text__', ['__model__' => $modelName, '__text__' => trim($text)])
+                            ]);
+                        }
                     }
+                    $lastErrorMsg = $response->json()['error']['message'] ?? $response->body();
+                } catch (\Exception $e) {
+                    $lastErrorMsg = $e->getMessage();
                 }
-                $errorMsg = $response->json()['error']['message'] ?? $response->body();
-                return $this->processResponse(2, [2 => __tr('❌ Erreur Clé Gemini : ') . $errorMsg], ['message' => __tr('❌ Erreur Clé Gemini : ') . $errorMsg]);
-            } catch (\Exception $e) {
-                return $this->processResponse(2, [2 => __tr('❌ Erreur réseau : ') . $e->getMessage()], ['message' => __tr('❌ Erreur réseau : ') . $e->getMessage()]);
             }
+
+            return $this->processResponse(2, [
+                2 => __tr('❌ Erreur Clé Gemini : ') . $lastErrorMsg
+            ], [
+                'message' => __tr('❌ Erreur Clé Gemini : ') . $lastErrorMsg
+            ]);
         } else {
             if (empty($openaiKey)) {
                 return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API OpenAI.')], ['message' => __tr('Veuillez d\'abord saisir votre clé API OpenAI.')]);

@@ -457,7 +457,23 @@ class OpenAiService extends BaseEngine
             return null;
         }
 
-        $models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $models = [];
+        try {
+            $listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" . $apiKey;
+            $listResponse = Http::withHeaders(['Content-Type' => 'application/json'])->get($listUrl);
+            if ($listResponse->successful()) {
+                $modelsData = $listResponse->json()['models'] ?? [];
+                foreach ($modelsData as $m) {
+                    if (in_array('generateContent', $m['supportedGenerationMethods'] ?? [])) {
+                        $models[] = str_replace('models/', '', $m['name']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {}
+
+        if (empty($models)) {
+            $models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-1.5-pro-latest', 'gemini-pro', 'gemini-1.5-flash'];
+        }
 
         $contentsArr = [];
         foreach ($messages as $msg) {
