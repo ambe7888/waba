@@ -646,7 +646,6 @@ class OpenAiService extends BaseEngine
                 $vendor->plan_ai_credits = 0;
                 $vendor->extra_ai_credits = max(0, $vendor->extra_ai_credits - $remaining);
             }
-            }
             $vendor->save();
         }
     }
