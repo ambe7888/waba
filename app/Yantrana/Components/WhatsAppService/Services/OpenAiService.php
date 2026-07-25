@@ -287,18 +287,19 @@ class OpenAiService extends BaseEngine
         if (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available']) {
             $products = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
             if ($products->isNotEmpty()) {
-                $productContext = "\n\nHere is our product catalog. When recommending products, present each product clearly with its name, price in CFA, description, and ALWAYS append an interactive ordering button at the end of your response in this format: [BUTTON: 🛍️ Commander " . mb_substr($products->first()->name, 0, 15) . "] or [URL_BUTTON: Commander sur le site: DirectLink]:\n";
+                $productContext = "\n\nHere is our product catalog. When a customer asks about a product, pricing, or images, describe the product warmly, present its price in CFA, and ALWAYS end your message with a order button in this format: [BUTTON: 🛍️ Commander]\n\nCatalog Products:\n";
                 foreach ($products as $prod) {
-                    $productContext .= "- Name: {$prod->name}, Price: " . number_format($prod->price, 0, ',', ' ') . " CFA, Description: {$prod->description}, Direct Link: {$prod->direct_link}\n";
+                    $link = !empty($prod->direct_link) ? " | [URL_BUTTON: Voir le site: {$prod->direct_link}]" : "";
+                    $productContext .= "- Name: {$prod->name}, Price: " . number_format($prod->price, 0, ',', ' ') . " CFA, Description: {$prod->description}{$link}\n";
                 }
             }
         }
 
         $interactiveInstructions = "\n\n" .
-            "IMPORTANT: You can use interactive buttons in your response. " .
-            "- To offer quick reply buttons (up to 3 buttons), append them at the very end of your response, each on a new line in this format: [BUTTON: Button Text]. Example: [BUTTON: En savoir plus]\n" .
-            "- To offer a single link button (URL button), append it at the end of your response in this format: [URL_BUTTON: Button Text: URL]. Example: [URL_BUTTON: Commander: https://example.com]\n" .
-            "Keep the button text very short (max 20 characters). Do not mix BUTTON and URL_BUTTON in the same response. Always prefer using buttons instead of plain links when possible.";
+            "IMPORTANT FORMATTING RULES:\n" .
+            "1. Do NOT say 'I cannot send images' or 'I don't have images'. The system automatically attaches product cards and images to the message.\n" .
+            "2. To offer interactive buttons to the customer, append them at the VERY END of your message on a separate line in this exact format: [BUTTON: 🛍️ Commander]\n" .
+            "3. Keep button text under 20 characters (e.g., [BUTTON: 🛍️ Commander], [BUTTON: En savoir plus]). Never leave raw brackets in sentences.";
 
         $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);
         if ($botDataSourceType == 'assistant' && (!$assistantId || !Str::startsWith($assistantId, 'asst_'))) {

@@ -3136,7 +3136,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $interactiveType = null;
 
             // Parse URL button: [URL_BUTTON: Button Text: https://example.com]
-            if (preg_match('/\[URL_BUTTON:\s*(.*?):\s*(https?:\/\/.*?)\]/i', $replyText, $matches)) {
+            if (preg_match('/\[URL_BUTTON:\s*(.*?)\s*:\s*(https?:\/\/[^\s\]]+)\s*\]/is', $replyText, $matches)) {
                 $interactiveType = 'cta_url';
                 $buttonText = trim($matches[1]);
                 $buttonUrl = trim($matches[2]);
@@ -3144,21 +3144,24 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     'display_text' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
                     'url' => $buttonUrl,
                 ];
-                // Remove the URL_BUTTON tag from the text
-                $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/i', '', $replyText);
+                $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/is', '', $replyText);
             }
             // Parse Quick Reply buttons: [BUTTON: Button Text]
-            elseif (preg_match_all('/\[BUTTON:\s*(.*?)\]/i', $replyText, $matches)) {
-                $interactiveType = 'button';
+            if (preg_match_all('/\[BUTTON:\s*([^\]]+)\]/i', $replyText, $matches)) {
+                if (!$interactiveType) {
+                    $interactiveType = 'button';
+                }
                 foreach ($matches[1] as $btnText) {
-                    $buttons[] = trim($btnText);
+                    $cleanBtn = trim($btnText);
+                    if (!empty($cleanBtn) && !in_array($cleanBtn, $buttons)) {
+                        $buttons[] = mb_substr($cleanBtn, 0, 20); // Meta limit is 20 chars per button
+                    }
                 }
                 $buttons = array_slice($buttons, 0, 3); // Meta limit is 3 buttons
-                // Remove BUTTON tags from the text
-                $replyText = preg_replace('/\[BUTTON:\s*.*?\]/i', '', $replyText);
+                $replyText = preg_replace('/\[BUTTON:\s*.*?\]/is', '', $replyText);
             }
-            // Fallback: If OpenAI output has standard markdown link format [Text](Url), convert it to a cta_url button
-            elseif (preg_match('/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/i', $replyText, $matches)) {
+            // Fallback: If OpenAI/Gemini output has standard markdown link format [Text](Url), convert it to a cta_url button
+            elseif (!$interactiveType && preg_match('/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/i', $replyText, $matches)) {
                 $interactiveType = 'cta_url';
                 $buttonText = trim($matches[1]);
                 $buttonUrl = trim($matches[2]);
@@ -3166,8 +3169,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     'display_text' => mb_substr($buttonText, 0, 20),
                     'url' => $buttonUrl,
                 ];
-                // Remove the markdown link along with any typical preceding words like "cliquez ici : ", "cliquez ici", "ici : ", etc.
                 $replyText = preg_replace('/(cliquez\s+ici\s*:?\s*|cliquez\s+ici\s*|ici\s*:?\s*)?\[[^\]]+\]\([^\s\)]+\)/ui', '', $replyText);
+            }
+
+            // Always strip any raw leftover tags [URL_BUTTON: ...] or [BUTTON: ...] from text!
+            $replyText = preg_replace('/\[(URL_BUTTON|BUTTON):\s*.*?\]/is', '', $replyText);
+
+            // Auto-attach Commander button if message discusses a product but has no buttons
+            if (!$interactiveType && preg_match('/(produit|prix|cfa|machine|articles?|catalogue)/i', $replyText)) {
+                $interactiveType = 'button';
+                $buttons = ['🛍️ Commander', 'ℹ️ En savoir plus'];
             }
 
             // Convert double asterisks to single asterisks for WhatsApp bold formatting
