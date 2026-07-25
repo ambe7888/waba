@@ -1,16 +1,16 @@
 <!-- Page Heading -->
 <section>
-    <h1>{!! __tr('Setup & Integrations') !!}</h1>
+    <h1>{!! __tr('Configuration et Intégrations') !!}</h1>
 
-    <!-- Global AI Setup (Google Gemini & OpenAI) -->
+    <!-- Global AI Setup (Google Gemini et OpenAI) -->
     <fieldset x-data="{panelOpened:false}" x-cloak>
-        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('AI Setup') }}"> {{ __tr('Configuration IA Globale (Gemini & OpenAI)') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
+        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('AI Setup') }}"> {{ __tr('Configuration IA Globale (Gemini et OpenAI)') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
         <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'misc_settings']) ?>">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="font-weight-bold">{{ __tr('Moteur IA Global par Défaut') }}</label>
                     <select name="ai_provider" class="form-control">
-                        <option value="gemini" {{ getAppSettings('ai_provider', 'gemini') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide & Économique - Recommandé)</option>
+                        <option value="gemini" {{ getAppSettings('ai_provider', 'gemini') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide et Économique - Recommandé)</option>
                         <option value="openai" {{ getAppSettings('ai_provider') == 'openai' ? 'selected' : '' }}>🔵 OpenAI ChatGPT (GPT-4o-mini / GPT-3.5)</option>
                     </select>
                     <div class="text-sm text-info mt-1">

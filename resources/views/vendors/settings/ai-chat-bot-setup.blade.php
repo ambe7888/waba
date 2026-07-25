@@ -17,7 +17,7 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
     <!-- Header Title -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <div>
-            <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Paramètres & Intégrations des Bots IA') }}</h1>
+            <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Paramètres et Intégrations des Bots IA') }}</h1>
             <p class="text-muted small mb-0">{{ __tr('Configurez vos assistants virtuels, ajustez la mémoire et gérez les règles d\'activation') }}</p>
         </div>
     </div>
@@ -172,16 +172,17 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                 </div>
             </div>
 
-            <!-- 3. Primary Chatbot (Gemini / OpenAI) -->
+            <!-- 3. Primary Chatbot (Google Gemini & OpenAI) -->
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;" x-data="{panelOpened:true}" x-cloak>
                 <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between" @click="panelOpened = !panelOpened" style="cursor: pointer;">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-circle bg-light text-emerald p-2 mr-3 rounded-circle">
-                            <i class="fa fa-robot"></i>
-                        </div>
+                    <div class="d-flex align-items-center flex-wrap">
+                        <img height="28" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('OpenAI') }}" class="mr-2">
+                        <span class="badge text-white font-weight-bold px-3 py-1 mr-3" style="background: #10b981; border-radius: 20px; font-size: 0.8rem;">
+                            🟢 Google Gemini 1.5
+                        </span>
                         <div>
-                            <h5 class="font-weight-bold text-dark mb-0">{{ __tr('Configuration du Chatbot IA (Google Gemini & OpenAI)') }}</h5>
-                            <small class="text-muted">{{ __tr('Entraînez votre assistant avec les données de votre entreprise') }}</small>
+                            <h5 class="font-weight-bold text-dark mb-0 d-inline-block">{{ __tr('Configuration du Chatbot IA') }}</h5>
+                            <small class="text-muted d-block">{{ __tr('Entraînez votre assistant virtuel avec vos données d\'entreprise') }}</small>
                         </div>
                     </div>
                     <i class="fa" :class="panelOpened ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
@@ -198,7 +199,7 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                             <input type="hidden" name="form_type" value="ai_bot_setup_page" />
                             
                             <div class="form-group mb-3">
-                                <x-lw.checkbox id="enableOpenAiBot" name="enable_open_ai_bot" :checked="getVendorSettings('enable_open_ai_bot')" data-lw-plugin="lwSwitchery" :label="__tr('Activer le Chatbot IA (Gemini / OpenAI)')" />
+                                <x-lw.checkbox id="enableOpenAiBot" name="enable_open_ai_bot" :checked="getVendorSettings('enable_open_ai_bot')" data-lw-plugin="lwSwitchery" :label="__tr('Activer le Chatbot IA (Google Gemini / OpenAI)')" />
                             </div>
 
                             <div class="form-group mb-4">
@@ -216,7 +217,7 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                             <input type="hidden" name="open_ai_max_token" value="1000" />
 
                             <div class="form-group mb-4">
-                                <label for="lwTrainingTextData" class="font-weight-bold text-dark">{{ __tr('Données d\'entraînement & Informations de l\'entreprise') }}</label>
+                                <label for="lwTrainingTextData" class="font-weight-bold text-dark">{{ __tr('Données d\'entraînement et Informations de l\'entreprise') }}</label>
                                 <textarea rows="10" id="lwTrainingTextData" class="form-control p-3" style="border-radius: 12px; font-size: 0.95rem;" placeholder="{{ __tr('Saisissez ici toutes les informations que le bot doit connaître pour répondre à vos clients :\n\n- Nom de l\'entreprise et présentation\n- Tarifs et formules d\'abonnement\n- Horaires et adresse\n- Conditions de retour, livraison, FAQ...') }}" name="open_ai_input_training_data">{!! getVendorSettings('open_ai_input_training_data') !!}</textarea>
                                 <small class="text-muted d-block mt-2">{{ __tr('L\'intelligence artificielle utilisera ce texte structuré pour formuler ses réponses WhatsApp.') }}</small>
                             </div>
@@ -239,10 +240,10 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;" x-data="{panelOpened:false}" x-cloak>
                 <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between" @click="panelOpened = !panelOpened" style="cursor: pointer;">
                     <div class="d-flex align-items-center">
-                        <img class="mr-3 rounded" width="32" height="32" src="{{ asset('imgs/flowise-ai-logo.png') }}" alt="{{ __tr('FlowiseAI') }}">
+                        <img class="mr-3 rounded p-1" style="background-color: #000;" width="36" height="36" src="{{ asset('imgs/flowise-ai-logo.png') }}" alt="{{ __tr('FlowiseAI') }}">
                         <div>
                             <h5 class="font-weight-bold text-dark mb-0">{{ __tr('Configuration FlowiseAI') }}</h5>
-                            <small class="text-muted">{{ __tr('Connecter un workflow Flowise externe') }}</small>
+                            <small class="text-muted">{{ __tr('Connecter un workflow visuel Flowise externe') }}</small>
                         </div>
                     </div>
                     <i class="fa" :class="panelOpened ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
@@ -304,9 +305,7 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;" x-data="{panelOpened:false}" x-cloak>
                 <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between" @click="panelOpened = !panelOpened" style="cursor: pointer;">
                     <div class="d-flex align-items-center">
-                        <div class="icon-circle bg-light text-primary p-2 mr-3 rounded-circle">
-                            <i class="fab fa-meta"></i>
-                        </div>
+                        <i class="fab fa-meta text-primary mr-3" style="font-size: 28px;"></i>
                         <div>
                             <h5 class="font-weight-bold text-dark mb-0">{{ __tr('Meta Business Agent (Meta AI)') }}</h5>
                             <small class="text-muted">{{ __tr('Assistant IA natif hébergé directement sur WhatsApp par Meta') }}</small>

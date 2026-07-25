@@ -46,8 +46,10 @@ if (! function_exists('__tr')) {
         $originalString = $string;
         $string = T_gettext($string);
         $string = $escapeInputString ? e($string) : $string;
+        $string = str_replace('&amp;', '&', $string);
         // replace inverted commas as required
         $replaceValues['&#039;'] = "'";
+        $replaceValues['&amp;'] = "&";
         $replaceValues[T_gettext('&#039;')] = "'";
         $replaceValues[T_gettext('&quot;')] = '"';
         // Check if replaceValues exist
