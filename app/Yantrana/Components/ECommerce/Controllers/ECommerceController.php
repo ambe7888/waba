@@ -538,15 +538,29 @@ class ECommerceController extends BaseController
      */
     public function externalOrderWebhook(Request $request, $vendorUid)
     {
+        \Illuminate\Support\Facades\Log::info('[WEBHOOK-ORDER-DEBUG] Incoming external order webhook for vendorUid=' . $vendorUid, [
+            'method' => $request->method(),
+            'payload' => $request->all(),
+        ]);
+
         $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_uid', $vendorUid)->first();
         if (empty($vendor)) {
-            return response()->json(['reaction_code' => 2, 'message' => 'Vendor not found'], 404);
+            return response()->json(['reaction_code' => 2, 'message' => 'Vendor not found for UID: ' . $vendorUid], 404);
         }
         $vendorId = $vendor->_id;
 
-        $phone = $request->phone ?: ($request->mobile_number ?: ($request->customer['phone'] ?? null));
+        // Try extracting phone from various webhook schemas (Shopify, WooCommerce, Custom, Query string)
+        $phone = $request->phone 
+            ?: ($request->mobile_number 
+            ?: ($request->mobile
+            ?: ($request->tel
+            ?: ($request->customer['phone'] ?? ($request->billing['phone'] ?? ($request->shipping['phone'] ?? null))))));
+
         if (empty($phone)) {
-            return response()->json(['reaction_code' => 2, 'message' => 'Customer phone is required'], 400);
+            return response()->json([
+                'reaction_code' => 2,
+                'message' => 'Customer phone number is required (pass `phone` or `mobile_number` field).'
+            ], 400);
         }
 
         $phone = preg_replace('/[^0-9]/', '', $phone);
@@ -557,8 +571,8 @@ class ECommerceController extends BaseController
         ])->first();
 
         if (empty($contact)) {
-            $firstName = $request->first_name ?: ($request->customer['first_name'] ?? 'Client');
-            $lastName = $request->last_name ?: ($request->customer['last_name'] ?? 'Web');
+            $firstName = $request->first_name ?: ($request->name ?: ($request->customer['first_name'] ?? ($request->billing['first_name'] ?? 'Client')));
+            $lastName = $request->last_name ?: ($request->customer['last_name'] ?? ($request->billing['last_name'] ?? 'Web'));
             $contact = \App\Yantrana\Components\Contact\Models\ContactModel::create([
                 '_uid' => (string) \Illuminate\Support\Str::uuid(),
                 'vendors__id' => $vendorId,
@@ -569,10 +583,21 @@ class ECommerceController extends BaseController
             ]);
         }
 
+        $items = $request->items ?: ($request->line_items ?: []);
+        if (empty($items) && $request->filled('product_name')) {
+            $items = [
+                [
+                    'name' => $request->product_name,
+                    'quantity' => $request->quantity ?: 1,
+                    'price' => $request->price ?: 0,
+                ]
+            ];
+        }
+
         $orderDetails = [
             'source' => $request->source ?: 'website',
-            'items' => $request->items ?: $request->line_items ?: [],
-            'total_price' => $request->total_price ?: ($request->total_price_set['shop_money']['amount'] ?? 0),
+            'items' => $items,
+            'total_price' => $request->total_price ?: ($request->price ?: ($request->total_price_set['shop_money']['amount'] ?? 0)),
             'currency' => $request->currency ?: 'CFA',
         ];
 
@@ -584,7 +609,7 @@ class ECommerceController extends BaseController
             'status' => 'validated',
         ]);
 
-        $noteEntry = "\n[🛒 Commande Web #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande passée sur le site web (" . ($request->source ?: 'Boutique Web') . ")";
+        $noteEntry = "\n[🛒 Commande Web #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande passée via Webhook (" . ($request->source ?: 'Site Web') . ")";
         $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
         $contact->save();
 
@@ -595,7 +620,8 @@ class ECommerceController extends BaseController
         return response()->json([
             'reaction_code' => 1,
             'message' => 'Order created successfully',
-            'order_uid' => $newOrder->_uid
+            'order_uid' => $newOrder->_uid,
+            'order_reference' => '#' . substr($newOrder->_uid, 0, 8)
         ]);
     }
 }

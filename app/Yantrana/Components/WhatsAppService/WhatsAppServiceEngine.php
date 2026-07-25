@@ -3727,6 +3727,77 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // has in subscription plan
         $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $contact->vendors__id);
         if (!empty($messageBody) and !$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
+            // Intercept Order Requests & Confirmations for E-Commerce Catalog
+            $cleanMsg = mb_strtolower(trim($messageBody));
+            $productToOrder = null;
+            $targetProdName = null;
+
+            // Pattern 1: Customer clicks "🛍️ Commander [Produit]" or types "Commander [Produit]" or "Je veux [Produit]"
+            if (preg_match('/(?:commander|acheter|je\s+veux)\s*:?\s*(.*)/i', $messageBody, $orderMatches)) {
+                $targetProdName = trim($orderMatches[1]);
+                if (!empty($targetProdName)) {
+                    $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)
+                        ->where('name', 'LIKE', '%' . $targetProdName . '%')
+                        ->first();
+                }
+            }
+
+            // Check if customer sent a confirmation phrase
+            $isConfirmationPhrase = preg_match('/(?:valider\s+la\s+commande|je\s+confirme|oui\s+je\s+valide|confirmer\s+la\s+commande|valider)/i', $cleanMsg);
+
+            if (!$productToOrder && $isConfirmationPhrase) {
+                // Find latest product in catalog
+                $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
+            }
+
+            // Action A: Order Request -> Ask for final confirmation with Interactive Button!
+            if (!empty($targetProdName) && $productToOrder && !$isConfirmationPhrase) {
+                $confirmMsg = "📦 *Confirmation de votre Commande*\n\nVous êtes sur le point de commander :\n- *Produit:* {$productToOrder->name}\n- *Prix:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nCliquez sur le bouton ci-dessous pour valider votre commande :\n\n[BUTTON: ✅ Valider la commande]\n[BUTTON: ❌ Annuler]";
+                $this->sendReplyBotMessage($contact->_uid, $confirmMsg, $contact->vendors__id, null, [
+                    'ai_bot_reply' => true,
+                    'from_phone_number_id' => $options['fromPhoneNumberId'],
+                    'messageWamid' => $options['messageWamid'],
+                ]);
+                return true;
+            }
+
+            // Action B: Order Confirmation -> Create real order in DB!
+            if ($productToOrder && $isConfirmationPhrase) {
+                $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+                    '_uid' => (string) \Illuminate\Support\Str::uuid(),
+                    'vendors__id' => $contact->vendors__id,
+                    'contacts__id' => $contact->_id,
+                    'order_details' => [
+                        'source' => 'whatsapp_ai',
+                        'items' => [
+                            ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
+                        ],
+                        'total_price' => $productToOrder->price,
+                        'currency' => 'CFA',
+                    ],
+                    'status' => 'validated',
+                ]);
+
+                $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande confirmée par le client (" . $productToOrder->name . ")";
+                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                $contact->save();
+
+                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+                if ($vendor) {
+                    updateModelsViaVendorBroadcast($vendor->_uid, [
+                        'contact' => $contact
+                    ]);
+                }
+
+                $receiptMsg = "🎉 *Commande enregistrée avec succès !*\n\n📋 *N° de Commande:* #" . substr($newOrder->_uid, 0, 8) . "\n📦 *Produit:* {$productToOrder->name}\n💰 *Montant Total:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nUn conseiller a été notifié et va traiter votre commande très rapidement. Merci pour votre confiance !";
+                $this->sendReplyBotMessage($contact->_uid, $receiptMsg, $contact->vendors__id, null, [
+                    'ai_bot_reply' => true,
+                    'from_phone_number_id' => $options['fromPhoneNumberId'],
+                    'messageWamid' => $options['messageWamid'],
+                ]);
+                return true;
+            }
+
             $aiBotReplyText = null;
             // open ai & gemini
             $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) 

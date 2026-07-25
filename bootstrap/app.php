@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'razorpay/*',
             'subscription/*',
             'whatsapp-webhook/*',
+            'webhook/external-order/*',
         ]);
 
         $middleware->append([

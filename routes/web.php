@@ -24,16 +24,15 @@ use App\Yantrana\Components\Subscription\Controllers\ManualSubscriptionControlle
 use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppServiceController;
 use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppTemplateController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
+Route::match(['get', 'post'], '/webhook/external-order/{vendorUid}', [
+    \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+    'externalOrderWebhook',
+])->name('public.external_order_webhook');
+
+Route::match(['get', 'post'], '/api/webhook/external-order/{vendorUid}', [
+    \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+    'externalOrderWebhook',
+])->name('public.api_external_order_webhook');
 
 Route::get('/run-db-migrations', function () {
     try {

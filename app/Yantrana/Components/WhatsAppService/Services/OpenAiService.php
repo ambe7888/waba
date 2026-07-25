@@ -287,9 +287,9 @@ class OpenAiService extends BaseEngine
         if (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available']) {
             $products = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
             if ($products->isNotEmpty()) {
-                $productContext = "\n\nHere is our product catalog. If the customer asks about products, pricing, or recommendations, suggest these products and include their direct links so the customer can buy them:\n";
+                $productContext = "\n\nHere is our product catalog. When recommending products, present each product clearly with its name, price in CFA, description, and ALWAYS append an interactive ordering button at the end of your response in this format: [BUTTON: 🛍️ Commander " . mb_substr($products->first()->name, 0, 15) . "] or [URL_BUTTON: Commander sur le site: DirectLink]:\n";
                 foreach ($products as $prod) {
-                    $productContext .= "- Name: {$prod->name}, Price: {$prod->price} CFA, Description: {$prod->description}, Direct Link: {$prod->direct_link}\n";
+                    $productContext .= "- Name: {$prod->name}, Price: " . number_format($prod->price, 0, ',', ' ') . " CFA, Description: {$prod->description}, Direct Link: {$prod->direct_link}\n";
                 }
             }
         }
