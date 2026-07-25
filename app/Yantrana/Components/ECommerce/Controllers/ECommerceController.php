@@ -51,7 +51,7 @@ class ECommerceController extends BaseController
             $query->where('source', $request->source);
         }
 
-        $products = $query->latest()->paginate(15);
+        $products = $query->latest()->get();
 
         return $this->processResponse(1, [], [
             'products' => $products

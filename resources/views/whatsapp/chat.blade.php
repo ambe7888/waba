@@ -1141,6 +1141,7 @@
                                         return 'Commande WhatsApp';
                                     },
                                     productsList: [],
+                                    productSearchTerm: '',
                                     isCreatingOrder: false,
                                     showCreateOrderForm: false,
                                     selectedProductId: '',
@@ -1149,13 +1150,22 @@
                                     orderAddress: '',
                                     orderDate: '',
                                     fetchProducts() {
-                                        if(this.productsList.length > 0) return;
                                         var self = this;
-                                        __DataRequest.get('{{ route("vendor.ecommerce.products") }}', {}, function(response) {
-                                            if(response.reaction_code == 1 && response.data && response.data.products) {
-                                                self.productsList = response.data.products;
+                                        __DataRequest.get('<?= route("vendor.ecommerce.products") ?>', {}, function(response) {
+                                            var rawProds = (response.data && response.data.products) ? response.data.products : (response.products || []);
+                                            if (rawProds && rawProds.data && Array.isArray(rawProds.data)) {
+                                                self.productsList = rawProds.data;
+                                            } else if (Array.isArray(rawProds)) {
+                                                self.productsList = rawProds;
+                                            } else {
+                                                self.productsList = [];
                                             }
                                         });
+                                    },
+                                    filteredProductsList() {
+                                        if (!this.productSearchTerm) return this.productsList;
+                                        var term = this.productSearchTerm.toLowerCase();
+                                        return this.productsList.filter(p => p.name && p.name.toLowerCase().includes(term));
                                     },
                                     openCreateOrderForm() {
                                         this.showCreateOrderForm = !this.showCreateOrderForm;
@@ -1195,7 +1205,7 @@
                                             }
                                         });
                                     }
-                                }" x-init="fetchOrders()" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchOrders()">
+                                }" x-init="fetchOrders(); fetchProducts();" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchOrders()">
                                     <div class="lw-crm-section-header d-flex justify-content-between align-items-center mb-2">
                                         <span><i class="fas fa-shopping-bag text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Commandes du client') }}</span>
                                         <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="fetchOrders()" title="{{ __tr('Rafraîchir') }}">
@@ -1209,14 +1219,15 @@
                                     </button>
 
                                     <!-- Inline Manual Order Form -->
-                                    <div x-show="showCreateOrderForm" class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1;" x-cloak>
+                                    <div x-show="showCreateOrderForm" class="p-2 mb-3 rounded shadow-sm" style="background: #f8fafc; border: 1.5px solid #10b981;" x-cloak>
                                         <div class="font-weight-bold text-xs text-dark mb-2"><i class="fas fa-cart-plus text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Nouvelle Commande Vendeur') }}</div>
                                         
                                         <div class="form-group mb-2">
-                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Produit *') }}</label>
+                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Rechercher & Choisir Produit *') }}</label>
+                                            <input type="text" class="form-control form-control-sm text-xs custom-input-white mb-1" style="border-radius: 6px;" placeholder="{{ __tr('🔍 Taper le nom du produit...') }}" x-model="productSearchTerm">
                                             <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px;" x-model="selectedProductId" @change="onProductChange()">
-                                                <option value="">-- {{ __tr('Choisir Produit') }} --</option>
-                                                <template x-for="prod in productsList" :key="prod._id">
+                                                <option value="">-- {{ __tr('Choisir Produit') }} (<span x-text="filteredProductsList().length"></span>) --</option>
+                                                <template x-for="prod in filteredProductsList()" :key="prod._id">
                                                     <option :value="prod._id" x-text="prod.name + ' (' + Number(prod.price).toLocaleString() + ' CFA)'"></option>
                                                 </template>
                                             </select>

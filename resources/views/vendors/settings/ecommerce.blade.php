@@ -8,6 +8,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->where('vendors__id', $vendorId)
     ->latest()
     ->get();
+$allContacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
 $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'manual';
 
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
