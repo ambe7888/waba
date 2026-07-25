@@ -94,8 +94,11 @@
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
-                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                <div class="h2 font-weight-bold text-emerald mb-0" style="color: #059669;">
                                     $5
+                                </div>
+                                <div class="text-muted small mb-3">
+                                    (~ 3 000 FCFA)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_5" value="5" x-model="selectedAmount">
@@ -138,8 +141,11 @@
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
-                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                <div class="h2 font-weight-bold text-emerald mb-0" style="color: #059669;">
                                     $10
+                                </div>
+                                <div class="text-muted small mb-3">
+                                    (~ 6 000 FCFA)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_10" value="10" x-model="selectedAmount">
@@ -175,8 +181,11 @@
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
-                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                <div class="h2 font-weight-bold text-emerald mb-0" style="color: #059669;">
                                     $20
+                                </div>
+                                <div class="text-muted small mb-3">
+                                    (~ 12 000 FCFA)
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
                                     <input type="radio" class="form-check-input" name="pack_option" id="pack_20" value="20" x-model="selectedAmount">

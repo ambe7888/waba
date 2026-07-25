@@ -104,8 +104,13 @@ class MoneyFusionPaymentController extends BaseController
 
         $vendorId = getVendorId();
         $user = auth()->user();
-        $amount = $request->amount;
+        $amount = (float) $request->amount;
         $credits = $request->credits;
+        
+        // If amount is specified in USD (e.g., 5, 10, 20), convert to FCFA/XOF for MoneyFusion
+        if ($amount < 100) {
+            $amount = $amount * 600; // 1 USD = 600 FCFA
+        }
         
         $apiUrl = getAppSettings('moneyfusion_api_url');
         if (!getAppSettings('enable_moneyfusion') || !$apiUrl) {

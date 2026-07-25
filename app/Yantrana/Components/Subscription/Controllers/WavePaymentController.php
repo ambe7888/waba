@@ -75,8 +75,13 @@ class WavePaymentController extends BaseController
         ]);
 
         $vendorId = getVendorId();
-        $amount = $request->amount;
+        $amount = (float) $request->amount;
         $credits = $request->credits;
+        
+        // If amount is specified in USD (e.g., 5, 10, 20), convert to FCFA/XOF for Wave
+        if ($amount < 100) {
+            $amount = $amount * 600; // 1 USD = 600 FCFA
+        }
         
         $currency = getAppSettings('currency');
 
