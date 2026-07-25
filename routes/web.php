@@ -1180,6 +1180,11 @@ Route::middleware([
                 'createTestOrder',
             ])->name('vendor.ecommerce.test_order');
 
+            Route::post('/webhook/external-order/{vendorUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'externalOrderWebhook',
+            ])->name('vendor.external_order_webhook');
+
             Route::post('/disconnect-account', [
                 WhatsAppServiceController::class,
                 'disconnectAccount',

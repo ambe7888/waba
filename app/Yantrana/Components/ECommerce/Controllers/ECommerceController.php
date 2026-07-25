@@ -528,4 +528,70 @@ class ECommerceController extends BaseController
             'message' => __tr('Commande de test créée (#__uid__). Recharchez la page pour voir la notification.', ['__uid__' => substr($newOrder->_uid, 0, 8)])
         ]);
     }
+
+    /**
+     * Webhook endpoint to receive orders from external websites (Shopify, WooCommerce, Custom E-commerce)
+     */
+    public function externalOrderWebhook(Request $request, $vendorUid)
+    {
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_uid', $vendorUid)->first();
+        if (empty($vendor)) {
+            return response()->json(['reaction_code' => 2, 'message' => 'Vendor not found'], 404);
+        }
+        $vendorId = $vendor->_id;
+
+        $phone = $request->phone ?: ($request->mobile_number ?: ($request->customer['phone'] ?? null));
+        if (empty($phone)) {
+            return response()->json(['reaction_code' => 2, 'message' => 'Customer phone is required'], 400);
+        }
+
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
+            'vendors__id' => $vendorId,
+            'wa_id' => $phone
+        ])->first();
+
+        if (empty($contact)) {
+            $firstName = $request->first_name ?: ($request->customer['first_name'] ?? 'Client');
+            $lastName = $request->last_name ?: ($request->customer['last_name'] ?? 'Web');
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::create([
+                '_uid' => (string) \Illuminate\Support\Str::uuid(),
+                'vendors__id' => $vendorId,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'wa_id' => $phone,
+                'phone_number' => $phone,
+            ]);
+        }
+
+        $orderDetails = [
+            'source' => $request->source ?: 'website',
+            'items' => $request->items ?: $request->line_items ?: [],
+            'total_price' => $request->total_price ?: ($request->total_price_set['shop_money']['amount'] ?? 0),
+            'currency' => $request->currency ?: 'CFA',
+        ];
+
+        $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+            '_uid' => (string) \Illuminate\Support\Str::uuid(),
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id,
+            'order_details' => $orderDetails,
+            'status' => 'validated',
+        ]);
+
+        $noteEntry = "\n[🛒 Commande Web #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande passée sur le site web (" . ($request->source ?: 'Boutique Web') . ")";
+        $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+        $contact->save();
+
+        updateModelsViaVendorBroadcast($vendorUid, [
+            'contact' => $contact
+        ]);
+
+        return response()->json([
+            'reaction_code' => 1,
+            'message' => 'Order created successfully',
+            'order_uid' => $newOrder->_uid
+        ]);
+    }
 }
