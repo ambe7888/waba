@@ -3777,41 +3777,90 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 return true;
             }
 
-            // Action B: Order Confirmation -> Create real order in DB!
-            if ($productToOrder && $isConfirmationPhrase) {
-                $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                    '_uid' => (string) \Illuminate\Support\Str::uuid(),
-                    'vendors__id' => $contact->vendors__id,
-                    'contacts__id' => $contact->_id,
-                    'order_details' => [
-                        'source' => 'whatsapp_ai',
-                        'items' => [
-                            ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
-                        ],
-                        'total_price' => $productToOrder->price,
-                        'currency' => 'CFA',
-                    ],
-                    'status' => 'validated',
-                ]);
+            // Action B: Order Confirmation -> Create real multi-item order in DB with grand total calculation!
+            if ($isConfirmationPhrase) {
+                $vendorProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->get();
+                $foundProducts = [];
+                $grandTotal = 0;
 
-                $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande confirmée par le client (" . $productToOrder->name . ")";
-                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
-                $contact->save();
-
-                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
-                if ($vendor) {
-                    updateModelsViaVendorBroadcast($vendor->_uid, [
-                        'contact' => $contact
-                    ]);
+                // Scan recent messages for mentioned catalog products
+                $recentText = $messageBody;
+                $chatLogs = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::where('contacts__id', $contact->_id)
+                    ->latest()
+                    ->take(12)
+                    ->get();
+                foreach ($chatLogs as $log) {
+                    $recentText .= " " . $log->message;
                 }
 
-                $receiptMsg = "🎉 *Commande enregistrée avec succès !*\n\n📋 *N° de Commande:* #" . substr($newOrder->_uid, 0, 8) . "\n📦 *Produit:* {$productToOrder->name}\n💰 *Montant Total:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nUn conseiller a été notifié et va traiter votre commande très rapidement. Merci pour votre confiance !";
-                $this->sendReplyBotMessage($contact->_uid, $receiptMsg, $contact->vendors__id, null, [
-                    'ai_bot_reply' => true,
-                    'from_phone_number_id' => $options['fromPhoneNumberId'],
-                    'messageWamid' => $options['messageWamid'],
-                ]);
-                return true;
+                foreach ($vendorProducts as $prod) {
+                    if (mb_stripos($recentText, $prod->name) !== false) {
+                        $foundProducts[] = $prod;
+                        $grandTotal += $prod->price;
+                    }
+                }
+
+                if (empty($foundProducts)) {
+                    $latestProd = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
+                    if ($latestProd) {
+                        $foundProducts[] = $latestProd;
+                        $grandTotal = $latestProd->price;
+                    }
+                }
+
+                if (!empty($foundProducts)) {
+                    $itemsArr = [];
+                    $itemsSummaryText = "";
+                    foreach ($foundProducts as $p) {
+                        $itemsArr[] = [
+                            'name' => $p->name,
+                            'quantity' => 1,
+                            'price' => $p->price,
+                            'currency' => 'CFA'
+                        ];
+                        $itemsSummaryText .= "• " . $p->name . " — *" . number_format($p->price, 0, ',', ' ') . " CFA*\n";
+                    }
+
+                    $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+                        '_uid' => (string) \Illuminate\Support\Str::uuid(),
+                        'vendors__id' => $contact->vendors__id,
+                        'contacts__id' => $contact->_id,
+                        'order_details' => [
+                            'source' => 'whatsapp_ai',
+                            'items' => $itemsArr,
+                            'total_price' => $grandTotal,
+                            'currency' => 'CFA',
+                        ],
+                        'status' => 'validated',
+                    ]);
+
+                    $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande confirmée pour a un total de " . number_format($grandTotal, 0, ',', ' ') . " CFA";
+                    $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                    $contact->save();
+
+                    $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+                    if ($vendor) {
+                        updateModelsViaVendorBroadcast($vendor->_uid, [
+                            'contact' => $contact
+                        ]);
+                    }
+
+                    $clientName = trim($contact->full_name) ?: 'Client';
+                    $receiptMsg = "🎉 *Commande confirmée et enregistrée avec succès !*\n\n" .
+                        "📋 *N° de Commande:* #" . substr($newOrder->_uid, 0, 8) . "\n" .
+                        "👤 *Client:* {$clientName}\n\n" .
+                        "📦 *Articles commandés :*\n" . $itemsSummaryText . "\n" .
+                        "💰 *MONTANT TOTAL À PAYER:* *" . number_format($grandTotal, 0, ',', ' ') . " CFA*\n\n" .
+                        "Un conseiller a été notifié et prépare votre commande. Merci pour votre confiance !";
+
+                    $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
+                    $this->sendReplyBotMessage($contact->_uid, $receiptMsg, $contact->vendors__id, null, [
+                        'ai_bot_reply' => true,
+                        'from_phone_number_id' => $fromPhoneId,
+                        'messageWamid' => $options['messageWamid'] ?? null,
+                    ]);
+                    return true;
+                }
             }
 
             $aiBotReplyText = null;

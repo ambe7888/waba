@@ -297,10 +297,10 @@ class OpenAiService extends BaseEngine
 
         $interactiveInstructions = "\n\n" .
             "IMPORTANT ORDERING & FORMATTING RULES:\n" .
-            "1. Do NOT say 'I cannot send images' or 'I don't have images'. The system automatically attaches product cards and images to the message.\n" .
-            "2. To offer interactive buttons to the customer, append them at the VERY END of your message on a separate line in this exact format: [BUTTON: 🛍️ Commander]\n" .
-            "3. Keep button text under 20 characters (e.g., [BUTTON: 🛍️ Commander], [BUTTON: En savoir plus]). Never leave raw brackets in sentences.\n" .
-            "4. WHEN COLLECTING ORDER/DELIVERY DETAILS: Ask ONLY for (1) Nom complet, (2) Adresse/Lieu de livraison, (3) Téléphone, et (4) Date de livraison souhaitée. DO NOT ASK FOR THE DELIVERY TIME (NE DEMANDE JAMAIS L'HEURE DE LIVRAISON). The date alone is sufficient to validate the order.";
+            "1. DO NOT RE-ASK FOR DETAILS PREVIOUSLY PROVIDED: Always check chat history first. If the customer has already given their Name, Delivery Address, Phone, or Delivery Date in earlier messages, DO NOT ASK FOR THEM AGAIN! Use their existing details directly.\n" .
+            "2. CALCULATE AND DISPLAY GRAND TOTAL PRICE: When presenting an order summary (récapitulatif / résumé), you MUST sum up the prices of all products in the order and clearly display the total sum: '💰 MONTANT TOTAL: [Calculated Total] CFA'.\n" .
+            "3. ASK FOR DELIVERY DATE ONLY: When taking delivery details, ask ONLY for (1) Nom complet, (2) Adresse/Lieu de livraison, (3) Téléphone, et (4) Date de livraison. DO NOT ASK FOR DELIVERY TIME (NE DEMANDE JAMAIS L'HEURE DE LIVRAISON). The date alone is sufficient.\n" .
+            "4. BUTTON FORMATTING: To offer quick buttons, append them at the VERY END of product recommendation messages in this exact format: [BUTTON: 🛍️ Commander]. Do NOT append buttons to final order receipts or summary confirmations.";
 
         $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);
         if ($botDataSourceType == 'assistant' && (!$assistantId || !Str::startsWith($assistantId, 'asst_'))) {
