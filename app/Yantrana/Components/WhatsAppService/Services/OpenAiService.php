@@ -51,7 +51,6 @@ class OpenAiService extends BaseEngine
             throw new Exception("Insufficient AI Credits");
         }
 
-        // Priority: passed accessKey > vendor key > global admin key > .env key
         $vendorKey = getVendorSettings('open_ai_access_key', null, null, $vendorId);
         if ($vendorKey && !Str::startsWith($vendorKey, 'sk-')) {
             $vendorKey = null; // Ignore invalid encrypted keys
@@ -60,11 +59,19 @@ class OpenAiService extends BaseEngine
         $allowSystemKey = getAppSettings('allow_vendors_to_use_system_openai_key', true);
         $apiKey = $accessKey ?: $vendorKey;
 
+        $geminiApiKey = getVendorSettings('gemini_access_key', null, null, $vendorId)
+                     ?: getAppSettings('gemini_api_key')
+                     ?: env('GEMINI_API_KEY');
+
         if (!$apiKey) {
             if ($allowSystemKey) {
                 $apiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
-            } else {
-                throw new \Exception(__tr("Please configure your own OpenAI API Key in your settings to use AI features."));
+            }
+            if (!$apiKey && !$geminiApiKey) {
+                throw new \Exception(__tr("Veuillez configurer une clé API IA (Google Gemini ou OpenAI) dans les paramètres."));
+            }
+            if (!$apiKey) {
+                $apiKey = 'gemini-mode-placeholder';
             }
         }
         
