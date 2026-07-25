@@ -71,13 +71,9 @@
                                         @csrf
                                         <input type="hidden" name="amount" value="2.00">
                                         <input type="hidden" name="credits" value="1000">
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
-                                        </div>
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
+                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
+                                        </button>
                                     </form>
                                     @endif
                                 </div>
@@ -112,13 +108,9 @@
                                         @csrf
                                         <input type="hidden" name="amount" value="8.00">
                                         <input type="hidden" name="credits" value="5000">
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
-                                        </div>
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
+                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
+                                        </button>
                                     </form>
                                     @endif
                                 </div>
@@ -153,13 +145,9 @@
                                         @csrf
                                         <input type="hidden" name="amount" value="15.00">
                                         <input type="hidden" name="credits" value="10000">
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->name }}" placeholder="{{ __tr('Your Name') }}" required>
-                                        </div>
-                                        <div class="form-group mb-2">
-                                            <input type="text" class="form-control form-control-sm" name="numeroSend" placeholder="{{ __tr('Phone Number') }}" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm">{{ __tr('Pay with MoneyFusion') }}</button>
+                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
+                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
+                                        </button>
                                     </form>
                                     @endif
                                 </div>

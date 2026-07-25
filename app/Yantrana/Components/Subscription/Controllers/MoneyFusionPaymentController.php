@@ -18,11 +18,12 @@ class MoneyFusionPaymentController extends BaseController
     {
         $request->validate([
             'plan' => 'required',
-            'numeroSend' => 'required|string',
-            'nomclient' => 'required|string',
+            'numeroSend' => 'nullable|string',
+            'nomclient' => 'nullable|string',
         ]);
 
         $vendorId = getVendorId();
+        $user = auth()->user();
         
         $planRequest = explode('___', $request->plan);
         if (count($planRequest) !== 2) {
@@ -43,6 +44,16 @@ class MoneyFusionPaymentController extends BaseController
 
         $clientReference = $vendorId . '|' . $planId . '|' . $planFrequency;
 
+        $nomClient = trim($request->nomclient ?: ($user->first_name . ' ' . $user->last_name));
+        if (empty(trim($nomClient))) {
+            $nomClient = $user->email ?? 'Client WhatsClick';
+        }
+
+        $numeroSend = trim($request->numeroSend ?: ($user->mobile_number ?? '0000000000'));
+        if (empty($numeroSend)) {
+            $numeroSend = '0000000000';
+        }
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->post($apiUrl, [
@@ -57,8 +68,8 @@ class MoneyFusionPaymentController extends BaseController
                     'clientReference' => $clientReference,
                 ]
             ],
-            'numeroSend' => trim($request->numeroSend),
-            'nomclient' => trim($request->nomclient),
+            'numeroSend' => $numeroSend,
+            'nomclient' => $nomClient,
             'return_url' => route('subscription.read.show', ['status' => 'success']),
             'webhook_url' => route('moneyfusion.webhook'),
         ]);
@@ -87,11 +98,12 @@ class MoneyFusionPaymentController extends BaseController
         $request->validate([
             'amount' => 'required|numeric',
             'credits' => 'required|numeric',
-            'numeroSend' => 'required|string',
-            'nomclient' => 'required|string',
+            'numeroSend' => 'nullable|string',
+            'nomclient' => 'nullable|string',
         ]);
 
         $vendorId = getVendorId();
+        $user = auth()->user();
         $amount = $request->amount;
         $credits = $request->credits;
         
@@ -101,6 +113,16 @@ class MoneyFusionPaymentController extends BaseController
         }
 
         $clientReference = 'aicredits|' . $vendorId . '|' . $credits;
+
+        $nomClient = trim($request->nomclient ?: ($user->first_name . ' ' . $user->last_name));
+        if (empty(trim($nomClient))) {
+            $nomClient = $user->email ?? 'Client WhatsClick';
+        }
+
+        $numeroSend = trim($request->numeroSend ?: ($user->mobile_number ?? '0000000000'));
+        if (empty($numeroSend)) {
+            $numeroSend = '0000000000';
+        }
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
@@ -116,8 +138,8 @@ class MoneyFusionPaymentController extends BaseController
                     'clientReference' => $clientReference,
                 ]
             ],
-            'numeroSend' => trim($request->numeroSend),
-            'nomclient' => trim($request->nomclient),
+            'numeroSend' => $numeroSend,
+            'nomclient' => $nomClient,
             'return_url' => route('vendor.ai_credits.topup', ['status' => 'success']),
             'webhook_url' => route('moneyfusion.webhook'),
         ]);
