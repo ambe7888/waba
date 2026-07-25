@@ -876,7 +876,7 @@ $isManualConnected = true;
                                             </button>
 
                                             <template x-if="order.contact && order.contact._uid">
-                                                <a :href="'<?= url('/vendor/chat-message/chat') ?>/' + order.contact._uid" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                                <a :href="'<?= url('/vendor/contact/chat') ?>/' + order.contact._uid" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
                                                     <i class="fab fa-whatsapp"></i>
                                                 </a>
                                             </template>
@@ -934,7 +934,7 @@ $isManualConnected = true;
                                 </button>
                                 
                                 <template x-if="selectedOrder && selectedOrder.contact">
-                                    <a :href="'<?= url('/vendor/chat-message/chat') ?>/' + selectedOrder.contact._uid" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                                    <a :href="'<?= url('/vendor/contact/chat') ?>/' + selectedOrder.contact._uid" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
                                         <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
                                     </a>
                                 </template>
