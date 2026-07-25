@@ -309,33 +309,15 @@
                                     </button>
                                 </form>
                                 @endif
-                                @if(getAppSettings('enable_moneyfusion'))
-                                <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form" class="mt-3">
-                                    @csrf
-                                    <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
-                                    <div class="card bg-gradient-neutral border-0 shadow-sm p-3 mb-3" style="border-radius: 12px;">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="fa fa-wallet text-primary fa-lg mr-2"></i>
-                                            <h6 class="mb-0 font-weight-bold text-dark">{{ __tr('Payer avec MoneyFusion (Mobile Money & Cartes)') }}</h6>
-                                        </div>
-                                        <p class="text-xs text-muted mb-3">{{ __tr('Orange Money, MTN Mobile Money, Moov Money, Wave, Cartes bancaires') }}</p>
-                                        <div class="form-row align-items-center">
-                                            <div class="col-sm-5 my-1">
-                                                <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->first_name . ' ' . auth()->user()->last_name }}" placeholder="{{ __tr('Votre nom (Optionnel)') }}">
-                                            </div>
-                                            <div class="col-sm-4 my-1">
-                                                <input type="text" class="form-control form-control-sm" name="numeroSend" value="{{ auth()->user()->mobile_number }}" placeholder="{{ __tr('Numéro Mobile Money (Optionnel)') }}">
-                                            </div>
-                                            <div class="col-sm-3 my-1">
-                                                <button value="moneyfusion" type="submit" class="btn btn-primary btn-sm btn-block font-weight-bold">
-                                                    <i class="fa fa-lock mr-1"></i> {{ __tr('Payer maintenant') }}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
-                                @endif
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+                                 @if(getAppSettings('enable_moneyfusion'))
+                                 <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form" class="mt-3">
+                                     @csrf
+                                     <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                     <button value="moneyfusion" type="submit" class="btn btn-primary btn-block font-weight-bold py-2">
+                                         <i class="fa fa-wallet mr-2"></i> {{ __tr('Payer avec MoneyFusion (Orange, MTN, Moov, Wave, Cartes)') }}
+                                     </button>
+                                 </form>
+                                 @endif
                                @if ((getAppSettings('enable_upi_payment') or getAppSettings('enable_bank_transfer') or getAppSettings('enable_paypal') or getAppSettings('enable_razorpay') or getAppSettings('enable_paystack') or getAppSettings('enable_yoomoney') or getAppSettings('enable_phonepe')) and !$isRazorpaySubscription or ($isRazorpaySubscription and $isSubscriptionManuallyCancelled))
                                <fieldset>
                                 <!-- ---------- This form for when change Subscription -------------- -->
@@ -510,31 +492,15 @@
                                     </fieldset>
                                     @endif
                                      @if(getAppSettings('enable_moneyfusion'))
-                                     <fieldset class="mt-3 card border-0 shadow-sm p-3 bg-gradient-neutral" style="border-radius: 12px;">
-                                          <legend class="h6 font-weight-bold text-dark mb-1">
-                                              <i class="fa fa-wallet text-primary"></i> {{ __tr('MoneyFusion (Mobile Money & Cartes)') }}
-                                          </legend>
-                                          <small class="text-muted d-block mb-3">{{ __tr('Orange Money, MTN, Moov, Wave, Cartes Visa / Mastercard') }}</small>
-                                          <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form-new">
-                                              @csrf
-                                              <input type="hidden" name="plan_id" value="{{ $planId ?? '' }}">
-                                              <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
-                                              <div class="form-row">
-                                                  <div class="form-group col-md-6">
-                                                      <label class="small text-muted font-weight-bold">{{ __tr('Nom (Optionnel)') }}</label>
-                                                      <input type="text" class="form-control form-control-sm" name="nomclient" value="{{ auth()->user()->first_name . ' ' . auth()->user()->last_name }}" placeholder="{{ __tr('Votre nom') }}">
-                                                  </div>
-                                                  <div class="form-group col-md-6">
-                                                      <label class="small text-muted font-weight-bold">{{ __tr('Numéro Mobile Money (Optionnel)') }}</label>
-                                                      <input type="text" class="form-control form-control-sm" name="numeroSend" value="{{ auth()->user()->mobile_number }}" placeholder="ex: 07070707">
-                                                  </div>
-                                              </div>
-                                              <button value="moneyfusion" type="submit" class="btn btn-primary btn-sm font-weight-bold px-4">
-                                                  <i class="fa fa-lock mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
-                                              </button>
-                                          </form>
-                                     </fieldset>
-                                     @endif @endif
+                                     <form action="{{ route('moneyfusion.checkout') }}" method="post" id="moneyfusion-pay-form-new" class="mt-3">
+                                         @csrf
+                                         <input type="hidden" name="plan_id" value="{{ $planId ?? '' }}">
+                                         <input type="hidden" name="plan" x-model="selectedPlanFrequencyNew">
+                                         <button value="moneyfusion" type="submit" class="btn btn-primary btn-block font-weight-bold py-2">
+                                             <i class="fa fa-wallet mr-2"></i> {{ __tr('Payer avec MoneyFusion (Orange, MTN, Moov, Wave, Cartes)') }}
+                                         </button>
+                                     </form>
+                                     @endif
                                     <!-- Stack for recurring payment Subscribe Now Button -->
                                     @stack('autoSubscriptionSubscribeNowStack')
                                     <!-- Stack for recurring payment Subscribe Now Button -->
