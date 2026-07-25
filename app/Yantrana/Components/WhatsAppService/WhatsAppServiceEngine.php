@@ -3129,6 +3129,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             'messageWamid' => null,
         ], $options);
 
+        if (empty($options['from_phone_number_id'])) {
+            $phoneNumbers = getVendorSettings('whatsapp_phone_numbers', null, null, $vendorId) ?: [];
+            $options['from_phone_number_id'] = !empty($phoneNumbers) ? ($phoneNumbers[0]['id'] ?? null) : null;
+        }
+
         // Automatically parse interactive buttons from AI or bot response text
         if (!$interactionMessageData && !empty($replyText)) {
             $buttons = [];
@@ -3824,15 +3829,48 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] [Engine] AI reply result: ' . ($aiBotReplyText ? 'GOT REPLY (' . strlen($aiBotReplyText) . ' chars)' : 'EMPTY/NULL'));
                     // check if got the reply
                     if ($aiBotReplyText) {
+                        // Auto-create order in DB if AI confirms the order
+                        if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande)/i', $aiBotReplyText)) {
+                            $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
+                            if ($productToOrder) {
+                                $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+                                    '_uid' => (string) \Illuminate\Support\Str::uuid(),
+                                    'vendors__id' => $contact->vendors__id,
+                                    'contacts__id' => $contact->_id,
+                                    'order_details' => [
+                                        'source' => 'whatsapp_ai',
+                                        'items' => [
+                                            ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
+                                        ],
+                                        'total_price' => $productToOrder->price,
+                                        'currency' => 'CFA',
+                                    ],
+                                    'status' => 'validated',
+                                ]);
+
+                                $noteEntry = "\n[📦 Commande WhatsApp #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande enregistrée par l'IA (" . $productToOrder->name . ")";
+                                $contact->contact_notes = ($contact->contact_notes ?? '') . $noteEntry;
+                                $contact->save();
+
+                                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+                                if ($vendor) {
+                                    updateModelsViaVendorBroadcast($vendor->_uid, [
+                                        'contact' => $contact
+                                    ]);
+                                }
+                            }
+                        }
+
                         $botName = getVendorSettings('open_ai_bot_name', null, null, $contact->vendors__id);
                         if ($botName and !Str::startsWith($aiBotReplyText, $botName . ':')) {
                             $aiBotReplyText =  $botName ? ($botName . ":\n\n" . $aiBotReplyText) : $aiBotReplyText;
                         }
+                        $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
                         $this->sendReplyBotMessage($contact->_uid, $aiBotReplyText, $contact->vendors__id, null, [
                             'ai_bot_reply' => true,
                             'open_ai_reply' => true,
-                            'from_phone_number_id' => $options['fromPhoneNumberId'],
-                            'messageWamid' => $options['messageWamid'],
+                            'from_phone_number_id' => $fromPhoneId,
+                            'messageWamid' => $options['messageWamid'] ?? null,
                         ]);
                     }
                 } catch (\Throwable $e) {
