@@ -405,10 +405,13 @@ class OpenAiService extends BaseEngine
 
         if ($aiProvider === 'gemini' || (!empty($geminiApiKey) && empty(getAppSettings('openai_api_key')))) {
             try {
-                $geminiReply = $this->generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey);
-                if ($geminiReply) {
-                    $this->deductVendorCredit($vendorId, 1);
-                    return $geminiReply;
+                $geminiResult = $this->generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey);
+                if (!empty($geminiResult['text'])) {
+                    $promptTokens = $geminiResult['prompt_tokens'] ?? 0;
+                    $completionTokens = $geminiResult['completion_tokens'] ?? 0;
+                    $credits = $this->calculateCredits('gemini-1.5-flash', $promptTokens, $completionTokens);
+                    $this->deductVendorCredit($vendorId, $credits);
+                    return $geminiResult['text'];
                 }
             } catch (\Throwable $th) {
                 \Illuminate\Support\Facades\Log::error('Google Gemini AI Error: ' . $th->getMessage());
@@ -435,7 +438,7 @@ class OpenAiService extends BaseEngine
     }
 
     /**
-     * Generate response via Google Gemini 1.5 Flash REST API
+     * Generate response via Google Gemini 1.5 Flash REST API with token usage tracking
      */
     public function generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey = null)
     {
@@ -465,7 +468,6 @@ class OpenAiService extends BaseEngine
             }
         }
 
-        // Add current question if not in array
         if (empty($contentsArr)) {
             $contentsArr[] = [
                 'role' => 'user',
@@ -492,7 +494,12 @@ class OpenAiService extends BaseEngine
             $data = $response->json();
             $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
             if (!empty($text)) {
-                return trim($text);
+                $usage = $data['usageMetadata'] ?? [];
+                return [
+                    'text' => trim($text),
+                    'prompt_tokens' => $usage['promptTokenCount'] ?? 0,
+                    'completion_tokens' => $usage['candidatesTokenCount'] ?? 0,
+                ];
             }
         }
 
@@ -616,7 +623,10 @@ class OpenAiService extends BaseEngine
         $inputCostPer1k = 0.5; // default gpt-3.5-turbo input cost: $0.0005 = 0.5 credits
         $outputCostPer1k = 1.5; // default gpt-3.5-turbo output cost: $0.0015 = 1.5 credits
 
-        if (str_contains($model, 'gpt-4o-mini')) {
+        if (str_contains($model, 'gemini')) {
+            $inputCostPer1k = 0.1; // Gemini 1.5 Flash input cost: ultra cheap
+            $outputCostPer1k = 0.3; // Gemini 1.5 Flash output cost
+        } elseif (str_contains($model, 'gpt-4o-mini')) {
             $inputCostPer1k = 0.15; // $0.00015
             $outputCostPer1k = 0.6; // $0.0006
         } elseif (str_contains($model, 'gpt-4o') || str_contains($model, 'gpt-4')) {
