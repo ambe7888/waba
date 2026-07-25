@@ -54,13 +54,16 @@ class MoneyFusionPaymentController extends BaseController
             $numeroSend = '0000000000';
         }
 
+        // Add 5.6% fee surcharge (3% transaction fee + 2.37% withdrawal fee) so the customer pays all fees
+        $totalPriceWithFees = ceil(((float) $planCharge) * 1.056);
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->post($apiUrl, [
-            'totalPrice' => (float) $planCharge,
+            'totalPrice' => (float) $totalPriceWithFees,
             'article' => [
                 [
-                    "Abonnement " . $planId . " (" . $planFrequency . ")" => (float) $planCharge
+                    "Abonnement " . $planId . " (" . $planFrequency . ")" => (float) $totalPriceWithFees
                 ]
             ],
             'personal_Info' => [
@@ -129,13 +132,16 @@ class MoneyFusionPaymentController extends BaseController
             $numeroSend = '0000000000';
         }
 
+        // Add 5.6% fee surcharge (3% transaction fee + 2.37% withdrawal fee) so the customer pays all fees
+        $totalPriceWithFees = ceil($amount * 1.056);
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->post($apiUrl, [
-            'totalPrice' => (float) $amount,
+            'totalPrice' => (float) $totalPriceWithFees,
             'article' => [
                 [
-                    "Recharge de " . $credits . " credits IA" => (float) $amount
+                    "Recharge de " . $credits . " credits IA" => (float) $totalPriceWithFees
                 ]
             ],
             'personal_Info' => [

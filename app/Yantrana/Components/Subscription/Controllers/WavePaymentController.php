@@ -44,10 +44,12 @@ class WavePaymentController extends BaseController
         
         $clientReference = $vendorId . '|' . $planId . '|' . $planFrequency;
 
+        $totalPriceWithFees = ceil(((float) $planCharge) * 1.056);
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
         ])->post('https://api.wave.com/v1/checkout/sessions', [
-            'amount' => (string) $planCharge,
+            'amount' => (string) $totalPriceWithFees,
             'currency' => $currency ?: 'XOF',
             'error_url' => route('subscription.read.show', ['status' => 'failed']),
             'success_url' => route('subscription.read.show', ['status' => 'success']),
@@ -95,10 +97,12 @@ class WavePaymentController extends BaseController
         // Prefix with 'aicredits|'
         $clientReference = 'aicredits|' . $vendorId . '|' . $credits;
 
+        $totalPriceWithFees = ceil($amount * 1.056);
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
         ])->post('https://api.wave.com/v1/checkout/sessions', [
-            'amount' => (string) $amount,
+            'amount' => (string) $totalPriceWithFees,
             'currency' => $currency ?: 'XOF',
             'error_url' => route('vendor.ai_credits.topup', ['status' => 'failed']),
             'success_url' => route('vendor.ai_credits.topup', ['status' => 'success']),
