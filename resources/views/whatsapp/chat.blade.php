@@ -1179,6 +1179,14 @@
                                             this.orderCustomPrice = p.price;
                                         }
                                     },
+                                    formatProductOptionLabel(prod) {
+                                        if(!prod || !prod.name) return '';
+                                        var shortName = prod.name.length > 32 ? prod.name.substring(0, 32) + '...' : prod.name;
+                                        return shortName + ' (' + Number(prod.price).toLocaleString() + ' CFA)';
+                                    },
+                                    getSelectedProduct() {
+                                        return this.productsList.find(item => item._id == this.selectedProductId || item._uid == this.selectedProductId);
+                                    },
                                     saveManualOrder() {
                                         var cUid = contact?._uid || contact?._id || contact?.wa_id;
                                         if(!cUid || !this.selectedProductId) {
@@ -1219,28 +1227,46 @@
                                     </button>
 
                                     <!-- Inline Manual Order Form -->
-                                    <div x-show="showCreateOrderForm" class="p-2 mb-3 rounded shadow-sm" style="background: #f8fafc; border: 1.5px solid #10b981;" x-cloak>
+                                    <div x-show="showCreateOrderForm" class="p-2 mb-3 rounded shadow-sm" style="background: #f8fafc; border: 1.5px solid #10b981; max-width: 100%; box-sizing: border-box;" x-cloak>
                                         <div class="font-weight-bold text-xs text-dark mb-2"><i class="fas fa-cart-plus text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Nouvelle Commande Vendeur') }}</div>
                                         
-                                        <div class="form-group mb-2">
-                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Rechercher & Choisir Produit *') }}</label>
-                                            <input type="text" class="form-control form-control-sm text-xs custom-input-white mb-1" style="border-radius: 6px;" placeholder="{{ __tr('🔍 Taper le nom du produit...') }}" x-model="productSearchTerm">
-                                            <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px;" x-model="selectedProductId" @change="onProductChange()">
+                                        <div class="form-group mb-2" style="max-width: 100%;">
+                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Rechercher / Choisir Produit *') }}</label>
+                                            <input type="text" class="form-control form-control-sm text-xs custom-input-white mb-1" style="border-radius: 6px;" placeholder="{{ __tr('🔍 Taper pour filtrer...') }}" x-model="productSearchTerm">
+                                            <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white w-100" style="border-radius: 6px; max-width: 100%; text-overflow: ellipsis; overflow: hidden;" x-model="selectedProductId" @change="onProductChange()">
                                                 <option value="">-- {{ __tr('Choisir Produit') }} (<span x-text="filteredProductsList().length"></span>) --</option>
                                                 <template x-for="prod in filteredProductsList()" :key="prod._id">
-                                                    <option :value="prod._id" x-text="prod.name + ' (' + Number(prod.price).toLocaleString() + ' CFA)'"></option>
+                                                    <option :value="prod._id" x-text="formatProductOptionLabel(prod)" style="max-width: 250px; text-overflow: ellipsis; overflow: hidden;"></option>
                                                 </template>
                                             </select>
                                         </div>
 
-                                        <div class="row no-gutters mb-2" style="gap: 5px;">
-                                            <div class="col">
-                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Qté *') }}</label>
-                                                <input type="number" min="1" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px;" x-model="orderQty">
+                                        <!-- Selected Product Full Name Badge -->
+                                        <template x-if="getSelectedProduct()">
+                                            <div class="p-2 mb-2 rounded bg-white border text-xs" style="border-radius: 6px; border-color: #cbd5e1 !important;">
+                                                <div class="font-weight-bold text-dark mb-1" style="line-height: 1.2;" x-text="getSelectedProduct().name"></div>
+                                                <div class="text-emerald font-weight-bold" style="color: #059669;" x-text="'💰 Total: ' + (Number(orderCustomPrice || getSelectedProduct().price) * Number(orderQty || 1)).toLocaleString() + ' CFA'"></div>
                                             </div>
+                                        </template>
+
+                                        <div class="row no-gutters mb-2 align-items-center" style="gap: 5px;">
+                                            <!-- Quantity Stepper Buttons -->
+                                            <div class="col-6">
+                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Qté') }}</label>
+                                                <div class="input-group input-group-sm">
+                                                    <div class="input-group-prepend">
+                                                        <button type="button" class="btn btn-outline-secondary font-weight-bold px-2 py-0" style="border-radius: 6px 0 0 6px; height: 26px; line-height: 1;" @click="orderQty = Math.max(1, parseInt(orderQty||1) - 1)">-</button>
+                                                    </div>
+                                                    <input type="number" min="1" class="form-control text-center font-weight-bold text-xs p-0 custom-input-white" style="border-radius: 0; height: 26px;" x-model="orderQty">
+                                                    <div class="input-group-append">
+                                                        <button type="button" class="btn btn-outline-secondary font-weight-bold px-2 py-0" style="border-radius: 0 6px 6px 0; height: 26px; line-height: 1;" @click="orderQty = parseInt(orderQty||1) + 1">+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="col">
-                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Prix (CFA)') }}</label>
-                                                <input type="number" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px;" x-model="orderCustomPrice">
+                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Prix Unitaire') }}</label>
+                                                <input type="number" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px; height: 26px;" x-model="orderCustomPrice" placeholder="CFA">
                                             </div>
                                         </div>
 
