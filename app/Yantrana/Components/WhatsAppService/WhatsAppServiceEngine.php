@@ -3180,10 +3180,17 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             // Always strip any raw leftover tags [URL_BUTTON: ...] or [BUTTON: ...] from text!
             $replyText = preg_replace('/\[(URL_BUTTON|BUTTON):\s*.*?\]/is', '', $replyText);
 
-            // Auto-attach Commander button if message discusses a product but has no buttons
-            if (!$interactiveType && preg_match('/(produit|prix|cfa|machine|articles?|catalogue)/i', $replyText)) {
-                $interactiveType = 'button';
-                $buttons = ['🛍️ Commander', 'ℹ️ En savoir plus'];
+            // Auto-attach buttons depending on message context
+            if (!$interactiveType) {
+                if (preg_match('/(récapitulatif|résumé|déjà\s+fournies|détails\s+de\s+votre\s+commande|votre\s+commande\s+pour)/i', $replyText) && !preg_match('/(enregistrée\s+avec\s+succès|référence\s+commande)/i', $replyText)) {
+                    // Order Summary -> Attach Confirmation Button!
+                    $interactiveType = 'button';
+                    $buttons = ['✅ Confirmer la commande'];
+                } elseif (!preg_match('/(enregistrée\s+avec\s+succès|référence\s+commande)/i', $replyText) && preg_match('/(produit|prix|cfa|machine|articles?|catalogue)/i', $replyText)) {
+                    // Product recommendation -> Attach Commander button!
+                    $interactiveType = 'button';
+                    $buttons = ['🛍️ Commander', 'ℹ️ En savoir plus'];
+                }
             }
 
             // Convert double asterisks to single asterisks for WhatsApp bold formatting
