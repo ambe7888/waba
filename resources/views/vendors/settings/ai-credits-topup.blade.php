@@ -1,4 +1,3 @@
-
 @php
     $vendorId = getVendorId();
     $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
@@ -6,157 +5,217 @@
     $extraCredits = $vendor->extra_ai_credits ?? 0;
     $totalCredits = $planCredits + $extraCredits;
     
-    $planCreditsDisplay = $planCredits >= 99999999 ? __tr('Unlimited') : $planCredits;
-    $totalCreditsDisplay = $planCredits >= 99999999 ? __tr('Unlimited') : $totalCredits;
+    $planCreditsDisplay = $planCredits >= 99999999 ? __tr('Illimité') : number_format($planCredits);
+    $totalCreditsDisplay = $planCredits >= 99999999 ? __tr('Illimité') : number_format($totalCredits);
+    $extraCreditsDisplay = number_format($extraCredits);
 @endphp
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="h3 mb-4 text-gray-800">{{ __tr('Recharge AI Credits') }}</h1>
+
+<div class="container-fluid pb-5">
+    <!-- Header Title -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Recharge de Crédits IA') }}</h1>
+            <p class="text-muted small mb-0">{{ __tr('Rechargez vos crédits pour alimenter le bot WhatsApp et l\'assistance automatique') }}</p>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card bg-primary text-white shadow">
-                <div class="card-body">
-                    <div class="font-weight-bold text-uppercase mb-1">
-                        {{ __tr('Current AI Credits Balance') }}
-                    </div>
-                    <div class="h2 mb-0 font-weight-bold text-white">
-                        {{ $totalCreditsDisplay }}
-                    </div>
-                    <div class="mt-2 text-white-50 text-sm">
-                        {{ __tr('Subscription Credits:') }} {{ $planCreditsDisplay }}<br>
-                        {{ __tr('Purchased Credits:') }} {{ $extraCredits }}
+    <!-- Notifications -->
+    @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <i class="fa fa-exclamation-circle mr-2"></i> {{ session('error') }}
+        </div>
+    @endif
+    @if(request('status') == 'success')
+        <div class="alert alert-success border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <i class="fa fa-check-circle mr-2"></i> {{ __tr('Félicitations ! Vos crédits IA ont été rechargés avec succès.') }}
+        </div>
+    @endif
+
+    <!-- Balance Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm text-white" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%); border-radius: 16px;">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8 mb-3 mb-md-0">
+                            <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-2" style="background: rgba(255,255,255,0.2); color: #fff; border-radius: 20px; font-size: 0.75rem;">
+                                <i class="fa fa-bolt mr-1"></i> {{ __tr('Solde Actuel') }}
+                            </span>
+                            <h2 class="display-4 font-weight-bold text-white mb-2" style="font-size: 2.5rem;">
+                                {{ $totalCreditsDisplay }} <span class="h4 text-white-50 font-weight-normal">{{ __tr('Crédits IA') }}</span>
+                            </h2>
+                            <div class="d-flex flex-wrap align-items-center text-white-50 small">
+                                <span class="mr-3"><i class="fa fa-calendar-alt mr-1"></i> {{ __tr('Crédits Abonnement:') }} <strong class="text-white">{{ $planCreditsDisplay }}</strong></span>
+                                <span><i class="fa fa-shopping-bag mr-1"></i> {{ __tr('Crédits Achetés:') }} <strong class="text-white">{{ $extraCreditsDisplay }}</strong></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-right">
+                            <div class="p-3 rounded text-white" style="background: rgba(0,0,0,0.15); border-radius: 12px !important;">
+                                <small class="d-block text-white-50 font-weight-bold mb-1">{{ __tr('Consommation IA') }}</small>
+                                <span class="small">{{ __tr('1 réponse du bot IA = 1 crédit consommés') }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">{{ __tr('Buy More Credits') }}</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <!-- Pack 1 -->
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                {{ __tr('Starter Pack') }}</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">1,000 {{ __tr('Credits') }}</div>
-                                            <div class="mt-3 text-lg font-weight-bold">
-                                                $2.00
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if(getAppSettings('enable_wave'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="2.00">
-                                        <input type="hidden" name="credits" value="1000">
-                                        <button type="submit" class="btn btn-success btn-block">{{ __tr('Pay with Wave') }}</button>
-                                    </form>
-                                    @endif
-
-                                    @if(getAppSettings('enable_moneyfusion'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="2.00">
-                                        <input type="hidden" name="credits" value="1000">
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
-                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
-                                        </button>
-                                    </form>
-                                    @endif
-                                </div>
-                            </div>
+    <!-- Packs Grid -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+            <h4 class="font-weight-bold text-dark mb-1">{{ __tr('Choisissez un Pack de Crédits') }}</h4>
+            <p class="text-muted small mb-0">{{ __tr('Cliquez sur un pack pour le sélectionner et validez votre paiement') }}</p>
+        </div>
+        
+        <div class="card-body p-4" x-data="{ selectedAmount: '3000', selectedCredits: '5000' }">
+            <div class="row">
+                
+                <!-- Starter Pack -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 position-relative transition-all"
+                         @click="selectedAmount = '1000'; selectedCredits = '1000'"
+                         :style="selectedAmount == '1000' 
+                            ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
+                            : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
+                        
+                        <div x-show="selectedAmount == '1000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                            <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
+                                <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
+                            </span>
                         </div>
 
-                        <!-- Pack 2 -->
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-left-info shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                                {{ __tr('Pro Pack') }}</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">5,000 {{ __tr('Credits') }}</div>
-                                            <div class="mt-3 text-lg font-weight-bold">
-                                                $8.00
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if(getAppSettings('enable_wave'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="8.00">
-                                        <input type="hidden" name="credits" value="5000">
-                                        <button type="submit" class="btn btn-info btn-block">{{ __tr('Pay with Wave') }}</button>
-                                    </form>
-                                    @endif
-
-                                    @if(getAppSettings('enable_moneyfusion'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="8.00">
-                                        <input type="hidden" name="credits" value="5000">
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
-                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
-                                        </button>
-                                    </form>
-                                    @endif
-                                </div>
+                        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #f1f5f9; color: #475569; border-radius: 8px;">
+                                    {{ __tr('Pack Starter') }}
+                                </span>
+                                <h3 class="font-weight-bold text-dark mb-1">1,000</h3>
+                                <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
-                        </div>
-
-                        <!-- Pack 3 -->
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                {{ __tr('Elite Pack') }}</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">10,000 {{ __tr('Credits') }}</div>
-                                            <div class="mt-3 text-lg font-weight-bold">
-                                                $15.00
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if(getAppSettings('enable_wave'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" class="mt-3">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="15.00">
-                                        <input type="hidden" name="credits" value="10000">
-                                        <button type="submit" class="btn btn-warning btn-block">{{ __tr('Pay with Wave') }}</button>
-                                    </form>
-                                    @endif
-
-                                    @if(getAppSettings('enable_moneyfusion'))
-                                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" class="mt-3 text-left">
-                                        @csrf
-                                        <input type="hidden" name="amount" value="15.00">
-                                        <input type="hidden" name="credits" value="10000">
-                                        <button type="submit" class="btn btn-primary btn-block btn-sm font-weight-bold">
-                                            <i class="fa fa-wallet mr-1"></i> {{ __tr('Payer avec MoneyFusion') }}
-                                        </button>
-                                    </form>
-                                    @endif
+                            <div>
+                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                    {{ formatAmount(1000, true) }}
+                                </div>
+                                <div class="form-check custom-radio d-inline-block">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_1000" value="1000" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_1000">
+                                        {{ __tr('Sélectionner ce pack') }}
+                                    </label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Pro Pack (Populaire) -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 position-relative transition-all"
+                         @click="selectedAmount = '3000'; selectedCredits = '5000'"
+                         :style="selectedAmount == '3000' 
+                            ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
+                            : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
+                        
+                        <!-- Populaire Badge -->
+                        <div class="position-absolute" style="top: -12px; left: 20px; z-index: 10;">
+                            <span class="badge px-3 py-2 font-weight-bold shadow-sm text-white" style="border-radius: 20px; font-size: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                🔥 {{ __tr('Plus Populaire') }}
+                            </span>
+                        </div>
+
+                        <div x-show="selectedAmount == '3000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                            <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
+                                <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
+                            </span>
+                        </div>
+
+                        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #ecfdf5; color: #047857; border-radius: 8px;">
+                                    {{ __tr('Pack Pro') }}
+                                </span>
+                                <h3 class="font-weight-bold text-dark mb-1">5,000</h3>
+                                <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
+                            </div>
+                            <div>
+                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                    {{ formatAmount(3000, true) }}
+                                </div>
+                                <div class="form-check custom-radio d-inline-block">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_3000" value="3000" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_3000">
+                                        {{ __tr('Sélectionner ce pack') }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Elite Pack -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 position-relative transition-all"
+                         @click="selectedAmount = '5000'; selectedCredits = '10000'"
+                         :style="selectedAmount == '5000' 
+                            ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
+                            : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
+                        
+                        <div x-show="selectedAmount == '5000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                            <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
+                                <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
+                            </span>
+                        </div>
+
+                        <div class="card-body p-4 text-center d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #f1f5f9; color: #475569; border-radius: 8px;">
+                                    {{ __tr('Pack Élite') }}
+                                </span>
+                                <h3 class="font-weight-bold text-dark mb-1">10,000</h3>
+                                <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
+                            </div>
+                            <div>
+                                <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
+                                    {{ formatAmount(5000, true) }}
+                                </div>
+                                <div class="form-check custom-radio d-inline-block">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_5000" value="5000" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_5000">
+                                        {{ __tr('Sélectionner ce pack') }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Payment Forms -->
+            <div class="mt-4 pt-3 border-top">
+                @if(getAppSettings('enable_moneyfusion'))
+                    <form method="post" action="{{ route('vendor.ai_credits.moneyfusion.checkout') }}" id="moneyfusion-ai-form">
+                        @csrf
+                        <input type="hidden" name="amount" :value="selectedAmount">
+                        <input type="hidden" name="credits" :value="selectedCredits">
+                        <button type="submit" class="btn btn-block text-white font-weight-bold py-3 shadow-sm transition-all"
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; font-size: 1.15rem; border-radius: 12px; cursor: pointer;">
+                            <i class="fa fa-mobile-alt mr-2"></i> {{ __tr('Payer par Orange Money, MTN, Moov, Wave, Carte') }}
+                        </button>
+                    </form>
+                @endif
+
+                @if(getAppSettings('enable_wave'))
+                    <form method="post" action="{{ route('vendor.ai_credits.checkout') }}" id="wave-ai-form" class="mt-2">
+                        @csrf
+                        <input type="hidden" name="amount" :value="selectedAmount">
+                        <input type="hidden" name="credits" :value="selectedCredits">
+                        <button type="submit" class="btn btn-info btn-block font-weight-bold py-3" style="border-radius: 12px;">
+                            <i class="fa fa-money-bill-wave mr-2"></i> {{ __tr('Payer via Wave') }}
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
     </div>
 </div>
-
