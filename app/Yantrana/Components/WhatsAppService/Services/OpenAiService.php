@@ -56,17 +56,15 @@ class OpenAiService extends BaseEngine
             $vendorKey = null; // Ignore invalid encrypted keys
         }
         
-        $allowSystemKey = getAppSettings('allow_vendors_to_use_system_openai_key', true);
+        $vendorGeminiKey = getVendorSettings('gemini_access_key', null, null, $vendorId);
         $apiKey = $accessKey ?: $vendorKey;
 
-        $geminiApiKey = getVendorSettings('gemini_access_key', null, null, $vendorId)
+        $geminiApiKey = $vendorGeminiKey
                      ?: getAppSettings('gemini_api_key')
                      ?: env('GEMINI_API_KEY');
 
         if (!$apiKey) {
-            if ($allowSystemKey) {
-                $apiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
-            }
+            $apiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
             if (!$apiKey && !$geminiApiKey) {
                 throw new \Exception(__tr("Veuillez configurer une clé API IA (Google Gemini ou OpenAI) dans les paramètres."));
             }

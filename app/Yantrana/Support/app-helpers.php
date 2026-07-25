@@ -2032,9 +2032,10 @@ if (! function_exists('isAiBotAvailable')) {
         }
         $hasAiKey = getVendorSettings('open_ai_access_key', null, null, $vendorId)
             || getVendorSettings('gemini_access_key', null, null, $vendorId)
-            || (getAppSettings('allow_vendors_to_use_system_openai_key', true) && (
-                getAppSettings('openai_api_key') || getAppSettings('gemini_api_key') || env('OPENAI_API_KEY') || env('GEMINI_API_KEY')
-            ));
+            || getAppSettings('openai_api_key') 
+            || getAppSettings('gemini_api_key') 
+            || env('OPENAI_API_KEY') 
+            || env('GEMINI_API_KEY');
         return (getVendorSettings('enable_flowise_ai_bot', null, null, $vendorId) and getVendorSettings('flowise_url', null, null, $vendorId)) or (getVendorSettings('enable_open_ai_bot', null, null, $vendorId) and $hasAiKey);
     }
 }

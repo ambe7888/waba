@@ -32,9 +32,6 @@
                 <div class="col-md-6 mb-3">
                     <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
                 </div>
-                <div class="col-md-12 mt-2">
-                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" value="1" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true) ? true : false" :label="__tr('Autoriser les vendeurs à utiliser la clé IA du système (Gemini / OpenAI)')" />
-                </div>
             </div>
             <div class="mt-3">
                 <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Save') }}</button>

@@ -301,52 +301,7 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                 </div>
             </div>
 
-            <!-- 5. Meta Business Agent (Meta AI) -->
-            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;" x-data="{panelOpened:false}" x-cloak>
-                <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between" @click="panelOpened = !panelOpened" style="cursor: pointer;">
-                    <div class="d-flex align-items-center">
-                        <i class="fab fa-meta text-primary mr-3" style="font-size: 28px;"></i>
-                        <div>
-                            <h5 class="font-weight-bold text-dark mb-0">{{ __tr('Meta Business Agent (Meta AI)') }}</h5>
-                            <small class="text-muted">{{ __tr('Assistant IA natif hébergé directement sur WhatsApp par Meta') }}</small>
-                        </div>
-                    </div>
-                    <i class="fa" :class="panelOpened ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                </div>
-
-                <div x-show="panelOpened" class="card-body p-4 border-top">
-                    <p class="text-muted small mb-3">
-                        {{ __tr('Meta Business Agent est un chatbot IA natif hébergé directement chez Meta sur WhatsApp Cloud API. Lorsqu\'il est activé, l\'assistant Llama de Meta répond directement à vos clients sur WhatsApp, sans consommer les crédits IA locaux.') }}
-                    </p>
-
-                    @if ($vendorPlanDetails['is_limit_available'])
-                        <form id="lwMetaAiBotForm" class="lw-ajax-form lw-form" name="meta_ai_bot_setup_page" method="post" action="<?= route('vendor.settings.write.update') ?>">
-                            <input type="hidden" name="pageType" value="meta_ai_bot_setup">
-                            <input type="hidden" name="form_type" value="meta_ai_bot_setup_page" />
-                            
-                            <div class="form-group mb-3">
-                                <x-lw.checkbox id="enableMetaAiBot" name="enable_meta_ai_bot" :checked="getVendorSettings('enable_meta_ai_bot')" data-lw-plugin="lwSwitchery" :label="__tr('Activer Meta Business Agent (Meta AI)')" />
-                            </div>
-                            
-                            <div class="alert alert-warning border-0 shadow-sm mb-4" style="border-radius: 10px;">
-                                <strong><i class="fa fa-exclamation-triangle mr-1"></i> {{ __tr('Attention :') }}</strong>
-                                {{ __tr('Activer Meta AI désactive les chatbots IA locaux (Gemini/OpenAI) sur cette plateforme. L\'IA native de Meta répondra directement sur WhatsApp. Assurez-vous d\'avoir configuré votre agent sur WhatsApp Manager / Meta Business Suite.') }}
-                            </div>
-                            
-                            <div class="pt-3 border-top">
-                                <button type="submit" class="btn btn-primary font-weight-bold px-4 py-2" style="border-radius: 8px;">
-                                    <i class="fa fa-save mr-1"></i> {{ __tr('Enregistrer Meta AI') }}
-                                </button>
-                            </div>
-                        </form>
-                    @else
-                        <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px;">
-                            <i class="fa fa-lock mr-2"></i>{{ __tr('Cette fonctionnalité n\'est pas disponible dans votre plan actuel.') }}
-                        </div>
-                    @endif
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
+</content>
