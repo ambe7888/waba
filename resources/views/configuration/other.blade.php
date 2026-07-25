@@ -2,26 +2,39 @@
 <section>
     <h1>{!! __tr('Setup & Integrations') !!}</h1>
 
-    <!-- OpenAI Settings -->
+    <!-- Global AI Setup (Google Gemini & OpenAI) -->
     <fieldset x-data="{panelOpened:false}" x-cloak>
-        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('OpenAI') }}"> {{ __tr('OpenAI Global Setup') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
+        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('AI Setup') }}"> {{ __tr('Configuration IA Globale (Gemini & OpenAI)') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
         <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'misc_settings']) ?>">
             <div class="row">
-                <div class="col-md-6">
-                    <x-lw.input-field type="text" :label="__tr('OpenAI API Key')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" required />
+                <div class="col-md-6 mb-3">
+                    <label class="font-weight-bold">{{ __tr('Moteur IA Global par Défaut') }}</label>
+                    <select name="ai_provider" class="form-control">
+                        <option value="gemini" {{ getAppSettings('ai_provider', 'gemini') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide & Économique - Recommandé)</option>
+                        <option value="openai" {{ getAppSettings('ai_provider') == 'openai' ? 'selected' : '' }}>🔵 OpenAI ChatGPT (GPT-4o-mini / GPT-3.5)</option>
+                    </select>
                     <div class="text-sm text-info mt-1">
-                        {{ __tr('This global API key will be used for all vendors using the AI Bot feature.') }}
+                        {{ __tr('Google Gemini est jusqu\'à 20x moins cher qu\'OpenAI avec un quota gratuit généreux.') }}
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-3">
+                    <x-lw.input-field type="text" :label="__tr('Clé API Google Gemini')" name="gemini_api_key" value="{{ getAppSettings('gemini_api_key') }}" />
+                    <div class="text-sm text-info mt-1">
+                        {{ __tr('Obtenez votre clé API gratuite sur Google AI Studio (aistudio.google.com).') }}
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <x-lw.input-field type="text" :label="__tr('OpenAI API Key (ChatGPT)')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" />
+                    <div class="text-sm text-info mt-1">
+                        {{ __tr('Clé OpenAI facultative si Gemini est activé.') }}
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
                     <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
-                    <div class="text-sm text-info mt-1">
-                        {{ __tr('Optional. Set the organization ID if applicable.') }}
-                    </div>
                 </div>
-                <div class="col-md-12 mt-3">
+                <div class="col-md-12 mt-2">
                     <input type="hidden" name="allow_vendors_to_use_system_openai_key" value="0">
-                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true)" :label="__tr('Allow vendors to use system OpenAI key (If disabled, vendors must provide their own OpenAI key)')]" />
+                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true)" :label="__tr('Autoriser les vendeurs à utiliser la clé IA du système (Sinon, les vendeurs doivent entrer leur propre clé API)')" />
                 </div>
             </div>
             <div class="mt-3">

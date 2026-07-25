@@ -397,7 +397,25 @@ class OpenAiService extends BaseEngine
             'content' => $question
         ];
 
-        // Step 2: Use OpenAI completion API to generate a refined answer
+        // Check if Google Gemini AI is requested or configured
+        $aiProvider = getAppSettings('ai_provider', 'gemini');
+        $geminiApiKey = getVendorSettings('gemini_access_key', null, null, $vendorId)
+                     ?: getAppSettings('gemini_api_key')
+                     ?: env('GEMINI_API_KEY');
+
+        if ($aiProvider === 'gemini' || (!empty($geminiApiKey) && empty(getAppSettings('openai_api_key')))) {
+            try {
+                $geminiReply = $this->generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey);
+                if ($geminiReply) {
+                    $this->deductVendorCredit($vendorId, 1);
+                    return $geminiReply;
+                }
+            } catch (\Throwable $th) {
+                \Illuminate\Support\Facades\Log::error('Google Gemini AI Error: ' . $th->getMessage());
+            }
+        }
+
+        // Step 2: Use OpenAI completion API as fallback or primary
         try {
             $response = OpenAI::chat()->create([
                 'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
@@ -414,6 +432,72 @@ class OpenAiService extends BaseEngine
             throw $th;
         }
         return trim($response['choices'][0]['message']['content']);
+    }
+
+    /**
+     * Generate response via Google Gemini 1.5 Flash REST API
+     */
+    public function generateGeminiResponse($systemPrompt, $messages, $question, $vendorId, $geminiApiKey = null)
+    {
+        $apiKey = $geminiApiKey 
+            ?: getVendorSettings('gemini_access_key', null, null, $vendorId)
+            ?: getAppSettings('gemini_api_key')
+            ?: env('GEMINI_API_KEY');
+
+        if (empty($apiKey)) {
+            return null;
+        }
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+
+        $contentsArr = [];
+        foreach ($messages as $msg) {
+            if (($msg['role'] ?? '') === 'system') {
+                continue;
+            }
+            $role = ($msg['role'] ?? '') === 'assistant' ? 'model' : 'user';
+            $content = $msg['content'] ?? '';
+            if (!empty($content)) {
+                $contentsArr[] = [
+                    'role' => $role,
+                    'parts' => [['text' => $content]]
+                ];
+            }
+        }
+
+        // Add current question if not in array
+        if (empty($contentsArr)) {
+            $contentsArr[] = [
+                'role' => 'user',
+                'parts' => [['text' => $question]]
+            ];
+        }
+
+        $payload = [
+            'system_instruction' => [
+                'parts' => [['text' => $systemPrompt]]
+            ],
+            'contents' => $contentsArr,
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'maxOutputTokens' => 1000,
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json'
+        ])->post($url, $payload);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if (!empty($text)) {
+                return trim($text);
+            }
+        }
+
+        \Illuminate\Support\Facades\Log::error('Google Gemini API Response Error', ['body' => $response->body()]);
+        return null;
     }
 
     protected function getExistingChatHistory($contactUid)
