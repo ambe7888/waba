@@ -33,8 +33,7 @@
                     <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
                 </div>
                 <div class="col-md-12 mt-2">
-                    <input type="hidden" name="allow_vendors_to_use_system_openai_key" value="0">
-                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true)" :label="__tr('Autoriser les vendeurs à utiliser la clé IA du système (Sinon, les vendeurs doivent entrer leur propre clé API)')" />
+                    <x-lw.checkbox id="lwAllowVendorsToUseSystemOpenaiKey" name="allow_vendors_to_use_system_openai_key" value="1" data-size="small" :offValue="0" data-lw-plugin="lwSwitchery" :checked="getAppSettings('allow_vendors_to_use_system_openai_key', true)" :label="__tr('Autoriser les vendeurs à utiliser la clé IA du système (Sinon, les vendeurs doivent entrer leur propre clé API)')" />
                 </div>
             </div>
             <div class="mt-3">
