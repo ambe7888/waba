@@ -1139,6 +1139,61 @@
                                             return details.items.map(i => (i.name || 'Produit') + ' (x' + (i.quantity || 1) + ')').join(', ');
                                         }
                                         return 'Commande WhatsApp';
+                                    },
+                                    productsList: [],
+                                    isCreatingOrder: false,
+                                    showCreateOrderForm: false,
+                                    selectedProductId: '',
+                                    orderQty: 1,
+                                    orderCustomPrice: '',
+                                    orderAddress: '',
+                                    orderDate: '',
+                                    fetchProducts() {
+                                        if(this.productsList.length > 0) return;
+                                        var self = this;
+                                        __DataRequest.get('{{ route("vendor.ecommerce.products") }}', {}, function(response) {
+                                            if(response.reaction_code == 1 && response.data && response.data.products) {
+                                                self.productsList = response.data.products;
+                                            }
+                                        });
+                                    },
+                                    openCreateOrderForm() {
+                                        this.showCreateOrderForm = !this.showCreateOrderForm;
+                                        if(this.showCreateOrderForm) {
+                                            this.fetchProducts();
+                                        }
+                                    },
+                                    onProductChange() {
+                                        var p = this.productsList.find(item => item._id == this.selectedProductId || item._uid == this.selectedProductId);
+                                        if(p) {
+                                            this.orderCustomPrice = p.price;
+                                        }
+                                    },
+                                    saveManualOrder() {
+                                        var cUid = contact?._uid || contact?._id || contact?.wa_id;
+                                        if(!cUid || !this.selectedProductId) {
+                                            showErrorMessage('Veuillez sélectionner un produit.');
+                                            return;
+                                        }
+                                        this.isCreatingOrder = true;
+                                        var self = this;
+                                        __DataRequest.post('<?= route("vendor.ecommerce.orders.create_manual") ?>', {
+                                            contact_id: cUid,
+                                            product_id: this.selectedProductId,
+                                            quantity: this.orderQty,
+                                            custom_price: this.orderCustomPrice,
+                                            delivery_address: this.orderAddress,
+                                            delivery_date: this.orderDate
+                                        }, function(response) {
+                                            self.isCreatingOrder = false;
+                                            if(response.reaction_code == 1) {
+                                                showSuccessMessage(response.message || 'Commande créée avec succès !');
+                                                self.showCreateOrderForm = false;
+                                                self.fetchOrders();
+                                            } else {
+                                                showErrorMessage(response.message || 'Erreur de création.');
+                                            }
+                                        });
                                     }
                                 }" x-init="fetchOrders()" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchOrders()">
                                     <div class="lw-crm-section-header d-flex justify-content-between align-items-center mb-2">
@@ -1148,7 +1203,51 @@
                                         </button>
                                     </div>
 
-                                    <div x-show="ordersList.length === 0 && !isLoadingOrders" class="text-muted text-xs">
+                                    <!-- Quick Order Creation Button -->
+                                    <button type="button" class="btn btn-sm btn-block text-white font-weight-bold mb-3 shadow-sm" style="background: #10b981; border: none; border-radius: 8px;" @click="openCreateOrderForm()">
+                                        <i class="fas fa-plus-circle mr-1"></i> <span x-text="showCreateOrderForm ? '{{ __tr('Fermer Formulaire') }}' : '{{ __tr('+ Enregistrer une Commande') }}'"></span>
+                                    </button>
+
+                                    <!-- Inline Manual Order Form -->
+                                    <div x-show="showCreateOrderForm" class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1;" x-cloak>
+                                        <div class="font-weight-bold text-xs text-dark mb-2"><i class="fas fa-cart-plus text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Nouvelle Commande Vendeur') }}</div>
+                                        
+                                        <div class="form-group mb-2">
+                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Produit *') }}</label>
+                                            <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px;" x-model="selectedProductId" @change="onProductChange()">
+                                                <option value="">-- {{ __tr('Choisir Produit') }} --</option>
+                                                <template x-for="prod in productsList" :key="prod._id">
+                                                    <option :value="prod._id" x-text="prod.name + ' (' + Number(prod.price).toLocaleString() + ' CFA)'"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+
+                                        <div class="row no-gutters mb-2" style="gap: 5px;">
+                                            <div class="col">
+                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Qté *') }}</label>
+                                                <input type="number" min="1" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px;" x-model="orderQty">
+                                            </div>
+                                            <div class="col">
+                                                <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Prix (CFA)') }}</label>
+                                                <input type="number" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px;" x-model="orderCustomPrice">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group mb-2">
+                                            <label class="text-xs font-weight-bold text-dark mb-1">{{ __tr('Adresse Livraison') }}</label>
+                                            <input type="text" class="form-control form-control-sm text-xs custom-input-white" style="border-radius: 6px;" x-model="orderAddress" placeholder="ex: Cocody">
+                                        </div>
+
+                                        <div class="d-flex justify-content-end" style="gap: 5px;">
+                                            <button type="button" class="btn btn-sm btn-light text-xs font-weight-bold" style="border-radius: 6px;" @click="showCreateOrderForm = false">{{ __tr('Annuler') }}</button>
+                                            <button type="button" class="btn btn-sm btn-emerald text-white text-xs font-weight-bold" style="background: #10b981; border: none; border-radius: 6px;" @click="saveManualOrder()" :disabled="isCreatingOrder">
+                                                <span x-show="!isCreatingOrder"><i class="fas fa-check mr-1"></i> {{ __tr('Créer') }}</span>
+                                                <span x-show="isCreatingOrder"><i class="fas fa-spinner fa-spin"></i></span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div x-show="ordersList.length === 0 && !isLoadingOrders && !showCreateOrderForm" class="text-muted text-xs">
                                         {{ __tr('Aucune commande enregistrée pour ce client.') }}
                                     </div>
 
@@ -1190,7 +1289,7 @@
                                             </div>
                                         </template>
                                     </div>
-                                </div>
+                                </div>              </div>
                                 @endif
 
                                 {{-- Additional Links and buttons Card --}}
