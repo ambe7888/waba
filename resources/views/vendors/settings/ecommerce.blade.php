@@ -8,7 +8,7 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->where('vendors__id', $vendorId)
     ->latest()
     ->get();
-$activeIntegration = getVendorSettings('ecommerce_integration') ?: 'none';
+$activeIntegration = getVendorSettings('ecommerce_integration') ?: 'manual';
 
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
 $isWooCommerceConnected = !empty(getVendorSettings('woocommerce_shop_url')) && !empty(getVendorSettings('woocommerce_consumer_key')) && !empty(getVendorSettings('woocommerce_consumer_secret'));
@@ -90,7 +90,7 @@ $isManualConnected = true;
 
 <div class="container-fluid pb-5" x-data="{
     mainTab: 'products',
-    integration: '{{ getVendorSettings('ecommerce_integration') ?: 'none' }}',
+    integration: '{{ getVendorSettings('ecommerce_integration') ?: 'manual' }}',
     isSyncing: false,
     syncMessage: '',
     manualTab: 'add',
@@ -256,7 +256,7 @@ $isManualConnected = true;
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('E-Commerce et Gestion du Catalogue') }}</h1>
-            <p class="text-muted small mb-0">{{ __tr('Gérez votre catalogue produits, recevez et traitez vos commandes directement depuis WhatsApp') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Configurez vos canaux de vente (Shopify, WooCommerce, Meta, Manuel) et suivez vos commandes WhatsApp') }}</p>
         </div>
     </div>
 
@@ -297,7 +297,7 @@ $isManualConnected = true;
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Canal Actif') }}</small>
-                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Désactivé') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : integration)"></h5>
+                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Manuel') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : integration)"></h5>
                     </div>
                     <div class="icon-circle bg-light text-warning p-3 rounded-circle">
                         <i class="fa fa-network-wired fa-lg"></i>
@@ -310,8 +310,8 @@ $isManualConnected = true;
             <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; background: #ffffff;">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Intégration') }}</small>
-                        <span class="badge px-3 py-1 font-weight-bold" :class="integration !== 'none' ? 'badge-success' : 'badge-secondary'" style="border-radius: 12px;" x-text="integration !== 'none' ? '{{ __tr('Actif') }}' : '{{ __tr('Inactif') }}'"></span>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Statut Intégration') }}</small>
+                        <span class="badge badge-success px-3 py-1 font-weight-bold" style="border-radius: 12px;">{{ __tr('Actif') }}</span>
                     </div>
                     <div class="icon-circle bg-light text-info p-3 rounded-circle">
                         <i class="fa fa-toggle-on fa-lg"></i>
@@ -321,7 +321,284 @@ $isManualConnected = true;
         </div>
     </div>
 
-    <!-- Navigation Pills Header -->
+    <!-- SECTION 1: PLATFORM INTEGRATION SELECTION (ALWAYS VISIBLE AT TOP) -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+            <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-plug text-emerald mr-2"></i>{{ __tr('Configuration des Canaux & Plateformes E-Commerce') }}</h5>
+            <p class="text-muted small mb-0">{{ __tr('Cliquez sur une plateforme ci-dessous pour saisir vos paramètres d\'intégration et synchroniser vos produits') }}</p>
+        </div>
+
+        <div class="card-body p-4">
+            <!-- Platform Selection Cards -->
+            <div class="row mb-3">
+                <!-- Shopify Card -->
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="platform-card-pro" :class="[
+                        integration === 'shopify' ? 'selected-shopify' : '',
+                        {{ $isShopifyConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
+                    ]" @click="integration = 'shopify'">
+                        <template x-if="integration === 'shopify'">
+                            <div class="selected-badge"><i class="fa fa-check"></i></div>
+                        </template>
+                        <i class="fab fa-shopify mb-2 text-success" style="font-size: 2.8rem; color: #96bf48 !important;"></i>
+                        <h5 class="font-weight-bold mb-1 text-dark">Shopify</h5>
+                        <p class="text-xs text-muted mb-0">{{ __tr('Boutique Shopify') }}</p>
+                        @if($isShopifyConnected)
+                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- WooCommerce Card -->
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="platform-card-pro" :class="[
+                        integration === 'woocommerce' ? 'selected-woocommerce' : '',
+                        {{ $isWooCommerceConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
+                    ]" @click="integration = 'woocommerce'">
+                        <template x-if="integration === 'woocommerce'">
+                            <div class="selected-badge"><i class="fa fa-check"></i></div>
+                        </template>
+                        <i class="fab fa-wordpress mb-2" style="font-size: 2.8rem; color: #7f54b3 !important;"></i>
+                        <h5 class="font-weight-bold mb-1 text-dark">WooCommerce</h5>
+                        <p class="text-xs text-muted mb-0">{{ __tr('WordPress / WooCommerce') }}</p>
+                        @if($isWooCommerceConnected)
+                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- WhatsApp Catalog Card -->
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="platform-card-pro" :class="[
+                        integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
+                        {{ $isWhatsAppCatalogConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
+                    ]" @click="integration = 'whatsapp_catalog'">
+                        <template x-if="integration === 'whatsapp_catalog'">
+                            <div class="selected-badge"><i class="fa fa-check"></i></div>
+                        </template>
+                        <i class="fab fa-whatsapp mb-2 text-emerald" style="font-size: 2.8rem; color: #10b981 !important;"></i>
+                        <h5 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue Meta') }}</h5>
+                        <p class="text-xs text-muted mb-0">{{ __tr('WhatsApp Cloud Catalog') }}</p>
+                        @if($isWhatsAppCatalogConnected)
+                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Manual Card -->
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="platform-card-pro" :class="[
+                        integration === 'manual' ? 'selected-manual' : '',
+                        {{ $isManualConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
+                    ]" @click="integration = 'manual'">
+                        <template x-if="integration === 'manual'">
+                            <div class="selected-badge"><i class="fa fa-check"></i></div>
+                        </template>
+                        <i class="fa fa-edit mb-2 text-info" style="font-size: 2.8rem;"></i>
+                        <h5 class="font-weight-bold mb-1 text-dark">{{ __tr('Manuel / Excel') }}</h5>
+                        <p class="text-xs text-muted mb-0">{{ __tr('Création directe ou CSV') }}</p>
+                        @if($isManualConnected)
+                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Actif') }}</span></div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC PARAMETERS FORM PANEL (VISIBLE ON PLATFORM SELECTION) -->
+            <div class="border rounded-lg p-4 bg-light" style="border-radius: 14px;">
+                
+                <!-- Main Form for saving settings (Shopify / WooCommerce / WhatsApp) -->
+                <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
+                    <input type="hidden" name="pageType" value="internals">
+                    <input type="hidden" name="ecommerce_integration" :value="integration">
+
+                    <!-- Shopify Config Parameters -->
+                    <div x-show="integration === 'shopify'" x-cloak>
+                        <h6 class="font-weight-bold text-dark mb-3"><i class="fab fa-shopify mr-2 text-success"></i> {{ __tr('Paramètres d\'intégration Shopify') }}</h6>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="shopify_shop_url">{{ __tr('URL de votre boutique Shopify (subdomain.myshopify.com)') }}</label>
+                            <input type="text" class="form-control form-control-lg p-3 bg-white" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="ex: maboutique.myshopify.com" style="border-radius: 10px;">
+                            <small class="form-text text-muted mt-1">{{ __tr('Saisissez le sous-domaine .myshopify.com de votre boutique Shopify.') }}</small>
+                        </div>
+                    </div>
+
+                    <!-- WooCommerce Config Parameters -->
+                    <div x-show="integration === 'woocommerce'" x-cloak>
+                        <h6 class="font-weight-bold text-dark mb-3"><i class="fab fa-wordpress mr-2" style="color: #7f54b3;"></i> {{ __tr('Paramètres d\'intégration WooCommerce') }}</h6>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="woocommerce_shop_url">{{ __tr('URL de votre boutique WooCommerce') }}</label>
+                            <input type="text" class="form-control form-control-lg p-3 bg-white" id="woocommerce_shop_url" value="{{ getVendorSettings('woocommerce_shop_url') }}" name="woocommerce_shop_url" placeholder="ex: https://maboutique-wordpress.com" style="border-radius: 10px;">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_key">{{ __tr('WooCommerce Consumer Key') }}</label>
+                                <input type="text" class="form-control p-3 bg-white" id="woocommerce_consumer_key" value="{{ getVendorSettings('woocommerce_consumer_key') }}" name="woocommerce_consumer_key" placeholder="ck_..." style="border-radius: 10px;">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_secret">{{ __tr('WooCommerce Consumer Secret') }}</label>
+                                <input type="password" class="form-control p-3 bg-white" id="woocommerce_consumer_secret" value="{{ getVendorSettings('woocommerce_consumer_secret') }}" name="woocommerce_consumer_secret" placeholder="cs_..." style="border-radius: 10px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Catalog Config Parameters -->
+                    <div x-show="integration === 'whatsapp_catalog'" x-cloak>
+                        <h6 class="font-weight-bold text-dark mb-3"><i class="fab fa-whatsapp mr-2 text-emerald"></i> {{ __tr('Paramètres du Catalogue WhatsApp Meta') }}</h6>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="whatsapp_catalog_id">{{ __tr('ID du Catalogue WhatsApp Meta') }}</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg p-3 bg-white" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="ex: 128392193892182" style="border-radius: 10px 0 0 10px;">
+                                <div class="input-group-append">
+                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4" style="background: #10b981; border-radius: 0 10px 10px 0;" :disabled="isDetectingCatalog">
+                                        <span x-show="!isDetectingCatalog"><i class="fa fa-magic mr-1"></i> {{ __tr('Détecter depuis Meta') }}</span>
+                                        <span x-show="isDetectingCatalog"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted mt-1">{{ __tr('Renseignez l\'identifiant de votre catalogue Meta Business Manager ou cliquez pour le récupérer.') }}</small>
+
+                            <!-- Meta Catalogs List Selector -->
+                            <div x-show="showCatalogList" class="mt-3 border rounded p-3 bg-white" style="border-radius: 10px;" x-cloak>
+                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list mr-1 text-emerald"></i> {{ __tr('Catalogues trouvés sur votre compte Facebook :') }}</h6>
+                                <div class="list-group">
+                                    <template x-for="cat in metaCatalogs" :key="cat.id">
+                                        <button type="button" @click="selectCatalog(cat.id)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
+                                            <div>
+                                                <span class="font-weight-bold text-dark text-sm" x-text="cat.name"></span>
+                                                <div class="text-xs text-muted">ID: <span class="text-monospace" x-text="cat.id"></span></div>
+                                            </div>
+                                            <span class="badge badge-success px-3 py-1 text-xs" style="border-radius: 12px;"><i class="fa fa-check mr-1"></i> {{ __tr('Sélectionner') }}</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons for platforms -->
+                    <div class="form-group mt-4 mb-0">
+                        <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                            <i class="fa fa-save mr-1"></i> {{ __tr('Sauvegarder les paramètres') }}
+                        </button>
+                        
+                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog'" x-cloak>
+                            <button type="button" @click="syncProducts()" class="btn btn-success font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;" :disabled="isSyncing">
+                                <span x-show="!isSyncing"><i class="fa fa-sync mr-1"></i> {{ __tr('Synchroniser les produits') }}</span>
+                                <span x-show="isSyncing"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Synchronisation...') }}</span>
+                            </button>
+                            
+                            <button type="button" @click="clearProducts(integration)" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
+                                <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider cette source') }}
+                            </button>
+                        </span>
+                    </div>
+                </form>
+
+                <!-- Local Manual / Excel Catalog Panel -->
+                <div x-show="integration === 'manual'" x-cloak>
+                    <!-- Sub-Tabs -->
+                    <div class="d-flex border-bottom mb-4">
+                        <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-2" :class="manualTab === 'add' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
+                            <i class="fa fa-plus-circle mr-2"></i> {{ __tr('Créer un Produit Manuellement') }}
+                        </button>
+                        <button type="button" @click="manualTab = 'import'" class="btn btn-link nav-link font-weight-bold px-4 py-2" :class="manualTab === 'import' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
+                            <i class="fa fa-file-excel mr-2"></i> {{ __tr('Importer un Fichier CSV / Excel') }}
+                        </button>
+                    </div>
+
+                    <!-- TAB: Add Product Form -->
+                    <div x-show="manualTab === 'add'">
+                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-3 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;" enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_name">{{ __tr('Nom du Produit *') }}</label>
+                                    <input type="text" class="form-control p-3" id="prod_name" name="name" required placeholder="{{ __tr('ex: Produit de soin Premium') }}" style="border-radius: 10px;">
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_price">{{ __tr('Prix (CFA) *') }}</label>
+                                    <input type="number" class="form-control p-3" id="prod_price" name="price" required placeholder="ex: 15000" style="border-radius: 10px;">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold text-dark" for="prod_desc">{{ __tr('Description') }}</label>
+                                <textarea class="form-control p-3" id="prod_desc" name="description" rows="2" placeholder="{{ __tr('Description courte du produit...') }}" style="border-radius: 10px;"></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_img_file">{{ __tr('Image du produit (Téléverser)') }}</label>
+                                    <input type="file" class="form-control-file" id="prod_img_file" name="image_file" accept="image/*">
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_img_url">{{ __tr('Ou URL d\'image externe') }}</label>
+                                    <input type="url" class="form-control p-3" id="prod_img_url" name="image_url" placeholder="https://exemple.com/image.jpg" style="border-radius: 10px;">
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold text-dark" for="prod_link">{{ __tr('Lien direct d\'achat / Détails') }}</label>
+                                <input type="url" class="form-control p-3" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/1" style="border-radius: 10px;">
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                                    <i class="fa fa-plus mr-1"></i> {{ __tr('Ajouter le produit au catalogue') }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- TAB: Import CSV -->
+                    <div x-show="manualTab === 'import'">
+                        <div class="p-3 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;">
+                            <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-file-csv text-emerald mr-1"></i> {{ __tr('Importer des produits en masse via CSV') }}</h6>
+                            
+                            <div class="bg-light p-3 border rounded mb-3" style="border-radius: 10px;">
+                                <h6 class="font-weight-bold text-dark mb-1"><i class="fa fa-info-circle text-info mr-1"></i> {{ __tr('En-têtes requis dans votre fichier CSV :') }}</h6>
+                                <p class="small text-muted mb-2"><code>name</code> (ou <code>nom</code>), <code>price</code> (ou <code>prix</code>), <code>description</code>, <code>image_url</code>, <code>direct_link</code> (ou <code>lien</code>).</p>
+                                <a href="data:text/csv;charset=utf-8,name,description,price,image_url,direct_link%0AExemple%20Produit,Description%20du%20produit%20ici,15000,https://example.com/image.jpg,https://example.com/buy" download="template_produits.csv" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                                    <i class="fa fa-download mr-1"></i> {{ __tr('Télécharger modèle CSV') }}
+                                </a>
+                            </div>
+
+                            <form id="importProductForm" @submit.prevent="submitImportForm()" enctype="multipart/form-data">
+                                <div class="form-group mb-3">
+                                    <input type="file" class="form-control-file" id="csv_file" name="file" accept=".csv,.txt" required>
+                                </div>
+
+                                <div class="form-group mb-0">
+                                    <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
+                                        <i class="fa fa-upload mr-1"></i> {{ __tr('Importer les produits') }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Hidden configuration field -->
+                    <form id="persistManualForm" class="lw-ajax-form lw-form d-none" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
+                        <input type="hidden" name="pageType" value="internals">
+                        <input type="hidden" name="ecommerce_integration" value="manual">
+                    </form>
+                    <div class="mt-3 pt-3 border-top d-flex align-items-center">
+                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-emerald font-weight-bold px-4 py-2 text-white shadow-sm" style="background: #10b981; border-radius: 8px;">
+                            <i class="fa fa-save mr-1"></i> {{ __tr('Activer le mode Manuel') }}
+                        </button>
+                        
+                        <button type="button" @click="clearProducts('manual')" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
+                            <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider les produits manuels') }}
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="syncMessage" class="alert mt-3 border-0 shadow-sm" style="background-color: #ecfdf5; color: #065f46; border-radius: 10px;" x-text="syncMessage" x-cloak></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SECTION 2: PRODUCTS CATALOG & CLIENT ORDERS TABS -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
         <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between">
             <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
@@ -332,15 +609,6 @@ $isManualConnected = true;
                     <i class="fa fa-shopping-bag mr-2"></i> {{ __tr('Commandes Client') }}
                     <span class="badge badge-light ml-1 font-weight-bold" x-text="allOrders.length"></span>
                 </button>
-                <button type="button" @click="mainTab = 'integrations'" class="nav-pill-tab" :class="mainTab === 'integrations' ? 'active' : ''">
-                    <i class="fa fa-plug mr-2"></i> {{ __tr('Intégrations et Canaux') }}
-                </button>
-            </div>
-            
-            <div class="mt-2 mt-md-0" x-show="mainTab === 'products'">
-                <button type="button" @click="mainTab = 'integrations'; manualTab = 'add'" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4 py-2" style="background: #10b981; border-radius: 10px;">
-                    <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Nouveau Produit') }}
-                </button>
             </div>
         </div>
     </div>
@@ -350,8 +618,8 @@ $isManualConnected = true;
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
             <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex flex-wrap align-items-center justify-content-between">
                 <div>
-                    <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Catalogue des Produits') }}</h5>
-                    <p class="text-muted small mb-0">{{ __tr('Recherchez et filtrez l\'ensemble des produits synchronisés ou ajoutés manuellement') }}</p>
+                    <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Tous les Produits du Catalogue') }}</h5>
+                    <p class="text-muted small mb-0">{{ __tr('Recherchez et filtrez l\'ensemble des produits de votre boutique') }}</p>
                 </div>
                 <div class="mt-2 mt-sm-0">
                     <button type="button" @click="clearProducts('all')" class="btn btn-outline-danger btn-sm font-weight-bold px-3 py-2" style="border-radius: 8px;">
@@ -555,294 +823,6 @@ $isManualConnected = true;
                         <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée pour le moment.') }}</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 3: INTEGRATIONS & CHANNELS -->
-    <div x-show="mainTab === 'integrations'" class="space-y-4">
-        <!-- Platform Selection Cards -->
-        <div class="row mb-4">
-            <!-- Shopify Card -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card-pro" :class="[
-                    integration === 'shopify' ? 'selected-shopify' : '',
-                    {{ $isShopifyConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
-                ]" @click="integration = 'shopify'">
-                    <template x-if="integration === 'shopify'">
-                        <div class="selected-badge"><i class="fa fa-check"></i></div>
-                    </template>
-                    <i class="fab fa-shopify mb-3 text-success" style="font-size: 3rem; color: #96bf48 !important;"></i>
-                    <h4 class="font-weight-bold mb-1 text-dark">Shopify</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Synchronisation anonyme sans clé API requise.') }}</p>
-                    @if($isShopifyConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- WooCommerce Card -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card-pro" :class="[
-                    integration === 'woocommerce' ? 'selected-woocommerce' : '',
-                    {{ $isWooCommerceConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
-                ]" @click="integration = 'woocommerce'">
-                    <template x-if="integration === 'woocommerce'">
-                        <div class="selected-badge"><i class="fa fa-check"></i></div>
-                    </template>
-                    <i class="fab fa-wordpress mb-3" style="font-size: 3rem; color: #7f54b3 !important;"></i>
-                    <h4 class="font-weight-bold mb-1 text-dark">WooCommerce</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Liaison via clés API Consumer Key / Secret.') }}</p>
-                    @if($isWooCommerceConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- WhatsApp Catalog Card -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card-pro" :class="[
-                    integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
-                    {{ $isWhatsAppCatalogConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
-                ]" @click="integration = 'whatsapp_catalog'">
-                    <template x-if="integration === 'whatsapp_catalog'">
-                        <div class="selected-badge"><i class="fa fa-check"></i></div>
-                    </template>
-                    <i class="fab fa-whatsapp mb-3 text-emerald" style="font-size: 3rem; color: #10b981 !important;"></i>
-                    <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue WhatsApp Meta') }}</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Liez l\'ID de votre catalogue Meta natif.') }}</p>
-                    @if($isWhatsAppCatalogConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Manual Card -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="platform-card-pro" :class="[
-                    integration === 'manual' ? 'selected-manual' : '',
-                    {{ $isManualConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
-                ]" @click="integration = 'manual'">
-                    <template x-if="integration === 'manual'">
-                        <div class="selected-badge"><i class="fa fa-check"></i></div>
-                    </template>
-                    <i class="fa fa-edit mb-3 text-info" style="font-size: 3rem;"></i>
-                    <h4 class="font-weight-bold mb-1 text-dark">{{ __tr('Manuel / Excel') }}</h4>
-                    <p class="text-xs text-muted mb-0">{{ __tr('Créez vos produits manuellement ou importez un CSV.') }}</p>
-                    @if($isManualConnected)
-                        <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <!-- Configuration Details Container -->
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
-                <h5 class="font-weight-bold text-dark mb-1">
-                    <span x-show="integration === 'shopify'"><i class="fab fa-shopify mr-2 text-success"></i> {{ __tr('Configuration Shopify') }}</span>
-                    <span x-show="integration === 'woocommerce'"><i class="fab fa-wordpress mr-2" style="color: #7f54b3;"></i> {{ __tr('Configuration WooCommerce') }}</span>
-                    <span x-show="integration === 'whatsapp_catalog'"><i class="fab fa-whatsapp mr-2 text-emerald"></i> {{ __tr('Configuration Catalogue WhatsApp Meta') }}</span>
-                    <span x-show="integration === 'manual'"><i class="fa fa-edit mr-2 text-info"></i> {{ __tr('Gestion du Catalogue Manuel et Import') }}</span>
-                    <span x-show="integration === 'none'"><i class="fa fa-cogs mr-2 text-muted"></i> {{ __tr('Intégration non configurée') }}</span>
-                </h5>
-            </div>
-            
-            <div class="card-body p-4">
-                
-                <!-- Main Form for saving settings (Shopify / WooCommerce / WhatsApp / None) -->
-                <form x-show="integration !== 'manual'" class="lw-ajax-form lw-form" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
-                    <input type="hidden" name="pageType" value="internals">
-                    <input type="hidden" name="ecommerce_integration" :value="integration">
-
-                    <!-- Shopify Config -->
-                    <div x-show="integration === 'shopify'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
-                        <div class="form-group mb-0">
-                            <label class="font-weight-bold text-dark" for="shopify_shop_url">{{ __tr('Shopify Shop URL') }}</label>
-                            <input type="text" class="form-control form-control-lg p-3" id="shopify_shop_url" value="{{ getVendorSettings('shopify_shop_url') }}" name="shopify_shop_url" placeholder="ex: maboutique.myshopify.com" style="border-radius: 10px;">
-                            <small class="form-text text-muted mt-2">{{ __tr('Saisissez l\'adresse .myshopify.com de votre boutique.') }}</small>
-                        </div>
-                    </div>
-
-                    <!-- WooCommerce Config -->
-                    <div x-show="integration === 'woocommerce'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold text-dark" for="woocommerce_shop_url">{{ __tr('WooCommerce Shop URL') }}</label>
-                            <input type="text" class="form-control form-control-lg p-3" id="woocommerce_shop_url" value="{{ getVendorSettings('woocommerce_shop_url') }}" name="woocommerce_shop_url" placeholder="ex: https://maboutique-wordpress.com" style="border-radius: 10px;">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 form-group">
-                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_key">{{ __tr('WooCommerce Consumer Key') }}</label>
-                                <input type="text" class="form-control p-3" id="woocommerce_consumer_key" value="{{ getVendorSettings('woocommerce_consumer_key') }}" name="woocommerce_consumer_key" placeholder="ck_..." style="border-radius: 10px;">
-                            </div>
-                            <div class="col-md-6 form-group">
-                                <label class="font-weight-bold text-dark" for="woocommerce_consumer_secret">{{ __tr('WooCommerce Consumer Secret') }}</label>
-                                <input type="password" class="form-control p-3" id="woocommerce_consumer_secret" value="{{ getVendorSettings('woocommerce_consumer_secret') }}" name="woocommerce_consumer_secret" placeholder="cs_..." style="border-radius: 10px;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- WhatsApp Catalog Config -->
-                    <div x-show="integration === 'whatsapp_catalog'" class="p-4 border rounded-lg bg-white mb-4" style="border-radius: 12px;" x-cloak>
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold text-dark" for="whatsapp_catalog_id">{{ __tr('ID du Catalogue WhatsApp Meta') }}</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control form-control-lg p-3" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="ex: 128392193892182" style="border-radius: 10px 0 0 10px;">
-                                <div class="input-group-append">
-                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4" style="background: #10b981; border-radius: 0 10px 10px 0;" :disabled="isDetectingCatalog">
-                                        <span x-show="!isDetectingCatalog"><i class="fa fa-magic mr-1"></i> {{ __tr('Détecter depuis Meta') }}</span>
-                                        <span x-show="isDetectingCatalog"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <small class="form-text text-muted mt-2">{{ __tr('Indiquez l\'ID de votre catalogue Facebook/WhatsApp Manager.') }}</small>
-
-                            <!-- Meta Catalogs List Selector -->
-                            <div x-show="showCatalogList" class="mt-3 border rounded p-3 bg-light" style="border-radius: 10px;" x-cloak>
-                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list mr-1 text-emerald"></i> {{ __tr('Catalogues détectés sur votre compte :') }}</h6>
-                                <div class="list-group">
-                                    <template x-for="cat in metaCatalogs" :key="cat.id">
-                                        <button type="button" @click="selectCatalog(cat.id)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
-                                            <div>
-                                                <span class="font-weight-bold text-dark text-sm" x-text="cat.name"></span>
-                                                <div class="text-xs text-muted">ID: <span class="text-monospace" x-text="cat.id"></span></div>
-                                            </div>
-                                            <span class="badge badge-success px-3 py-1 text-xs" style="border-radius: 12px;"><i class="fa fa-check mr-1"></i> {{ __tr('Sélectionner') }}</span>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action buttons for platforms -->
-                    <div class="form-group mt-4 mb-0">
-                        <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
-                            <i class="fa fa-save mr-1"></i> {{ __tr('Enregistrer la configuration') }}
-                        </button>
-                        
-                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog'" x-cloak>
-                            <button type="button" @click="syncProducts()" class="btn btn-success font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;" :disabled="isSyncing">
-                                <span x-show="!isSyncing"><i class="fa fa-sync mr-1"></i> {{ __tr('Synchroniser les produits') }}</span>
-                                <span x-show="isSyncing"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Synchronisation...') }}</span>
-                            </button>
-                            
-                            <button type="button" @click="clearProducts(integration)" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
-                                <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider les produits importés') }}
-                            </button>
-                        </span>
-                    </div>
-                </form>
-
-                <!-- Local Manual / Excel Catalog Panel -->
-                <div x-show="integration === 'manual'" x-cloak>
-                    <!-- Sub-Tabs -->
-                    <div class="d-flex border-bottom mb-4">
-                        <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'add' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
-                            <i class="fa fa-plus-circle mr-2"></i> {{ __tr('Créer un Produit') }}
-                        </button>
-                        <button type="button" @click="manualTab = 'import'" class="btn btn-link nav-link font-weight-bold px-4 py-3" :class="manualTab === 'import' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
-                            <i class="fa fa-file-excel mr-2"></i> {{ __tr('Importer un Fichier CSV / Excel') }}
-                        </button>
-                    </div>
-
-                    <!-- TAB: Add Product Form -->
-                    <div x-show="manualTab === 'add'">
-                        <form id="addProductForm" @submit.prevent="submitProductForm()" class="p-4 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;" enctype="multipart/form-data">
-                            <div class="row">
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold text-dark" for="prod_name">{{ __tr('Nom du Produit *') }}</label>
-                                    <input type="text" class="form-control p-3" id="prod_name" name="name" required placeholder="{{ __tr('ex: Produit de soin Premium') }}" style="border-radius: 10px;">
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold text-dark" for="prod_price">{{ __tr('Prix (CFA) *') }}</label>
-                                    <input type="number" class="form-control p-3" id="prod_price" name="price" required placeholder="ex: 15000" style="border-radius: 10px;">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group mb-3">
-                                <label class="font-weight-bold text-dark" for="prod_desc">{{ __tr('Description') }}</label>
-                                <textarea class="form-control p-3" id="prod_desc" name="description" rows="3" placeholder="{{ __tr('Description détaillée du produit...') }}" style="border-radius: 10px;"></textarea>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold text-dark" for="prod_img_file">{{ __tr('Image du produit (Téléverser)') }}</label>
-                                    <input type="file" class="form-control-file" id="prod_img_file" name="image_file" accept="image/*">
-                                    <small class="form-text text-muted mt-1">{{ __tr('Formats acceptés: PNG, JPG, WEBP. Max 5 Mo.') }}</small>
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold text-dark" for="prod_img_url">{{ __tr('Ou URL d\'image externe') }}</label>
-                                    <input type="url" class="form-control p-3" id="prod_img_url" name="image_url" placeholder="https://exemple.com/image.jpg" style="border-radius: 10px;">
-                                </div>
-                            </div>
-
-                            <div class="form-group mb-4">
-                                <label class="font-weight-bold text-dark" for="prod_link">{{ __tr('Lien direct d\'achat / Détails') }}</label>
-                                <input type="url" class="form-control p-3" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/1" style="border-radius: 10px;">
-                            </div>
-
-                            <div class="form-group mb-0">
-                                <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
-                                    <i class="fa fa-plus mr-1"></i> {{ __tr('Enregistrer le produit') }}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- TAB: Import CSV -->
-                    <div x-show="manualTab === 'import'">
-                        <div class="p-4 border rounded-lg bg-white shadow-sm" style="border-radius: 12px;">
-                            <h5 class="font-weight-bold text-dark mb-2"><i class="fa fa-file-csv text-emerald mr-1"></i> {{ __tr('Importer des produits en masse') }}</h5>
-                            <p class="text-muted small mb-4">{{ __tr('Téléversez votre fichier CSV contenant vos produits pour les intégrer au catalogue en 1 clic.') }}</p>
-
-                            <div class="bg-light p-3 border rounded mb-4" style="border-radius: 10px;">
-                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-info-circle text-info mr-1"></i> {{ __tr('En-têtes requis dans le fichier CSV :') }}</h6>
-                                <ul class="small text-muted mb-3 pl-3">
-                                    <li><code>name</code> (ou <code>nom</code>) : Nom du produit *(Obligatoire)*</li>
-                                    <li><code>price</code> (ou <code>prix</code>) : Prix du produit (ex: 15000)</li>
-                                    <li><code>description</code> : Description textuelle</li>
-                                    <li><code>image_url</code> : URL complète de l'image du produit</li>
-                                    <li><code>direct_link</code> (ou <code>lien</code>) : Lien d'achat direct</li>
-                                </ul>
-
-                                <a href="data:text/csv;charset=utf-8,name,description,price,image_url,direct_link%0AExemple%20Produit,Description%20du%20produit%20ici,15000,https://example.com/image.jpg,https://example.com/buy" download="template_produits.csv" class="btn btn-sm btn-outline-emerald font-weight-bold shadow-sm" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
-                                    <i class="fa fa-download mr-1"></i> {{ __tr('Télécharger le modèle CSV') }}
-                                </a>
-                            </div>
-
-                            <form id="importProductForm" @submit.prevent="submitImportForm()" enctype="multipart/form-data">
-                                <div class="form-group mb-4">
-                                    <label class="font-weight-bold text-dark" for="csv_file">{{ __tr('Fichier CSV *') }}</label>
-                                    <input type="file" class="form-control-file" id="csv_file" name="file" accept=".csv,.txt" required>
-                                </div>
-
-                                <div class="form-group mb-0">
-                                    <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
-                                        <i class="fa fa-upload mr-1"></i> {{ __tr('Lancer l\'importation') }}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Hidden configuration field -->
-                    <form id="persistManualForm" class="lw-ajax-form lw-form d-none" method="post" action="<?= route('vendor.settings.write.update', ['pageType' => 'internals']) ?>">
-                        <input type="hidden" name="pageType" value="internals">
-                        <input type="hidden" name="ecommerce_integration" value="manual">
-                    </form>
-                    <div class="mt-4 pt-3 border-top d-flex align-items-center">
-                        <button type="button" @click="document.getElementById('persistManualForm').querySelector('button[type=submit] || input[type=submit]').click() || __DataRequest.post('{{ route('vendor.settings.write.update', ['pageType' => 'internals']) }}', {ecommerce_integration: 'manual', pageType: 'internals'}, function(response) { if(response.reaction_code==1){ showSuccessMessage('Mode Manuel sauvegardé.'); } });" class="btn btn-emerald font-weight-bold px-4 py-2 text-white shadow-sm" style="background: #10b981; border-radius: 8px;">
-                            <i class="fa fa-save mr-1"></i> {{ __tr('Activer le mode Manuel / Excel') }}
-                        </button>
-                        
-                        <button type="button" @click="clearProducts('manual')" class="btn btn-outline-danger font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;">
-                            <i class="fa fa-trash-alt mr-1"></i> {{ __tr('Vider les produits manuels') }}
-                        </button>
-                    </div>
-                </div>
-
-                <div x-show="syncMessage" class="alert mt-3 border-0 shadow-sm" style="background-color: #ecfdf5; color: #065f46; border-radius: 10px;" x-text="syncMessage" x-cloak></div>
             </div>
         </div>
     </div>
