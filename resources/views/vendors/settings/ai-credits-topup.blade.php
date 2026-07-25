@@ -52,7 +52,7 @@
                         <div class="col-md-4 text-md-right">
                             <div class="p-3 rounded text-white" style="background: rgba(0,0,0,0.15); border-radius: 12px !important;">
                                 <small class="d-block text-white-50 font-weight-bold mb-1">{{ __tr('Consommation IA') }}</small>
-                                <span class="small">{{ __tr('1 réponse du bot IA = 1 crédit consommés') }}</span>
+                                <span class="small">{{ __tr('Décompte dynamique basé sur les jetons consommés (Google Gemini 1.5 Flash / OpenAI)') }}</span>
                             </div>
                         </div>
                     </div>
@@ -68,18 +68,18 @@
             <p class="text-muted small mb-0">{{ __tr('Cliquez sur un pack pour le sélectionner et validez votre paiement') }}</p>
         </div>
         
-        <div class="card-body p-4" x-data="{ selectedAmount: '3000', selectedCredits: '5000' }">
+        <div class="card-body p-4" x-data="{ selectedAmount: '10', selectedCredits: '700' }">
             <div class="row">
                 
-                <!-- Starter Pack -->
+                <!-- Starter Pack ($5 - 300 Credits) -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100 position-relative transition-all"
-                         @click="selectedAmount = '1000'; selectedCredits = '1000'"
-                         :style="selectedAmount == '1000' 
+                         @click="selectedAmount = '5'; selectedCredits = '300'"
+                         :style="selectedAmount == '5' 
                             ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
                             : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
                         
-                        <div x-show="selectedAmount == '1000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                        <div x-show="selectedAmount == '5'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
                             <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
                                 <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
                             </span>
@@ -90,16 +90,16 @@
                                 <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #f1f5f9; color: #475569; border-radius: 8px;">
                                     {{ __tr('Pack Starter') }}
                                 </span>
-                                <h3 class="font-weight-bold text-dark mb-1">1,000</h3>
+                                <h3 class="font-weight-bold text-dark mb-1">300</h3>
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
                                 <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
-                                    {{ formatAmount(1000, true) }}
+                                    $5
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
-                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_1000" value="1000" x-model="selectedAmount">
-                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_1000">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_5" value="5" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_5">
                                         {{ __tr('Sélectionner ce pack') }}
                                     </label>
                                 </div>
@@ -108,11 +108,11 @@
                     </div>
                 </div>
 
-                <!-- Pro Pack (Populaire) -->
+                <!-- Pro Pack ($10 - 700 Credits - Populaire) -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100 position-relative transition-all"
-                         @click="selectedAmount = '3000'; selectedCredits = '5000'"
-                         :style="selectedAmount == '3000' 
+                         @click="selectedAmount = '10'; selectedCredits = '700'"
+                         :style="selectedAmount == '10' 
                             ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
                             : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
                         
@@ -123,7 +123,7 @@
                             </span>
                         </div>
 
-                        <div x-show="selectedAmount == '3000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                        <div x-show="selectedAmount == '10'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
                             <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
                                 <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
                             </span>
@@ -134,16 +134,16 @@
                                 <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #ecfdf5; color: #047857; border-radius: 8px;">
                                     {{ __tr('Pack Pro') }}
                                 </span>
-                                <h3 class="font-weight-bold text-dark mb-1">5,000</h3>
+                                <h3 class="font-weight-bold text-dark mb-1">700</h3>
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
                                 <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
-                                    {{ formatAmount(3000, true) }}
+                                    $10
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
-                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_3000" value="3000" x-model="selectedAmount">
-                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_3000">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_10" value="10" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_10">
                                         {{ __tr('Sélectionner ce pack') }}
                                     </label>
                                 </div>
@@ -152,15 +152,15 @@
                     </div>
                 </div>
 
-                <!-- Elite Pack -->
+                <!-- Elite Pack ($20 - 1,500 Credits) -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100 position-relative transition-all"
-                         @click="selectedAmount = '5000'; selectedCredits = '10000'"
-                         :style="selectedAmount == '5000' 
+                         @click="selectedAmount = '20'; selectedCredits = '1500'"
+                         :style="selectedAmount == '20' 
                             ? 'border: 2px solid #10b981 !important; background-color: #f0fdf4; cursor: pointer; border-radius: 16px; transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);' 
                             : 'border: 1px solid #e2e8f0; background-color: #ffffff; cursor: pointer; border-radius: 16px; transition: all 0.2s ease;'">
                         
-                        <div x-show="selectedAmount == '5000'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
+                        <div x-show="selectedAmount == '20'" class="position-absolute" style="top: -12px; right: 20px; z-index: 10;">
                             <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm" style="border-radius: 20px; font-size: 0.78rem; background-color: #10b981;">
                                 <i class="fa fa-check-circle mr-1"></i> {{ __tr('Sélectionné') }}
                             </span>
@@ -171,16 +171,16 @@
                                 <span class="badge px-3 py-1 font-weight-bold text-uppercase mb-3" style="background: #f1f5f9; color: #475569; border-radius: 8px;">
                                     {{ __tr('Pack Élite') }}
                                 </span>
-                                <h3 class="font-weight-bold text-dark mb-1">10,000</h3>
+                                <h3 class="font-weight-bold text-dark mb-1">1,500</h3>
                                 <p class="text-muted small mb-3">{{ __tr('Crédits IA') }}</p>
                             </div>
                             <div>
                                 <div class="h2 font-weight-bold text-emerald mb-3" style="color: #059669;">
-                                    {{ formatAmount(5000, true) }}
+                                    $20
                                 </div>
                                 <div class="form-check custom-radio d-inline-block">
-                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_5000" value="5000" x-model="selectedAmount">
-                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_5000">
+                                    <input type="radio" class="form-check-input" name="pack_option" id="pack_20" value="20" x-model="selectedAmount">
+                                    <label class="form-check-label font-weight-bold text-muted small" style="cursor: pointer;" for="pack_20">
                                         {{ __tr('Sélectionner ce pack') }}
                                     </label>
                                 </div>
