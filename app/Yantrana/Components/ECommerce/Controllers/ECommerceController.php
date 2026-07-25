@@ -435,4 +435,63 @@ class ECommerceController extends BaseController
             'message' => __tr('Commande supprimée avec succès.')
         ]);
     }
+
+    /**
+     * Get Orders for a specific Contact (used in Live Chat CRM)
+     */
+    public function getContactOrders($contactUid)
+    {
+        $vendorId = getVendorId();
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
+            'vendors__id' => $vendorId,
+            '_uid' => $contactUid
+        ])->first();
+
+        if (empty($contact)) {
+            return $this->processResponse(2, [], ['orders' => []]);
+        }
+
+        $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id
+        ])->latest()->get();
+
+        return $this->processResponse(1, [], [
+            'orders' => $orders
+        ]);
+    }
+
+    /**
+     * Create Test Order for testing notifications and order flow
+     */
+    public function createTestOrder(Request $request)
+    {
+        $vendorId = getVendorId();
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->first();
+        
+        if (empty($contact)) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Veuillez ajouter au moins un contact WhatsApp pour créer une commande de test.')
+            ]);
+        }
+
+        $testDetails = [
+            'catalog_id' => 'TEST_CATALOG_' . rand(1000, 9999),
+            'items' => [
+                ['name' => 'Produit de Test WhatsApp', 'quantity' => 1, 'price' => 15000, 'currency' => 'CFA']
+            ]
+        ];
+
+        $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+            '_uid' => (string) \Illuminate\Support\Str::uuid(),
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id,
+            'order_details' => $testDetails,
+            'status' => 'validated',
+        ]);
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Commande de test créée (#__uid__). Recharchez la page pour voir la notification.', ['__uid__' => substr($newOrder->_uid, 0, 8)])
+        ]);
+    }
 }

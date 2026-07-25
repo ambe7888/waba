@@ -1170,6 +1170,16 @@ Route::middleware([
                 'deleteOrder',
             ])->name('vendor.ecommerce.orders.delete');
 
+            Route::get('/ecommerce/orders/contact/{contactUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'getContactOrders',
+            ])->name('vendor.ecommerce.contact_orders');
+
+            Route::post('/ecommerce/orders/create-test-order', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'createTestOrder',
+            ])->name('vendor.ecommerce.test_order');
+
             Route::post('/disconnect-account', [
                 WhatsAppServiceController::class,
                 'disconnectAccount',

@@ -77,6 +77,17 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
             });
         }
     },
+    createTestOrder() {
+        var self = this;
+        __DataRequest.post('{{ route("vendor.ecommerce.test_order") }}', {}, function(response) {
+            if (response.reaction_code == 1) {
+                showSuccessMessage(response.message);
+                setTimeout(() => { window.location.reload(); }, 1000);
+            } else {
+                showErrorMessage(response.message || 'Erreur lors de la création.');
+            }
+        });
+    },
     viewOrderDetails(order) {
         this.selectedOrder = order;
         $('#orderDetailsModal').modal('show');
@@ -89,7 +100,10 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
             <p class="text-muted small mb-0">{{ __tr('Suivez, mettez à jour et gérez l\'ensemble des commandes reçues depuis votre catalogue WhatsApp') }}</p>
         </div>
-        <div class="mt-2 mt-sm-0">
+        <div class="mt-2 mt-sm-0 d-flex" style="gap: 8px;">
+            <button type="button" @click="createTestOrder()" class="btn btn-warning font-weight-bold px-3 py-2 text-dark shadow-sm" style="border-radius: 10px;">
+                <i class="fa fa-vial mr-1"></i> {{ __tr('Tester une commande') }}
+            </button>
             <a href="<?= route('vendor.settings.read', ['pageType' => 'ecommerce']) ?>" class="btn btn-outline-emerald font-weight-bold px-4 py-2" style="border-radius: 10px; color: #10b981; border-color: #10b981;">
                 <i class="fa fa-boxes mr-1"></i> {{ __tr('Gérer le Catalogue') }}
             </a>

@@ -1085,6 +1085,81 @@
                                     </x-lw.form>
                                 </div>
 
+                                <!-- Client Orders Card inside WhatsApp Chat CRM Sidebar -->
+                                @if(vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                                <div class="lw-crm-card" x-data="{
+                                    ordersList: [],
+                                    isLoadingOrders: false,
+                                    fetchOrders() {
+                                        if(!contact?._uid) return;
+                                        this.isLoadingOrders = true;
+                                        var self = this;
+                                        __DataRequest.get('{{ route('vendor.ecommerce.contact_orders', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', contact._uid), {}, function(response) {
+                                            self.isLoadingOrders = false;
+                                            if(response.reaction_code == 1) {
+                                                self.ordersList = response.data.orders;
+                                            }
+                                        });
+                                    },
+                                    updateStatus(orderUid, newStatus) {
+                                        var self = this;
+                                        __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
+                                            if (response.reaction_code == 1) {
+                                                showSuccessMessage(response.message);
+                                                var ord = self.ordersList.find(o => o._uid === orderUid);
+                                                if(ord) ord.status = newStatus;
+                                            } else {
+                                                showErrorMessage(response.message || 'Erreur de mise à jour.');
+                                            }
+                                        });
+                                    }
+                                }" x-init="fetchOrders()" x-effect="if(contact?._uid) fetchOrders()">
+                                    <div class="lw-crm-section-header d-flex justify-content-between align-items-center mb-2">
+                                        <span><i class="fas fa-shopping-bag text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Commandes du client') }}</span>
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="fetchOrders()" title="{{ __tr('Rafraîchir') }}">
+                                            <i class="fas fa-sync-alt" :class="isLoadingOrders ? 'fa-spin' : ''"></i>
+                                        </button>
+                                    </div>
+
+                                    <div x-show="ordersList.length === 0 && !isLoadingOrders" class="text-muted text-xs">
+                                        {{ __tr('Aucune commande enregistrée pour ce client.') }}
+                                    </div>
+
+                                    <div x-show="ordersList.length > 0" class="space-y-2">
+                                        <template x-for="ord in ordersList" :key="ord._uid">
+                                            <div class="p-2 border rounded mb-2" style="border-radius: 8px; background: #ffffff;">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
+                                                    <span class="badge text-white" 
+                                                          :class="{
+                                                              'bg-success': ord.status === 'delivered',
+                                                              'bg-info': ord.status === 'shipped' || ord.status === 'processing',
+                                                              'bg-primary': ord.status === 'confirmed',
+                                                              'bg-warning text-dark': ord.status === 'validated',
+                                                              'bg-danger': ord.status === 'cancelled'
+                                                          }"
+                                                          style="font-size: 0.65rem; border-radius: 12px;"
+                                                          x-text="ord.status === 'delivered' ? 'Livrée' : (ord.status === 'shipped' ? 'En livraison' : (ord.status === 'confirmed' ? 'Confirmée' : (ord.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))">
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs text-muted mb-2" x-text="new Date(ord.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})"></div>
+
+                                                <div class="form-group mb-0">
+                                                    <select class="form-control form-control-sm text-xs font-weight-bold" style="border-radius: 6px; height: 28px; padding: 2px 6px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
+                                                        <option value="validated">Nouvelle</option>
+                                                        <option value="confirmed">Confirmer</option>
+                                                        <option value="processing">En préparation</option>
+                                                        <option value="shipped">En livraison</option>
+                                                        <option value="delivered">Livrée</option>
+                                                        <option value="cancelled">Annuler</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                @endif
+
                                 {{-- Additional Links and buttons Card --}}
                                 @if ($__env->yieldPushContent('chatRightSidebarAdditionalLinksAndButtons'))
                                 <div class="lw-crm-card">
