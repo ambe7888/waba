@@ -158,6 +158,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
         }
     },
     submitManualOrder() {
+        if (this.isSavingManualOrder) return;
         if (!this.newOrderContactId || !this.newOrderProductId) {
             showErrorMessage('Veuillez sélectionner un client et un produit.');
             return;
@@ -467,7 +468,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 
     <!-- MODAL 1: CREATE MANUAL ORDER BY VENDOR -->
     <div class="modal fade" id="createManualOrderModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
-        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
                 <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
                     <h5 class="modal-title font-weight-bold text-white"><i class="fa fa-cart-plus mr-2"></i> {{ __tr('Enregistrer une Commande Client (Vendeur)') }}</h5>
@@ -533,7 +534,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 
     <!-- MODAL 2: ORDER DETAILS & PRINTABLE RECEIPT MODAL -->
     <div class="modal fade" id="orderDetailsModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
-        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
                 <!-- Modal Header -->
                 <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">

@@ -1097,8 +1097,10 @@
                                         var self = this;
                                         __DataRequest.get('{{ route('vendor.ecommerce.contact_orders', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function(response) {
                                             self.isLoadingOrders = false;
-                                            if(response.reaction_code == 1) {
-                                                self.ordersList = response.data.orders || [];
+                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            if (isSuccess) {
+                                                var rawOrders = (response.data && response.data.orders) ? response.data.orders : (response.orders || []);
+                                                self.ordersList = Array.isArray(rawOrders) ? rawOrders : [];
                                             }
                                         });
                                     },
@@ -1188,6 +1190,7 @@
                                         return this.productsList.find(item => item._id == this.selectedProductId || item._uid == this.selectedProductId);
                                     },
                                     saveManualOrder() {
+                                        if (this.isCreatingOrder) return;
                                         var cUid = contact?._uid || contact?._id || contact?.wa_id;
                                         if(!cUid || !this.selectedProductId) {
                                             showErrorMessage('Veuillez sélectionner un produit.');
