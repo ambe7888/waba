@@ -75,7 +75,7 @@ if (! function_exists('getUserAuthInfo')) {
                         ? $itemOrStatusCode : 10, // 10 is Authenticated
                     'id' => $user->_id,
                     'uuid' => $user->_uid,
-                    'role_id' => $user->role->_id,
+                    'role_id' => $user->role->_id ?? $user->user_roles__id ?? 2,
                     'role_title' => $user->role->title ?? '',
                     'vendor_id' => $vendorId,
                     'vendor_created_at' => $user->created_at ?? null,
