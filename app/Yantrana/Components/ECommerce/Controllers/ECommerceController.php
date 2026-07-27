@@ -559,25 +559,14 @@ class ECommerceController extends BaseController
         ];
 
         $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-            '_uid' => (string) \Illuminate\Support\Str::uuid(),
             'vendors__id' => $vendorId,
             'contacts__id' => $contact->_id,
             'order_details' => $orderDetails,
             'status' => 'validated',
         ]);
 
-        $noteEntry = "\n[📦 Commande Vendeur (" . $vendorName . ") #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Produit: " . $product->name . " (Quantité: " . $qty . ", Total: " . number_format($totalPrice, 0, ',', ' ') . " CFA)";
-        $contactData = $contact->__data ?? [];
-        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
-        $contact->__data = $contactData;
-        $contact->save();
-
-        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
-        if ($vendor) {
-            updateModelsViaVendorBroadcast($vendor->_uid, [
-                'contact' => $contact
-            ]);
-        }
+        // Order created successfully — no need to write to contact_notes
+        // Orders are displayed in the dedicated orders section
 
         $newOrder->load('contact');
 
@@ -611,7 +600,6 @@ class ECommerceController extends BaseController
         ];
 
         $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-            '_uid' => (string) \Illuminate\Support\Str::uuid(),
             'vendors__id' => $vendorId,
             'contacts__id' => $contact->_id,
             'order_details' => $testDetails,
@@ -692,22 +680,13 @@ class ECommerceController extends BaseController
         ];
 
         $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-            '_uid' => (string) \Illuminate\Support\Str::uuid(),
             'vendors__id' => $vendorId,
             'contacts__id' => $contact->_id,
             'order_details' => $orderDetails,
             'status' => 'validated',
         ]);
 
-        $noteEntry = "\n[🛒 Commande Web #" . substr($newOrder->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Commande passée via Webhook (" . ($request->source ?: 'Site Web') . ")";
-        $contactData = $contact->__data ?? [];
-        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
-        $contact->__data = $contactData;
-        $contact->save();
-
-        updateModelsViaVendorBroadcast($vendorUid, [
-            'contact' => $contact
-        ]);
+        // Orders are displayed in the dedicated orders section — no need to write to contact_notes
 
         return response()->json([
             'reaction_code' => 1,

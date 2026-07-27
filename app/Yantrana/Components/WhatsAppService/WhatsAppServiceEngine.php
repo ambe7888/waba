@@ -3829,7 +3829,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     }
 
                     $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                        '_uid' => (string) \Illuminate\Support\Str::uuid(),
                         'vendors__id' => $contact->vendors__id,
                         'contacts__id' => $contact->_id,
                         'order_details' => [
@@ -3841,17 +3840,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         'status' => 'validated',
                     ]);
 
-                    $contactData = $contact->__data ?? [];
-                    $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
-                    $contact->__data = $contactData;
-                    $contact->save();
-
-                    $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
-                    if ($vendor) {
-                        updateModelsViaVendorBroadcast($vendor->_uid, [
-                            'contact' => $contact
-                        ]);
-                    }
+                    // Orders are displayed in the dedicated orders section — no need to write to contact_notes
 
                     $clientName = trim($contact->full_name) ?: 'Client';
                     $receiptMsg = "🎉 *Commande confirmée et enregistrée avec succès !*\n\n" .
@@ -3891,7 +3880,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                             $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
                             if ($productToOrder) {
                                 $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                                    '_uid' => (string) \Illuminate\Support\Str::uuid(),
                                     'vendors__id' => $contact->vendors__id,
                                     'contacts__id' => $contact->_id,
                                     'order_details' => [
@@ -3904,18 +3892,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                                     ],
                                     'status' => 'validated',
                                 ]);
-
-                                $contactData = $contact->__data ?? [];
-                                $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
-                                $contact->__data = $contactData;
-                                $contact->save();
-
-                                $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
-                                if ($vendor) {
-                                    updateModelsViaVendorBroadcast($vendor->_uid, [
-                                        'contact' => $contact
-                                    ]);
-                                }
+                                // Orders are displayed in the dedicated orders section
                             }
                         }
 

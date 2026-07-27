@@ -693,7 +693,7 @@ class ContactController extends BaseController
         validateVendorAccess('messaging');
         // process the validation based on the provided rules
         $request->validate([
-            'contactIdOrUid' => 'required|uuid',
+            'contactIdOrUid' => 'required',
             // 'contact_notes' => 'nullable',
         ]);
         // ask engine to process the request

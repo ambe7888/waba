@@ -1841,10 +1841,13 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
     public function processUpdateNotes($request)
     {
         $vendorId = getVendorId();
-        $contact = $this->contactRepository->fetchIt([
-            '_uid' => $request->contactIdOrUid,
-            'vendors__id' => $vendorId,
-        ]);
+        $contactIdOrUid = $request->contactIdOrUid;
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->where(function($q) use ($contactIdOrUid) {
+                $q->where('_uid', $contactIdOrUid)
+                  ->orWhere('_id', $contactIdOrUid)
+                  ->orWhere('wa_id', $contactIdOrUid);
+            })->first();
         // Check if $contact not exist then throw not found
         // exception
         if (__isEmpty($contact)) {

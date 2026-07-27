@@ -208,16 +208,21 @@
                                                 
                                                 <!-- Info -->
                                                 <div class="lw-contact-info">
-                                                    <!-- Row 1: Name -->
-                                                    <div class="lw-contact-title-row">
-                                                        <span class="lw-contact-name" x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
-                                                        <span class="lw-contact-name" x-show="!contactItem.full_name">
+                                                    <!-- Row 1: Name & Trash Button -->
+                                                    <div class="lw-contact-title-row d-flex align-items-center justify-content-between">
+                                                        <span class="lw-contact-name text-truncate" x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
+                                                        <span class="lw-contact-name text-truncate" x-show="!contactItem.full_name">
                                                             @if(hasVendorAccess('hide_contact_phone_numbers'))
                                                                 <span x-text="contactItem.wa_id"></span>
                                                             @else
                                                                 <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
                                                             @endif
                                                         </span>
+                                                        @if (isVendorAdmin(getVendorId()) or hasVendorAccess('manage_contacts', 'delete_contacts'))
+                                                        <button type="button" class="btn btn-link text-danger p-0 ml-1 lw-delete-contact-btn" style="font-size: 0.8rem; opacity: 0.6; line-height: 1;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" @click.stop.prevent="deleteSingleContact(contactItem)" title="{{ __tr('Supprimer ce contact') }}">
+                                                            <i class="fa fa-trash-alt"></i>
+                                                        </button>
+                                                        @endif
                                                     </div>
                                                     
                                                     <!-- Row 2: Phone and Unread Badge -->
@@ -1063,23 +1068,23 @@
                                     </x-lw.form>
                                 </div>
 
-                                <!-- Notes Card -->
-                                <div class="lw-crm-card" x-data="{openNotesEdit:false,contactNotes:contact.__data?.contact_notes}">
+                                 <!-- Notes Card -->
+                                <div class="lw-crm-card" x-data="{openNotesEdit:false,contactNotes:''}" x-effect="contactNotes = contact?.__data?.contact_notes || ''">
                                     <div class="lw-crm-section-header">
-                                        <span>{{ __tr('Notes') }}</span>
+                                        <span>{{ __tr('Notes / Remarques') }}</span>
                                         <button type="button" class="lw-crm-btn-round shadow-none" @click="openNotesEdit = true" x-show="!openNotesEdit" title="{{ __tr('Edit') }}">
                                             <i class="fas fa-pencil-alt"></i>
                                         </button>
                                     </div>
-                                    <div x-show="!openNotesEdit" class="lw-ws-pre-line lw-crm-notes-display mb-0" x-text="contact.__data?.contact_notes || 'Aucune note.'"></div>
+                                    <div x-show="!openNotesEdit" class="lw-ws-pre-line lw-crm-notes-display mb-0" x-text="contact?.__data?.contact_notes || 'Aucune note.'"></div>
                                     
                                     <x-lw.form x-show="openNotesEdit" id="lwNotesForm" :action="route('vendor.chat.update_notes.process')" x-cloak>
-                                        <input type="hidden" name="contactIdOrUid" :value="contact?._uid">
+                                        <input type="hidden" name="contactIdOrUid" :value="contact?._uid || contact?._id || contact?.wa_id">
                                         <div class="form-group mb-2">
-                                            <textarea name="contact_notes" id="lwContactNotes" class="form-control" style="font-size: 14px; border: 1px solid #d1d7db; border-radius: 8px; box-shadow: none;" x-bind:value="contact.__data?.contact_notes" x-model="contactNotes" rows="4" placeholder="{{ __tr('Saisissez vos notes ici...') }}"></textarea>
+                                            <textarea name="contact_notes" id="lwContactNotes" class="form-control" style="font-size: 14px; border: 1px solid #d1d7db; border-radius: 8px; box-shadow: none;" x-model="contactNotes" rows="4" placeholder="{{ __tr('Saisissez vos notes ici...') }}"></textarea>
                                         </div>
                                         <div class="d-flex justify-content-end gap-2" style="gap: 8px;">
-                                            <button type="button" class="btn btn-sm text-secondary" style="background: transparent; font-weight: 500;" @click="openNotesEdit = false; contactNotes = contact.__data?.contact_notes;">{{ __tr('Cancel') }}</button>
+                                            <button type="button" class="btn btn-sm text-secondary" style="background: transparent; font-weight: 500;" @click="openNotesEdit = false; contactNotes = contact?.__data?.contact_notes || '';">{{ __tr('Cancel') }}</button>
                                             <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 24px; padding: 4px 16px; font-weight: 500;" @click="openNotesEdit = false; if(!contact['__data']) { contact['__data'] = {}} contact['__data']['contact_notes'] = contactNotes;">{!! __tr('Save') !!}</button>
                                         </div>
                                     </x-lw.form>
@@ -1634,6 +1639,40 @@
             },
             cancelReply: function() {
                 this.replyingToMessage = null;
+            },
+            deleteSingleContact: function(contactItem) {
+                if (!contactItem || (!contactItem._id && !contactItem._uid)) return;
+                var cName = contactItem.full_name || contactItem.wa_id || 'ce contact';
+                if (confirm('{{ __tr("Voulez-vous vraiment supprimer ") }}' + cName + ' ? {{ __tr("Cette action est irréversible.") }}')) {
+                    var self = this;
+                    var contactId = contactItem._id || contactItem._uid;
+                    __DataRequest.post('{{ route("vendor.contacts.selected.write.delete") }}', {
+                        selected_contacts: [contactId]
+                    }, function(response) {
+                        var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                        var msg = response.message || (response.data && response.data.message) || 'Contact supprimé avec succès.';
+                        if (isSuccess) {
+                            showSuccessMessage(msg);
+                            if (self.contacts[contactItem._uid]) {
+                                delete self.contacts[contactItem._uid];
+                            } else if (self.contacts[contactItem._id]) {
+                                delete self.contacts[contactItem._id];
+                            } else {
+                                for (var key in self.contacts) {
+                                    if (self.contacts[key]._id == contactItem._id || self.contacts[key]._uid == contactItem._uid) {
+                                        delete self.contacts[key];
+                                    }
+                                }
+                            }
+                            if (self.contact && (self.contact._id == contactItem._id || self.contact._uid == contactItem._uid)) {
+                                self.contact = null;
+                            }
+                        } else {
+                            var errMsg = response.message || (response.data && response.data.message) || 'Erreur de suppression du contact.';
+                            showErrorMessage(errMsg);
+                        }
+                    });
+                }
             },
             get filteredContacts() {
                 return _.reverse(_.sortBy(this.contacts, [function(o) { return o.last_message?.messaged_at; }]));
