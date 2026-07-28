@@ -453,23 +453,39 @@ $teamMembers = \DB::table('users')
                     </div>
                 </div>
 
-                <!-- Modal Body (Printable Invoice Area - Internal Scroll if long) -->
-                <div class="modal-body p-4" id="printableInvoiceArea" style="max-height: calc(85vh - 130px); overflow-y: auto;">
-                    <!-- Status Badge Info Row -->
-                    <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
-                        <h6 class="mb-0 font-weight-bold text-dark"><i class="fa fa-receipt text-emerald mr-2"></i> {{ __tr('Facture Officielle de Commande') }}</h6>
+                <!-- Modal Body (Printable Invoice Area) -->
+                <div class="modal-body p-4" id="printableInvoiceArea" style="max-height: 80vh; overflow-y: auto;">
+                    <!-- TOP ACTION TOOLBAR (DIRECTLY BELOW THE HEADER) -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-3 rounded no-print" style="background: #f8fafc; border: 1.5px solid #cbd5e1; gap: 10px;">
+                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                            <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
+                                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
+                            </button>
+                            
+                            <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
+                                <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                                    <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
+                                </a>
+                            </template>
+                        </div>
 
-                        <div x-show="selectedOrder">
-                            <span class="order-status-badge text-white"
-                                  :class="{
-                                      'bg-success': selectedOrder && selectedOrder.status === 'delivered',
-                                      'bg-info': selectedOrder && (selectedOrder.status === 'shipped' || selectedOrder.status === 'processing'),
-                                      'bg-primary': selectedOrder && selectedOrder.status === 'confirmed',
-                                      'bg-warning text-dark': selectedOrder && selectedOrder.status === 'validated',
-                                      'bg-danger': selectedOrder && selectedOrder.status === 'cancelled'
-                                  }"
-                                  x-text="selectedOrder ? (selectedOrder.status === 'delivered' ? 'Livrée' : (selectedOrder.status === 'shipped' ? 'En livraison' : (selectedOrder.status === 'confirmed' ? 'Confirmée' : (selectedOrder.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))) : ''">
-                            </span>
+                        <div class="d-flex align-items-center" style="gap: 10px;">
+                            <div x-show="selectedOrder">
+                                <span class="order-status-badge text-white"
+                                      :class="{
+                                          'bg-success': selectedOrder && selectedOrder.status === 'delivered',
+                                          'bg-info': selectedOrder && (selectedOrder.status === 'shipped' || selectedOrder.status === 'processing'),
+                                          'bg-primary': selectedOrder && selectedOrder.status === 'confirmed',
+                                          'bg-warning text-dark': selectedOrder && selectedOrder.status === 'validated',
+                                          'bg-danger': selectedOrder && selectedOrder.status === 'cancelled'
+                                      }"
+                                      x-text="selectedOrder ? (selectedOrder.status === 'delivered' ? 'Livrée' : (selectedOrder.status === 'shipped' ? 'En livraison' : (selectedOrder.status === 'confirmed' ? 'Confirmée' : (selectedOrder.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))) : ''">
+                                </span>
+                            </div>
+
+                            <button type="button" class="btn btn-secondary font-weight-bold px-3" data-dismiss="modal" style="border-radius: 8px;">
+                                <i class="fa fa-times mr-1"></i> {{ __tr('Fermer') }}
+                            </button>
                         </div>
                     </div>
 
@@ -549,25 +565,6 @@ $teamMembers = \DB::table('users')
                         <h6 class="font-weight-bold text-muted small mb-1"><i class="fa fa-sticky-note text-warning mr-1"></i> {{ __tr('Historique & Notes Client') }}</h6>
                         <pre class="small text-dark mb-0" style="white-space: pre-wrap; font-family: inherit;" x-text="selectedOrder && selectedOrder.contact ? selectedOrder.contact.contact_notes : ''"></pre>
                     </div>
-                </div>
-
-                <!-- Modal Footer (SEAMLESSLY INTEGRATED AT THE BOTTOM OF THE POPUP CARD) -->
-                <div class="modal-footer d-flex align-items-center justify-content-between no-print p-3" style="background: #f8fafc !important; border-top: 1.5px solid #e2e8f0; border-radius: 0 0 20px 20px;">
-                    <div class="d-flex align-items-center" style="gap: 10px;">
-                        <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
-                            <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
-                        </button>
-                        
-                        <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
-                            <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
-                                <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
-                            </a>
-                        </template>
-                    </div>
-
-                    <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">
-                        <i class="fa fa-times mr-1"></i> {{ __tr('Fermer') }}
-                    </button>
                 </div>
             </div>
         </div>
