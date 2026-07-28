@@ -104,3 +104,8 @@ design template create whatsapp wizard/
 *.sql
 *.patch
 whatsclick_mobile/
+
+# Agent IDE config & customizations
+.agent/
+.agents/
+.gemini/
