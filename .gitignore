@@ -99,3 +99,8 @@ all_templates_dump.sql
 design template create wizard/
 design template create whatsapp wizard/
 >>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+
+# Local dumps & mobile app
+*.sql
+*.patch
+whatsclick_mobile/
