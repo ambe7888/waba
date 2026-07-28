@@ -7,10 +7,6 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->get();
 $contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
 $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
-$vendorMessagingUserIds = \App\Yantrana\Components\Auth\Models\VendorUserModel::where('vendors__id', $vendorId)->get()->pluck('users__id')->toArray();
-$vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__id', $vendorId)
-    ->orWhereIn('_id', $vendorMessagingUserIds)
-    ->get(['_id', '_uid', 'first_name', 'last_name']);
 @endphp
 
 <style>
@@ -46,7 +42,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
         <div>
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
-            <p class="text-muted small mb-0">{{ __tr('Suivez, enregistrez, exportez vos rapports et imprimer vos reçus de commande') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Suivez, enregistrez, filtrez par date/source et imprimez les reçus officiels de vos clients') }}</p>
         </div>
         <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
             <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
@@ -54,7 +50,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
             </button>
 
             <button type="button" @click="exportOrdersCSV()" class="btn btn-outline-success font-weight-bold" style="border-radius: 10px; border-color: #10b981; color: #10b981;">
-                <i class="fa fa-file-excel mr-1"></i> {{ __tr('Télécharger Excel / CSV') }}
+                <i class="fa fa-file-excel mr-1"></i> {{ __tr('Exporter Excel / CSV') }}
             </button>
 
             <button type="button" onclick="window.print()" class="btn btn-outline-dark font-weight-bold" style="border-radius: 10px;">
@@ -128,16 +124,16 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
     <div class="card sharp-card mb-4" id="printableOrdersListArea">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0 no-print">
             <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-list text-emerald mr-2"></i>{{ __tr('Liste Complète des Commandes') }}</h5>
-            <p class="text-muted small mb-0">{{ __tr('Recherchez par client ou statut, et cliquez sur le reçu pour voir/imprimer la facture') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Filtrez par date, statut ou agent/source, puis cliquez sur le reçu pour voir les infos détaillées') }}</p>
         </div>
 
         <div class="card-body p-4">
-            <!-- Search & Filters -->
-            <div class="row mb-4 no-print">
+            <!-- Search & Filters Row 1 -->
+            <div class="row mb-3 no-print">
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Recherche (Nom, N°, Réf)') }}</label>
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
                     <div class="input-group">
-                        <input type="text" class="form-control custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Rechercher...') }}" x-model="orderSearch">
+                        <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch">
                         <div class="input-group-append">
                             <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                         </div>
@@ -145,7 +141,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                 </div>
 
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Statut') }}</label>
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
                         <option value="validated">{{ __tr('Nouvelle / Validée') }}</option>
@@ -158,31 +154,42 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                 </div>
 
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par Agent') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderAgentFilter">
-                        <option value="">{{ __tr('Tous les agents') }}</option>
-                        <option value="unassigned">{{ __tr('Non assigné') }}</option>
-                        <template x-for="agent in allAgents" :key="agent._id">
-                            <option :value="agent._id" x-text="agent.first_name + ' ' + agent.last_name"></option>
-                        </template>
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter">
+                        <option value="">{{ __tr('Toutes les sources') }}</option>
+                        <option value="whatsapp">{{ __tr('WhatsApp AI / Bot') }}</option>
+                        <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
+                        <option value="web">{{ __tr('Site Web / Webhook') }}</option>
                     </select>
                 </div>
 
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date (ordre)') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique (Date)') }}</label>
+                    <div class="d-flex align-items-center" style="gap: 5px;">
+                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter">
+                        <template x-if="orderDateFilter">
+                            <button type="button" @click="orderDateFilter = ''" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Réinitialiser la date') }}">&times;</button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sort & Quick Filters Row 2 -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap mb-4 pb-2 border-bottom no-print" style="gap: 10px;">
+                <div class="d-flex align-items-center" style="gap: 10px;">
+                    <span class="small font-weight-bold text-muted">{{ __tr('Trier par date:') }}</span>
+                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 200px;" x-model="orderDateSort">
                         <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
                         <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
+
+                    <button type="button" @click="setTodayFilter()" class="btn btn-sm btn-outline-primary font-weight-bold" style="border-radius: 8px;">
+                        <i class="fa fa-calendar-day mr-1"></i> {{ __tr('Commandes du jour') }}
+                    </button>
                 </div>
-                
-                <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Date de début') }}</label>
-                    <input type="date" class="form-control custom-input-white" x-model="orderDateStart" style="border-radius: 10px !important; height: 38px;">
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Date de fin') }}</label>
-                    <input type="date" class="form-control custom-input-white" x-model="orderDateEnd" style="border-radius: 10px !important; height: 38px;">
+
+                <div class="small font-weight-bold text-dark">
+                    <span class="badge badge-emerald text-white px-2 py-1" style="background: #10b981; font-size: 0.85rem;" x-text="getFilteredOrders().length + ' commande(s) affichée(s)'"></span>
                 </div>
             </div>
 
@@ -194,7 +201,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Réf / Date') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Client WhatsApp') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Montant Total') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source') }}</th>
+                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source / Agent') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Statut Actuel') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;" class="text-right no-print">{{ __tr('Actions') }}</th>
                         </tr>
@@ -203,7 +210,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                         <template x-for="order in getFilteredOrders()" :key="order._uid">
                             <tr>
                                 <td class="align-middle">
-                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir le reçu') }}">
+                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
                                     </button>
                                     <small class="text-muted d-block" x-text="formatDate(order.created_at)"></small>
@@ -214,12 +221,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <div class="text-muted small mt-1">
-                                        <template x-for="item in getItems(order)" :key="item.name">
-                                            <div x-text="'- ' + (item.name || item.title || 'Produit') + ' (x' + (item.quantity || 1) + ')'"></div>
-                                        </template>
-                                        <span x-show="getItems(order).length === 0">{{ __tr('0 article') }}</span>
-                                    </div>
+                                    <small class="text-muted" x-text="getItems(order).length + ' article(s)'"></small>
                                 </td>
                                 <td class="align-middle">
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
@@ -268,7 +270,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                 </table>
                 <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
                     <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
-                    <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée pour le moment.') }}</p>
+                    <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande ne correspond à votre recherche.') }}</p>
                 </div>
             </div>
         </div>
@@ -340,7 +342,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
         </div>
     </div>
 
-    <!-- MODAL 2: ORDER DETAILS & PRINTABLE RECEIPT MODAL -->
+    <!-- MODAL 2: ORDER DETAILS & PRINTABLE RECEIPT MODAL (FICHE COMPLÈTE) -->
     <div class="modal fade" id="orderDetailsModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
@@ -348,7 +350,7 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                 <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
                     <div class="d-flex align-items-center justify-content-between w-100">
                         <div>
-                            <h5 class="modal-title font-weight-bold mb-1 text-white" x-text="'🧾 Reçu de Commande #' + (selectedOrder ? selectedOrder._uid.substring(0, 8) : '')"></h5>
+                            <h5 class="modal-title font-weight-bold mb-1 text-white" x-text="'🧾 Reçu & Fiche de Commande #' + (selectedOrder ? selectedOrder._uid.substring(0, 8) : '')"></h5>
                             <span class="badge badge-light font-weight-bold px-3 py-1" style="border-radius: 12px;" x-text="selectedOrder ? formatDate(selectedOrder.created_at) : ''"></span>
                         </div>
                         <button type="button" class="close text-white opacity-100" data-dismiss="modal" aria-label="Close" style="outline: none;">
@@ -387,20 +389,26 @@ $vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__i
                         </div>
                     </div>
 
-                    <!-- Receipt Header Info -->
+                    <!-- Receipt Header Info Grid -->
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
                                 <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-user text-emerald mr-1"></i> {{ __tr('Informations Client') }}</h6>
                                 <h6 class="font-weight-bold text-dark mb-1" x-text="selectedOrder && selectedOrder.contact ? (selectedOrder.contact.first_name + ' ' + selectedOrder.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></h6>
                                 <p class="text-emerald font-weight-bold mb-1" style="color: #059669;" x-text="selectedOrder && selectedOrder.contact ? '📱 WhatsApp: ' + selectedOrder.contact.wa_id : ''"></p>
+                                <template x-if="getDeliveryAddress(selectedOrder)">
+                                    <p class="small text-dark mb-1"><strong>📍 {{ __tr('Livraison à:') }}</strong> <span x-text="getDeliveryAddress(selectedOrder)"></span></p>
+                                </template>
+                                <template x-if="getDeliveryDate(selectedOrder)">
+                                    <p class="small text-dark mb-0"><strong>📅 {{ __tr('Date souhaitée:') }}</strong> <span x-text="getDeliveryDate(selectedOrder)"></span></p>
+                                </template>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
-                                <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-info-circle text-emerald mr-1"></i> {{ __tr('Détails de Commande') }}</h6>
+                                <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-info-circle text-emerald mr-1"></i> {{ __tr('Détails Commande & Source') }}</h6>
                                 <p class="small text-dark mb-1"><strong>{{ __tr('Référence:') }}</strong> <span x-text="selectedOrder ? '#' + selectedOrder._uid.substring(0, 8) : ''"></span></p>
-                                <p class="small text-dark mb-1"><strong>{{ __tr('Source:') }}</strong> <span x-text="getSource(selectedOrder)"></span></p>
+                                <p class="small text-dark mb-1"><strong>{{ __tr('Source / Agent:') }}</strong> <span class="font-weight-bold text-primary" x-text="getSource(selectedOrder)"></span></p>
                                 <p class="small text-dark mb-0"><strong>{{ __tr('Date de création:') }}</strong> <span x-text="selectedOrder ? formatDate(selectedOrder.created_at) : ''"></span></p>
                             </div>
                         </div>
@@ -516,13 +524,11 @@ function ordersPageData() {
         allOrders: {!! json_encode($orders) !!},
         allContacts: {!! json_encode($contactsList) !!},
         allProducts: {!! json_encode($productsList) !!},
-        allAgents: {!! json_encode($vendorUsers) !!},
         orderSearch: '',
         orderStatusFilter: '',
-        orderAgentFilter: '',
+        orderSourceFilter: '',
+        orderDateFilter: '',
         orderDateSort: 'desc',
-        orderDateStart: '',
-        orderDateEnd: '',
         selectedOrder: null,
         newOrderContactId: '',
         newOrderProductId: '',
@@ -532,48 +538,54 @@ function ordersPageData() {
         newOrderDate: '',
         isSavingManualOrder: false,
 
+        setTodayFilter: function() {
+            var today = new Date();
+            var yyyy = today.getFullYear();
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var dd = String(today.getDate()).padStart(2, '0');
+            this.orderDateFilter = yyyy + '-' + mm + '-' + dd;
+        },
+
         getFilteredOrders: function() {
             var self = this;
             var result = this.allOrders.filter(function(o) {
-                var contactName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name + ' ' + o.contact.wa_id) : '';
+                if (!o) return false;
+                
+                // Search filter
+                var contactName = o.contact ? ((o.contact.first_name || '') + ' ' + (o.contact.last_name || '') + ' ' + (o.contact.wa_id || '')) : '';
                 var orderRef = o._uid ? o._uid : '';
-                var matchesSearch = !self.orderSearch || contactName.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1 || orderRef.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1;
+                var matchesSearch = !self.orderSearch || 
+                    contactName.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1 || 
+                    orderRef.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1;
+                
+                // Status filter
                 var matchesStatus = !self.orderStatusFilter || o.status === self.orderStatusFilter;
                 
-                var matchesAgent = true;
-                if (self.orderAgentFilter) {
-                    if (self.orderAgentFilter === 'unassigned') {
-                        matchesAgent = !o.contact || !o.contact.assigned_users__id;
-                    } else {
-                        matchesAgent = o.contact && o.contact.assigned_users__id == self.orderAgentFilter;
-                    }
-                }
+                // Source / Agent filter
+                var orderSource = self.getSource(o);
+                var matchesSource = !self.orderSourceFilter || 
+                    orderSource.toLowerCase().indexOf(self.orderSourceFilter.toLowerCase()) !== -1;
 
+                // Date filter (YYYY-MM-DD match)
                 var matchesDate = true;
-                if (self.orderDateStart || self.orderDateEnd) {
-                    // Normalize order date to start of day
-                    var odStr = o.created_at;
-                    if (odStr) {
-                        odStr = odStr.toString().replace(' ', 'T');
-                        var od = new Date(odStr);
-                        if (!isNaN(od.getTime())) {
-                            od.setHours(0,0,0,0);
-                            
-                            if (self.orderDateStart) {
-                                var sDate = new Date(self.orderDateStart);
-                                sDate.setHours(0,0,0,0);
-                                if (od < sDate) matchesDate = false;
-                            }
-                            if (self.orderDateEnd) {
-                                var eDate = new Date(self.orderDateEnd);
-                                eDate.setHours(0,0,0,0);
-                                if (od > eDate) matchesDate = false;
-                            }
+                if (self.orderDateFilter && o.created_at) {
+                    try {
+                        var d = new Date(o.created_at);
+                        if (!isNaN(d.getTime())) {
+                            var yyyy = d.getFullYear();
+                            var mm = String(d.getMonth() + 1).padStart(2, '0');
+                            var dd = String(d.getDate()).padStart(2, '0');
+                            var orderCreatedStr = yyyy + '-' + mm + '-' + dd;
+                            matchesDate = (orderCreatedStr === self.orderDateFilter);
+                        } else {
+                            matchesDate = (String(o.created_at).indexOf(self.orderDateFilter) === 0);
                         }
+                    } catch(e) {
+                        matchesDate = (String(o.created_at).indexOf(self.orderDateFilter) === 0);
                     }
                 }
 
-                return matchesSearch && matchesStatus && matchesAgent && matchesDate;
+                return matchesSearch && matchesStatus && matchesSource && matchesDate;
             });
 
             result.sort(function(a, b) {
@@ -634,6 +646,24 @@ function ordersPageData() {
             return (details && details.source) ? details.source : 'WhatsApp';
         },
 
+        getDeliveryAddress: function(order) {
+            if (!order || !order.order_details) return '';
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return ''; }
+            }
+            return details.delivery_address || details.address || '';
+        },
+
+        getDeliveryDate: function(order) {
+            if (!order || !order.order_details) return '';
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return ''; }
+            }
+            return details.delivery_date || '';
+        },
+
         viewOrderDetails: function(order) {
             this.selectedOrder = order;
             $('#orderDetailsModal').modal('show');
@@ -642,7 +672,7 @@ function ordersPageData() {
         updateOrderStatus: function(orderUid, newStatus) {
             var self = this;
             __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
-                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                var isSuccess = response.reaction_code == 1 || response.reaction == 1 || (response.data && (response.data.reaction_code == 1 || response.data.reaction == 1));
                 var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
                 if (isSuccess) {
                     showSuccessMessage(msg);
@@ -658,11 +688,13 @@ function ordersPageData() {
             if (confirm('{{ __tr("Voulez-vous supprimer cette commande ?") }}')) {
                 var self = this;
                 __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
-                    var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                    var isSuccess = response.reaction_code == 1 || response.reaction == 1 || (response.data && (response.data.reaction_code == 1 || response.data.reaction == 1));
                     var msg = response.message || (response.data && response.data.message) || 'Commande supprimée avec succès.';
                     if (isSuccess) {
                         showSuccessMessage(msg);
-                        self.allOrders = self.allOrders.filter(function(o) { return o._uid !== orderUid; });
+                        self.allOrders = self.allOrders.filter(function(o) {
+                            return o._uid !== orderUid && o._id !== orderUid;
+                        });
                     } else {
                         showErrorMessage(msg || 'Erreur de suppression.');
                     }
@@ -695,7 +727,7 @@ function ordersPageData() {
                 delivery_date: this.newOrderDate
             }, function(response) {
                 self.isSavingManualOrder = false;
-                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                var isSuccess = response.reaction_code == 1 || response.reaction == 1 || (response.data && (response.data.reaction_code == 1 || response.data.reaction == 1));
                 if (isSuccess) {
                     var msg = response.message || (response.data && response.data.message) || 'Commande enregistrée avec succès !';
                     showSuccessMessage(msg);
@@ -752,7 +784,7 @@ function ordersPageData() {
             var link = document.createElement('a');
             var url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', 'export_commandes.csv');
+            link.setAttribute('download', 'export_commandes_' + (this.orderDateFilter || 'toutes') + '.csv');
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
