@@ -7,6 +7,11 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->get();
 $contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
 $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
+$teamMembers = \DB::table('users')
+    ->join('vendor_users', 'vendor_users.users__id', '=', 'users._id')
+    ->where('vendor_users.vendors__id', $vendorId)
+    ->select('users._id', 'users.first_name', 'users.last_name', 'users.username')
+    ->get();
 @endphp
 
 <style>
@@ -34,6 +39,42 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
     border-color: #10b981 !important;
     box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
 }
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    
+    /* When modal receipt is open, print ONLY the receipt modal */
+    body.modal-open #printableInvoiceArea,
+    body.modal-open #printableInvoiceArea * {
+        visibility: visible !important;
+    }
+    body.modal-open #printableInvoiceArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 20px !important;
+    }
+
+    /* When modal is NOT open, print ONLY the orders list table */
+    body:not(.modal-open) #printableOrdersListArea,
+    body:not(.modal-open) #printableOrdersListArea * {
+        visibility: visible !important;
+    }
+    body:not(.modal-open) #printableOrdersListArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+    }
+
+    .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
+        display: none !important;
+    }
+}
 </style>
 
 <div class="container-fluid pb-5" x-data="ordersPageData()">
@@ -42,7 +83,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
         <div>
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
-            <p class="text-muted small mb-0">{{ __tr('Suivez, enregistrez, filtrez par date/source et imprimez les reçus officiels de vos clients') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Suivez, filtrez par date, agent ou statut, et imprimez les reçus individuels ou le rapport de liste complet') }}</p>
         </div>
         <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
             <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
@@ -156,10 +197,12 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter">
-                        <option value="">{{ __tr('Toutes les sources') }}</option>
-                        <option value="whatsapp">{{ __tr('WhatsApp AI / Bot') }}</option>
-                        <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
-                        <option value="web">{{ __tr('Site Web / Webhook') }}</option>
+                        <option value="">{{ __tr('Toutes les sources & agents') }}</option>
+                        <option value="whatsapp">🤖 {{ __tr('Bot / IA WhatsApp') }}</option>
+                        <option value="manuel">👤 {{ __tr('Vendeur Manuel') }}</option>
+                        <template x-for="u in teamMembers" :key="u._id">
+                            <option :value="u.first_name + ' ' + u.last_name" x-text="'👨‍💼 Agent: ' + u.first_name + ' ' + u.last_name"></option>
+                        </template>
                     </select>
                 </div>
 
@@ -200,7 +243,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                         <tr>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Réf / Date') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Client WhatsApp') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Montant Total') }}</th>
+                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Articles & Montant Total') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source / Agent') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Statut Actuel') }}</th>
                             <th style="border-bottom: 2px solid #cbd5e1;" class="text-right no-print">{{ __tr('Actions') }}</th>
@@ -225,7 +268,14 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <small class="text-muted" x-text="getItems(order).length + ' article(s)'"></small>
+                                    <div class="small text-dark font-weight-bold mt-1">
+                                        <template x-for="(it, i) in getItems(order)" :key="i">
+                                            <div class="text-truncate" style="max-width: 280px;" x-text="'• ' + (it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
+                                        </template>
+                                        <template x-if="getItems(order).length === 0">
+                                            <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
+                                        </template>
+                                    </div>
                                 </td>
                                 <td class="align-middle">
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
@@ -369,7 +419,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                     <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-3 rounded no-print" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
                         <div class="d-flex align-items-center" style="gap: 10px;">
                             <button type="button" onclick="window.print()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
-                                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer le reçu') }}
+                                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
                             </button>
                             
                             <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
@@ -481,45 +531,6 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
         </div>
     </div>
 
-    <!-- PRINT STYLESHEET -->
-    <style>
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        #printableInvoiceArea, #printableInvoiceArea *,
-        #printableOrdersListArea, #printableOrdersListArea * {
-            visibility: visible;
-        }
-        #printableInvoiceArea, #printableOrdersListArea {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-        }
-        .no-print {
-            display: none !important;
-        }
-        .modal {
-            position: absolute;
-            left: 0;
-            top: 0;
-            margin: 0;
-            padding: 0;
-            overflow: visible;
-        }
-        .modal-dialog {
-            max-width: 100% !important;
-            width: 100% !important;
-            margin: 0 !important;
-        }
-        .modal-content {
-            border: none !important;
-            box-shadow: none !important;
-        }
-    }
-    </style>
-
     @else
     <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 12px;">
         <i class="fa fa-lock mr-2"></i> {{ __tr('La gestion des commandes n\'est pas incluse dans votre formule d\'abonnement actuelle. Veuillez mettre à niveau votre compte.') }}
@@ -534,6 +545,7 @@ function ordersPageData() {
         allOrders: {!! json_encode($orders) !!},
         allContacts: {!! json_encode($contactsList) !!},
         allProducts: {!! json_encode($productsList) !!},
+        teamMembers: {!! json_encode($teamMembers) !!},
         orderSearch: '',
         orderStatusFilter: '',
         orderSourceFilter: '',
@@ -681,8 +693,8 @@ function ordersPageData() {
 
             var src = details.source || details.created_by_vendor || '';
             if (!src) return 'WhatsApp';
-            if (src === 'whatsapp_ai') return 'WhatsApp AI / Bot';
-            if (src === 'manual' || src === 'manuel') return 'Vendeur Manuel';
+            if (src === 'whatsapp_ai') return '🤖 Bot / IA WhatsApp';
+            if (src === 'manual' || src === 'manuel') return '👤 Vendeur Manuel';
             return src;
         },
 
