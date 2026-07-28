@@ -50,7 +50,8 @@ Route::get('/run-db-migrations', function () {
 Route::match(['get', 'post'], '/deploy-vps-waba-7888', function () {
     try {
         $basePath = base_path();
-        $output = shell_exec("cd {$basePath} && git config --global --add safe.directory {$basePath} && git fetch origin && git reset --hard origin/main 2>&1");
+        $cmd = "cd {$basePath} && git config --global --add safe.directory {$basePath} && git fetch origin 2>&1 && git reset --hard origin/main 2>&1 && git clean -fd 2>&1";
+        $output = shell_exec($cmd);
         \Illuminate\Support\Facades\Artisan::call('cache:clear');
         \Illuminate\Support\Facades\Artisan::call('view:clear');
         \Illuminate\Support\Facades\Artisan::call('route:clear');
