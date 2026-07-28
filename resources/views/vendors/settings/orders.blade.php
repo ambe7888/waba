@@ -7,6 +7,10 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->get();
 $contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
 $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
+$vendorMessagingUserIds = \App\Yantrana\Components\Auth\Models\VendorUserModel::where('vendors__id', $vendorId)->get()->pluck('users__id')->toArray();
+$vendorUsers = \App\Yantrana\Components\User\Models\UserModel::where('vendors__id', $vendorId)
+    ->orWhereIn('_id', $vendorMessagingUserIds)
+    ->get(['_id', '_uid', 'first_name', 'last_name']);
 @endphp
 
 <style>
@@ -130,18 +134,18 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
         <div class="card-body p-4">
             <!-- Search & Filters -->
             <div class="row mb-4 no-print">
-                <div class="col-md-4 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher un client ou #Réf') }}</label>
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Recherche (Nom, N°, Réf)') }}</label>
                     <div class="input-group">
-                        <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, numéro ou #Réf...') }}" x-model="orderSearch">
+                        <input type="text" class="form-control custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Rechercher...') }}" x-model="orderSearch">
                         <div class="input-group-append">
                             <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
                         <option value="validated">{{ __tr('Nouvelle / Validée') }}</option>
@@ -153,12 +157,32 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                     </select>
                 </div>
 
-                <div class="col-md-4 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par Agent') }}</label>
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderAgentFilter">
+                        <option value="">{{ __tr('Tous les agents') }}</option>
+                        <option value="unassigned">{{ __tr('Non assigné') }}</option>
+                        <template x-for="agent in allAgents" :key="agent._id">
+                            <option :value="agent._id" x-text="agent.first_name + ' ' + agent.last_name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date (ordre)') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
                         <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
                         <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Date de début') }}</label>
+                    <input type="date" class="form-control custom-input-white" x-model="orderDateStart" style="border-radius: 10px !important; height: 38px;">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Date de fin') }}</label>
+                    <input type="date" class="form-control custom-input-white" x-model="orderDateEnd" style="border-radius: 10px !important; height: 38px;">
                 </div>
             </div>
 
@@ -190,7 +214,12 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <small class="text-muted" x-text="getItems(order).length + ' article(s)'"></small>
+                                    <div class="text-muted small mt-1">
+                                        <template x-for="item in getItems(order)" :key="item.name">
+                                            <div x-text="'- ' + (item.name || item.title || 'Produit') + ' (x' + (item.quantity || 1) + ')'"></div>
+                                        </template>
+                                        <span x-show="getItems(order).length === 0">{{ __tr('0 article') }}</span>
+                                    </div>
                                 </td>
                                 <td class="align-middle">
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
@@ -487,9 +516,13 @@ function ordersPageData() {
         allOrders: {!! json_encode($orders) !!},
         allContacts: {!! json_encode($contactsList) !!},
         allProducts: {!! json_encode($productsList) !!},
+        allAgents: {!! json_encode($vendorUsers) !!},
         orderSearch: '',
         orderStatusFilter: '',
+        orderAgentFilter: '',
         orderDateSort: 'desc',
+        orderDateStart: '',
+        orderDateEnd: '',
         selectedOrder: null,
         newOrderContactId: '',
         newOrderProductId: '',
@@ -506,7 +539,41 @@ function ordersPageData() {
                 var orderRef = o._uid ? o._uid : '';
                 var matchesSearch = !self.orderSearch || contactName.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1 || orderRef.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1;
                 var matchesStatus = !self.orderStatusFilter || o.status === self.orderStatusFilter;
-                return matchesSearch && matchesStatus;
+                
+                var matchesAgent = true;
+                if (self.orderAgentFilter) {
+                    if (self.orderAgentFilter === 'unassigned') {
+                        matchesAgent = !o.contact || !o.contact.assigned_users__id;
+                    } else {
+                        matchesAgent = o.contact && o.contact.assigned_users__id == self.orderAgentFilter;
+                    }
+                }
+
+                var matchesDate = true;
+                if (self.orderDateStart || self.orderDateEnd) {
+                    // Normalize order date to start of day
+                    var odStr = o.created_at;
+                    if (odStr) {
+                        odStr = odStr.toString().replace(' ', 'T');
+                        var od = new Date(odStr);
+                        if (!isNaN(od.getTime())) {
+                            od.setHours(0,0,0,0);
+                            
+                            if (self.orderDateStart) {
+                                var sDate = new Date(self.orderDateStart);
+                                sDate.setHours(0,0,0,0);
+                                if (od < sDate) matchesDate = false;
+                            }
+                            if (self.orderDateEnd) {
+                                var eDate = new Date(self.orderDateEnd);
+                                eDate.setHours(0,0,0,0);
+                                if (od > eDate) matchesDate = false;
+                            }
+                        }
+                    }
+                }
+
+                return matchesSearch && matchesStatus && matchesAgent && matchesDate;
             });
 
             result.sort(function(a, b) {
