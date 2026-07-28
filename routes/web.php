@@ -47,6 +47,24 @@ Route::get('/run-db-migrations', function () {
     }
 });
 
+Route::match(['get', 'post'], '/deploy-vps-waba-7888', function () {
+    try {
+        $basePath = base_path();
+        $output = shell_exec("cd {$basePath} && git config --global --add safe.directory {$basePath} && git fetch origin && git reset --hard origin/main 2>&1");
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        return response()->json([
+            'success' => true,
+            'message' => 'VPS updated successfully from GitHub!',
+            'git_output' => $output
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+});
+
 Route::get('/', [
     HomeController::class,
     'homePageView',
