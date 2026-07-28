@@ -42,8 +42,6 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
     allProducts: {{ json_encode($productsList) }},
     orderSearch: '',
     orderStatusFilter: '',
-    orderDateFilter: '',
-    orderSourceFilter: '',
     orderDateSort: 'desc',
     selectedOrder: null,
     
@@ -63,30 +61,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
             var matchesSearch = !this.orderSearch || contactName.toLowerCase().includes(this.orderSearch.toLowerCase()) || orderRef.toLowerCase().includes(this.orderSearch.toLowerCase());
             var matchesStatus = !this.orderStatusFilter || o.status === this.orderStatusFilter;
             
-            var orderSource = '';
-            try {
-                if (o.order_details) {
-                    var details = typeof o.order_details === 'string' ? JSON.parse(o.order_details) : o.order_details;
-                    orderSource = details.source || '';
-                }
-            } catch(e) {}
-            var matchesSource = !this.orderSourceFilter || orderSource.toLowerCase().includes(this.orderSourceFilter.toLowerCase());
-
-            var matchesDate = true;
-            if (this.orderDateFilter) {
-                try {
-                    var safeDate = o.created_at ? o.created_at.toString().replace(' ', 'T') : null;
-                    if (safeDate) {
-                        var orderCreatedStr = new Date(safeDate).toISOString().split('T')[0];
-                        matchesDate = (orderCreatedStr === this.orderDateFilter);
-                    } else {
-                        matchesDate = false;
-                    }
-                } catch(e) {
-                    matchesDate = false;
-                }
-            }
-            return matchesSearch && matchesStatus && matchesSource && matchesDate;
+            return matchesSearch && matchesStatus;
         });
 
         return result.sort((a, b) => {
@@ -166,6 +141,17 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
         }
         return details.source || 'WhatsApp';
     },
+    formatSafeDate(dateStr) {
+        if (!dateStr) return '';
+        var safe = dateStr.toString().replace(' ', 'T');
+        try {
+            var d = new Date(safe);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+        } catch(e) {
+            return dateStr;
+        }
+    },
     onProductSelectChange() {
         var prod = this.allProducts.find(p => p._id == this.newOrderProductId || p._uid == this.newOrderProductId);
         if (prod) {
@@ -218,7 +204,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 
         list.forEach(o => {
             var ref = '#' + o._uid.substring(0, 8);
-            var dateStr = new Date(o.created_at).toLocaleString('fr-FR');
+            var dateStr = this.formatSafeDate(o.created_at);
             var clientName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name) : 'Inconnu';
             var phone = o.contact ? o.contact.wa_id : '';
             var items = this.parseOrderItems(o).map(i => (i.name || 'Produit') + ' (x' + (i.quantity||1) + ')').join(' | ');
@@ -244,7 +230,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
         var link = document.createElement('a');
         var url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', 'export_commandes_' + (this.orderDateFilter || 'toutes') + '.csv');
+        link.setAttribute('download', 'export_commandes.csv');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -367,26 +353,17 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 </div>
 
                 <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par source') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter">
-                        <option value="">{{ __tr('Toutes les sources') }}</option>
-                        <option value="whatsapp">{{ __tr('WhatsApp AI / Bot') }}</option>
-                        <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
-                        <option value="web">{{ __tr('Site Web / Webhook') }}</option>
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
+                        <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
+                        <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
                 </div>
 
-                <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique & Export') }}</label>
-                    <div class="d-flex align-items-center" style="gap: 5px;">
-                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter">
-                        <template x-if="orderDateFilter">
-                            <button type="button" @click="orderDateFilter = ''" class="btn btn-sm btn-link text-danger p-0" title="{{ __tr('Effacer la date') }}">&times;</button>
-                        </template>
-                        <button type="button" @click="exportOrdersCSV()" class="btn btn-sm btn-success font-weight-bold shadow-sm" style="border-radius: 8px; padding: 6px 12px;" title="{{ __tr('Télécharger les commandes affichées au format Excel') }}">
-                            <i class="fa fa-download"></i>
-                        </button>
-                    </div>
+                <div class="col-md-3 mb-3 d-flex align-items-end">
+                    <button type="button" @click="exportOrdersCSV()" class="btn btn-success font-weight-bold shadow-sm w-100" style="border-radius: 10px; height: 48px;" title="{{ __tr('Télécharger les commandes affichées au format Excel') }}">
+                        <i class="fa fa-download mr-1"></i> {{ __tr('Exporter') }}
+                    </button>
                 </div>
 
                 <div class="col-md-3 mb-3">
@@ -418,7 +395,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                     <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir le reçu') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
                                     </button>
-                                    <small class="text-muted d-block" x-text="new Date(order.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})"></small>
+                                    <small class="text-muted d-block" x-text="formatSafeDate(order.created_at)"></small>
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
