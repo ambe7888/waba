@@ -36,10 +36,17 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 }
 </style>
 
+<script>
+    window.INITIAL_ORDER_DATA = {
+        allOrders: @json($orders),
+        allContacts: @json($contactsList),
+        allProducts: @json($productsList)
+    };
+</script>
 <div class="container-fluid pb-5" x-data="{
-    allOrders: {{ json_encode($orders) }},
-    allContacts: {{ json_encode($contactsList) }},
-    allProducts: {{ json_encode($productsList) }},
+    allOrders: window.INITIAL_ORDER_DATA.allOrders,
+    allContacts: window.INITIAL_ORDER_DATA.allContacts,
+    allProducts: window.INITIAL_ORDER_DATA.allProducts,
     orderSearch: '',
     orderStatusFilter: '',
     orderDateFilter: '',

@@ -944,7 +944,7 @@
                                     </a>
                                     @endif
                                     @if (isVendorAdmin(getVendorId()) or hasVendorAccess('manage_contacts', 'delete_contacts'))
-                                    <button type="button" class="btn btn-link text-danger p-0 ml-2" style="position: absolute; right: 40px; top: 15px; z-index: 2; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" @click.stop.prevent="deleteSingleContact(contact)" title="{{ __tr('Supprimer ce contact') }}">
+                                    <button type="button" class="btn btn-link p-0" style="position: absolute; right: 54px; top: 14px; width: 32px; height: 32px; border-radius: 50%; background-color: #fff0f2; border: 1px solid #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; z-index: 2; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#ffe4e6';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#fff0f2';" @click.stop.prevent="deleteSingleContact(contact)" title="{{ __tr('Supprimer ce contact') }}">
                                         <i class="fa fa-trash"></i>
                                     </button>
                                     @endif
