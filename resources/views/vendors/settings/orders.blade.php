@@ -372,7 +372,7 @@ $teamMembers = \DB::table('users')
 
     <!-- MODAL 1: CREATE MANUAL ORDER BY VENDOR -->
     <div class="modal fade" id="createManualOrderModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
                 <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
                     <h5 class="modal-title font-weight-bold text-white"><i class="fa fa-cart-plus mr-2"></i> {{ __tr('Enregistrer une Commande Client (Vendeur)') }}</h5>
@@ -438,8 +438,8 @@ $teamMembers = \DB::table('users')
 
     <!-- MODAL 2: ORDER DETAILS & PRINTABLE RECEIPT MODAL (FICHE COMPLÈTE) -->
     <div class="modal fade" id="orderDetailsModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden; background: #ffffff;">
                 <!-- Modal Header -->
                 <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
                     <div class="d-flex align-items-center justify-content-between w-100">
@@ -453,8 +453,8 @@ $teamMembers = \DB::table('users')
                     </div>
                 </div>
 
-                <!-- Modal Body (Printable Invoice Area) -->
-                <div class="modal-body p-4" id="printableInvoiceArea">
+                <!-- Modal Body (Printable Invoice Area - Internal Scroll if long) -->
+                <div class="modal-body p-4" id="printableInvoiceArea" style="max-height: calc(85vh - 130px); overflow-y: auto;">
                     <!-- Status Badge Info Row -->
                     <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
                         <h6 class="mb-0 font-weight-bold text-dark"><i class="fa fa-receipt text-emerald mr-2"></i> {{ __tr('Facture Officielle de Commande') }}</h6>
@@ -551,8 +551,8 @@ $teamMembers = \DB::table('users')
                     </div>
                 </div>
 
-                <!-- Modal Footer (INTEGRATED ACTION & CLOSE BUTTONS AT BOTTOM OF POPUP) -->
-                <div class="modal-footer bg-light d-flex align-items-center justify-content-between no-print p-3" style="border-top: 1.5px solid #cbd5e1;">
+                <!-- Modal Footer (SEAMLESSLY INTEGRATED AT THE BOTTOM OF THE POPUP CARD) -->
+                <div class="modal-footer d-flex align-items-center justify-content-between no-print p-3" style="background: #f8fafc !important; border-top: 1.5px solid #e2e8f0; border-radius: 0 0 20px 20px;">
                     <div class="d-flex align-items-center" style="gap: 10px;">
                         <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
                             <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
