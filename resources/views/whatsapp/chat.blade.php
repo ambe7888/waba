@@ -1641,13 +1641,12 @@
                 this.replyingToMessage = null;
             },
             deleteSingleContact: function(contactItem) {
-                if(confirm('{{ __tr("Êtes-vous sûr de vouloir supprimer ce contact et toutes ses données ? Cette action est irréversible.") }}')) {
+                if(confirm('{{ __tr("Êtes-vous sûr de vouloir effacer la conversation et masquer ce contact de la liste ?") }}')) {
                     var self = this;
-                    __DataRequest.post('{{ route("vendor.contacts.selected.write.delete") }}', {
-                        'selected_contacts': [contactItem._id]
-                    }, function(response) {
+                    var url = '{{ route("vendor.chat_message.delete.process", ["contactUid" => "CONTACT_UID"]) }}'.replace('CONTACT_UID', contactItem._uid);
+                    __DataRequest.post(url, {}, function(response) {
                         var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
-                        var msg = response.message || (response.data && response.data.message) || 'Contact supprimé avec succès.';
+                        var msg = response.message || (response.data && response.data.message) || 'Conversation effacée avec succès.';
                         if (isSuccess) {
                             showSuccessMessage(msg);
                             if (self.contacts[contactItem._uid]) {
