@@ -37,9 +37,9 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 </style>
 
 <div class="container-fluid pb-5" x-data="{
-    allOrders: JSON.parse(atob('{{ base64_encode(json_encode($orders)) }}')),
-    allContacts: JSON.parse(atob('{{ base64_encode(json_encode($contactsList)) }}')),
-    allProducts: JSON.parse(atob('{{ base64_encode(json_encode($productsList)) }}')),
+    allOrders: {{ json_encode($orders) }},
+    allContacts: {{ json_encode($contactsList) }},
+    allProducts: {{ json_encode($productsList) }},
     orderSearch: '',
     orderStatusFilter: '',
     orderDateFilter: '',
@@ -63,20 +63,35 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
             var matchesSearch = !this.orderSearch || contactName.toLowerCase().includes(this.orderSearch.toLowerCase()) || orderRef.toLowerCase().includes(this.orderSearch.toLowerCase());
             var matchesStatus = !this.orderStatusFilter || o.status === this.orderStatusFilter;
             
-            var orderSource = o.order_details ? (o.order_details.source || '') : '';
+            var orderSource = '';
+            try {
+                if (o.order_details) {
+                    var details = typeof o.order_details === 'string' ? JSON.parse(o.order_details) : o.order_details;
+                    orderSource = details.source || '';
+                }
+            } catch(e) {}
             var matchesSource = !this.orderSourceFilter || orderSource.toLowerCase().includes(this.orderSourceFilter.toLowerCase());
 
             var matchesDate = true;
             if (this.orderDateFilter) {
-                var orderCreatedStr = new Date(o.created_at).toISOString().split('T')[0];
-                matchesDate = (orderCreatedStr === this.orderDateFilter);
+                try {
+                    var safeDate = o.created_at ? o.created_at.toString().replace(' ', 'T') : null;
+                    if (safeDate) {
+                        var orderCreatedStr = new Date(safeDate).toISOString().split('T')[0];
+                        matchesDate = (orderCreatedStr === this.orderDateFilter);
+                    } else {
+                        matchesDate = false;
+                    }
+                } catch(e) {
+                    matchesDate = false;
+                }
             }
             return matchesSearch && matchesStatus && matchesSource && matchesDate;
         });
 
         return result.sort((a, b) => {
-            var dateA = new Date(a.created_at || 0);
-            var dateB = new Date(b.created_at || 0);
+            var dateA = new Date((a.created_at || '').toString().replace(' ', 'T') || 0);
+            var dateB = new Date((b.created_at || '').toString().replace(' ', 'T') || 0);
             return this.orderDateSort === 'asc' ? dateA - dateB : dateB - dateA;
         });
     },
