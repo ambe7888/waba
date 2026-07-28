@@ -594,7 +594,7 @@ class WhatsAppServiceController extends BaseController
      */
     public function clearChatHistory(BaseRequestTwo $request, $contactUid)
     {
-        validateVendorAccess('messaging');
+        validateVendorAccess('messaging', 'delete_chat_history');
         // restrict demo user
         if(isDemo() and isDemoVendorAccount()) {
             return $this->processResponse(22, [

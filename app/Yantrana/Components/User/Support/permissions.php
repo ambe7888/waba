@@ -63,8 +63,14 @@ return [
         'description' => __tr('Allow/Deny access like Creating, Executing and Scheduling Campaigns etc'),
     ],
     'messaging' => [
-        'title' => __tr('Messaging'),
+        'title' => __tr('Messaging & Live Chat'),
         'description' => __tr('Allow/Deny access like Chat, Sync Templates etc'),
+        'permissions' => [
+            'delete_chat_history' => [
+                'title' => __tr('Supprimer la conversation / historique de chat'),
+                'description' => __tr('Autoriser/Refuser la suppression de l\'historique des discussions'),
+            ],
+        ],
     ],
     'manage_templates' => [
         'title' => __tr('Manage Templates'),

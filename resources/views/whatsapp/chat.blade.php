@@ -331,6 +331,7 @@
                                                         </a>
                                                         <div class="dropdown-menu dropdown-menu-right">
                                                         <a x-bind:href="__Utils.apiURL('{{ route('vendor.template_message.contact.view', [ 'contactIdOrUid']) }}', {'contactIdOrUid': contact._uid})" class="dropdown-item"><i class="fas fa-paper-plane"></i> {{ __tr('Send Template Message') }}</a>
+                                                        @if (hasVendorAccess('messaging', 'delete_chat_history'))
                                                         <a x-cloak
                                                             :class="whatsappMessageLogs.length <= 0 ? 'disabled' : ''"
                                                             data-method="post" data-confirm="#lwClearChatHistoryWarning" x-bind:href="__Utils.apiURL('{{ route('vendor.chat_message.delete.process', [ 'contactIdOrUid']) }}', {'contactIdOrUid': contact._uid})"
@@ -339,6 +340,7 @@
                                                             <h3>{{  __tr('Are you sure you want to clear chat history for this contact?') }}</h3>
                                                                 <p class="text-warning">{{  __tr('Only chat history will be deleted permanently, it won\'t delete campaign messages.') }}</p>
                                                             </script>
+                                                        @endif
 
                                                             <template x-if='contact && (_.isEmpty(contact?.wa_blocked_at))'>
                                                                 <span :title="isDirectMessageDeliveryWindowOpened == false ? '{!! addslashes(__tr('Blocking is not allowed as no response has been received within the past 24 hours')) !!}' : ''">
