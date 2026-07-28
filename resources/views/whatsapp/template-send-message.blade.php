@@ -209,7 +209,23 @@
                                     </x-slot>
                                 </x-lw.input-field>
                                      <fieldset class="shadow-none">
-                                        <legend>{{  __tr('Audience Cible') }}</legend>
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <legend class="mb-0" style="float: none; width: auto; font-size: 1.1rem;">{{  __tr('Audience Cible') }}</legend>
+                                            <a href="{{ route('vendor.campaign_audience.read.list') }}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.8rem; border-radius: 6px;"><i class="fa fa-plus-circle mr-1"></i>{{ __tr('Créer / Gérer des Audiences') }}</a>
+                                        </div>
+
+                                        @if(empty($vendorAudiences) || (is_countable($vendorAudiences) && count($vendorAudiences) == 0))
+                                            <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 my-2" style="border-radius: 10px;">
+                                                <div>
+                                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                    <strong>{{ __tr('Aucune audience disponible !') }}</strong> {{ __tr('Vous devez créer au moins une audience pour cibler vos contacts.') }}
+                                                </div>
+                                                <a href="{{ route('vendor.campaign_audience.read.list') }}" target="_blank" class="btn btn-sm btn-dark ml-3 font-weight-bold text-nowrap" style="border-radius: 8px;">
+                                                    <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Créer maintenant') }}
+                                                </a>
+                                            </div>
+                                        @endif
+
                                         {{-- select audience --}}
                                         <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectAudiencesField"
                                         data-form-group-class="" data-selected=" " :label="__tr('Audience')" name="audience_uid" required="required">

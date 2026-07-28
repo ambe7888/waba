@@ -80,43 +80,45 @@
                 <div x-show="isAdvanceBot != 'template'">
                     <!-- Reply_Text -->
                     <div class="form-group" x-show="isAdvanceBot == 'simple' || isAdvanceBot == 'interactive'">
-                        <label for="lwReplyTextField">{{ __tr('Reply Text') }}</label>
-                            <textarea cols="10" rows="3" id="lwAdvanceBotReplyTextField" class="lw-form-field form-control"
-                                placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"></textarea>
-                            <x-whatsapp-format-buttons inputId="lwAdvanceBotReplyTextField" />
-                            <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label for="lwAdvanceBotReplyTextField" class="mb-0">{{ __tr('Reply Text') }}</label>
+                            <small class="text-muted font-weight-bold"><span id="replyTextCounter">0</span> / 1024 {{ __tr('caractères') }}</small>
+                        </div>
+                        <textarea cols="10" rows="3" id="lwAdvanceBotReplyTextField" class="lw-form-field form-control"
+                            placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"
+                            maxlength="1024" oninput="$('#replyTextCounter').text(this.value.length)"></textarea>
+                        <x-whatsapp-format-buttons inputId="lwAdvanceBotReplyTextField" />
+                        <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                     </div>
                     <!-- /Reply_Text -->
                     <div x-show="isAdvanceBot == 'interactive' || isAdvanceBot == 'media'">
-                            {{-- select type --}}
-                        <div x-show="isAdvanceBot == 'interactive'">
-                        <x-lw.input-field x-init="$watch('headerType', function() {
-                            if((interactiveButtonType == 'list') && !_.includes(['','text'],headerType)) {
-                                interactiveButtonType = 'button';
-                            }
-                        })" x-model="headerType" type="selectize" id="lwAdvanceBotHeaderTypeField"  data-form-group-class="" data-selected=" " :label="__tr('Header Type (optional)')" name="header_type" >
-                            <x-slot name="selectOptions">
-                                <option value="">{{  __tr('None') }}</option>
-                                <option value="text">{{  __tr('Text') }}</option>
-                                <option value="image">{{  __tr('Image') }}</option>
-                                <option value="video">{{  __tr('Video') }}</option>
-                                <option value="document">{{  __tr('Document') }}</option>
-                            </x-slot>
-                        </x-lw.input-field>
+                        {{-- select type --}}
+                        <div x-show="isAdvanceBot == 'interactive'" class="form-group">
+                            <label for="lwAdvanceBotHeaderTypeField">{{ __tr('Header Type (optional)') }}</label>
+                            <select x-init="$watch('headerType', function(val) {
+                                if((interactiveButtonType == 'list') && !_.includes(['','text'], val)) {
+                                    interactiveButtonType = 'button';
+                                }
+                            })" x-model="headerType" id="lwAdvanceBotHeaderTypeField" class="form-control custom-select" name="header_type">
+                                <option value="">{{ __tr('Aucun (None)') }}</option>
+                                <option value="text">{{ __tr('Text') }}</option>
+                                <option value="image">{{ __tr('Image') }}</option>
+                                <option value="video">{{ __tr('Video') }}</option>
+                                <option value="document">{{ __tr('Document') }}</option>
+                            </select>
                         </div>
-                        <span x-text="headerType"></span>
-                        <div x-show="isAdvanceBot == 'media'">
-                            <x-lw.input-field x-model="headerType" type="selectize" id="lwMediaHeaderType"
-                            data-form-group-class="" data-selected=" " :label="__tr('Header Type')" name="media_header_type" >
-                                <x-slot name="selectOptions">
-                                    <option value="">{{  __tr('None') }}</option>
-                                    <option value="image">{{  __tr('Image') }}</option>
-                                    <option value="video">{{  __tr('Video') }}</option>
-                                    <option value="document">{{  __tr('Document') }}</option>
-                                    <option value="audio">{{  __tr('Audio') }}</option>
-                                </x-slot>
-                            </x-lw.input-field>
+
+                        <div x-show="isAdvanceBot == 'media'" class="form-group">
+                            <label for="lwMediaHeaderType">{{ __tr('Header Type') }}</label>
+                            <select x-model="headerType" id="lwMediaHeaderType" class="form-control custom-select" name="media_header_type">
+                                <option value="">{{ __tr('Aucun (None)') }}</option>
+                                <option value="image">{{ __tr('Image') }}</option>
+                                <option value="video">{{ __tr('Video') }}</option>
+                                <option value="document">{{ __tr('Document') }}</option>
+                                <option value="audio">{{ __tr('Audio') }}</option>
+                            </select>
                         </div>
+
                         <div class="my-3">
                         {{-- document --}}
                         <div x-show="headerType == 'document'" class="form-group col-sm-12">
@@ -150,10 +152,13 @@
                             <x-whatsapp-format-buttons inputId="lwCaptionField" />
                             <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for caption, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
                         </div>
-                            <div x-show="headerType == 'text'">
-                            <x-lw.input-field type="text" id="lwAdvanceHeaderText" data-form-group-class=""
-                                :label="__tr('Header Text')" name="header_text" required="true" />
-                    </div>
+                        <div x-show="headerType == 'text'" class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="lwAdvanceHeaderText" class="mb-0">{{ __tr('Header Text') }}</label>
+                                <small class="text-muted font-weight-bold"><span id="headerTextCounter">0</span> / 60 {{ __tr('caractères') }}</small>
+                            </div>
+                            <input type="text" id="lwAdvanceHeaderText" class="form-control" name="header_text" maxlength="60" oninput="$('#headerTextCounter').text(this.value.length)">
+                        </div>
                         <div class="mt-4" x-show="isAdvanceBot == 'interactive'">
                         <strong> <input type="radio" name="interactive_type" x-model="interactiveButtonType" value="button" id="lwNewAdvanceBotReplyBtnType"> <label  class="mr-2" for="lwNewAdvanceBotReplyBtnType">{{  __tr('Reply Buttons') }}</label>
                             <input type="radio" name="interactive_type" x-model="interactiveButtonType" value="cta_url" id="lwNewAdvanceBotCtaUrlBtnType"> <label class="mr-2" for="lwNewAdvanceBotCtaUrlBtnType">{{  __tr('CTA URL Button') }}</label>
@@ -161,16 +166,38 @@
                             <hr class="mt-1 mb-2">
                         <template x-if="interactiveButtonType == 'button'">
                             <div>
-                                {{-- <h2>{{  __tr('Reply Buttons') }}</h2> --}}
-                                <x-lw.input-field type="text" id="lwAdvanceButton1" data-form-group-class="" :label="__tr('Button 1 Label')" name="buttons[1]" required="true" />
-                                <x-lw.input-field type="text" id="lwAdvanceButton2" data-form-group-class="" :label="__tr('Button 2 Label (optional)')" name="buttons[2]" />
-                                <x-lw.input-field type="text" id="lwAdvanceButton3" data-form-group-class="" :label="__tr('Button 3 Label (optional)')" name="buttons[3]" />
+                                <div class="form-group">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="lwAdvanceButton1" class="mb-0">{{ __tr('Button 1 Label') }}</label>
+                                        <small class="text-muted font-weight-bold"><span id="btn1Counter">0</span> / 20 {{ __tr('caractères') }}</small>
+                                    </div>
+                                    <input type="text" id="lwAdvanceButton1" class="form-control" name="buttons[1]" required maxlength="20" oninput="$('#btn1Counter').text(this.value.length)">
+                                </div>
+                                <div class="form-group">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="lwAdvanceButton2" class="mb-0">{{ __tr('Button 2 Label (optional)') }}</label>
+                                        <small class="text-muted font-weight-bold"><span id="btn2Counter">0</span> / 20 {{ __tr('caractères') }}</small>
+                                    </div>
+                                    <input type="text" id="lwAdvanceButton2" class="form-control" name="buttons[2]" maxlength="20" oninput="$('#btn2Counter').text(this.value.length)">
+                                </div>
+                                <div class="form-group">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="lwAdvanceButton3" class="mb-0">{{ __tr('Button 3 Label (optional)') }}</label>
+                                        <small class="text-muted font-weight-bold"><span id="btn3Counter">0</span> / 20 {{ __tr('caractères') }}</small>
+                                    </div>
+                                    <input type="text" id="lwAdvanceButton3" class="form-control" name="buttons[3]" maxlength="20" oninput="$('#btn3Counter').text(this.value.length)">
+                                </div>
                             </div>
                         </template>
                         <template x-if="interactiveButtonType == 'cta_url'">
                             <div>
-                                {{-- <h2>{{  __tr('CTA URL Button') }}</h2> --}}
-                                <x-lw.input-field type="text" id="lwCtaUrlButtonDisplayText" data-form-group-class="" :label="__tr('CTA Button Display Text')" name="button_display_text" required="true"/>
+                                <div class="form-group">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="lwCtaUrlButtonDisplayText" class="mb-0">{{ __tr('CTA Button Display Text') }}</label>
+                                        <small class="text-muted font-weight-bold"><span id="ctaBtnCounter">0</span> / 20 {{ __tr('caractères') }}</small>
+                                    </div>
+                                    <input type="text" id="lwCtaUrlButtonDisplayText" class="form-control" name="button_display_text" required maxlength="20" oninput="$('#ctaBtnCounter').text(this.value.length)">
+                                </div>
                                 <x-lw.input-field type="text" id="lwCtaButtonUrl" data-form-group-class="" :label="__tr('CTA Button URL')" name="button_url" required="true" />
                             </div>
                         </template>
@@ -196,8 +223,13 @@
                                 },deleteRow(sectionId, rowId){
                                 delete this.botListMessageSections[sectionId]['rows'][rowId];
                             }}" >
-                                {{-- <h2>{{  __tr('List Message') }}</h2> --}}
-                                <x-lw.input-field type="text" id="lwListButtonText" data-form-group-class="" :label="__tr('Button Label')" name="list_button_text" required="true" />
+                                <div class="form-group">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="lwListButtonText" class="mb-0">{{ __tr('Button Label') }}</label>
+                                        <small class="text-muted font-weight-bold"><span id="listBtnCounter">0</span> / 20 {{ __tr('caractères') }}</small>
+                                    </div>
+                                    <input type="text" id="lwListButtonText" class="form-control" name="list_button_text" required maxlength="20" oninput="$('#listBtnCounter').text(this.value.length)">
+                                </div>
                                 <template x-for="(botListMessageSection, index) in botListMessageSections">
                                     <fieldset>
                                         <legend  class="py-1 px-2 mb-1"><small>{{  __tr('Section') }}</small></legend>
@@ -229,9 +261,12 @@
                             </template>
                         </div>
                         {{-- footer text --}}
-                        <div x-show="isAdvanceBot == 'interactive'">
-                            <x-lw.input-field  type="text" id="lwAdvanceFooterText" data-form-group-class=""
-                            :label="__tr('Footer Text (optional)')" name="footer_text" />
+                        <div x-show="isAdvanceBot == 'interactive'" class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="lwAdvanceFooterText" class="mb-0">{{ __tr('Footer Text (optional)') }}</label>
+                                <small class="text-muted font-weight-bold"><span id="footerTextCounter">0</span> / 60 {{ __tr('caractères') }}</small>
+                            </div>
+                            <input type="text" id="lwAdvanceFooterText" class="form-control" name="footer_text" maxlength="60" oninput="$('#footerTextCounter').text(this.value.length)">
                         </div>
                     </div>
                     {{-- /reply --}}

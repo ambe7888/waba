@@ -51,7 +51,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         <div class="dropdown-menu dropdown-menu-right">
             @if($hasManageAccess)
             <a class="dropdown-item lw-ajax-link-action" href="#" onclick="editAudience('<%- __tData._uid %>', '<%- __tData.title %>', <%- JSON.stringify(__tData.contacts_raw) %>, <%- JSON.stringify(__tData.groups_raw) %>, <%- JSON.stringify(__tData.labels_raw) %>); return false;"><i class="fa fa-edit"></i> <?= __tr('Modifier') ?></a>
-            <a data-method="post" href="<%= __Utils.apiURL('{{ route('vendor.campaign_audience.write.delete', ['audienceUid' => 'audienceUid']) }}', {'audienceUid': __tData._uid}) %>" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwDeleteAudience-template"><i class="fa fa-trash text-danger"></i> <?= __tr('Supprimer') ?></a>
+            <a data-method="post" data-callback="appFuncs.modelSuccessCallback" data-callback-params="{{ json_encode(['datatableId' => '#lwAudienceList']) }}" href="<%= __Utils.apiURL('{{ route('vendor.campaign_audience.write.delete', ['audienceUid' => 'audienceUid']) }}', {'audienceUid': __tData._uid}) %>" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwDeleteAudience-template"><i class="fa fa-trash text-danger"></i> <?= __tr('Supprimer') ?></a>
             @endif
         </div>
     </div>
@@ -80,7 +80,13 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     </div>
 
                     <div class="form-group">
-                        <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label for="contacts" class="mb-0"><?= __tr('Contacts Individuels') ?></label>
+                            <div>
+                                <button type="button" class="btn btn-xs btn-outline-primary shadow-none py-0 px-2" style="font-size: 0.75rem;" onclick="selectAllAudienceContacts()"><i class="fa fa-check-double mr-1"></i><?= __tr('Tout sélectionner') ?></button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary shadow-none py-0 px-2 ml-1" style="font-size: 0.75rem;" onclick="deselectAllAudienceContacts()"><i class="fa fa-times mr-1"></i><?= __tr('Tout désélectionner') ?></button>
+                            </div>
+                        </div>
                         <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize">
                             @foreach($contacts as $contact)
                                 <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
@@ -118,10 +124,28 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 @push('appScripts')
 <script>
+    function selectAllAudienceContacts() {
+        let selectize = $('#contacts')[0]?.selectize;
+        if (selectize) {
+            selectize.setValue(Object.keys(selectize.options));
+        }
+    }
+
+    function deselectAllAudienceContacts() {
+        let selectize = $('#contacts')[0]?.selectize;
+        if (selectize) {
+            selectize.clear();
+        }
+    }
+
     function onAudienceSaved(response) {
         if (response.reaction == 1) {
             $('#lwCreateAudienceModal').modal('hide');
-            window.lwDataTablesInstance.lwAudienceList.ajax.reload();
+            if (window.lwDataTablesInstance && window.lwDataTablesInstance.lwAudienceList) {
+                window.lwDataTablesInstance.lwAudienceList.ajax.reload();
+            } else {
+                location.reload();
+            }
         }
     }
 
