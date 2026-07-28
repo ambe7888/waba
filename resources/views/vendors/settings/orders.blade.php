@@ -217,7 +217,11 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
-                                    <small class="text-emerald font-weight-bold" style="color: #059669;" x-text="order.contact ? order.contact.wa_id : ''"></small>
+                                    <template x-if="order.contact && order.contact._uid">
+                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="text-emerald font-weight-bold small" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                            <i class="fab fa-whatsapp mr-1"></i><span x-text="order.contact.wa_id"></span>
+                                        </a>
+                                    </template>
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
@@ -245,7 +249,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                         </button>
 
                                         <template x-if="order.contact && order.contact._uid">
-                                            <a :href="'<?= url('/vendor/contact/chat') ?>/' + order.contact._uid" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                            <a :href="getChatUrl(order.contact._uid)" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
                                                 <i class="fab fa-whatsapp"></i>
                                             </a>
                                         </template>
@@ -368,8 +372,8 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                 <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer le reçu') }}
                             </button>
                             
-                            <template x-if="selectedOrder && selectedOrder.contact">
-                                <a :href="'<?= url('/vendor/contact/chat') ?>/' + selectedOrder.contact._uid" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                            <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
+                                <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
                                     <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
                                 </a>
                             </template>
@@ -395,7 +399,13 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                             <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
                                 <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-user text-emerald mr-1"></i> {{ __tr('Informations Client') }}</h6>
                                 <h6 class="font-weight-bold text-dark mb-1" x-text="selectedOrder && selectedOrder.contact ? (selectedOrder.contact.first_name + ' ' + selectedOrder.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></h6>
-                                <p class="text-emerald font-weight-bold mb-1" style="color: #059669;" x-text="selectedOrder && selectedOrder.contact ? '📱 WhatsApp: ' + selectedOrder.contact.wa_id : ''"></p>
+                                <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
+                                    <p class="mb-1">
+                                        <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="text-emerald font-weight-bold small" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                            📱 WhatsApp: <span x-text="selectedOrder.contact.wa_id"></span>
+                                        </a>
+                                    </p>
+                                </template>
                                 <template x-if="getDeliveryAddress(selectedOrder)">
                                     <p class="small text-dark mb-1"><strong>📍 {{ __tr('Livraison à:') }}</strong> <span x-text="getDeliveryAddress(selectedOrder)"></span></p>
                                 </template>
@@ -428,7 +438,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                             <tbody>
                                 <template x-for="(item, idx) in getItems(selectedOrder)" :key="idx">
                                     <tr>
-                                        <td class="align-middle font-weight-bold text-dark" x-text="item.name || item.title || 'Produit'"></td>
+                                        <td class="align-middle font-weight-bold text-dark" x-text="item.name || 'Produit'"></td>
                                         <td class="align-middle text-center font-weight-bold" x-text="'x' + (item.quantity || 1)"></td>
                                         <td class="align-middle text-right" x-text="Number(item.price || 0).toLocaleString() + ' CFA'"></td>
                                         <td class="align-middle text-right font-weight-bold text-dark" x-text="(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString() + ' CFA'"></td>
@@ -614,10 +624,28 @@ function ordersPageData() {
             if (typeof details === 'string') {
                 try { details = JSON.parse(details); } catch(e) { return []; }
             }
-            if (details && details.items && Array.isArray(details.items)) {
-                return details.items;
+            if (!details || typeof details !== 'object') return [];
+
+            var rawItems = details.items || details.product_items || details.products || [];
+            if (!Array.isArray(rawItems)) {
+                if (details.name || details.product_name || details.title) {
+                    rawItems = [details];
+                } else {
+                    return [];
+                }
             }
-            return [];
+
+            return rawItems.map(function(item) {
+                if (!item || typeof item !== 'object') return { name: 'Produit', quantity: 1, price: 0 };
+                var name = item.name || item.title || item.product_name || (item.product_retailer_id ? ('Réf: ' + item.product_retailer_id) : 'Produit');
+                var qty = Number(item.quantity || item.qty || 1);
+                var price = Number(item.price || item.item_price || item.unit_price || 0);
+                return {
+                    name: name,
+                    quantity: qty,
+                    price: price
+                };
+            });
         },
 
         getTotal: function(order) {
@@ -626,9 +654,15 @@ function ordersPageData() {
             if (typeof details === 'string') {
                 try { details = JSON.parse(details); } catch(e) { return 0; }
             }
-            if (details && details.total_price) {
-                return Number(details.total_price);
+            if (!details || typeof details !== 'object') return 0;
+
+            if (details.total_price !== undefined && details.total_price !== null) {
+                return Number(details.total_price) || 0;
             }
+            if (details.total !== undefined && details.total !== null) {
+                return Number(details.total) || 0;
+            }
+
             var items = this.getItems(order);
             var total = 0;
             for (var i = 0; i < items.length; i++) {
@@ -643,7 +677,13 @@ function ordersPageData() {
             if (typeof details === 'string') {
                 try { details = JSON.parse(details); } catch(e) { return 'WhatsApp'; }
             }
-            return (details && details.source) ? details.source : 'WhatsApp';
+            if (!details || typeof details !== 'object') return 'WhatsApp';
+
+            var src = details.source || details.created_by_vendor || '';
+            if (!src) return 'WhatsApp';
+            if (src === 'whatsapp_ai') return 'WhatsApp AI / Bot';
+            if (src === 'manual' || src === 'manuel') return 'Vendeur Manuel';
+            return src;
         },
 
         getDeliveryAddress: function(order) {
@@ -652,7 +692,8 @@ function ordersPageData() {
             if (typeof details === 'string') {
                 try { details = JSON.parse(details); } catch(e) { return ''; }
             }
-            return details.delivery_address || details.address || '';
+            if (!details || typeof details !== 'object') return '';
+            return details.delivery_address || details.address || details.shipping_address || '';
         },
 
         getDeliveryDate: function(order) {
@@ -661,7 +702,14 @@ function ordersPageData() {
             if (typeof details === 'string') {
                 try { details = JSON.parse(details); } catch(e) { return ''; }
             }
-            return details.delivery_date || '';
+            if (!details || typeof details !== 'object') return '';
+            return details.delivery_date || details.shipping_date || '';
+        },
+
+        getChatUrl: function(contactUid) {
+            if (!contactUid) return '#';
+            var baseUrl = '{{ route("vendor.chat_message.contact.view", ["contactUid" => "CONTACT_UID"]) }}';
+            return baseUrl.replace('CONTACT_UID', contactUid);
         },
 
         viewOrderDetails: function(order) {
