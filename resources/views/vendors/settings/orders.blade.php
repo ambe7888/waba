@@ -51,20 +51,21 @@ $teamMembers = \DB::table('users')
         overflow: visible !important;
     }
     
-    /* Hide layout chrome */
+    /* Hide layout chrome & ALL other modals (including #lwScanMeDialog QR Code modal) */
     nav, header, sidebar, footer, .navbar, .sidebar, .lw-main-navbar, 
+    #lwScanMeDialog, .modal:not(#orderDetailsModal),
     .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
         display: none !important;
     }
 
-    /* WHEN MODAL RECEIPT IS OPEN: Print ONLY the receipt modal */
+    /* WHEN MODAL RECEIPT IS OPEN: Print ONLY #printableInvoiceArea inside #orderDetailsModal */
     body.modal-open #printableOrdersListArea,
     body.modal-open .card,
-    body.modal-open .container-fluid > div:not(.modal) {
+    body.modal-open .container-fluid > div:not(#orderDetailsModal) {
         display: none !important;
     }
 
-    body.modal-open .modal {
+    body.modal-open #orderDetailsModal {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
@@ -74,16 +75,20 @@ $teamMembers = \DB::table('users')
         display: block !important;
         overflow: visible !important;
         background: #ffffff !important;
+        box-shadow: none !important;
+        border: none !important;
     }
 
-    body.modal-open .modal-dialog {
+    body.modal-open #orderDetailsModal .modal-dialog {
         max-width: 100% !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
     }
 
-    body.modal-open .modal-content {
+    body.modal-open #orderDetailsModal .modal-content {
         border: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
