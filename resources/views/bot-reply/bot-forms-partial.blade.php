@@ -100,7 +100,7 @@
                                     interactiveButtonType = 'button';
                                 }
                             })" x-model="headerType" id="lwAdvanceBotHeaderTypeField" class="form-control custom-select" name="header_type">
-                                <option value="">{{ __tr('Aucun (None)') }}</option>
+                                <option value="">{{ __tr('Aucun') }}</option>
                                 <option value="text">{{ __tr('Text') }}</option>
                                 <option value="image">{{ __tr('Image') }}</option>
                                 <option value="video">{{ __tr('Video') }}</option>
@@ -302,109 +302,113 @@
             
             <!-- Bot Actions -->
             @if($isNotNonTemplateCampaign)
-                <fieldset x-data="{ assignUserType: 'no_action' }">
-                    <legend>{{  __tr('Actions') }}</legend>
-                    <!-- Assign Team Member -->
-                    <fieldset>
-                        <legend>{{  __tr('Assign Team Member') }}</legend>
-                        <x-lw.input-field id="lwCurrentlyAssignedUserId" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="" x-model="assignUserType">
-                            <x-slot name="selectOptions">
-                                <optgroup label="{{ __tr('No Action Perform') }}">
-                                    <option value="no_action">{{  __tr('No Action') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Remove team member from contact') }}">
-                                    <option value="no_one">{{  __tr('Unassigned') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Assign random team member to contact') }}">
-                                    <option value="random">{{  __tr('Random') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Team Members') }}">
-                                    @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                    <option value="{{ $vendorMessagingUser->_id }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
+                <fieldset x-data="{ collapsed: true, assignUserType: 'no_action' }" class="border p-3 mb-3">
+                    <legend class="w-auto px-2" style="cursor: pointer;" @click="collapsed = !collapsed">
+                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> {{  __tr('Actions') }}
+                    </legend>
+                    <div x-show="!collapsed" x-transition>
+                        <!-- Assign Team Member -->
+                        <fieldset>
+                            <legend>{{  __tr('Assign Team Member') }}</legend>
+                            <x-lw.input-field id="lwCurrentlyAssignedUserId" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="" x-model="assignUserType">
+                                <x-slot name="selectOptions">
+                                    <optgroup label="{{ __tr('No Action Perform') }}">
+                                        <option value="no_action">{{  __tr('No Action') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Remove team member from contact') }}">
+                                        <option value="no_one">{{  __tr('Unassigned') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Assign random team member to contact') }}">
+                                        <option value="random">{{  __tr('Random') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Team Members') }}">
+                                        @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                        <option value="{{ $vendorMessagingUser->_id }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
+                                        @endforeach
+                                    </optgroup>
+                                </x-slot>
+                            </x-lw.input-field>
+                            <div x-show="assignUserType == 'no_action'">
+                                <small class="text-muted">{{  __tr('Note: No action will perform when this bot is trigger.') }}</small>
+                            </div>
+
+                            <div x-show="assignUserType == 'no_one'">
+                                <small class="text-muted">{{  __tr('Note: The team member will be unassigned when this bot is triggered.') }}</small>
+                            </div>
+
+                            <div x-show="assignUserType == 'random'">
+                                <small class="text-muted">{{  __tr("Note: Random team member will be assigned, It won't affect contact to whom team member already assigned.") }}</small>
+                            </div>
+                            <div x-show="assignUserType !== '' && !isNaN(Number(assignUserType))">
+                                <small class="text-muted">{{  __tr("Existing team member will overwrite.") }}</small>
+                            </div>
+                        </fieldset>
+                        <!-- /Assign Team Member -->
+
+                        <!-- Assign Label -->
+                        <fieldset>
+                            <legend>{{  __tr('Assign Labels/Tags') }}</legend>
+                            <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="mt--4" name="bot_actions[contact_labels][]" multiple >
+                                <x-slot name="selectOptions">
+                                <option value="">{{ __tr('Select Labels') }}</option>
+                                    @foreach($allLabels as $label)
+                                        <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                     @endforeach
-                                </optgroup>
-                            </x-slot>
-                        </x-lw.input-field>
-                        <div x-show="assignUserType == 'no_action'">
-                            <small class="text-muted">{{  __tr('Note: No action will perform when this bot is trigger.') }}</small>
-                        </div>
+                                </x-slot>
+                            </x-lw.input-field>                            
+                        </fieldset>
+                        <!-- /Assign Label -->
 
-                        <div x-show="assignUserType == 'no_one'">
-                            <small class="text-muted">{{  __tr('Note: The team member will be unassigned when this bot is triggered.') }}</small>
-                        </div>
+                        <!-- Unassign Label -->
+                        <fieldset>
+                            <legend>{{  __tr('Unassign Labels/Tags') }}</legend>
+                            <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsField" data-form-group-class="mt--4" name="bot_actions[unassign_contact_labels][]" multiple >
+                                <x-slot name="selectOptions">
+                                <option value="">{{ __tr('Select Labels') }}</option>
+                                    @foreach($allLabels as $label)
+                                        <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                                    @endforeach
+                                </x-slot>
+                            </x-lw.input-field>                            
+                        </fieldset>
+                        <!-- /Unassign Label -->
 
-                        <div x-show="assignUserType == 'random'">
-                            <small class="text-muted">{{  __tr("Note: Random team member will be assigned, It won't affect contact to whom team member already assigned.") }}</small>
-                        </div>
-                        <div x-show="assignUserType !== '' && !isNaN(Number(assignUserType))">
-                            <small class="text-muted">{{  __tr("Existing team member will overwrite.") }}</small>
-                        </div>
-                    </fieldset>
-                    <!-- /Assign Team Member -->
-
-                    <!-- Assign Label -->
-                    <fieldset>
-                        <legend>{{  __tr('Assign Labels/Tags') }}</legend>
-                        <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="mt--4" name="bot_actions[contact_labels][]" multiple >
-                            <x-slot name="selectOptions">
-                            <option value="">{{ __tr('Select Labels') }}</option>
-                                @foreach($allLabels as $label)
-                                    <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                        <!-- Promotional -->
+                        <fieldset>
+                            <legend>{{  __tr('Promotional') }}</legend>
+                            <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
+                                    <option value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
                                 @endforeach
-                            </x-slot>
-                        </x-lw.input-field>                            
-                    </fieldset>
-                    <!-- /Assign Label -->
+                            </select>
+                        </fieldset>
+                        <!-- /Promotional -->
 
-                    <!-- Unassign Label -->
-                    <fieldset>
-                        <legend>{{  __tr('Unassign Labels/Tags') }}</legend>
-                        <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsField" data-form-group-class="mt--4" name="bot_actions[unassign_contact_labels][]" multiple >
-                            <x-slot name="selectOptions">
-                            <option value="">{{ __tr('Select Labels') }}</option>
-                                @foreach($allLabels as $label)
-                                    <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                        <!-- AI Bot -->
+                        <fieldset>
+                            <legend>{{  __tr('AI Bot') }}</legend>
+                            <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
+                                    <option value="<?= $aiBotKey ?>"><?= $aiBot['title'] ?></option>
                                 @endforeach
-                            </x-slot>
-                        </x-lw.input-field>                            
-                    </fieldset>
-                    <!-- /Unassign Label -->
+                            </select>
+                        </fieldset>
+                        <!-- /AI Bot -->
 
-                    <!-- Promotional -->
-                    <fieldset>
-                        <legend>{{  __tr('Promotional') }}</legend>
-                        <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
-                                <option value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /Promotional -->
-
-                    <!-- AI Bot -->
-                    <fieldset>
-                        <legend>{{  __tr('AI Bot') }}</legend>
-                        <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
-                                <option value="<?= $aiBotKey ?>"><?= $aiBot['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /AI Bot -->
-
-                    <!-- Reply Bot -->
-                    <fieldset>
-                        <legend>{{  __tr('Reply Bot') }}</legend>
-                        <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
-                                <option value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /Reply Bot -->
+                        <!-- Reply Bot -->
+                        <fieldset>
+                            <legend>{{  __tr('Reply Bot') }}</legend>
+                            <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
+                                    <option value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
+                                @endforeach
+                            </select>
+                        </fieldset>
+                        <!-- /Reply Bot -->
+                    </div>
                 </fieldset>
             @endif
             <!-- /Bot Actions -->
@@ -730,129 +734,133 @@
                 </template>
 
                 <!-- Bot Actions -->
-                <fieldset>
-                    <legend>{{  __tr('Bot Actions') }}</legend>
-                    <!-- Assign Team Member -->
-                    <fieldset x-data="{ 
-                        assignUserType: '<%= !_.isEmpty(__tData.__data?.bot_actions?.assigned_users_id) ? __tData.__data?.bot_actions?.assigned_users_id : 'no_action'  %>'
-                    }">
-                        <legend>{{  __tr('Assign Team Member') }}</legend>
-                        <x-lw.input-field id="lwCurrentlyAssignedUserIdEdit" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="<%= __tData.__data?.bot_actions?.assigned_users_id %>" x-model="assignUserType">
-                            <x-slot name="selectOptions">
-                                <optgroup label="{{ __tr('No Action Perform') }}">
-                                    <option value="no_action">{{  __tr('No Action') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Remove team member from contact') }}">
-                                    <option value="no_one">{{  __tr('Unassigned') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Assign random team member to contact') }}">
-                                    <option value="random">{{  __tr('Random') }}</option>
-                                </optgroup>
-                                <optgroup label="{{ __tr('Team Members') }}">
-                                    @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                    <option value="{{ $vendorMessagingUser->_id }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
+                <fieldset x-data="{ collapsed: true }">
+                    <legend class="w-auto px-2" style="cursor: pointer;" @click="collapsed = !collapsed">
+                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> {{  __tr('Bot Actions') }}
+                    </legend>
+                    <div x-show="!collapsed" x-transition>
+                        <!-- Assign Team Member -->
+                        <fieldset x-data="{ 
+                            assignUserType: '<%= !_.isEmpty(__tData.__data?.bot_actions?.assigned_users_id) ? __tData.__data?.bot_actions?.assigned_users_id : 'no_action'  %>'
+                        }">
+                            <legend>{{  __tr('Assign Team Member') }}</legend>
+                            <x-lw.input-field id="lwCurrentlyAssignedUserIdEdit" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="<%= __tData.__data?.bot_actions?.assigned_users_id %>" x-model="assignUserType">
+                                <x-slot name="selectOptions">
+                                    <optgroup label="{{ __tr('No Action Perform') }}">
+                                        <option value="no_action">{{  __tr('No Action') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Remove team member from contact') }}">
+                                        <option value="no_one">{{  __tr('Unassigned') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Assign random team member to contact') }}">
+                                        <option value="random">{{  __tr('Random') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ __tr('Team Members') }}">
+                                        @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                        <option value="{{ $vendorMessagingUser->_id }}">{{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} @if($vendorMessagingUser->_uid == getUserUID()) ({{  __tr('You') }}) @endif</option>
+                                        @endforeach
+                                    </optgroup>
+                                </x-slot>
+                            </x-lw.input-field>
+                            <div x-show="assignUserType == 'no_action'">
+                                <small class="text-muted">{{  __tr('Note: No action will perform when this bot is trigger.') }}</small>
+                            </div>
+
+                            <div x-show="assignUserType == 'no_one'">
+                                <small class="text-muted">{{  __tr('Note: The team member will be unassigned when this bot is triggered.') }}</small>
+                            </div>
+
+                            <div x-show="assignUserType == 'random'">
+                                <small class="text-muted">{{  __tr("Note: Random team member will be assigned, It won't affect contact to whom team member already assigned") }}</small>
+                            </div>
+                            <div x-show="assignUserType !== '' && !isNaN(Number(assignUserType))">
+                                <small class="text-muted">{{  __tr("Existing team member will overwrite.") }}</small>
+                            </div>
+                        </fieldset>
+                        <!-- /Assign Team Member -->
+
+                        <!-- Assign Label -->
+                        <fieldset>
+                            <legend>{{  __tr('Assign Label') }}</legend>
+                            <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsEditField" data-form-group-class="" name="bot_actions[contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.contact_labels %>]">
+                                <x-slot name="selectOptions">
+                                <option value="">{{ __tr('Select Labels') }}</option>
+                                    @foreach($allLabels as $label)
+                                        <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                     @endforeach
-                                </optgroup>
-                            </x-slot>
-                        </x-lw.input-field>
-                        <div x-show="assignUserType == 'no_action'">
-                            <small class="text-muted">{{  __tr('Note: No action will perform when this bot is trigger.') }}</small>
-                        </div>
+                                </x-slot>
+                            </x-lw.input-field>                        
+                        </fieldset>
+                        <!-- /Assign Label -->
 
-                        <div x-show="assignUserType == 'no_one'">
-                            <small class="text-muted">{{  __tr('Note: The team member will be unassigned when this bot is triggered.') }}</small>
-                        </div>
+                        <!-- Unassign Label -->
+                        <fieldset>
+                            <legend>{{  __tr('Unassign Label') }}</legend>
+                            <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsEditField" data-form-group-class="" name="bot_actions[unassign_contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.unassign_contact_labels %>]">
+                                <x-slot name="selectOptions">
+                                <option value="">{{ __tr('Select Labels') }}</option>
+                                    @foreach($allLabels as $label)
+                                        <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                                    @endforeach
+                                </x-slot>
+                            </x-lw.input-field>                        
+                        </fieldset>
+                        <!-- /Unassign Label -->
 
-                        <div x-show="assignUserType == 'random'">
-                            <small class="text-muted">{{  __tr("Note: Random team member will be assigned, It won't affect contact to whom team member already assigned") }}</small>
-                        </div>
-                        <div x-show="assignUserType !== '' && !isNaN(Number(assignUserType))">
-                            <small class="text-muted">{{  __tr("Existing team member will overwrite.") }}</small>
-                        </div>
-                    </fieldset>
-                    <!-- /Assign Team Member -->
-
-                    <!-- Assign Label -->
-                    <fieldset>
-                        <legend>{{  __tr('Assign Label') }}</legend>
-                        <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsEditField" data-form-group-class="" name="bot_actions[contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.contact_labels %>]">
-                            <x-slot name="selectOptions">
-                            <option value="">{{ __tr('Select Labels') }}</option>
-                                @foreach($allLabels as $label)
-                                    <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                        <!-- Promotional -->
+                        <fieldset>
+                            <legend>{{  __tr('Promotional') }}</legend>
+                            <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
+                                    <option <%= __tData.__data?.bot_actions?.promotional == "{{ $promotionalKey }}" ? 'selected' : '' %> value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
                                 @endforeach
-                            </x-slot>
-                        </x-lw.input-field>                        
-                    </fieldset>
-                    <!-- /Assign Label -->
+                            </select>
+                        </fieldset>
+                        <!-- /Promotional -->
 
-                    <!-- Unassign Label -->
-                    <fieldset>
-                        <legend>{{  __tr('Unassign Label') }}</legend>
-                        <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsEditField" data-form-group-class="" name="bot_actions[unassign_contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.unassign_contact_labels %>]">
-                            <x-slot name="selectOptions">
-                            <option value="">{{ __tr('Select Labels') }}</option>
-                                @foreach($allLabels as $label)
-                                    <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
+                        <!-- ai_bot -->
+                        @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                        @php 
+                            $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
+                        @endphp
+                        @if($dripCampaigns->count())
+                        <fieldset>
+                            <legend>{{  __tr('Drip Campaign Subscription') }}</legend>
+                            <select id="lwDripCampaign" class="form-control" name="addon_drip_campaigns__id">
+                                <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
+                                @foreach ($dripCampaigns as $dripCampaign)
+                                    <option <%= __tData.addon_drip_campaigns__id == "{{ $dripCampaign->_id }}" ? 'selected' : '' %> value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
                                 @endforeach
-                            </x-slot>
-                        </x-lw.input-field>                        
-                    </fieldset>
-                    <!-- /Unassign Label -->
+                            </select>
+                            <small class="text-muted">{{ __tr("When this bot is triggered, the contact will be subscribed to the selected Drip Campaign.") }}</small>
+                        </fieldset>
+                        @endif
+                        @endif
+                        
+                        <fieldset>
+                            <legend>{{  __tr('AI Bot') }}</legend>
+                            <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
+                                    <option <%= __tData.__data?.bot_actions?.ai_bot == "{{ $aiBotKey }}" ? 'selected' : '' %> value="<?= $aiBotKey ?>"><?= $aiBot['title'] ?></option>
+                                @endforeach
+                            </select>
+                        </fieldset>
+                        <!-- /ai_bot -->
 
-                    <!-- Promotional -->
-                    <fieldset>
-                        <legend>{{  __tr('Promotional') }}</legend>
-                        <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
-                                <option <%= __tData.__data?.bot_actions?.promotional == "{{ $promotionalKey }}" ? 'selected' : '' %> value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /Promotional -->
-
-                    <!-- ai_bot -->
-                    @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
-                    @php 
-                        $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
-                    @endphp
-                    @if($dripCampaigns->count())
-                    <fieldset>
-                        <legend>{{  __tr('Drip Campaign Subscription') }}</legend>
-                        <select id="lwDripCampaign" class="form-control" name="addon_drip_campaigns__id">
-                            <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
-                            @foreach ($dripCampaigns as $dripCampaign)
-                                <option <%= __tData.addon_drip_campaigns__id == "{{ $dripCampaign->_id }}" ? 'selected' : '' %> value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">{{ __tr("When this bot is triggered, the contact will be subscribed to the selected Drip Campaign.") }}</small>
-                    </fieldset>
-                    @endif
-                    @endif
-                    
-                    <fieldset>
-                        <legend>{{  __tr('AI Bot') }}</legend>
-                        <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
-                                <option <%= __tData.__data?.bot_actions?.ai_bot == "{{ $aiBotKey }}" ? 'selected' : '' %> value="<?= $aiBotKey ?>"><?= $aiBot['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /ai_bot -->
-
-                    <!-- Reply Bot -->
-                    <fieldset>
-                        <legend>{{  __tr('Reply Bot') }}</legend>
-                        <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
-                            <option value="no_action"><?= __tr('No Action') ?></option>
-                            @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
-                                <option <%= __tData.__data?.bot_actions?.reply_bot == "{{ $replyBotKey }}" ? 'selected' : '' %> value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
-                            @endforeach
-                        </select>
-                    </fieldset>
-                    <!-- /Reply Bot -->
+                        <!-- Reply Bot -->
+                        <fieldset>
+                            <legend>{{  __tr('Reply Bot') }}</legend>
+                            <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
+                                <option value="no_action"><?= __tr('No Action') ?></option>
+                                @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
+                                    <option <%= __tData.__data?.bot_actions?.reply_bot == "{{ $replyBotKey }}" ? 'selected' : '' %> value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
+                                @endforeach
+                            </select>
+                        </fieldset>
+                        <!-- /Reply Bot -->
+                    </div>
                 </fieldset>
                 
                 <!-- /Bot Actions -->
