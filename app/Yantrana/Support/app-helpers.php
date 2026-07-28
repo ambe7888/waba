@@ -764,10 +764,10 @@ if (! function_exists('getVendorSettings')) {
                 }
                 // Update Vendor Data
                 $vendorData = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendorId)->select('logo_image', 'slug', 'title', 'favicon')->first();
-                $appSettings['logo_image'] = $vendorData->logo_image;
-                $appSettings['favicon_name'] = $vendorData->favicon;
-                $appSettings['slug'] = $vendorData->slug;
-                $appSettings['title'] = $vendorData->title;
+                $appSettings['logo_image'] = $vendorData->logo_image ?? '';
+                $appSettings['favicon_name'] = $vendorData->favicon ?? '';
+                $appSettings['slug'] = $vendorData->slug ?? '';
+                $appSettings['title'] = $vendorData->title ?? '';
 
                 unset($configurationSettings);
 

@@ -1854,9 +1854,11 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
             return $this->engineResponse(18, null, __tr('Contact not found.'));
         }
 
-        if ($this->contactRepository->updateIt($contact, [
-            '__data->contact_notes' => $request->contact_notes ?: '',
-        ])) {
+        $data = $contact->__data ?? [];
+        $data['contact_notes'] = $request->contact_notes ?: '';
+        $contact->__data = $data;
+
+        if ($contact->save()) {
             return $this->engineSuccessResponse([], __tr('Notes updated'));
         }
         return $this->engineFailedResponse([], __tr('Notes does not updated'));
