@@ -36,206 +36,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 }
 </style>
 
-<div class="container-fluid pb-5" x-data="{
-    allOrders: {{ json_encode($orders) }},
-    allContacts: {{ json_encode($contactsList) }},
-    allProducts: {{ json_encode($productsList) }},
-    orderSearch: '',
-    orderStatusFilter: '',
-    orderDateSort: 'desc',
-    selectedOrder: null,
-    
-    // Manual order form
-    newOrderContactId: '',
-    newOrderProductId: '',
-    newOrderQuantity: 1,
-    newOrderCustomPrice: '',
-    newOrderAddress: '',
-    newOrderDate: '',
-    isSavingManualOrder: false,
-
-    filteredOrders() {
-        let result = this.allOrders.filter(o => {
-            var contactName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name + ' ' + o.contact.wa_id) : '';
-            var orderRef = o._uid ? o._uid : '';
-            var matchesSearch = !this.orderSearch || contactName.toLowerCase().includes(this.orderSearch.toLowerCase()) || orderRef.toLowerCase().includes(this.orderSearch.toLowerCase());
-            var matchesStatus = !this.orderStatusFilter || o.status === this.orderStatusFilter;
-            
-            return matchesSearch && matchesStatus;
-        });
-
-        return result.sort((a, b) => {
-            var dateA = new Date((a.created_at || '').toString().replace(' ', 'T') || 0);
-            var dateB = new Date((b.created_at || '').toString().replace(' ', 'T') || 0);
-            return this.orderDateSort === 'asc' ? dateA - dateB : dateB - dateA;
-        });
-    },
-    countByStatus(status) {
-        if (!status) return this.allOrders.length;
-        if (status === 'in_progress') return this.allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
-        return this.allOrders.filter(o => o.status === status).length;
-    },
-    updateOrderStatus(orderUid, newStatus) {
-        var self = this;
-        __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
-            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
-            var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
-            if (isSuccess) {
-                showSuccessMessage(msg);
-                var ord = self.allOrders.find(o => o._uid === orderUid);
-                if (ord) ord.status = newStatus;
-            } else {
-                showErrorMessage(msg || 'Erreur de mise à jour.');
-            }
-        });
-    },
-    deleteOrder(orderUid) {
-        if (confirm('{{ __tr("Voulez-vous supprimer cette commande ?") }}')) {
-            var self = this;
-            __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
-                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
-                var msg = response.message || (response.data && response.data.message) || 'Commande supprimée avec succès.';
-                if (isSuccess) {
-                    showSuccessMessage(msg);
-                    self.allOrders = self.allOrders.filter(o => o._uid !== orderUid);
-                } else {
-                    showErrorMessage(msg || 'Erreur de suppression.');
-                }
-            });
-        }
-    },
-    viewOrderDetails(order) {
-        this.selectedOrder = order;
-        $('#orderDetailsModal').modal('show');
-    },
-    parseOrderItems(order) {
-        if (!order || !order.order_details) return [];
-        var details = order.order_details;
-        if (typeof details === 'string') {
-            try { details = JSON.parse(details); } catch(e) {}
-        }
-        if (details && details.items && Array.isArray(details.items)) {
-            return details.items;
-        }
-        return [];
-    },
-    getOrderTotal(order) {
-        if (!order || !order.order_details) return 0;
-        var details = order.order_details;
-        if (typeof details === 'string') {
-            try { details = JSON.parse(details); } catch(e) {}
-        }
-        if (details && details.total_price) {
-            return Number(details.total_price);
-        }
-        var items = this.parseOrderItems(order);
-        var total = 0;
-        items.forEach(i => { total += (Number(i.price) || 0) * (Number(i.quantity) || 1); });
-        return total;
-    },
-    getOrderSourceLabel(order) {
-        if (!order || !order.order_details) return 'WhatsApp';
-        var details = order.order_details;
-        if (typeof details === 'string') {
-            try { details = JSON.parse(details); } catch(e) {}
-        }
-        return details.source || 'WhatsApp';
-    },
-    formatSafeDate(dateStr) {
-        if (!dateStr) return '';
-        var safe = dateStr.toString().replace(' ', 'T');
-        try {
-            var d = new Date(safe);
-            if (isNaN(d.getTime())) return dateStr;
-            return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
-        } catch(e) {
-            return dateStr;
-        }
-    },
-    onProductSelectChange() {
-        var prod = this.allProducts.find(p => p._id == this.newOrderProductId || p._uid == this.newOrderProductId);
-        if (prod) {
-            this.newOrderCustomPrice = prod.price;
-        }
-    },
-    submitManualOrder() {
-        if (this.isSavingManualOrder) return;
-        if (!this.newOrderContactId || !this.newOrderProductId) {
-            showErrorMessage('Veuillez sélectionner un client et un produit.');
-            return;
-        }
-        this.isSavingManualOrder = true;
-        var self = this;
-        var postUrl = '<?= route("vendor.ecommerce.orders.create_manual") ?>';
-        __DataRequest.post(postUrl, {
-            contact_id: this.newOrderContactId,
-            product_id: this.newOrderProductId,
-            quantity: this.newOrderQuantity,
-            custom_price: this.newOrderCustomPrice,
-            delivery_address: this.newOrderAddress,
-            delivery_date: this.newOrderDate
-        }, function(response) {
-            self.isSavingManualOrder = false;
-            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
-            if (isSuccess) {
-                var msg = response.message || (response.data && response.data.message) || 'Commande enregistrée avec succès !';
-                showSuccessMessage(msg);
-                $('#createManualOrderModal').modal('hide');
-                var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
-                if (newOrd) {
-                    self.allOrders.unshift(newOrd);
-                } else {
-                    setTimeout(() => { window.location.reload(); }, 1000);
-                }
-            } else {
-                var errMsg = response.message || (response.data && response.data.message) || 'Erreur lors de la création.';
-                showErrorMessage(errMsg);
-            }
-        });
-    },
-    exportOrdersCSV() {
-        var list = this.filteredOrders();
-        if (list.length === 0) {
-            showErrorMessage('Aucune commande à exporter.');
-            return;
-        }
-        var csvRows = [];
-        csvRows.push(['Reference', 'Date', 'Client', 'Telephone WhatsApp', 'Produits', 'Montant Total (CFA)', 'Statut', 'Source'].join(';'));
-
-        list.forEach(o => {
-            var ref = '#' + o._uid.substring(0, 8);
-            var dateStr = this.formatSafeDate(o.created_at);
-            var clientName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name) : 'Inconnu';
-            var phone = o.contact ? o.contact.wa_id : '';
-            var items = this.parseOrderItems(o).map(i => (i.name || 'Produit') + ' (x' + (i.quantity||1) + ')').join(' | ');
-            var total = this.getOrderTotal(o);
-            var status = o.status;
-            var source = this.getOrderSourceLabel(o);
-
-            var row = [
-                '\"' + ref + '\"',
-                '\"' + dateStr + '\"',
-                '\"' + clientName + '\"',
-                '\"' + phone + '\"',
-                '\"' + items + '\"',
-                '\"' + total + '\"',
-                '\"' + status + '\"',
-                '\"' + source + '\"'
-            ];
-            csvRows.push(row.join(';'));
-        });
-
-        var csvString = '\uFEFF' + csvRows.join('\n');
-        var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        var link = document.createElement('a');
-        var url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'export_commandes.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}">
+<div class="container-fluid pb-5" x-data="ordersPageData()">
 
     <!-- Header Section -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
@@ -267,7 +68,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Total Commandes') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="countByStatus('')"></h3>
+                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.length"></h3>
                     </div>
                     <div class="icon-circle text-primary p-3 rounded-circle" style="background: #eff6ff;">
                         <i class="fa fa-shopping-bag fa-lg"></i>
@@ -281,7 +82,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Nouvelles (Validées)') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="countByStatus('validated')"></h3>
+                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.filter(o => o.status === 'validated').length"></h3>
                     </div>
                     <div class="icon-circle text-warning p-3 rounded-circle" style="background: #fffbeb;">
                         <i class="fa fa-clock fa-lg"></i>
@@ -295,7 +96,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('En Cours / Livraison') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="countByStatus('in_progress')"></h3>
+                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length"></h3>
                     </div>
                     <div class="icon-circle text-info p-3 rounded-circle" style="background: #f0f9ff;">
                         <i class="fa fa-truck fa-lg"></i>
@@ -309,7 +110,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Commandes Livrées') }}</small>
-                        <h3 class="font-weight-bold text-emerald mb-0" style="color: #10b981;" x-text="countByStatus('delivered')"></h3>
+                        <h3 class="font-weight-bold text-emerald mb-0" style="color: #10b981;" x-text="allOrders.filter(o => o.status === 'delivered').length"></h3>
                     </div>
                     <div class="icon-circle text-emerald p-3 rounded-circle" style="background: #ecfdf5; color: #10b981;">
                         <i class="fa fa-check-circle fa-lg"></i>
@@ -323,13 +124,13 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
     <div class="card sharp-card mb-4" id="printableOrdersListArea">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0 no-print">
             <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-list text-emerald mr-2"></i>{{ __tr('Liste Complète des Commandes') }}</h5>
-            <p class="text-muted small mb-0">{{ __tr('Filtrez par date, source ou statut, et cliquez sur le reçu pour voir/imprimer la facture') }}</p>
+            <p class="text-muted small mb-0">{{ __tr('Recherchez par client ou statut, et cliquez sur le reçu pour voir/imprimer la facture') }}</p>
         </div>
 
         <div class="card-body p-4">
             <!-- Search & Filters -->
             <div class="row mb-4 no-print">
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher un client ou #Réf') }}</label>
                     <div class="input-group">
                         <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, numéro ou #Réf...') }}" x-model="orderSearch">
@@ -339,7 +140,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                     </div>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
@@ -352,21 +153,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                     </select>
                 </div>
 
-                <div class="col-md-3 mb-3">
-                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
-                        <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
-                        <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
-                    </select>
-                </div>
-
-                <div class="col-md-3 mb-3 d-flex align-items-end">
-                    <button type="button" @click="exportOrdersCSV()" class="btn btn-success font-weight-bold shadow-sm w-100" style="border-radius: 10px; height: 48px;" title="{{ __tr('Télécharger les commandes affichées au format Excel') }}">
-                        <i class="fa fa-download mr-1"></i> {{ __tr('Exporter') }}
-                    </button>
-                </div>
-
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Trier par date') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateSort">
                         <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
@@ -389,24 +176,24 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="order in filteredOrders()" :key="order._uid">
+                        <template x-for="order in getFilteredOrders()" :key="order._uid">
                             <tr>
                                 <td class="align-middle">
                                     <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir le reçu') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
                                     </button>
-                                    <small class="text-muted d-block" x-text="formatSafeDate(order.created_at)"></small>
+                                    <small class="text-muted d-block" x-text="formatDate(order.created_at)"></small>
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
                                     <small class="text-emerald font-weight-bold" style="color: #059669;" x-text="order.contact ? order.contact.wa_id : ''"></small>
                                 </td>
                                 <td class="align-middle">
-                                    <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getOrderTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <small class="text-muted" x-text="parseOrderItems(order).length + ' article(s)'"></small>
+                                    <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
+                                    <small class="text-muted" x-text="getItems(order).length + ' article(s)'"></small>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getOrderSourceLabel(order)"></span>
+                                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
                                 </td>
                                 <td class="align-middle">
                                     <span class="order-status-badge text-white"
@@ -450,7 +237,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                         </template>
                     </tbody>
                 </table>
-                <div x-show="filteredOrders().length === 0" class="text-center py-5 text-muted">
+                <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
                     <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
                     <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande enregistrée pour le moment.') }}</p>
                 </div>
@@ -533,7 +320,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                     <div class="d-flex align-items-center justify-content-between w-100">
                         <div>
                             <h5 class="modal-title font-weight-bold mb-1 text-white" x-text="'🧾 Reçu de Commande #' + (selectedOrder ? selectedOrder._uid.substring(0, 8) : '')"></h5>
-                            <span class="badge badge-light font-weight-bold px-3 py-1" style="border-radius: 12px;" x-text="selectedOrder ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}) : ''"></span>
+                            <span class="badge badge-light font-weight-bold px-3 py-1" style="border-radius: 12px;" x-text="selectedOrder ? formatDate(selectedOrder.created_at) : ''"></span>
                         </div>
                         <button type="button" class="close text-white opacity-100" data-dismiss="modal" aria-label="Close" style="outline: none;">
                             <span aria-hidden="true" style="font-size: 1.8rem; color: #ffffff;">&times;</span>
@@ -584,13 +371,13 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                             <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
                                 <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-info-circle text-emerald mr-1"></i> {{ __tr('Détails de Commande') }}</h6>
                                 <p class="small text-dark mb-1"><strong>{{ __tr('Référence:') }}</strong> <span x-text="selectedOrder ? '#' + selectedOrder._uid.substring(0, 8) : ''"></span></p>
-                                <p class="small text-dark mb-1"><strong>{{ __tr('Source:') }}</strong> <span x-text="getOrderSourceLabel(selectedOrder)"></span></p>
-                                <p class="small text-dark mb-0"><strong>{{ __tr('Date de création:') }}</strong> <span x-text="selectedOrder ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : ''"></span></p>
+                                <p class="small text-dark mb-1"><strong>{{ __tr('Source:') }}</strong> <span x-text="getSource(selectedOrder)"></span></p>
+                                <p class="small text-dark mb-0"><strong>{{ __tr('Date de création:') }}</strong> <span x-text="selectedOrder ? formatDate(selectedOrder.created_at) : ''"></span></p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Formatted Products Table (NO RAW JSON!) -->
+                    <!-- Formatted Products Table -->
                     <div class="table-responsive mb-4">
                         <table class="table table-bordered mb-0" style="border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1;">
                             <thead class="bg-light text-uppercase small font-weight-bold text-dark">
@@ -602,7 +389,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                 </tr>
                             </thead>
                             <tbody>
-                                <template x-for="(item, idx) in parseOrderItems(selectedOrder)" :key="idx">
+                                <template x-for="(item, idx) in getItems(selectedOrder)" :key="idx">
                                     <tr>
                                         <td class="align-middle font-weight-bold text-dark" x-text="item.name || item.title || 'Produit'"></td>
                                         <td class="align-middle text-center font-weight-bold" x-text="'x' + (item.quantity || 1)"></td>
@@ -610,7 +397,7 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                         <td class="align-middle text-right font-weight-bold text-dark" x-text="(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString() + ' CFA'"></td>
                                     </tr>
                                 </template>
-                                <template x-if="parseOrderItems(selectedOrder).length === 0">
+                                <template x-if="getItems(selectedOrder).length === 0">
                                     <tr>
                                         <td colspan="4" class="text-center py-3 text-muted">
                                             {{ __tr('Détails des articles enregistrés.') }}
@@ -623,14 +410,14 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
                                     <td colspan="3" class="text-right font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">
                                         💰 {{ __tr('Montant Total à Payer:') }}
                                     </td>
-                                    <td class="text-right font-weight-bold text-emerald" style="font-size: 1.2rem; color: #059669;" x-text="getOrderTotal(selectedOrder).toLocaleString() + ' CFA'">
+                                    <td class="text-right font-weight-bold text-emerald" style="font-size: 1.2rem; color: #059669;" x-text="getTotal(selectedOrder).toLocaleString() + ' CFA'">
                                     </td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
 
-                    <!-- Contact Notes / Customer Note -->
+                    <!-- Contact Notes -->
                     <div x-show="selectedOrder && selectedOrder.contact && selectedOrder.contact.contact_notes" class="p-3 rounded mb-2" style="background: #f8fafc; border: 1.5px dashed #cbd5e1;">
                         <h6 class="font-weight-bold text-muted small mb-1"><i class="fa fa-sticky-note text-warning mr-1"></i> {{ __tr('Historique & Notes Client') }}</h6>
                         <pre class="small text-dark mb-0" style="white-space: pre-wrap; font-family: inherit;" x-text="selectedOrder && selectedOrder.contact ? selectedOrder.contact.contact_notes : ''"></pre>
@@ -694,3 +481,215 @@ $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('v
 
 </div>
 
+<script>
+function ordersPageData() {
+    return {
+        allOrders: {!! json_encode($orders) !!},
+        allContacts: {!! json_encode($contactsList) !!},
+        allProducts: {!! json_encode($productsList) !!},
+        orderSearch: '',
+        orderStatusFilter: '',
+        orderDateSort: 'desc',
+        selectedOrder: null,
+        newOrderContactId: '',
+        newOrderProductId: '',
+        newOrderQuantity: 1,
+        newOrderCustomPrice: '',
+        newOrderAddress: '',
+        newOrderDate: '',
+        isSavingManualOrder: false,
+
+        getFilteredOrders: function() {
+            var self = this;
+            var result = this.allOrders.filter(function(o) {
+                var contactName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name + ' ' + o.contact.wa_id) : '';
+                var orderRef = o._uid ? o._uid : '';
+                var matchesSearch = !self.orderSearch || contactName.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1 || orderRef.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1;
+                var matchesStatus = !self.orderStatusFilter || o.status === self.orderStatusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            result.sort(function(a, b) {
+                var dateA = new Date(a.created_at || 0);
+                var dateB = new Date(b.created_at || 0);
+                return self.orderDateSort === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            return result;
+        },
+
+        formatDate: function(dateStr) {
+            if (!dateStr) return '';
+            try {
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return String(dateStr);
+                return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+            } catch(e) {
+                return String(dateStr);
+            }
+        },
+
+        getItems: function(order) {
+            if (!order || !order.order_details) return [];
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return []; }
+            }
+            if (details && details.items && Array.isArray(details.items)) {
+                return details.items;
+            }
+            return [];
+        },
+
+        getTotal: function(order) {
+            if (!order || !order.order_details) return 0;
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return 0; }
+            }
+            if (details && details.total_price) {
+                return Number(details.total_price);
+            }
+            var items = this.getItems(order);
+            var total = 0;
+            for (var i = 0; i < items.length; i++) {
+                total += (Number(items[i].price) || 0) * (Number(items[i].quantity) || 1);
+            }
+            return total;
+        },
+
+        getSource: function(order) {
+            if (!order || !order.order_details) return 'WhatsApp';
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return 'WhatsApp'; }
+            }
+            return (details && details.source) ? details.source : 'WhatsApp';
+        },
+
+        viewOrderDetails: function(order) {
+            this.selectedOrder = order;
+            $('#orderDetailsModal').modal('show');
+        },
+
+        updateOrderStatus: function(orderUid, newStatus) {
+            var self = this;
+            __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
+                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
+                if (isSuccess) {
+                    showSuccessMessage(msg);
+                    var ord = self.allOrders.find(function(o) { return o._uid === orderUid; });
+                    if (ord) ord.status = newStatus;
+                } else {
+                    showErrorMessage(msg || 'Erreur de mise à jour.');
+                }
+            });
+        },
+
+        deleteOrder: function(orderUid) {
+            if (confirm('{{ __tr("Voulez-vous supprimer cette commande ?") }}')) {
+                var self = this;
+                __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
+                    var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                    var msg = response.message || (response.data && response.data.message) || 'Commande supprimée avec succès.';
+                    if (isSuccess) {
+                        showSuccessMessage(msg);
+                        self.allOrders = self.allOrders.filter(function(o) { return o._uid !== orderUid; });
+                    } else {
+                        showErrorMessage(msg || 'Erreur de suppression.');
+                    }
+                });
+            }
+        },
+
+        onProductSelectChange: function() {
+            var self = this;
+            var prod = this.allProducts.find(function(p) { return p._id == self.newOrderProductId || p._uid == self.newOrderProductId; });
+            if (prod) {
+                this.newOrderCustomPrice = prod.price;
+            }
+        },
+
+        submitManualOrder: function() {
+            if (this.isSavingManualOrder) return;
+            if (!this.newOrderContactId || !this.newOrderProductId) {
+                showErrorMessage('Veuillez sélectionner un client et un produit.');
+                return;
+            }
+            this.isSavingManualOrder = true;
+            var self = this;
+            __DataRequest.post('<?= route("vendor.ecommerce.orders.create_manual") ?>', {
+                contact_id: this.newOrderContactId,
+                product_id: this.newOrderProductId,
+                quantity: this.newOrderQuantity,
+                custom_price: this.newOrderCustomPrice,
+                delivery_address: this.newOrderAddress,
+                delivery_date: this.newOrderDate
+            }, function(response) {
+                self.isSavingManualOrder = false;
+                var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                if (isSuccess) {
+                    var msg = response.message || (response.data && response.data.message) || 'Commande enregistrée avec succès !';
+                    showSuccessMessage(msg);
+                    $('#createManualOrderModal').modal('hide');
+                    var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
+                    if (newOrd) {
+                        self.allOrders.unshift(newOrd);
+                    } else {
+                        setTimeout(function() { window.location.reload(); }, 1000);
+                    }
+                } else {
+                    var errMsg = response.message || (response.data && response.data.message) || 'Erreur lors de la création.';
+                    showErrorMessage(errMsg);
+                }
+            });
+        },
+
+        exportOrdersCSV: function() {
+            var list = this.getFilteredOrders();
+            if (list.length === 0) {
+                showErrorMessage('Aucune commande à exporter.');
+                return;
+            }
+            var self = this;
+            var csvRows = [];
+            csvRows.push(['Reference', 'Date', 'Client', 'Telephone WhatsApp', 'Produits', 'Montant Total (CFA)', 'Statut', 'Source'].join(';'));
+
+            for (var i = 0; i < list.length; i++) {
+                var o = list[i];
+                var ref = '#' + o._uid.substring(0, 8);
+                var dateStr = self.formatDate(o.created_at);
+                var clientName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name) : 'Inconnu';
+                var phone = o.contact ? o.contact.wa_id : '';
+                var items = self.getItems(o).map(function(it) { return (it.name || 'Produit') + ' (x' + (it.quantity||1) + ')'; }).join(' | ');
+                var total = self.getTotal(o);
+                var status = o.status;
+                var source = self.getSource(o);
+
+                var row = [
+                    '"' + ref + '"',
+                    '"' + dateStr + '"',
+                    '"' + clientName + '"',
+                    '"' + phone + '"',
+                    '"' + items + '"',
+                    '"' + total + '"',
+                    '"' + status + '"',
+                    '"' + source + '"'
+                ];
+                csvRows.push(row.join(';'));
+            }
+
+            var csvString = '\uFEFF' + csvRows.join('\n');
+            var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'export_commandes.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+}
+</script>
