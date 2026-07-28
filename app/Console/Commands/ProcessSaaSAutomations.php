@@ -35,7 +35,7 @@ class ProcessSaaSAutomations extends Command
         $reminderTargetDateEnd = $today->copy()->addDays(3)->endOfDay();
         
         $expiringSubscriptions = ManualSubscriptionModel::whereBetween('ends_at', [$reminderTargetDateStart, $reminderTargetDateEnd])
-            ->where('status', 'active') // Or whatever active status is
+            ->whereIn('status', [1, '1', 'active', 'approved'])
             ->get();
             
         $this->info("Found " . $expiringSubscriptions->count() . " subscriptions expiring in 3 days.");

@@ -287,7 +287,7 @@ class OpenAiService extends BaseEngine
         if (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available']) {
             $products = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
             if ($products->isNotEmpty()) {
-                $productContext = "\n\nHere is our product catalog. When a customer asks about a product, pricing, or images, describe the product warmly, present its price in CFA, and ALWAYS end your message with a order button in this format: [BUTTON: 🛍️ Commander]\n\nCatalog Products:\n";
+                $productContext = "\n\nHere is our product catalog. When a customer asks about a product, pricing, or images, describe the product warmly and present its price in CFA.\n\nCatalog Products:\n";
                 foreach ($products as $prod) {
                     $link = !empty($prod->direct_link) ? " | [URL_BUTTON: Voir le site: {$prod->direct_link}]" : "";
                     $productContext .= "- Name: {$prod->name}, Price: " . number_format($prod->price, 0, ',', ' ') . " CFA, Description: {$prod->description}{$link}\n";
@@ -301,7 +301,6 @@ class OpenAiService extends BaseEngine
             "2. CALCULATE AND DISPLAY GRAND TOTAL PRICE: When presenting an order summary (récapitulatif / résumé), you MUST sum up the prices of all products in the order and clearly display the total sum: '💰 MONTANT TOTAL: [Calculated Total] CFA'.\n" .
             "3. ASK FOR DELIVERY DATE ONLY: When taking delivery details, ask ONLY for (1) Nom complet, (2) Adresse/Lieu de livraison, (3) Téléphone, et (4) Date de livraison. DO NOT ASK FOR DELIVERY TIME (NE DEMANDE JAMAIS L'HEURE DE LIVRAISON). The date alone is sufficient.\n" .
             "4. BUTTON FORMATTING:\n" .
-            "   - When recommending products: Append [BUTTON: 🛍️ Commander]\n" .
             "   - When presenting an order summary (récapitulatif / résumé): ALWAYS append [BUTTON: ✅ Confirmer la commande] so the customer can validate with 1 click.";
 
         $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);

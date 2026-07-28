@@ -3186,10 +3186,6 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     // Order Summary -> Attach Confirmation Button!
                     $interactiveType = 'button';
                     $buttons = ['✅ Confirmer la commande'];
-                } elseif (!preg_match('/(enregistrée\s+avec\s+succès|référence\s+commande)/i', $replyText) && preg_match('/(produit|prix|cfa|machine|articles?|catalogue)/i', $replyText)) {
-                    // Product recommendation -> Attach Commander button!
-                    $interactiveType = 'button';
-                    $buttons = ['🛍️ Commander', 'ℹ️ En savoir plus'];
                 }
             }
 

@@ -45,6 +45,12 @@ class Kernel extends ConsoleKernel
             ->everyMinute()
             ->name('process_drip_campaigns_via_cron')
             ->withoutOverlapping();
+
+        // Process SaaS Automations (Subscription expiry & reminders) daily
+        $schedule->command('saas:process-automations')
+            ->dailyAt('09:00')
+            ->name('process_saas_automations')
+            ->withoutOverlapping();
     }
 
     /**
