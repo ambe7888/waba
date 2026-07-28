@@ -39,82 +39,6 @@ $teamMembers = \DB::table('users')
     border-color: #10b981 !important;
     box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
 }
-
-/* PERFECT CSS PRINT STYLES */
-@media print {
-    html, body {
-        background: #ffffff !important;
-        color: #000000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-    
-    /* Hide layout chrome & ALL other modals (including #lwScanMeDialog QR Code modal) */
-    nav, header, sidebar, footer, .navbar, .sidebar, .lw-main-navbar, 
-    #lwScanMeDialog, .modal:not(#orderDetailsModal),
-    .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
-        display: none !important;
-    }
-
-    /* WHEN MODAL RECEIPT IS OPEN: Print ONLY #printableInvoiceArea inside #orderDetailsModal */
-    body.modal-open #printableOrdersListArea,
-    body.modal-open .card,
-    body.modal-open .container-fluid > div:not(#orderDetailsModal) {
-        display: none !important;
-    }
-
-    body.modal-open #orderDetailsModal {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: block !important;
-        overflow: visible !important;
-        background: #ffffff !important;
-        box-shadow: none !important;
-        border: none !important;
-    }
-
-    body.modal-open #orderDetailsModal .modal-dialog {
-        max-width: 100% !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-    }
-
-    body.modal-open #orderDetailsModal .modal-content {
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        background: #ffffff !important;
-    }
-
-    body.modal-open #printableInvoiceArea {
-        display: block !important;
-        padding: 10px !important;
-        margin: 0 !important;
-    }
-
-    /* WHEN PRINTING MAIN ORDERS TABLE LIST (MODAL NOT OPEN): Print ONLY the table */
-    body:not(.modal-open) #printableOrdersListArea {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-
-    body:not(.modal-open) #printableOrdersListArea .card-body {
-        padding: 0 !important;
-    }
-}
 </style>
 
 <div class="container-fluid pb-5" x-data="ordersPageData()">
@@ -134,7 +58,7 @@ $teamMembers = \DB::table('users')
                 <i class="fa fa-file-excel mr-1"></i> {{ __tr('Exporter Excel / CSV') }}
             </button>
 
-            <button type="button" onclick="window.print()" class="btn btn-outline-dark font-weight-bold" style="border-radius: 10px;">
+            <button type="button" @click="printOrdersListOnly()" class="btn btn-outline-dark font-weight-bold" style="border-radius: 10px;">
                 <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer la Liste') }}
             </button>
         </div>
@@ -458,7 +382,7 @@ $teamMembers = \DB::table('users')
                     <!-- Actions Toolbar (Hidden during print) -->
                     <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-3 rounded no-print" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
                         <div class="d-flex align-items-center" style="gap: 10px;">
-                            <button type="button" onclick="window.print()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
+                            <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
                                 <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
                             </button>
                             
@@ -599,6 +523,85 @@ function ordersPageData() {
         newOrderAddress: '',
         newOrderDate: '',
         isSavingManualOrder: false,
+
+        printReceiptOnly: function() {
+            var printContent = document.getElementById('printableInvoiceArea');
+            if (!printContent) return;
+
+            var orderRef = this.selectedOrder ? ('#' + this.selectedOrder._uid.substring(0, 8)) : '';
+            
+            var iframe = document.getElementById('receipt_print_frame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'receipt_print_frame';
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+            }
+
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><title>Reçu de Commande ' + orderRef + '</title>');
+            doc.write('<link rel="stylesheet" href="' + window.location.origin + '/static-assets/packages/bootstrap/css/bootstrap.min.css">');
+            doc.write('<link rel="stylesheet" href="' + window.location.origin + '/static-assets/packages/fontawesome/css/all.min.css">');
+            doc.write('<style>');
+            doc.write('body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #000; padding: 20px; margin: 0; }');
+            doc.write('.no-print { display: none !important; }');
+            doc.write('.table-bordered th, .table-bordered td { border: 1px solid #cbd5e1 !important; }');
+            doc.write('</style>');
+            doc.write('</head><body>');
+            doc.write(printContent.innerHTML);
+            doc.write('</body></html>');
+            doc.close();
+
+            setTimeout(function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            }, 400);
+        },
+
+        printOrdersListOnly: function() {
+            var printContent = document.getElementById('printableOrdersListArea');
+            if (!printContent) return;
+
+            var iframe = document.getElementById('orders_list_print_frame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'orders_list_print_frame';
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+            }
+
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><title>Liste des Commandes</title>');
+            doc.write('<link rel="stylesheet" href="' + window.location.origin + '/static-assets/packages/bootstrap/css/bootstrap.min.css">');
+            doc.write('<link rel="stylesheet" href="' + window.location.origin + '/static-assets/packages/fontawesome/css/all.min.css">');
+            doc.write('<style>');
+            doc.write('body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #000; padding: 20px; margin: 0; }');
+            doc.write('.no-print { display: none !important; }');
+            doc.write('.table-bordered th, .table-bordered td { border: 1px solid #cbd5e1 !important; }');
+            doc.write('</style>');
+            doc.write('</head><body>');
+            doc.write('<h3 class="mb-3 font-weight-bold">Rapport des Commandes (' + this.getFilteredOrders().length + ')</h3>');
+            doc.write(printContent.innerHTML);
+            doc.write('</body></html>');
+            doc.close();
+
+            setTimeout(function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            }, 400);
+        },
 
         setTodayFilter: function() {
             var today = new Date();
