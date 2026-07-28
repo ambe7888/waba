@@ -40,39 +40,74 @@ $teamMembers = \DB::table('users')
     box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
 }
 
+/* PERFECT CSS PRINT STYLES */
 @media print {
-    body * {
-        visibility: hidden !important;
+    html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
     }
     
-    /* When modal receipt is open, print ONLY the receipt modal */
-    body.modal-open #printableInvoiceArea,
-    body.modal-open #printableInvoiceArea * {
-        visibility: visible !important;
+    /* Hide layout chrome */
+    nav, header, sidebar, footer, .navbar, .sidebar, .lw-main-navbar, 
+    .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
+        display: none !important;
     }
-    body.modal-open #printableInvoiceArea {
+
+    /* WHEN MODAL RECEIPT IS OPEN: Print ONLY the receipt modal */
+    body.modal-open #printableOrdersListArea,
+    body.modal-open .card,
+    body.modal-open .container-fluid > div:not(.modal) {
+        display: none !important;
+    }
+
+    body.modal-open .modal {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
         margin: 0 !important;
-        padding: 20px !important;
+        padding: 0 !important;
+        display: block !important;
+        overflow: visible !important;
+        background: #ffffff !important;
     }
 
-    /* When modal is NOT open, print ONLY the orders list table */
-    body:not(.modal-open) #printableOrdersListArea,
-    body:not(.modal-open) #printableOrdersListArea * {
-        visibility: visible !important;
-    }
-    body:not(.modal-open) #printableOrdersListArea {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
+    body.modal-open .modal-dialog {
+        max-width: 100% !important;
         width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
-        display: none !important;
+    body.modal-open .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #ffffff !important;
+    }
+
+    body.modal-open #printableInvoiceArea {
+        display: block !important;
+        padding: 10px !important;
+        margin: 0 !important;
+    }
+
+    /* WHEN PRINTING MAIN ORDERS TABLE LIST (MODAL NOT OPEN): Print ONLY the table */
+    body:not(.modal-open) #printableOrdersListArea {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body:not(.modal-open) #printableOrdersListArea .card-body {
+        padding: 0 !important;
     }
 }
 </style>
