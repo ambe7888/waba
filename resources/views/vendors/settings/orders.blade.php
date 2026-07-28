@@ -39,6 +39,82 @@ $teamMembers = \DB::table('users')
     border-color: #10b981 !important;
     box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
 }
+
+/* PERFECT CSS PRINT STYLES */
+@media print {
+    html, body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    
+    /* Hide layout chrome & ALL other modals (including #lwScanMeDialog QR Code modal) */
+    nav, header, sidebar, footer, .navbar, .sidebar, .lw-main-navbar, 
+    #lwScanMeDialog, .modal:not(#orderDetailsModal),
+    .no-print, .modal-backdrop, .modal-header .close, .modal-footer {
+        display: none !important;
+    }
+
+    /* WHEN MODAL RECEIPT IS OPEN: Print ONLY #printableInvoiceArea inside #orderDetailsModal */
+    body.modal-open #printableOrdersListArea,
+    body.modal-open .card,
+    body.modal-open .container-fluid > div:not(#orderDetailsModal) {
+        display: none !important;
+    }
+
+    body.modal-open #orderDetailsModal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    body.modal-open #orderDetailsModal .modal-dialog {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    body.modal-open #orderDetailsModal .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #ffffff !important;
+    }
+
+    body.modal-open #printableInvoiceArea {
+        display: block !important;
+        padding: 10px !important;
+        margin: 0 !important;
+    }
+
+    /* WHEN PRINTING MAIN ORDERS TABLE LIST (MODAL NOT OPEN): Print ONLY the table */
+    body:not(.modal-open) #printableOrdersListArea {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body:not(.modal-open) #printableOrdersListArea .card-body {
+        padding: 0 !important;
+    }
+}
 </style>
 
 <div class="container-fluid pb-5" x-data="ordersPageData()">
@@ -379,19 +455,9 @@ $teamMembers = \DB::table('users')
 
                 <!-- Modal Body (Printable Invoice Area) -->
                 <div class="modal-body p-4" id="printableInvoiceArea">
-                    <!-- Actions Toolbar (Hidden during print) -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-3 rounded no-print" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
-                        <div class="d-flex align-items-center" style="gap: 10px;">
-                            <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
-                                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
-                            </button>
-                            
-                            <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
-                                <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
-                                    <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
-                                </a>
-                            </template>
-                        </div>
+                    <!-- Status Badge Info Row -->
+                    <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1;">
+                        <h6 class="mb-0 font-weight-bold text-dark"><i class="fa fa-receipt text-emerald mr-2"></i> {{ __tr('Facture Officielle de Commande') }}</h6>
 
                         <div x-show="selectedOrder">
                             <span class="order-status-badge text-white"
@@ -485,10 +551,22 @@ $teamMembers = \DB::table('users')
                     </div>
                 </div>
 
-                <!-- Modal Footer -->
-                <div class="modal-footer bg-light no-print">
+                <!-- Modal Footer (INTEGRATED ACTION & CLOSE BUTTONS AT BOTTOM OF POPUP) -->
+                <div class="modal-footer bg-light d-flex align-items-center justify-content-between no-print p-3" style="border-top: 1.5px solid #cbd5e1;">
+                    <div class="d-flex align-items-center" style="gap: 10px;">
+                        <button type="button" @click="printReceiptOnly()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
+                            <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
+                        </button>
+                        
+                        <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
+                            <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="btn btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;">
+                                <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Voir la conversation Chat') }}
+                            </a>
+                        </template>
+                    </div>
+
                     <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">
-                        {{ __tr('Fermer') }}
+                        <i class="fa fa-times mr-1"></i> {{ __tr('Fermer') }}
                     </button>
                 </div>
             </div>
