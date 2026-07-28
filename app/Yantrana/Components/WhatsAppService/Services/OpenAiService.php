@@ -643,14 +643,20 @@ class OpenAiService extends BaseEngine
             if ($vendor->plan_ai_credits >= 99999999) {
                 return;
             }
-            if ($vendor->plan_ai_credits >= $credits) {
-                $vendor->plan_ai_credits -= $credits;
-            } else {
-                $remaining = $credits - $vendor->plan_ai_credits;
-                $vendor->plan_ai_credits = 0;
-                $vendor->extra_ai_credits = max(0, $vendor->extra_ai_credits - $remaining);
-            }
-            $vendor->save();
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($vendorId, $credits) {
+                $v = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendorId)->lockForUpdate()->first();
+                if ($v) {
+                    if ($v->plan_ai_credits >= $credits) {
+                        $v->plan_ai_credits -= $credits;
+                    } else {
+                        $remaining = $credits - $v->plan_ai_credits;
+                        $v->plan_ai_credits = 0;
+                        $v->extra_ai_credits = max(0, $v->extra_ai_credits - $remaining);
+                    }
+                    $v->save();
+                }
+            });
         }
     }
 

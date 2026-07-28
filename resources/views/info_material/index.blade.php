@@ -85,7 +85,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                {!! $material->description !!}
+                {!! clean($material->description) !!}
             </div>
             <div class="modal-footer">
                 @if(!empty($material->__data['file_name']))

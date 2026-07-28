@@ -561,6 +561,20 @@ class WhatsAppServiceController extends BaseController
     public function getContactChatData($contactUid, $way = 'append')
     {
         validateVendorAccess('messaging');
+
+        if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
+            $vendorId = getVendorId();
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
+                'vendors__id' => $vendorId,
+                '_uid' => $contactUid,
+                'user_author_id' => getUserID()
+            ])->first();
+
+            if (empty($contact)) {
+                return $this->processResponse(3, [3 => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')], ['message' => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')]);
+            }
+        }
+
         $processReaction = $this->whatsAppServiceEngine->contactChatData($contactUid);
         updateClientModels([
             'whatsappMessageLogs' => $processReaction->data('whatsappMessageLogs'),
@@ -595,6 +609,20 @@ class WhatsAppServiceController extends BaseController
     public function clearChatHistory(BaseRequestTwo $request, $contactUid)
     {
         validateVendorAccess('messaging', 'delete_chat_history');
+
+        if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
+            $vendorId = getVendorId();
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
+                'vendors__id' => $vendorId,
+                '_uid' => $contactUid,
+                'user_author_id' => getUserID()
+            ])->first();
+
+            if (empty($contact)) {
+                return $this->processResponse(3, [3 => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')], ['message' => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')]);
+            }
+        }
+
         // restrict demo user
         if(isDemo() and isDemoVendorAccount()) {
             return $this->processResponse(22, [
@@ -701,7 +729,22 @@ class WhatsAppServiceController extends BaseController
             }
             return response('Invalid request', 403);
         }
-        // process the other update requests
+        // process the other update requests (POST)
+        if ($vendorUid !== 'service-whatsapp') {
+            $vendorId = getPublicVendorId($vendorUid);
+            if ($vendorId) {
+                $appSecret = getVendorSettings('whatsapp_app_secret', null, null, $vendorId) ?: getAppSettings('whatsapp_app_secret');
+                $signature = $request->header('X-Hub-Signature-256');
+                if (!empty($appSecret) && !empty($signature)) {
+                    $expectedSignature = 'sha256=' . hash_hmac('sha256', $request->getContent(), $appSecret);
+                    if (!hash_equals($expectedSignature, $signature)) {
+                        \Illuminate\Support\Facades\Log::warning("[WEBHOOK SECURITY] Signature mismatch for vendorUid={$vendorUid}");
+                        return response('Unauthorized webhook payload signature', 403);
+                    }
+                }
+            }
+        }
+
         $this->whatsAppServiceEngine->processWebhook($request, $vendorUid);
         return response('done', 200);
     }
