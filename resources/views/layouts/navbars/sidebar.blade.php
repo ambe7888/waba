@@ -399,7 +399,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
-                @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'])
+                @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'] and hasVendorAccess('manage_orders'))
                 @php
                     $pendingOrdersCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
                         'vendors__id' => getVendorId(),

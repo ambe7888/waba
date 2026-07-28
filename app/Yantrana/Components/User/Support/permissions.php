@@ -120,4 +120,19 @@ return [
             ],
         ],
     ],
+    'manage_orders' => [
+        'title' => __tr('Gestion des Commandes WhatsApp'),
+        'description' => __tr('Autoriser/Refuser l\'accès à la consultation, la création et la gestion des commandes'),
+        'permissions' => [
+            'add_edit_orders' => [
+                'title' => __tr('Ajouter / Modifier des Commandes & Statuts'),
+                'description' => __tr('Autoriser/Refuser la création de commandes et le changement de statut'),
+            ],
+            'delete_orders' => [
+                'title' => __tr('Supprimer des Commandes'),
+                'description' => __tr('Autoriser/Refuser la suppression définitive de commandes'),
+            ],
+        ],
+    ],
 ];
+

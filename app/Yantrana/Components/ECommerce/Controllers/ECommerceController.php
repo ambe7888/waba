@@ -390,6 +390,10 @@ class ECommerceController extends BaseController
      */
     public function updateOrderStatus(Request $request, $orderUid)
     {
+        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
         $vendorId = getVendorId();
         $request->validate([
             'status' => 'required|string|in:validated,confirmed,processing,shipped,delivered,cancelled',
@@ -413,10 +417,14 @@ class ECommerceController extends BaseController
 
         // Update contact notes & broadcast real-time contact update to chat frontend
         if ($order->contacts__id) {
-            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::find($order->contacts__id);
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
+                'vendors__id' => $vendorId,
+                '_id' => $order->contacts__id
+            ])->first();
+
             if ($contact) {
                 $statusLabels = [
-                    'validated' => __tr('Nouvelle / En attente'),
+                    'validated' => __tr('Nouvelle / Validée'),
                     'confirmed' => __tr('Confirmée'),
                     'processing' => __tr('En préparation'),
                     'shipped' => __tr('En livraison'),
@@ -448,6 +456,10 @@ class ECommerceController extends BaseController
      */
     public function deleteOrder($orderUid)
     {
+        if (!hasVendorAccess('manage_orders', 'delete_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
         $vendorId = getVendorId();
 
         $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
@@ -504,6 +516,10 @@ class ECommerceController extends BaseController
      */
     public function createManualOrder(Request $request)
     {
+        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
         $vendorId = getVendorId();
         $request->validate([
             'contact_id' => 'required',

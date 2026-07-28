@@ -126,9 +126,11 @@ $teamMembers = \DB::table('users')
             <p class="text-muted small mb-0">{{ __tr('Suivez, filtrez par date, agent ou statut, et imprimez les reçus individuels ou le rapport de liste complet') }}</p>
         </div>
         <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
+            @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
             <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
                 <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Enregistrer une Commande') }}
             </button>
+            @endif
 
             <button type="button" @click="exportOrdersCSV()" class="btn btn-outline-success font-weight-bold" style="border-radius: 10px; border-color: #10b981; color: #10b981;">
                 <i class="fa fa-file-excel mr-1"></i> {{ __tr('Exporter Excel / CSV') }}
@@ -344,6 +346,7 @@ $teamMembers = \DB::table('users')
                                             </a>
                                         </template>
 
+                                        @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
                                         <select class="form-control form-control-sm font-weight-bold custom-input-white" style="border-radius: 8px !important; width: 130px;" :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
                                             <option value="validated">{{ __tr('Nouvelle') }}</option>
                                             <option value="confirmed">{{ __tr('Confirmer') }}</option>
@@ -352,10 +355,13 @@ $teamMembers = \DB::table('users')
                                             <option value="delivered">{{ __tr('Livrée') }}</option>
                                             <option value="cancelled">{{ __tr('Annuler') }}</option>
                                         </select>
+                                        @endif
                                         
+                                        @if (hasVendorAccess('manage_orders', 'delete_orders'))
                                         <button type="button" @click="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Supprimer') }}">
                                             <i class="fa fa-trash-alt"></i>
                                         </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
