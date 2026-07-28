@@ -4284,11 +4284,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                             'status' => 'validated',
                         ]);
                         
-                        $contactData = $contact->__data ?? [];
-                        $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $orderNote;
-                        $contact->__data = $contactData;
-                        $contact->save();
-                        
+                        // Orders are tracked in the OrderModel, no need to append to contact_notes
+
                         // Broadcast updated contact to frontend
                         updateModelsViaVendorBroadcast($vendorUid, [
                             'contact' => $contact

@@ -424,12 +424,7 @@ class ECommerceController extends BaseController
                     'cancelled' => __tr('Annulée'),
                 ];
                 $statusName = $statusLabels[$request->status] ?? $request->status;
-                $noteEntry = "\n[📦 Commande #" . substr($order->_uid, 0, 8) . " - " . now()->format('d/m/Y H:i') . "]: Statut mis à jour -> " . $statusName;
-                
-                $contactData = $contact->__data ?? [];
-                $contactData['contact_notes'] = ($contactData['contact_notes'] ?? '') . $noteEntry;
-                $contact->__data = $contactData;
-                $contact->save();
+                // Status updates are tracked via the order object itself.
 
                 $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
                 if ($vendor) {

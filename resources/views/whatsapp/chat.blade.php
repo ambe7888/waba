@@ -218,11 +218,6 @@
                                                                 <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
                                                             @endif
                                                         </span>
-                                                        @if (isVendorAdmin(getVendorId()) or hasVendorAccess('manage_contacts', 'delete_contacts'))
-                                                        <button type="button" class="btn btn-link text-danger p-0 ml-1 lw-delete-contact-btn" style="font-size: 0.8rem; opacity: 0.6; line-height: 1;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" @click.stop.prevent="deleteSingleContact(contactItem)" title="{{ __tr('Supprimer ce contact') }}">
-                                                            <i class="fa fa-trash-alt"></i>
-                                                        </button>
-                                                        @endif
                                                     </div>
                                                     
                                                     <!-- Row 2: Phone and Unread Badge -->
@@ -948,6 +943,11 @@
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     @endif
+                                    @if (isVendorAdmin(getVendorId()) or hasVendorAccess('manage_contacts', 'delete_contacts'))
+                                    <button type="button" class="btn btn-link text-danger p-0 ml-2" style="position: absolute; right: 40px; top: 15px; z-index: 2; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" @click.stop.prevent="deleteSingleContact(contact)" title="{{ __tr('Supprimer ce contact') }}">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                    @endif
                                     
                                     <!-- Avatar -->
                                     <div class="lw-crm-avatar" x-text="contact.name_initials || 'C'"></div>
@@ -1102,7 +1102,7 @@
                                         var self = this;
                                         __DataRequest.get('{{ route('vendor.ecommerce.contact_orders', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function(response) {
                                             self.isLoadingOrders = false;
-                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
                                             if (isSuccess) {
                                                 var rawOrders = (response.data && response.data.orders) ? response.data.orders : (response.orders || []);
                                                 self.ordersList = Array.isArray(rawOrders) ? rawOrders : [];
@@ -1112,7 +1112,7 @@
                                     updateStatus(orderUid, newStatus) {
                                         var self = this;
                                         __DataRequest.post('{{ route("vendor.ecommerce.orders.update_status", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), { status: newStatus }, function(response) {
-                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
                                             var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
                                             if (isSuccess) {
                                                 showSuccessMessage(msg);
@@ -1212,7 +1212,7 @@
                                             delivery_date: this.orderDate
                                         }, function(response) {
                                             self.isCreatingOrder = false;
-                                            var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
                                             if (isSuccess) {
                                                 var msg = response.message || (response.data && response.data.message) || 'Commande créée avec succès !';
                                                 showSuccessMessage(msg);
@@ -1641,15 +1641,12 @@
                 this.replyingToMessage = null;
             },
             deleteSingleContact: function(contactItem) {
-                if (!contactItem || (!contactItem._id && !contactItem._uid)) return;
-                var cName = contactItem.full_name || contactItem.wa_id || 'ce contact';
-                if (confirm('{{ __tr("Voulez-vous vraiment supprimer ") }}' + cName + ' ? {{ __tr("Cette action est irréversible.") }}')) {
+                if(confirm('{{ __tr("Êtes-vous sûr de vouloir supprimer ce contact et toutes ses données ? Cette action est irréversible.") }}')) {
                     var self = this;
-                    var contactId = contactItem._id || contactItem._uid;
                     __DataRequest.post('{{ route("vendor.contacts.selected.write.delete") }}', {
-                        selected_contacts: [contactId]
+                        'selected_contacts': [contactItem._id]
                     }, function(response) {
-                        var isSuccess = response.reaction_code == 1 || (response.data && response.data.reaction_code == 1);
+                        var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
                         var msg = response.message || (response.data && response.data.message) || 'Contact supprimé avec succès.';
                         if (isSuccess) {
                             showSuccessMessage(msg);
