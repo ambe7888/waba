@@ -386,98 +386,100 @@ $teamMembers = \DB::table('users')
                         <span aria-hidden="true" style="font-size: 1.8rem;">&times;</span>
                     </button>
                 </div>
-                <form @submit.prevent="submitManualOrder()" class="p-4">
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
-                        <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
-                            <option value="">-- {{ __tr('Choisir un client') }} --</option>
-                            <template x-for="c in allContacts" :key="c._id">
-                                <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
-                            </template>
-                        </select>
-                    </div>
-
-                    <!-- PRODUCTS LIST (MULTI-PRODUCTS) -->
-                    <div class="border rounded p-3 mb-3" style="background: #f8fafc; border-color: #cbd5e1 !important;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="font-weight-bold text-dark mb-0"><i class="fa fa-boxes text-primary mr-1"></i> {{ __tr('Produit(s) de la commande *') }}</label>
-                            <button type="button" @click="addOrderItem()" class="btn btn-sm btn-outline-success font-weight-bold" style="border-radius: 6px;">
-                                <i class="fa fa-plus mr-1"></i> {{ __tr('Ajouter un autre produit') }}
-                            </button>
+                <form @submit.prevent="submitManualOrder()">
+                    <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
+                            <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
+                                <option value="">-- {{ __tr('Choisir un client') }} --</option>
+                                <template x-for="c in allContacts" :key="c._id">
+                                    <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
+                                </template>
+                            </select>
                         </div>
 
-                        <template x-for="(item, idx) in newOrderItems" :key="idx">
-                            <div class="row align-items-center bg-white p-2 mb-2 rounded border" style="border-color: #e2e8f0 !important;">
-                                <div class="col-md-5 form-group mb-2 mb-md-0">
-                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Produit') }}</label>
-                                    <select class="form-control form-control-sm" x-model="item.product_id" @change="onItemProductChange(idx)" required>
-                                        <option value="">-- {{ __tr('Choisir un produit') }} --</option>
-                                        <template x-for="p in allProducts" :key="p._id">
-                                            <option :value="p._id" x-text="p.name + ' — ' + Number(p.price).toLocaleString() + ' CFA'"></option>
-                                        </template>
-                                    </select>
-                                </div>
-                                <div class="col-md-2 form-group mb-2 mb-md-0">
-                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Qté') }}</label>
-                                    <input type="number" min="1" class="form-control form-control-sm" x-model="item.quantity" required>
-                                </div>
-                                <div class="col-md-4 form-group mb-2 mb-md-0">
-                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Prix Unitaire (CFA)') }}</label>
-                                    <input type="number" class="form-control form-control-sm" x-model="item.custom_price" placeholder="Prix" required>
-                                </div>
-                                <div class="col-md-1 text-right">
-                                    <label class="small d-block mb-1">&nbsp;</label>
-                                    <button type="button" @click="removeOrderItem(idx)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer ce produit" x-show="newOrderItems.length > 1">
-                                        <i class="fa fa-times-circle fa-lg"></i>
-                                    </button>
-                                </div>
+                        <!-- PRODUCTS LIST (MULTI-PRODUCTS) -->
+                        <div class="border rounded p-3 mb-3" style="background: #f8fafc; border-color: #cbd5e1 !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="font-weight-bold text-dark mb-0">{{ __tr('Produit(s) de la commande *') }}</label>
+                                <button type="button" @click="addOrderItem()" class="btn btn-sm btn-outline-success font-weight-bold" style="border-radius: 6px;">
+                                    + {{ __tr('Ajouter un autre produit') }}
+                                </button>
                             </div>
-                        </template>
+
+                            <template x-for="(item, idx) in newOrderItems" :key="idx">
+                                <div class="row align-items-center bg-white p-2 mb-2 rounded border" style="border-color: #e2e8f0 !important;">
+                                    <div class="col-md-5 form-group mb-2 mb-md-0">
+                                        <label class="small font-weight-bold text-muted mb-1">{{ __tr('Produit') }}</label>
+                                        <select class="form-control form-control-sm" x-model="item.product_id" @change="onItemProductChange(idx)" required>
+                                            <option value="">-- {{ __tr('Choisir un produit') }} --</option>
+                                            <template x-for="p in allProducts" :key="p._id">
+                                                <option :value="p._id" x-text="p.name + ' — ' + Number(p.price).toLocaleString() + ' CFA'"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 form-group mb-2 mb-md-0">
+                                        <label class="small font-weight-bold text-muted mb-1">{{ __tr('Qté') }}</label>
+                                        <input type="number" min="1" class="form-control form-control-sm" x-model="item.quantity" required>
+                                    </div>
+                                    <div class="col-md-4 form-group mb-2 mb-md-0">
+                                        <label class="small font-weight-bold text-muted mb-1">{{ __tr('Prix Unitaire (CFA)') }}</label>
+                                        <input type="number" class="form-control form-control-sm" x-model="item.custom_price" placeholder="Prix" required>
+                                    </div>
+                                    <div class="col-md-1 text-right">
+                                        <label class="small d-block mb-1">&nbsp;</label>
+                                        <button type="button" @click="removeOrderItem(idx)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer ce produit" x-show="newOrderItems.length > 1">
+                                            <i class="fa fa-times-circle fa-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- ADDITIONAL FEES (FRAIS DE LIVRAISON / AUTRES) -->
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark">{{ __tr('Frais additionnels / Livraison (CFA)') }}</label>
+                                <input type="number" min="0" class="form-control custom-input-white" x-model="newOrderAdditionalFee" placeholder="ex: 2000">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark">{{ __tr('Libellé des frais') }}</label>
+                                <input type="text" class="form-control custom-input-white" x-model="newOrderAdditionalFeeLabel" placeholder="ex: Frais de livraison">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark">{{ __tr('Adresse / Lieu de livraison') }}</label>
+                                <input type="text" class="form-control custom-input-white" x-model="newOrderAddress" placeholder="ex: Abidjan, Cocody Angré">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark">{{ __tr('Date de livraison souhaitée') }}</label>
+                                <input type="date" class="form-control custom-input-white" x-model="newOrderDate">
+                            </div>
+                        </div>
+
+                        <!-- TOTAL SUMMARY CARD -->
+                        <div class="p-3 rounded" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-dark small font-weight-bold">{{ __tr('Sous-total produits:') }}</span>
+                                <span class="font-weight-bold text-dark" x-text="getNewOrderSubtotal().toLocaleString() + ' CFA'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1" x-show="Number(newOrderAdditionalFee) > 0">
+                                <span class="text-dark small font-weight-bold"><span x-text="newOrderAdditionalFeeLabel || 'Frais additionnels'"></span>:</span>
+                                <span class="font-weight-bold text-dark" x-text="Number(newOrderAdditionalFee).toLocaleString() + ' CFA'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
+                                <span class="font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">{{ __tr('Total Commande:') }}</span>
+                                <span class="font-weight-bold text-emerald" style="font-size: 1.25rem; color: #059669;" x-text="getNewOrderTotal().toLocaleString() + ' CFA'"></span>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- ADDITIONAL FEES (FRAIS DE LIVRAISON / AUTRES) -->
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Frais additionnels / Livraison (CFA)') }}</label>
-                            <input type="number" min="0" class="form-control custom-input-white" x-model="newOrderAdditionalFee" placeholder="ex: 2000">
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Libellé des frais') }}</label>
-                            <input type="text" class="form-control custom-input-white" x-model="newOrderAdditionalFeeLabel" placeholder="ex: Frais de livraison">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Adresse / Lieu de livraison') }}</label>
-                            <input type="text" class="form-control custom-input-white" x-model="newOrderAddress" placeholder="ex: Abidjan, Cocody Angré">
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Date de livraison souhaitée') }}</label>
-                            <input type="date" class="form-control custom-input-white" x-model="newOrderDate">
-                        </div>
-                    </div>
-
-                    <!-- TOTAL SUMMARY CARD -->
-                    <div class="p-3 mb-3 rounded" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-dark small font-weight-bold">{{ __tr('Sous-total produits:') }}</span>
-                            <span class="font-weight-bold text-dark" x-text="getNewOrderSubtotal().toLocaleString() + ' CFA'"></span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-1" x-show="Number(newOrderAdditionalFee) > 0">
-                            <span class="text-dark small font-weight-bold">🚚 <span x-text="newOrderAdditionalFeeLabel || 'Frais additionnels'"></span>:</span>
-                            <span class="font-weight-bold text-dark" x-text="Number(newOrderAdditionalFee).toLocaleString() + ' CFA'"></span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
-                            <span class="font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">💰 {{ __tr('Total Commande:') }}</span>
-                            <span class="font-weight-bold text-emerald" style="font-size: 1.25rem; color: #059669;" x-text="getNewOrderTotal().toLocaleString() + ' CFA'"></span>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer px-0 pb-0 border-top mt-3 pt-3">
+                    <div class="modal-footer bg-light p-3" style="border-top: 1px solid #e2e8f0;">
                         <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">{{ __tr('Annuler') }}</button>
                         <button type="submit" class="btn btn-emerald font-weight-bold px-4 text-white" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isSavingManualOrder">
-                            <span x-show="!isSavingManualOrder"><i class="fa fa-save mr-1"></i> {{ __tr('Valider & Créer la Commande') }}</span>
+                            <span x-show="!isSavingManualOrder">{{ __tr('Valider & Créer la Commande') }}</span>
                             <span x-show="isSavingManualOrder"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Enregistrement...') }}</span>
                         </button>
                     </div>
@@ -548,15 +550,15 @@ $teamMembers = \DB::table('users')
                                 <template x-if="selectedOrder && selectedOrder.contact && selectedOrder.contact._uid">
                                     <p class="mb-1">
                                         <a :href="getChatUrl(selectedOrder.contact._uid)" target="_blank" class="text-emerald font-weight-bold small" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
-                                            📱 WhatsApp: <span x-text="selectedOrder.contact.wa_id"></span>
+                                            WhatsApp: <span x-text="selectedOrder.contact.wa_id"></span>
                                         </a>
                                     </p>
                                 </template>
                                 <template x-if="getDeliveryAddress(selectedOrder)">
-                                    <p class="small text-dark mb-1"><strong>📍 {{ __tr('Livraison à:') }}</strong> <span x-text="getDeliveryAddress(selectedOrder)"></span></p>
+                                    <p class="small text-dark mb-1"><strong>{{ __tr('Livraison à:') }}</strong> <span x-text="getDeliveryAddress(selectedOrder)"></span></p>
                                 </template>
                                 <template x-if="getDeliveryDate(selectedOrder)">
-                                    <p class="small text-dark mb-0"><strong>📅 {{ __tr('Date souhaitée:') }}</strong> <span x-text="getDeliveryDate(selectedOrder)"></span></p>
+                                    <p class="small text-dark mb-0"><strong>{{ __tr('Date souhaitée:') }}</strong> <span x-text="getDeliveryDate(selectedOrder)"></span></p>
                                 </template>
                             </div>
                         </div>
@@ -602,7 +604,7 @@ $teamMembers = \DB::table('users')
                                 <template x-if="getAdditionalFee(selectedOrder) > 0">
                                     <tr>
                                         <td colspan="3" class="text-right font-weight-bold text-dark small">
-                                            🚚 <span x-text="getAdditionalFeeLabel(selectedOrder)"></span>:
+                                            <span x-text="getAdditionalFeeLabel(selectedOrder)"></span>:
                                         </td>
                                         <td class="text-right font-weight-bold text-dark small" x-text="getAdditionalFee(selectedOrder).toLocaleString() + ' CFA'">
                                         </td>
@@ -610,7 +612,7 @@ $teamMembers = \DB::table('users')
                                 </template>
                                 <tr>
                                     <td colspan="3" class="text-right font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">
-                                        💰 {{ __tr('Montant Total à Payer:') }}
+                                        {{ __tr('Montant Total à Payer:') }}
                                     </td>
                                     <td class="text-right font-weight-bold text-emerald" style="font-size: 1.2rem; color: #059669;" x-text="getTotal(selectedOrder).toLocaleString() + ' CFA'">
                                     </td>
