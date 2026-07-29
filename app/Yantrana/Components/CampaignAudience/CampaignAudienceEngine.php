@@ -42,9 +42,15 @@ class CampaignAudienceEngine extends BaseEngine
     public function processAddOrUpdate($request, $audienceUid = null)
     {
         $inputData = $request->all();
-        $inputData['contacts'] = $request->contacts ?: [];
-        $inputData['groups'] = $request->groups ?: [];
-        $inputData['labels'] = $request->labels ?: [];
+        if ($request->is_all_contacts == '1' || $request->is_all_contacts == 'on' || $request->is_all_contacts === true) {
+            $inputData['contacts'] = ['all_contacts'];
+            $inputData['groups'] = [];
+            $inputData['labels'] = [];
+        } else {
+            $inputData['contacts'] = $request->contacts ?: [];
+            $inputData['groups'] = $request->groups ?: [];
+            $inputData['labels'] = $request->labels ?: [];
+        }
 
         if ($audienceUid) {
             $audience = $this->campaignAudienceRepository->fetch($audienceUid);

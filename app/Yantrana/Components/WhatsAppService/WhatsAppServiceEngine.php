@@ -612,22 +612,27 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 return $this->engineFailedResponse([], __tr('Invalid Audience'));
             }
 
-            if (!__isEmpty($audience->groups)) {
-                $groupContacts = $this->groupContactRepository->fetchItAll($audience->groups, [], 'contact_groups__id');
-                if (!__isEmpty($groupContacts)) {
-                    $groupContactIds = $groupContacts->pluck('contacts__id')->unique()->toArray();
+            if (in_array('all_contacts', $audience->contacts ?: [])) {
+                $groupContactIds = [];
+                $labelIds = [];
+            } else {
+                if (!__isEmpty($audience->groups)) {
+                    $groupContacts = $this->groupContactRepository->fetchItAll($audience->groups, [], 'contact_groups__id');
+                    if (!__isEmpty($groupContacts)) {
+                        $groupContactIds = $groupContacts->pluck('contacts__id')->unique()->toArray();
+                    }
                 }
+                if (!__isEmpty($audience->contacts)) {
+                    // Try resolving as _id first, then _uid
+                    $audienceContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                        ->where(function ($q) use ($audience) {
+                            $q->whereIn('_id', $audience->contacts)
+                              ->orWhereIn('_uid', $audience->contacts);
+                        })->pluck('_id')->toArray();
+                    $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
+                }
+                $labelIds = $audience->labels ?: [];
             }
-            if (!__isEmpty($audience->contacts)) {
-                // Try resolving as _id first, then _uid
-                $audienceContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-                    ->where(function ($q) use ($audience) {
-                        $q->whereIn('_id', $audience->contacts)
-                          ->orWhereIn('_uid', $audience->contacts);
-                    })->pluck('_id')->toArray();
-                $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
-            }
-            $labelIds = $audience->labels ?: [];
         } else {
             // Legacy contact_group support
             if (!in_array('all_contacts', $contactGroupIds)) {
@@ -829,26 +834,31 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 return $this->engineFailedResponse([], __tr('Invalid Audience'));
             }
 
-            if (!__isEmpty($audience->groups)) {
-                $groupContacts = $this->groupContactRepository->fetchItAll($audience->groups, [], 'contact_groups__id');
-                if (!__isEmpty($groupContacts)) {
-                    $groupContactIds = $groupContacts->pluck('contacts__id')->unique()->toArray();
-                    $groupWiseCount = $groupContacts
-                        ->groupBy('contact_groups__id')
-                        ->map(function ($items) {
-                            return $items->pluck('contacts__id')->unique()->count();
-                        })->all();
+            if (in_array('all_contacts', $audience->contacts ?: [])) {
+                $groupContactIds = [];
+                $labelIds = [];
+            } else {
+                if (!__isEmpty($audience->groups)) {
+                    $groupContacts = $this->groupContactRepository->fetchItAll($audience->groups, [], 'contact_groups__id');
+                    if (!__isEmpty($groupContacts)) {
+                        $groupContactIds = $groupContacts->pluck('contacts__id')->unique()->toArray();
+                        $groupWiseCount = $groupContacts
+                            ->groupBy('contact_groups__id')
+                            ->map(function ($items) {
+                                return $items->pluck('contacts__id')->unique()->count();
+                            })->all();
+                    }
                 }
+                if (!__isEmpty($audience->contacts)) {
+                    $audienceContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                        ->where(function ($q) use ($audience) {
+                            $q->whereIn('_id', $audience->contacts)
+                              ->orWhereIn('_uid', $audience->contacts);
+                        })->pluck('_id')->toArray();
+                    $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
+                }
+                $labelIds = $audience->labels ?: [];
             }
-            if (!__isEmpty($audience->contacts)) {
-                $audienceContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-                    ->where(function ($q) use ($audience) {
-                        $q->whereIn('_id', $audience->contacts)
-                          ->orWhereIn('_uid', $audience->contacts);
-                    })->pluck('_id')->toArray();
-                $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
-            }
-            $labelIds = $audience->labels ?: [];
         } else {
             // Legacy contact_group support (e.g. for API)
             $contactGroupIds = $request->contact_group ?: [];

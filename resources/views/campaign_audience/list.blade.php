@@ -76,56 +76,77 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="title"><?= __tr('Titre de l\'audience') ?></label>
-                        <input type="text" name="title" id="title" class="form-control" required>
+                        <input type="text" name="title" id="title" class="form-control" required placeholder="<?= __tr('ex. Tous mes clients, Offre Promo, etc.') ?>">
                     </div>
 
-                    <div class="form-group">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <label for="contacts" class="mb-0"><?= __tr('Contacts Individuels') ?></label>
-                            <div>
-                                <button type="button" class="btn btn-xs btn-outline-primary shadow-none py-0 px-2" style="font-size: 0.75rem;" onclick="selectAllAudienceContacts()"><i class="fa fa-check-double mr-1"></i><?= __tr('Tout sélectionner') ?></button>
-                                <button type="button" class="btn btn-xs btn-outline-secondary shadow-none py-0 px-2 ml-1" style="font-size: 0.75rem;" onclick="deselectAllAudienceContacts()"><i class="fa fa-times mr-1"></i><?= __tr('Tout désélectionner') ?></button>
+                    <div class="card bg-secondary border-0 mb-3">
+                        <div class="card-body py-2 px-3">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" name="is_all_contacts" class="custom-control-input" id="isAllContactsCheck" onchange="toggleAllContactsOption(this.checked)">
+                                <label class="custom-control-label font-weight-bold text-dark mb-0" for="isAllContactsCheck" style="cursor: pointer;">
+                                    ⚡ <?= __tr('Cibler TOUS les contacts du compte (Base complète)') ?>
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                <?= __tr('Cochez cette option si vous souhaitez cibler 100% de vos contacts sans ralentissement.') ?>
+                            </small>
+                        </div>
+                    </div>
+
+                    <div id="allContactsNotice" class="alert alert-success d-none mb-3">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong><?= __tr('Mode Base Complète Activé !') ?></strong> <?= __tr('Cette audience ciblera l\'intégralité de vos contacts actuels et futurs.') ?>
+                    </div>
+
+                    <div id="audienceSpecificTargetSection">
+                        <div class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="contacts" class="mb-0"><?= __tr('Contacts Individuels') ?></label>
+                                <div>
+                                    <button type="button" class="btn btn-xs btn-outline-primary shadow-none py-0 px-2" style="font-size: 0.75rem;" onclick="selectAllAudienceContacts()"><i class="fa fa-check-double mr-1"></i><?= __tr('Tout sélectionner') ?></button>
+                                    <button type="button" class="btn btn-xs btn-outline-secondary shadow-none py-0 px-2 ml-1" style="font-size: 0.75rem;" onclick="deselectAllAudienceContacts()"><i class="fa fa-times mr-1"></i><?= __tr('Tout désélectionner') ?></button>
+                                </div>
+                            </div>
+                            <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
+                                @foreach($contacts as $contact)
+                                    <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
+                                @endforeach
+                            </select>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
+                                <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
+                                    0 <?= __tr('contact(s) sélectionné(s)') ?>
+                                </small>
                             </div>
                         </div>
-                        <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                            @foreach($contacts as $contact)
-                                <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
-                            @endforeach
-                        </select>
-                        <div class="d-flex justify-content-between align-items-center mt-1">
-                            <small class="text-muted"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
-                            <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
-                                0 <?= __tr('contact(s) sélectionné(s)') ?>
-                            </small>
-                        </div>
-                    </div>
 
-                    <div class="form-group">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <label for="groups" class="mb-0"><?= __tr('Groupes de contacts') ?></label>
-                            <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedGroupsBadge" style="font-size: 0.85rem;">
-                                0 <?= __tr('groupe(s) sélectionné(s)') ?>
-                            </small>
+                        <div class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="groups" class="mb-0"><?= __tr('Groupes de contacts') ?></label>
+                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedGroupsBadge" style="font-size: 0.85rem;">
+                                    0 <?= __tr('groupe(s) sélectionné(s)') ?>
+                                </small>
+                            </div>
+                            <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
+                                @foreach($groups as $group)
+                                    <option value="{{ $group->_id }}">{{ $group->title }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                            @foreach($groups as $group)
-                                <option value="{{ $group->_id }}">{{ $group->title }}</option>
-                            @endforeach
-                        </select>
-                    </div>
 
-                    <div class="form-group">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <label for="labels" class="mb-0"><?= __tr('Étiquettes') ?></label>
-                            <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedLabelsBadge" style="font-size: 0.85rem;">
-                                0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
-                            </small>
+                        <div class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="labels" class="mb-0"><?= __tr('Étiquettes') ?></label>
+                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedLabelsBadge" style="font-size: 0.85rem;">
+                                    0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
+                                </small>
+                            </div>
+                            <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
+                                @foreach($labels as $label)
+                                    <option value="{{ $label->_id }}">{{ $label->title }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                            @foreach($labels as $label)
-                                <option value="{{ $label->_id }}">{{ $label->title }}</option>
-                            @endforeach
-                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -176,6 +197,16 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         }
     }
 
+    function toggleAllContactsOption(isAll) {
+        if (isAll) {
+            $('#audienceSpecificTargetSection').addClass('d-none');
+            $('#allContactsNotice').removeClass('d-none');
+        } else {
+            $('#audienceSpecificTargetSection').removeClass('d-none');
+            $('#allContactsNotice').addClass('d-none');
+        }
+    }
+
     function reEnableSubmitButton() {
         var $btn = $('#audienceForm').find('button[type="submit"]');
         $btn.prop('disabled', false).html('<?= __tr("Enregistrer") ?>');
@@ -212,8 +243,13 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             return [String(data)];
         };
 
+        let parsedContacts = parseItems(contacts);
+        let isAll = parsedContacts.includes('all_contacts');
+        $('#isAllContactsCheck').prop('checked', isAll);
+        toggleAllContactsOption(isAll);
+
         if(form.find('#contacts')[0].selectize) {
-            form.find('#contacts')[0].selectize.setValue(parseItems(contacts));
+            form.find('#contacts')[0].selectize.setValue(parsedContacts);
         }
         if(form.find('#groups')[0].selectize) {
             form.find('#groups')[0].selectize.setValue(parseItems(groups));
@@ -234,6 +270,8 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let form = $('#audienceForm');
         form.attr('action', "{{ route('vendor.campaign_audience.write.process') }}");
         form.trigger('reset');
+        $('#isAllContactsCheck').prop('checked', false);
+        toggleAllContactsOption(false);
         reEnableSubmitButton();
         if(form.find('#contacts')[0].selectize) {
             form.find('#contacts')[0].selectize.clear();

@@ -67,6 +67,17 @@ class CampaignAudienceRepository extends BaseRepository
                 $row['groups_raw'] = $row['groups'] ?: [];
                 $row['labels_raw'] = $row['labels'] ?: [];
 
+                $isAllContacts = in_array('all_contacts', $row['contacts'] ?: []);
+                $row['is_all_contacts'] = $isAllContacts;
+
+                if ($isAllContacts) {
+                    $realCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->count();
+                    $row['contacts_formatted'] = $realCount . ' contact(s) (⚡ Tous les contacts)';
+                    $row['groups_formatted'] = '-';
+                    $row['labels_formatted'] = '-';
+                    continue;
+                }
+
                 // Calculate real targeted contact count with deduplication
                 $contactIds = collect($row['contacts'] ?: []);
                 $groupContactIds = collect();

@@ -36,6 +36,7 @@ class CampaignAudienceController extends BaseController
 
         $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
             ->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
+            ->limit(500)
             ->get();
 
         $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
