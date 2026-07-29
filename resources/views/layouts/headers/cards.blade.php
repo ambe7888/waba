@@ -332,7 +332,7 @@ $vendorViewBySuperAdmin = false;
                                         <span class="font-weight-bold text-dark">{{ __tr('Aujourd\'hui: __today__', ['__today__' => $ordersTodayCount ?? 0]) }}</span>
                                         <span class="text-muted ml-1">{{ __tr('| Hier: __yesterday__', ['__yesterday__' => $ordersYesterdayCount ?? 0]) }}</span>
                                         <br>
-                                        <a href="{{ route('vendor.settings.read', ['pageType' => 'orders']) }}" class="text-success font-weight-bold mt-1 d-inline-block"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les commandes') }} ({{ $ordersCount ?? 0 }})</a>
+                                        <a href="{{ route('vendor.settings.read', ['pageType' => 'orders']) }}" class="text-success font-weight-bold mt-1 d-inline-block"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les commandes') }}</a>
                                     </p>
                                 </div>
                             </div>
