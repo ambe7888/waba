@@ -92,11 +92,21 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                                 <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
                             @endforeach
                         </select>
-                        <small><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
+                            <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
+                                0 <?= __tr('contact(s) sélectionné(s)') ?>
+                            </small>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="groups"><?= __tr('Groupes de contacts') ?></label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label for="groups" class="mb-0"><?= __tr('Groupes de contacts') ?></label>
+                            <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedGroupsBadge" style="font-size: 0.85rem;">
+                                0 <?= __tr('groupe(s) sélectionné(s)') ?>
+                            </small>
+                        </div>
                         <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize">
                             @foreach($groups as $group)
                                 <option value="{{ $group->_id }}">{{ $group->title }}</option>
@@ -105,7 +115,12 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     </div>
 
                     <div class="form-group">
-                        <label for="labels"><?= __tr('Étiquettes') ?></label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label for="labels" class="mb-0"><?= __tr('Étiquettes') ?></label>
+                            <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedLabelsBadge" style="font-size: 0.85rem;">
+                                0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
+                            </small>
+                        </div>
                         <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize">
                             @foreach($labels as $label)
                                 <option value="{{ $label->_id }}">{{ $label->title }}</option>
@@ -124,6 +139,18 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 @push('appScripts')
 <script>
+    function updateAudienceSelectionCounts() {
+        let contactsCount = ($('#contacts').val() || []).length;
+        let groupsCount = ($('#groups').val() || []).length;
+        let labelsCount = ($('#labels').val() || []).length;
+
+        $('#lwSelectedContactsBadge').text(contactsCount + ' <?= __tr("contact(s) sélectionné(s)") ?>');
+        $('#lwSelectedGroupsBadge').text(groupsCount + ' <?= __tr("groupe(s) sélectionné(s)") ?>');
+        $('#lwSelectedLabelsBadge').text(labelsCount + ' <?= __tr("étiquette(s) sélectionnée(s)") ?>');
+    }
+
+    $('#contacts, #groups, #labels').on('change', updateAudienceSelectionCounts);
+
     // Prevent double-click submission
     $('#audienceForm').on('submit', function() {
         var $btn = $(this).find('button[type="submit"]');
@@ -137,6 +164,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let selectize = $('#contacts')[0]?.selectize;
         if (selectize) {
             selectize.setValue(Object.keys(selectize.options));
+            updateAudienceSelectionCounts();
         }
     }
 
@@ -144,6 +172,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let selectize = $('#contacts')[0]?.selectize;
         if (selectize) {
             selectize.clear();
+            updateAudienceSelectionCounts();
         }
     }
 
@@ -193,8 +222,13 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             form.find('#labels')[0].selectize.setValue(parseItems(labels));
         }
         
+        updateAudienceSelectionCounts();
         $('#lwCreateAudienceModal').modal('show');
     }
+
+    $('#lwCreateAudienceModal').on('show.bs.modal hidden.bs.modal', function () {
+        setTimeout(updateAudienceSelectionCounts, 100);
+    });
 
     $('#lwCreateAudienceModal').on('hidden.bs.modal', function () {
         let form = $('#audienceForm');
@@ -210,6 +244,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         if(form.find('#labels')[0].selectize) {
             form.find('#labels')[0].selectize.clear();
         }
+        updateAudienceSelectionCounts();
     });
 </script>
 @endpush
