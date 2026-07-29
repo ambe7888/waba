@@ -211,7 +211,7 @@
                                      <fieldset class="shadow-none">
                                         <div class="d-flex align-items-center justify-content-between mb-1">
                                             <legend class="mb-0" style="float: none; width: auto; font-size: 1.1rem;">{{  __tr('Audience Cible') }}</legend>
-                                            <a href="{{ route('vendor.campaign_audience.read.list') }}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.8rem; border-radius: 6px;"><i class="fa fa-plus-circle mr-1"></i>{{ __tr('Créer / Gérer des Audiences') }}</a>
+                                            <a href="{{ route('vendor.campaign_audience.read.list_view') }}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.8rem; border-radius: 6px;"><i class="fa fa-plus-circle mr-1"></i>{{ __tr('Créer / Gérer des Audiences') }}</a>
                                         </div>
 
                                         @if(empty($vendorAudiences) || (is_countable($vendorAudiences) && count($vendorAudiences) == 0))
@@ -220,7 +220,7 @@
                                                     <i class="fas fa-exclamation-triangle mr-2"></i>
                                                     <strong>{{ __tr('Aucune audience disponible !') }}</strong> {{ __tr('Vous devez créer au moins une audience pour cibler vos contacts.') }}
                                                 </div>
-                                                <a href="{{ route('vendor.campaign_audience.read.list') }}" target="_blank" class="btn btn-sm btn-dark ml-3 font-weight-bold text-nowrap" style="border-radius: 8px;">
+                                                <a href="{{ route('vendor.campaign_audience.read.list_view') }}" target="_blank" class="btn btn-sm btn-dark ml-3 font-weight-bold text-nowrap" style="border-radius: 8px;">
                                                     <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Créer maintenant') }}
                                                 </a>
                                             </div>
