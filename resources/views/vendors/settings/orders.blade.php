@@ -460,7 +460,7 @@ $teamMembers = \DB::table('users')
                         </div>
 
                         <!-- TOTAL SUMMARY CARD -->
-                        <div class="p-3 rounded" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
+                        <div class="p-3 mb-4 rounded" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="text-dark small font-weight-bold">{{ __tr('Sous-total produits:') }}</span>
                                 <span class="font-weight-bold text-dark" x-text="getNewOrderSubtotal().toLocaleString() + ' CFA'"></span>
@@ -474,14 +474,15 @@ $teamMembers = \DB::table('users')
                                 <span class="font-weight-bold text-emerald" style="font-size: 1.25rem; color: #059669;" x-text="getNewOrderTotal().toLocaleString() + ' CFA'"></span>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="modal-footer bg-light p-3" style="border-top: 1px solid #e2e8f0;">
-                        <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">{{ __tr('Annuler') }}</button>
-                        <button type="submit" class="btn btn-emerald font-weight-bold px-4 text-white" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isSavingManualOrder">
-                            <span x-show="!isSavingManualOrder">{{ __tr('Valider & Créer la Commande') }}</span>
-                            <span x-show="isSavingManualOrder"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Enregistrement...') }}</span>
-                        </button>
+                        <!-- BUTTONS INSIDE POPUP -->
+                        <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
+                            <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">{{ __tr('Annuler') }}</button>
+                            <button type="submit" class="btn btn-emerald font-weight-bold px-4 text-white" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isSavingManualOrder">
+                                <span x-show="!isSavingManualOrder">{{ __tr('Valider & Créer la Commande') }}</span>
+                                <span x-show="isSavingManualOrder"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Enregistrement...') }}</span>
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
