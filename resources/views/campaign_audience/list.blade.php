@@ -79,7 +79,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                         <input type="text" name="title" id="title" class="form-control" required placeholder="<?= __tr('ex. Tous mes clients, Offre Promo, etc.') ?>">
                     </div>
 
-                    <div class="card bg-secondary border-0 mb-3">
+                    <div class="card border mb-3" style="background-color: #f8fafc; border-color: #e2e8f0 !important; border-radius: 8px;">
                         <div class="card-body py-2 px-3">
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" name="is_all_contacts" class="custom-control-input" id="isAllContactsCheck" onchange="toggleAllContactsOption(this.checked)">
@@ -93,34 +93,30 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                         </div>
                     </div>
 
-                    <div id="allContactsNotice" class="alert alert-success d-none mb-3">
+                    <div id="allContactsNotice" class="alert alert-success d-none mb-3" style="border-radius: 8px;">
                         <i class="fas fa-check-circle mr-2"></i>
                         <strong><?= __tr('Mode Base Complète Activé !') ?></strong> <?= __tr('Cette audience ciblera l\'intégralité de vos contacts actuels et futurs.') ?>
                     </div>
 
                     <div id="audienceSpecificTargetSection">
                         <div class="form-group">
-                            <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
+                            <label for="contacts" class="form-control-label">
+                                <?= __tr('Contacts Individuels') ?>
+                                <span id="lwSelectedContactsBadge" class="text-primary font-weight-normal ml-1" style="font-size: 0.82rem;">(0 sélectionné)</span>
+                            </label>
                             <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                                 @foreach($contacts as $contact)
                                     <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
                                 @endforeach
                             </select>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-muted"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
-                                <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('contact(s) sélectionné(s)') ?>
-                                </small>
-                            </div>
+                            <small class="text-muted d-block mt-1"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
                         </div>
 
                         <div class="form-group">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label for="groups" class="mb-0"><?= __tr('Groupes de contacts') ?></label>
-                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedGroupsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('groupe(s) sélectionné(s)') ?>
-                                </small>
-                            </div>
+                            <label for="groups" class="form-control-label">
+                                <?= __tr('Groupes de contacts') ?>
+                                <span id="lwSelectedGroupsBadge" class="text-primary font-weight-normal ml-1" style="font-size: 0.82rem;">(0 sélectionné)</span>
+                            </label>
                             <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                                 @foreach($groups as $group)
                                     <option value="{{ $group->_id }}">{{ $group->title }}</option>
@@ -129,12 +125,10 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                         </div>
 
                         <div class="form-group">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label for="labels" class="mb-0"><?= __tr('Étiquettes') ?></label>
-                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedLabelsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
-                                </small>
-                            </div>
+                            <label for="labels" class="form-control-label">
+                                <?= __tr('Étiquettes') ?>
+                                <span id="lwSelectedLabelsBadge" class="text-primary font-weight-normal ml-1" style="font-size: 0.82rem;">(0 sélectionnée)</span>
+                            </label>
                             <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                                 @foreach($labels as $label)
                                     <option value="{{ $label->_id }}">{{ $label->title }}</option>
@@ -159,9 +153,9 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let groupsCount = ($('#groups').val() || []).length;
         let labelsCount = ($('#labels').val() || []).length;
 
-        $('#lwSelectedContactsBadge').text(contactsCount + ' <?= __tr("contact(s) sélectionné(s)") ?>');
-        $('#lwSelectedGroupsBadge').text(groupsCount + ' <?= __tr("groupe(s) sélectionné(s)") ?>');
-        $('#lwSelectedLabelsBadge').text(labelsCount + ' <?= __tr("étiquette(s) sélectionnée(s)") ?>');
+        $('#lwSelectedContactsBadge').text('(' + contactsCount + ' <?= __tr("sélectionné(s)") ?>)');
+        $('#lwSelectedGroupsBadge').text('(' + groupsCount + ' <?= __tr("sélectionné(s)") ?>)');
+        $('#lwSelectedLabelsBadge').text('(' + labelsCount + ' <?= __tr("sélectionnée(s)") ?>)');
     }
 
     $('#contacts, #groups, #labels').on('change', updateAudienceSelectionCounts);
