@@ -1152,7 +1152,9 @@
                                     selectedReceiptOrder: null,
                                     openOrderReceiptModal(ord) {
                                         this.selectedReceiptOrder = ord;
-                                        $('#chatOrderReceiptModal').modal('show');
+                                        this.$nextTick(function() {
+                                            $('#chatOrderReceiptModal').appendTo('body').modal('show');
+                                        });
                                     },
                                     getItems(ord) {
                                         if (!ord || !ord.order_details) return [];
