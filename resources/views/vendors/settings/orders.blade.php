@@ -479,7 +479,7 @@ $teamMembers = \DB::table('users')
                         <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
                             <button type="button" class="btn btn-secondary font-weight-bold px-4" data-dismiss="modal" style="border-radius: 8px;">{{ __tr('Annuler') }}</button>
                             <button type="submit" class="btn btn-emerald font-weight-bold px-4 text-white" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isSavingManualOrder">
-                                <span x-show="!isSavingManualOrder">{{ __tr('Valider & Créer la Commande') }}</span>
+                                <span x-show="!isSavingManualOrder">{{ __tr('Créer la Commande') }}</span>
                                 <span x-show="isSavingManualOrder"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Enregistrement...') }}</span>
                             </button>
                         </div>

@@ -1149,6 +1149,66 @@
                                         }
                                         return 'Commande WhatsApp';
                                     },
+                                    selectedReceiptOrder: null,
+                                    openOrderReceiptModal(ord) {
+                                        this.selectedReceiptOrder = ord;
+                                        $('#chatOrderReceiptModal').modal('show');
+                                    },
+                                    getItems(ord) {
+                                        if (!ord || !ord.order_details) return [];
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        if (details && details.items && Array.isArray(details.items)) {
+                                            return details.items;
+                                        }
+                                        return [];
+                                    },
+                                    getAdditionalFee(ord) {
+                                        if (!ord || !ord.order_details) return 0;
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        return details && details.additional_fee ? Number(details.additional_fee) : 0;
+                                    },
+                                    getAdditionalFeeLabel(ord) {
+                                        if (!ord || !ord.order_details) return 'Frais additionnels';
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        return details && details.additional_fee_label ? details.additional_fee_label : 'Frais additionnels';
+                                    },
+                                    getDeliveryAddress(ord) {
+                                        if (!ord || !ord.order_details) return '';
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        return details && details.delivery_address ? details.delivery_address : '';
+                                    },
+                                    getDeliveryDate(ord) {
+                                        if (!ord || !ord.order_details) return '';
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        return details && details.delivery_date ? details.delivery_date : '';
+                                    },
+                                    getSource(ord) {
+                                        if (!ord || !ord.order_details) return 'Manuel';
+                                        var details = ord.order_details;
+                                        if (typeof details === 'string') {
+                                            try { details = JSON.parse(details); } catch(e) {}
+                                        }
+                                        return details && details.source ? details.source : 'Manuel';
+                                    },
+                                    formatDate(dateStr) {
+                                        if(!dateStr) return '';
+                                        return new Date(dateStr).toLocaleString('fr-FR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+                                    },
                                     productsList: [],
                                     productSearchTerm: '',
                                     isCreatingOrder: false,
@@ -1281,7 +1341,7 @@
                                         <div class="border rounded p-2 mb-2 bg-white">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <label class="text-xs font-weight-bold text-dark mb-0">{{ __tr('Produit(s) *') }}</label>
-                                                <button type="button" class="btn btn-xs btn-outline-success py-0 px-1 font-weight-bold text-xs" style="border-radius: 4px; font-size: 0.75rem;" @click="addOrderItem()">+ Produit</button>
+                                                <button type="button" class="btn btn-xs btn-outline-success py-0 px-1 font-weight-bold text-xs" style="border-radius: 4px; font-size: 0.75rem;" @click="addOrderItem()">+ Ajouter un produit</button>
                                             </div>
                                             
                                             <template x-for="(item, idx) in orderItems" :key="idx">
@@ -1378,9 +1438,9 @@
                                                 <div class="text-xs text-muted mb-2" x-text="new Date(ord.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})"></div>
 
                                                 <div class="d-flex align-items-center justify-content-between">
-                                                    <a :href="'<?= url('/vendor/orders') ?>'" target="_blank" class="btn btn-sm btn-link p-0 text-xs font-weight-bold text-emerald" style="color: #10b981;">
-                                                        <i class="fa fa-receipt mr-1"></i> Voir Reçu
-                                                    </a>
+                                                    <button type="button" @click="openOrderReceiptModal(ord)" class="btn btn-sm btn-link p-0 text-xs font-weight-bold text-emerald" style="color: #10b981;">
+                                                        <i class="fa fa-receipt mr-1"></i> {{ __tr('Voir Reçu') }}
+                                                    </button>
                                                     <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px; height: 26px; padding: 2px 6px; width: 110px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
                                                         <option value="validated">Nouvelle</option>
                                                         <option value="confirmed">Confirmer</option>
@@ -1393,7 +1453,119 @@
                                             </div>
                                         </template>
                                     </div>
-                                </div>              </div>
+
+                                    <!-- CHAT ORDER RECEIPT MODAL -->
+                                    <div class="modal fade" id="chatOrderReceiptModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
+                                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden; background: #ffffff;">
+                                                <div class="modal-header bg-emerald text-white p-4" style="background: #10b981;">
+                                                    <div class="d-flex align-items-center justify-content-between w-100">
+                                                        <div>
+                                                            <h5 class="modal-title font-weight-bold mb-1 text-white" x-text="'Reçu & Fiche de Commande #' + (selectedReceiptOrder ? selectedReceiptOrder._uid.substring(0, 8) : '')"></h5>
+                                                            <span class="badge badge-light font-weight-bold px-3 py-1" style="border-radius: 12px;" x-text="selectedReceiptOrder ? formatDate(selectedReceiptOrder.created_at) : ''"></span>
+                                                        </div>
+                                                        <button type="button" class="close text-white opacity-100" data-dismiss="modal" aria-label="Close" style="outline: none;">
+                                                            <span aria-hidden="true" style="font-size: 1.8rem; color: #ffffff;">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="modal-body p-4" style="max-height: 80vh; overflow-y: auto;">
+                                                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 p-3 rounded" style="background: #f8fafc; border: 1.5px solid #cbd5e1; gap: 10px;">
+                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                                            <button type="button" @click="window.print()" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 8px;">
+                                                                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer ce reçu') }}
+                                                            </button>
+                                                            <a href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>" target="_blank" class="btn btn-outline-secondary font-weight-bold" style="border-radius: 8px;">
+                                                                <i class="fa fa-external-link-alt mr-1"></i> {{ __tr('Gestion des commandes') }}
+                                                            </a>
+                                                        </div>
+
+                                                        <button type="button" class="btn btn-secondary font-weight-bold px-3" data-dismiss="modal" style="border-radius: 8px;">
+                                                            <i class="fa fa-times mr-1"></i> {{ __tr('Fermer') }}
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- Receipt Header Info Grid -->
+                                                    <div class="row mb-4">
+                                                        <div class="col-md-6 mb-3 mb-md-0">
+                                                            <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
+                                                                <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-user text-emerald mr-1"></i> {{ __tr('Informations Client') }}</h6>
+                                                                <h6 class="font-weight-bold text-dark mb-1" x-text="contact ? (contact.first_name + ' ' + contact.last_name) : '{{ __tr('Client WhatsApp') }}'"></h6>
+                                                                <p class="mb-1 text-dark small" x-show="contact && contact.wa_id">
+                                                                    <strong>WhatsApp:</strong> <span x-text="contact ? contact.wa_id : ''"></span>
+                                                                </p>
+                                                                <template x-if="getDeliveryAddress(selectedReceiptOrder)">
+                                                                    <p class="small text-dark mb-1"><strong>{{ __tr('Livraison à:') }}</strong> <span x-text="getDeliveryAddress(selectedReceiptOrder)"></span></p>
+                                                                </template>
+                                                                <template x-if="getDeliveryDate(selectedReceiptOrder)">
+                                                                    <p class="small text-dark mb-0"><strong>{{ __tr('Date souhaitée:') }}</strong> <span x-text="getDeliveryDate(selectedReceiptOrder)"></span></p>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
+                                                                <h6 class="font-weight-bold text-uppercase text-muted small mb-2"><i class="fa fa-info-circle text-emerald mr-1"></i> {{ __tr('Détails Commande & Source') }}</h6>
+                                                                <p class="small text-dark mb-1"><strong>{{ __tr('Référence:') }}</strong> <span x-text="selectedReceiptOrder ? '#' + selectedReceiptOrder._uid.substring(0, 8) : ''"></span></p>
+                                                                <p class="small text-dark mb-1"><strong>{{ __tr('Source / Agent:') }}</strong> <span class="font-weight-bold text-primary" x-text="getSource(selectedReceiptOrder)"></span></p>
+                                                                <p class="small text-dark mb-0"><strong>{{ __tr('Date de création:') }}</strong> <span x-text="selectedReceiptOrder ? formatDate(selectedReceiptOrder.created_at) : ''"></span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Formatted Products Table -->
+                                                    <div class="table-responsive mb-4">
+                                                        <table class="table table-bordered mb-0" style="border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1;">
+                                                            <thead class="bg-light text-uppercase small font-weight-bold text-dark">
+                                                                <tr>
+                                                                    <th>{{ __tr('Article / Produit') }}</th>
+                                                                    <th class="text-center" style="width: 100px;">{{ __tr('Quantité') }}</th>
+                                                                    <th class="text-right" style="width: 140px;">{{ __tr('Prix Unitaire') }}</th>
+                                                                    <th class="text-right" style="width: 160px;">{{ __tr('Sous-Total') }}</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <template x-for="(item, idx) in getItems(selectedReceiptOrder)" :key="idx">
+                                                                    <tr>
+                                                                        <td class="align-middle font-weight-bold text-dark" x-text="item.name || 'Produit'"></td>
+                                                                        <td class="align-middle text-center font-weight-bold" x-text="'x' + (item.quantity || 1)"></td>
+                                                                        <td class="align-middle text-right" x-text="Number(item.price || 0).toLocaleString() + ' CFA'"></td>
+                                                                        <td class="align-middle text-right font-weight-bold text-dark" x-text="(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString() + ' CFA'"></td>
+                                                                    </tr>
+                                                                </template>
+                                                                <template x-if="getItems(selectedReceiptOrder).length === 0">
+                                                                    <tr>
+                                                                        <td colspan="4" class="text-center py-3 text-muted">
+                                                                            {{ __tr('Détails des articles enregistrés.') }}
+                                                                        </td>
+                                                                    </tr>
+                                                                </template>
+                                                            </tbody>
+                                                            <tfoot style="background: #ecfdf5;">
+                                                                <template x-if="getAdditionalFee(selectedReceiptOrder) > 0">
+                                                                    <tr>
+                                                                        <td colspan="3" class="text-right font-weight-bold text-dark small">
+                                                                            <span x-text="getAdditionalFeeLabel(selectedReceiptOrder)"></span>:
+                                                                        </td>
+                                                                        <td class="text-right font-weight-bold text-dark small" x-text="getAdditionalFee(selectedReceiptOrder).toLocaleString() + ' CFA'">
+                                                                        </td>
+                                                                    </tr>
+                                                                </template>
+                                                                <tr>
+                                                                    <td colspan="3" class="text-right font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">
+                                                                        {{ __tr('Montant Total à Payer:') }}
+                                                                    </td>
+                                                                    <td class="text-right font-weight-bold text-emerald" style="font-size: 1.2rem; color: #059669;" x-text="getOrderTotal(selectedReceiptOrder).toLocaleString() + ' CFA'">
+                                                                    </td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 @endif
 
                                 {{-- Additional Links and buttons Card --}}
