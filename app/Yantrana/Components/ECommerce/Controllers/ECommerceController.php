@@ -523,7 +523,6 @@ class ECommerceController extends BaseController
         $vendorId = getVendorId();
         $request->validate([
             'contact_id' => 'required',
-            'product_id' => 'required',
         ]);
 
         $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
@@ -537,31 +536,77 @@ class ECommerceController extends BaseController
             return $this->processResponse(2, [2 => __tr('Client introuvable.')], ['message' => __tr('Client introuvable.')]);
         }
 
-        $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
-            ->where(function($q) use ($request) {
-                $q->where('_id', $request->product_id)
-                  ->orWhere('_uid', $request->product_id);
-            })->first();
+        $items = [];
+        $itemsTotal = 0;
 
-        if (empty($product)) {
-            return $this->processResponse(2, [2 => __tr('Produit introuvable.')], ['message' => __tr('Produit introuvable.')]);
+        // Support multi-items array
+        if ($request->filled('items') && is_array($request->items)) {
+            foreach ($request->items as $itemData) {
+                $pId = $itemData['product_id'] ?? null;
+                if (!$pId) continue;
+
+                $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+                    ->where(function($q) use ($pId) {
+                        $q->where('_id', $pId)
+                          ->orWhere('_uid', $pId);
+                    })->first();
+
+                if ($product) {
+                    $qty = max(1, intval($itemData['quantity'] ?? 1));
+                    $unitPrice = isset($itemData['custom_price']) && $itemData['custom_price'] !== '' 
+                        ? floatval($itemData['custom_price']) 
+                        : floatval($product->price);
+
+                    $itemSubtotal = $qty * $unitPrice;
+                    $itemsTotal += $itemSubtotal;
+
+                    $items[] = [
+                        'name' => $product->name,
+                        'quantity' => $qty,
+                        'price' => $unitPrice,
+                        'currency' => 'CFA'
+                    ];
+                }
+            }
         }
 
-        $qty = intval($request->quantity) ?: 1;
-        $unitPrice = floatval($request->custom_price) ?: floatval($product->price);
-        $totalPrice = $qty * $unitPrice;
+        // Backward compatibility: single product_id
+        if (empty($items) && $request->filled('product_id')) {
+            $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+                ->where(function($q) use ($request) {
+                    $q->where('_id', $request->product_id)
+                      ->orWhere('_uid', $request->product_id);
+                })->first();
+
+            if (empty($product)) {
+                return $this->processResponse(2, [2 => __tr('Produit introuvable.')], ['message' => __tr('Produit introuvable.')]);
+            }
+
+            $qty = intval($request->quantity) ?: 1;
+            $unitPrice = floatval($request->custom_price) ?: floatval($product->price);
+            $itemsTotal = $qty * $unitPrice;
+            $items[] = [
+                'name' => $product->name,
+                'quantity' => $qty,
+                'price' => $unitPrice,
+                'currency' => 'CFA'
+            ];
+        }
+
+        if (empty($items)) {
+            return $this->processResponse(2, [2 => __tr('Veuillez sélectionner au moins un produit.')], ['message' => __tr('Veuillez sélectionner au moins un produit.')]);
+        }
+
+        $additionalFee = max(0, floatval($request->additional_fee ?? $request->shipping_fee ?? 0));
+        $additionalFeeLabel = trim($request->additional_fee_label ?: 'Frais additionnels / Livraison');
+        $totalPrice = $itemsTotal + $additionalFee;
         $vendorName = getUserAuthInfo('profile.full_name') ?: 'Vendeur';
 
         $orderDetails = [
             'source' => 'Manuel (Vendeur: ' . $vendorName . ')',
-            'items' => [
-                [
-                    'name' => $product->name,
-                    'quantity' => $qty,
-                    'price' => $unitPrice,
-                    'currency' => 'CFA'
-                ]
-            ],
+            'items' => $items,
+            'additional_fee' => $additionalFee,
+            'additional_fee_label' => $additionalFeeLabel,
             'total_price' => $totalPrice,
             'currency' => 'CFA',
             'delivery_address' => $request->delivery_address ?: '',
@@ -575,9 +620,6 @@ class ECommerceController extends BaseController
             'order_details' => $orderDetails,
             'status' => 'validated',
         ]);
-
-        // Order created successfully — no need to write to contact_notes
-        // Orders are displayed in the dedicated orders section
 
         $newOrder->load('contact');
 

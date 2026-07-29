@@ -387,46 +387,90 @@ $teamMembers = \DB::table('users')
                     </button>
                 </div>
                 <form @submit.prevent="submitManualOrder()" class="p-4">
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
-                            <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
-                                <option value="">-- {{ __tr('Choisir un client') }} --</option>
-                                <template x-for="c in allContacts" :key="c._id">
-                                    <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
-                                </template>
-                            </select>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Produit du Catalogue *') }}</label>
-                            <select class="form-control custom-input-white p-2" x-model="newOrderProductId" @change="onProductSelectChange()" required>
-                                <option value="">-- {{ __tr('Choisir un produit') }} --</option>
-                                <template x-for="p in allProducts" :key="p._id">
-                                    <option :value="p._id" x-text="p.name + ' — ' + Number(p.price).toLocaleString() + ' CFA'"></option>
-                                </template>
-                            </select>
-                        </div>
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
+                        <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
+                            <option value="">-- {{ __tr('Choisir un client') }} --</option>
+                            <template x-for="c in allContacts" :key="c._id">
+                                <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
+                            </template>
+                        </select>
                     </div>
 
+                    <!-- PRODUCTS LIST (MULTI-PRODUCTS) -->
+                    <div class="border rounded p-3 mb-3" style="background: #f8fafc; border-color: #cbd5e1 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="font-weight-bold text-dark mb-0"><i class="fa fa-boxes text-primary mr-1"></i> {{ __tr('Produit(s) de la commande *') }}</label>
+                            <button type="button" @click="addOrderItem()" class="btn btn-sm btn-outline-success font-weight-bold" style="border-radius: 6px;">
+                                <i class="fa fa-plus mr-1"></i> {{ __tr('Ajouter un autre produit') }}
+                            </button>
+                        </div>
+
+                        <template x-for="(item, idx) in newOrderItems" :key="idx">
+                            <div class="row align-items-center bg-white p-2 mb-2 rounded border" style="border-color: #e2e8f0 !important;">
+                                <div class="col-md-5 form-group mb-2 mb-md-0">
+                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Produit') }}</label>
+                                    <select class="form-control form-control-sm" x-model="item.product_id" @change="onItemProductChange(idx)" required>
+                                        <option value="">-- {{ __tr('Choisir un produit') }} --</option>
+                                        <template x-for="p in allProducts" :key="p._id">
+                                            <option :value="p._id" x-text="p.name + ' — ' + Number(p.price).toLocaleString() + ' CFA'"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 form-group mb-2 mb-md-0">
+                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Qté') }}</label>
+                                    <input type="number" min="1" class="form-control form-control-sm" x-model="item.quantity" required>
+                                </div>
+                                <div class="col-md-4 form-group mb-2 mb-md-0">
+                                    <label class="small font-weight-bold text-muted mb-1">{{ __tr('Prix Unitaire (CFA)') }}</label>
+                                    <input type="number" class="form-control form-control-sm" x-model="item.custom_price" placeholder="Prix" required>
+                                </div>
+                                <div class="col-md-1 text-right">
+                                    <label class="small d-block mb-1">&nbsp;</label>
+                                    <button type="button" @click="removeOrderItem(idx)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer ce produit" x-show="newOrderItems.length > 1">
+                                        <i class="fa fa-times-circle fa-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- ADDITIONAL FEES (FRAIS DE LIVRAISON / AUTRES) -->
                     <div class="row">
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Quantité *') }}</label>
-                            <input type="number" min="1" class="form-control custom-input-white p-3" x-model="newOrderQuantity" required>
+                            <label class="font-weight-bold text-dark">{{ __tr('Frais additionnels / Livraison (CFA)') }}</label>
+                            <input type="number" min="0" class="form-control custom-input-white" x-model="newOrderAdditionalFee" placeholder="ex: 2000">
                         </div>
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-dark">{{ __tr('Prix Unitaire (CFA) *') }}</label>
-                            <input type="number" class="form-control custom-input-white p-3" x-model="newOrderCustomPrice" required placeholder="ex: 15000">
+                            <label class="font-weight-bold text-dark">{{ __tr('Libellé des frais') }}</label>
+                            <input type="text" class="form-control custom-input-white" x-model="newOrderAdditionalFeeLabel" placeholder="ex: Frais de livraison">
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 form-group">
                             <label class="font-weight-bold text-dark">{{ __tr('Adresse / Lieu de livraison') }}</label>
-                            <input type="text" class="form-control custom-input-white p-3" x-model="newOrderAddress" placeholder="ex: Abidjan, Cocody Angré">
+                            <input type="text" class="form-control custom-input-white" x-model="newOrderAddress" placeholder="ex: Abidjan, Cocody Angré">
                         </div>
                         <div class="col-md-6 form-group">
                             <label class="font-weight-bold text-dark">{{ __tr('Date de livraison souhaitée') }}</label>
-                            <input type="date" class="form-control custom-input-white p-3" x-model="newOrderDate">
+                            <input type="date" class="form-control custom-input-white" x-model="newOrderDate">
+                        </div>
+                    </div>
+
+                    <!-- TOTAL SUMMARY CARD -->
+                    <div class="p-3 mb-3 rounded" style="background: #ecfdf5; border: 1.5px solid #a7f3d0;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-dark small font-weight-bold">{{ __tr('Sous-total produits:') }}</span>
+                            <span class="font-weight-bold text-dark" x-text="getNewOrderSubtotal().toLocaleString() + ' CFA'"></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1" x-show="Number(newOrderAdditionalFee) > 0">
+                            <span class="text-dark small font-weight-bold">🚚 <span x-text="newOrderAdditionalFeeLabel || 'Frais additionnels'"></span>:</span>
+                            <span class="font-weight-bold text-dark" x-text="Number(newOrderAdditionalFee).toLocaleString() + ' CFA'"></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
+                            <span class="font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">💰 {{ __tr('Total Commande:') }}</span>
+                            <span class="font-weight-bold text-emerald" style="font-size: 1.25rem; color: #059669;" x-text="getNewOrderTotal().toLocaleString() + ' CFA'"></span>
                         </div>
                     </div>
 
@@ -555,6 +599,15 @@ $teamMembers = \DB::table('users')
                                 </template>
                             </tbody>
                             <tfoot style="background: #ecfdf5;">
+                                <template x-if="getAdditionalFee(selectedOrder) > 0">
+                                    <tr>
+                                        <td colspan="3" class="text-right font-weight-bold text-dark small">
+                                            🚚 <span x-text="getAdditionalFeeLabel(selectedOrder)"></span>:
+                                        </td>
+                                        <td class="text-right font-weight-bold text-dark small" x-text="getAdditionalFee(selectedOrder).toLocaleString() + ' CFA'">
+                                        </td>
+                                    </tr>
+                                </template>
                                 <tr>
                                     <td colspan="3" class="text-right font-weight-bold text-uppercase text-dark" style="font-size: 1.05rem;">
                                         💰 {{ __tr('Montant Total à Payer:') }}
@@ -596,11 +649,12 @@ function ordersPageData() {
         orderSourceFilter: '',
         orderDateFilter: '',
         orderDateSort: 'desc',
-        selectedOrder: null,
         newOrderContactId: '',
-        newOrderProductId: '',
-        newOrderQuantity: 1,
-        newOrderCustomPrice: '',
+        newOrderItems: [
+            { product_id: '', quantity: 1, custom_price: '' }
+        ],
+        newOrderAdditionalFee: 0,
+        newOrderAdditionalFeeLabel: 'Frais de livraison',
         newOrderAddress: '',
         newOrderDate: '',
         isSavingManualOrder: false,
@@ -886,27 +940,78 @@ function ordersPageData() {
             }
         },
 
-        onProductSelectChange: function() {
-            var self = this;
-            var prod = this.allProducts.find(function(p) { return p._id == self.newOrderProductId || p._uid == self.newOrderProductId; });
-            if (prod) {
-                this.newOrderCustomPrice = prod.price;
+        getAdditionalFee: function(order) {
+            if (!order || !order.order_details) return 0;
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return 0; }
             }
+            if (!details || typeof details !== 'object') return 0;
+            return Number(details.additional_fee || details.shipping_fee || details.delivery_fee || 0);
+        },
+
+        getAdditionalFeeLabel: function(order) {
+            if (!order || !order.order_details) return 'Frais additionnels';
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return 'Frais additionnels'; }
+            }
+            if (!details || typeof details !== 'object') return 'Frais additionnels';
+            return details.additional_fee_label || details.shipping_fee_label || 'Frais additionnels / Livraison';
+        },
+
+        addOrderItem: function() {
+            this.newOrderItems.push({ product_id: '', quantity: 1, custom_price: '' });
+        },
+
+        removeOrderItem: function(index) {
+            if (this.newOrderItems.length > 1) {
+                this.newOrderItems.splice(index, 1);
+            }
+        },
+
+        onItemProductChange: function(index) {
+            var item = this.newOrderItems[index];
+            if (!item || !item.product_id) return;
+            var self = this;
+            var prod = this.allProducts.find(function(p) { return p._id == item.product_id || p._uid == item.product_id; });
+            if (prod) {
+                item.custom_price = prod.price;
+            }
+        },
+
+        getNewOrderSubtotal: function() {
+            var sub = 0;
+            for (var i = 0; i < this.newOrderItems.length; i++) {
+                var qty = Number(this.newOrderItems[i].quantity) || 1;
+                var price = Number(this.newOrderItems[i].custom_price) || 0;
+                sub += qty * price;
+            }
+            return sub;
+        },
+
+        getNewOrderTotal: function() {
+            return this.getNewOrderSubtotal() + (Number(this.newOrderAdditionalFee) || 0);
         },
 
         submitManualOrder: function() {
             if (this.isSavingManualOrder) return;
-            if (!this.newOrderContactId || !this.newOrderProductId) {
-                showErrorMessage('Veuillez sélectionner un client et un produit.');
+            if (!this.newOrderContactId) {
+                showErrorMessage('Veuillez sélectionner un client.');
+                return;
+            }
+            var validItems = this.newOrderItems.filter(function(it) { return !!it.product_id; });
+            if (validItems.length === 0) {
+                showErrorMessage('Veuillez sélectionner au moins un produit.');
                 return;
             }
             this.isSavingManualOrder = true;
             var self = this;
             __DataRequest.post('<?= route("vendor.ecommerce.orders.create_manual") ?>', {
                 contact_id: this.newOrderContactId,
-                product_id: this.newOrderProductId,
-                quantity: this.newOrderQuantity,
-                custom_price: this.newOrderCustomPrice,
+                items: validItems,
+                additional_fee: this.newOrderAdditionalFee,
+                additional_fee_label: this.newOrderAdditionalFeeLabel,
                 delivery_address: this.newOrderAddress,
                 delivery_date: this.newOrderDate
             }, function(response) {
@@ -916,6 +1021,10 @@ function ordersPageData() {
                     var msg = response.message || (response.data && response.data.message) || 'Commande enregistrée avec succès !';
                     showSuccessMessage(msg);
                     $('#createManualOrderModal').modal('hide');
+                    self.newOrderItems = [{ product_id: '', quantity: 1, custom_price: '' }];
+                    self.newOrderAdditionalFee = 0;
+                    self.newOrderAddress = '';
+                    self.newOrderDate = '';
                     var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
                     if (newOrd) {
                         self.allOrders.unshift(newOrd);
