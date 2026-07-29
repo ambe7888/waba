@@ -87,7 +87,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                                 <button type="button" class="btn btn-xs btn-outline-secondary shadow-none py-0 px-2 ml-1" style="font-size: 0.75rem;" onclick="deselectAllAudienceContacts()"><i class="fa fa-times mr-1"></i><?= __tr('Tout désélectionner') ?></button>
                             </div>
                         </div>
-                        <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize">
+                        <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                             @foreach($contacts as $contact)
                                 <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
                             @endforeach
@@ -107,7 +107,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                                 0 <?= __tr('groupe(s) sélectionné(s)') ?>
                             </small>
                         </div>
-                        <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize">
+                        <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                             @foreach($groups as $group)
                                 <option value="{{ $group->_id }}">{{ $group->title }}</option>
                             @endforeach
@@ -121,7 +121,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                                 0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
                             </small>
                         </div>
-                        <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize">
+                        <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                             @foreach($labels as $label)
                                 <option value="{{ $label->_id }}">{{ $label->title }}</option>
                             @endforeach
