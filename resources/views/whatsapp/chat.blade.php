@@ -1157,7 +1157,7 @@
                                         { product_id: '', quantity: 1, custom_price: '' }
                                     ],
                                     orderAdditionalFee: 0,
-                                    orderAdditionalFeeLabel: 'Frais de livraison',
+                                    orderAdditionalFeeLabel: 'Frais',
                                     orderAddress: '',
                                     orderDate: '',
                                     fetchProducts() {
