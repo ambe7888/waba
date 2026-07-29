@@ -100,13 +100,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
                     <div id="audienceSpecificTargetSection">
                         <div class="form-group">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label for="contacts" class="mb-0"><?= __tr('Contacts Individuels') ?></label>
-                                <div>
-                                    <button type="button" class="btn btn-xs btn-outline-primary shadow-none py-0 px-2" style="font-size: 0.75rem;" onclick="selectAllAudienceContacts()"><i class="fa fa-check-double mr-1"></i><?= __tr('Tout sélectionner') ?></button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary shadow-none py-0 px-2 ml-1" style="font-size: 0.75rem;" onclick="deselectAllAudienceContacts()"><i class="fa fa-times mr-1"></i><?= __tr('Tout désélectionner') ?></button>
-                                </div>
-                            </div>
+                            <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
                             <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
                                 @foreach($contacts as $contact)
                                     <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
@@ -180,22 +174,6 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         }
         $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> <?= __tr("Enregistrement...") ?>');
     });
-
-    function selectAllAudienceContacts() {
-        let selectize = $('#contacts')[0]?.selectize;
-        if (selectize) {
-            selectize.setValue(Object.keys(selectize.options));
-            updateAudienceSelectionCounts();
-        }
-    }
-
-    function deselectAllAudienceContacts() {
-        let selectize = $('#contacts')[0]?.selectize;
-        if (selectize) {
-            selectize.clear();
-            updateAudienceSelectionCounts();
-        }
-    }
 
     function toggleAllContactsOption(isAll) {
         if (isAll) {
