@@ -621,23 +621,33 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
      */
     public function countContactsForCampaign($whereClauses, $groupContactIds, $labelIds)
     {
-        $query = $this->primaryModel::where($whereClauses);
+        $query = $this->primaryModel::where($whereClauses)->select('contacts._id');
         // demo account restriction
         if (isThisDemoVendorAccountAccess()) {
             $query->whereIn('wa_id', getDemoNumbersForTest());
         }
 
-        if (!empty($labelIds)) {
-            $query->join('contact_labels', 'contacts._id', '=', 'contact_labels.contacts__id')
-                ->join('labels', 'contact_labels.labels__id', '=', 'labels._id')
-                ->whereIn('labels._id', $labelIds);
+        $hasGroups = !empty($groupContactIds);
+        $hasLabels = !empty($labelIds);
+
+        if ($hasGroups && $hasLabels) {
+            // OR logic: contact is in one of the groups OR has one of the labels
+            $uniqueGroupIds = array_values(array_unique($groupContactIds));
+            $query->where(function ($q) use ($uniqueGroupIds, $labelIds) {
+                $q->whereIn('contacts._id', $uniqueGroupIds)
+                  ->orWhereHas('labels', function ($lq) use ($labelIds) {
+                      $lq->whereIn('labels._id', $labelIds);
+                  });
+            });
+        } elseif ($hasLabels) {
+            $query->whereHas('labels', function ($lq) use ($labelIds) {
+                $lq->whereIn('labels._id', $labelIds);
+            });
+        } elseif ($hasGroups) {
+            $query->whereIn('contacts._id', array_values(array_unique($groupContactIds)));
         }
 
-        if (!empty($groupContactIds)) {
-            $query->whereIn('contacts._id', array_unique($groupContactIds));
-        }
-
-        return $query->distinct('contacts._id')->count('contacts._id');
+        return $query->distinct()->count('contacts._id');
     }
 
     /**
@@ -656,13 +666,25 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         if (isThisDemoVendorAccountAccess()) {
             $query->whereIn('wa_id', getDemoNumbersForTest());
         }
-        if (!empty($labelIds)) {
-            $query->join('contact_labels', 'contacts._id', '=', 'contact_labels.contacts__id');
-            $query->join('labels', 'contact_labels.labels__id', '=', 'labels._id');
-            $query->whereIn('labels._id', $labelIds); // Match any of the given label IDs
-        }
-        if (!empty($groupContactIds)) {
-            $query->whereIn('contacts._id', array_unique($groupContactIds));
+
+        $hasGroups = !empty($groupContactIds);
+        $hasLabels = !empty($labelIds);
+
+        if ($hasGroups && $hasLabels) {
+            // OR logic: contact is in one of the groups OR has one of the labels
+            $uniqueGroupIds = array_values(array_unique($groupContactIds));
+            $query->where(function ($q) use ($uniqueGroupIds, $labelIds) {
+                $q->whereIn('contacts._id', $uniqueGroupIds)
+                  ->orWhereHas('labels', function ($lq) use ($labelIds) {
+                      $lq->whereIn('labels._id', $labelIds);
+                  });
+            });
+        } elseif ($hasLabels) {
+            $query->whereHas('labels', function ($lq) use ($labelIds) {
+                $lq->whereIn('labels._id', $labelIds);
+            });
+        } elseif ($hasGroups) {
+            $query->whereIn('contacts._id', array_values(array_unique($groupContactIds)));
         }
 
         $query->groupBy('contacts._id');

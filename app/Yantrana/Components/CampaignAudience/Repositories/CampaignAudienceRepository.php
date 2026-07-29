@@ -33,21 +33,81 @@ class CampaignAudienceRepository extends BaseRepository
                 'title',
             ]
         ];
-        $data = CampaignAudienceModel::where('vendors__id', getVendorId())
+        $vendorId = getVendorId();
+        $data = CampaignAudienceModel::where('vendors__id', $vendorId)
             ->dataTables($dataTableConfig)
             ->toArray();
 
         if (!empty($data['data'])) {
+            // Preload group and label titles for display
+            $allGroupIds = [];
+            $allLabelIds = [];
+            foreach ($data['data'] as $row) {
+                if (!empty($row['groups'])) {
+                    $allGroupIds = array_merge($allGroupIds, $row['groups']);
+                }
+                if (!empty($row['labels'])) {
+                    $allLabelIds = array_merge($allLabelIds, $row['labels']);
+                }
+            }
+            $groupTitles = [];
+            $labelTitles = [];
+            if (!empty($allGroupIds)) {
+                $groupTitles = \App\Yantrana\Components\Contact\Models\ContactGroupModel::whereIn('_id', array_unique($allGroupIds))
+                    ->pluck('title', '_id')->toArray();
+            }
+            if (!empty($allLabelIds)) {
+                $labelTitles = \App\Yantrana\Components\Contact\Models\LabelModel::whereIn('_id', array_unique($allLabelIds))
+                    ->pluck('title', '_id')->toArray();
+            }
+
             foreach ($data['data'] as &$row) {
                 // Keep originals for edit (mapped to numeric/string values)
                 $row['contacts_raw'] = $row['contacts'] ?: [];
                 $row['groups_raw'] = $row['groups'] ?: [];
                 $row['labels_raw'] = $row['labels'] ?: [];
 
-                // Display formats
-                $row['contacts_formatted'] = !empty($row['contacts']) ? count($row['contacts']) . ' contact(s)' : '0 contact';
-                $row['groups_formatted'] = !empty($row['groups']) ? count($row['groups']) . ' groupe(s)' : '0 groupe';
-                $row['labels_formatted'] = !empty($row['labels']) ? count($row['labels']) . ' étiquette(s)' : '0 étiquette';
+                // Calculate real targeted contact count with deduplication
+                $contactIds = collect($row['contacts'] ?: []);
+                $groupContactIds = collect();
+                $labelContactIds = collect();
+
+                if (!empty($row['groups'])) {
+                    $groupContactIds = \Illuminate\Support\Facades\DB::table('contact_groups_contacts')
+                        ->whereIn('contact_groups__id', $row['groups'])
+                        ->pluck('contacts__id');
+                }
+                if (!empty($row['labels'])) {
+                    $labelContactIds = \Illuminate\Support\Facades\DB::table('contact_labels')
+                        ->whereIn('labels__id', $row['labels'])
+                        ->pluck('contacts__id');
+                }
+
+                // Merge all and deduplicate
+                $allContactIds = $contactIds->merge($groupContactIds)->merge($labelContactIds)->unique();
+                // Only count contacts that actually exist for this vendor
+                if ($allContactIds->isNotEmpty()) {
+                    $realCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                        ->whereIn('_id', $allContactIds->toArray())
+                        ->count();
+                } else {
+                    $realCount = 0;
+                }
+
+                $row['contacts_formatted'] = $realCount . ' contact(s)';
+
+                // Display group/label names
+                $groupNames = [];
+                foreach (($row['groups'] ?: []) as $gid) {
+                    $groupNames[] = $groupTitles[$gid] ?? '#' . $gid;
+                }
+                $row['groups_formatted'] = !empty($groupNames) ? implode(', ', $groupNames) : '0 groupe';
+
+                $labelNames = [];
+                foreach (($row['labels'] ?: []) as $lid) {
+                    $labelNames[] = $labelTitles[$lid] ?? '#' . $lid;
+                }
+                $row['labels_formatted'] = !empty($labelNames) ? implode(', ', $labelNames) : '0 étiquette';
             }
         }
 

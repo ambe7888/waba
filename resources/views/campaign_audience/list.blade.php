@@ -124,6 +124,15 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 @push('appScripts')
 <script>
+    // Prevent double-click submission
+    $('#audienceForm').on('submit', function() {
+        var $btn = $(this).find('button[type="submit"]');
+        if ($btn.prop('disabled')) {
+            return false; // Already submitting
+        }
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> <?= __tr("Enregistrement...") ?>');
+    });
+
     function selectAllAudienceContacts() {
         let selectize = $('#contacts')[0]?.selectize;
         if (selectize) {
@@ -138,7 +147,13 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         }
     }
 
+    function reEnableSubmitButton() {
+        var $btn = $('#audienceForm').find('button[type="submit"]');
+        $btn.prop('disabled', false).html('<?= __tr("Enregistrer") ?>');
+    }
+
     function onAudienceSaved(response) {
+        reEnableSubmitButton();
         if (response.reaction == 1) {
             $('#lwCreateAudienceModal').modal('hide');
             if (window.lwDataTablesInstance && window.lwDataTablesInstance.lwAudienceList) {
@@ -185,6 +200,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         let form = $('#audienceForm');
         form.attr('action', "{{ route('vendor.campaign_audience.write.process') }}");
         form.trigger('reset');
+        reEnableSubmitButton();
         if(form.find('#contacts')[0].selectize) {
             form.find('#contacts')[0].selectize.clear();
         }
