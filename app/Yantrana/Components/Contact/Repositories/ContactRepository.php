@@ -634,10 +634,10 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         }
 
         if (!empty($groupContactIds)) {
-            $query->whereIn('contacts._id', $groupContactIds);
+            $query->whereIn('contacts._id', array_unique($groupContactIds));
         }
 
-        return $query->distinct()->count('contacts._id');
+        return $query->distinct('contacts._id')->count('contacts._id');
     }
 
     /**
@@ -651,22 +651,22 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
      */
     public function getContactsForCampaignInChunks($whereClauses, $groupContactIds, $labelIds, $callback)
     {
-        $query = $this->primaryModel::where($whereClauses);
+        $query = $this->primaryModel::where($whereClauses)->select('contacts.*');
         // demo account restriction
         if (isThisDemoVendorAccountAccess()) {
             $query->whereIn('wa_id', getDemoNumbersForTest());
         }
         if (!empty($labelIds)) {
-            $query->select('contacts.*');
             $query->join('contact_labels', 'contacts._id', '=', 'contact_labels.contacts__id');
             $query->join('labels', 'contact_labels.labels__id', '=', 'labels._id');
             $query->whereIn('labels._id', $labelIds); // Match any of the given label IDs
-            $query->distinct();
         }
-        if (empty($groupContactIds)) {
-            return $query->chunk(500, $callback);
+        if (!empty($groupContactIds)) {
+            $query->whereIn('contacts._id', array_unique($groupContactIds));
         }
-        return $query->whereIn('contacts._id', $groupContactIds)->chunk(500, $callback);
+
+        $query->groupBy('contacts._id');
+        return $query->chunk(500, $callback);
     }
 
     /**

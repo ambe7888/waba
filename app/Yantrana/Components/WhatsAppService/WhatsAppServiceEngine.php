@@ -623,7 +623,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 if (empty($audienceContactIds)) {
                     $audienceContactIds = $audience->contacts; // Fallback if they are already IDs
                 }
-                $groupContactIds = array_merge($groupContactIds, $audienceContactIds);
+                $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
             }
             $labelIds = $audience->labels ?: [];
         } else {
@@ -830,7 +830,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if (!__isEmpty($audience->groups)) {
                 $groupContacts = $this->groupContactRepository->fetchItAll($audience->groups, [], 'contact_groups__id');
                 if (!__isEmpty($groupContacts)) {
-                    $groupContactIds = $groupContacts->pluck('contacts__id')->toArray();
+                    $groupContactIds = $groupContacts->pluck('contacts__id')->unique()->toArray();
                     $groupWiseCount = $groupContacts
                         ->groupBy('contact_groups__id')
                         ->map(function ($items) {
@@ -843,7 +843,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 if (empty($audienceContactIds)) {
                     $audienceContactIds = $audience->contacts; // Fallback if they are already IDs
                 }
-                $groupContactIds = array_merge($groupContactIds, $audienceContactIds);
+                $groupContactIds = array_values(array_unique(array_merge($groupContactIds, $audienceContactIds)));
             }
             $labelIds = $audience->labels ?: [];
         } else {
