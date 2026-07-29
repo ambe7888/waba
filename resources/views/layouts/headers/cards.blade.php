@@ -253,7 +253,16 @@ $vendorViewBySuperAdmin = false;
                                     <div class="row">
                                         <div class="col">
                                             <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr("Reçus Aujourd'hui") }}</h5>
-                                            <span class="h2 font-weight-bold mb-0 text-info">{{ $messagesReceivedTodayCount ?? 0 }}</span>
+                                            <div class="d-flex align-items-baseline">
+                                                <span class="h2 font-weight-bold mb-0 text-info mr-2">{{ $messagesReceivedTodayCount ?? 0 }}</span>
+                                                @if(($messagesReceivedDiffPercent ?? 0) > 0)
+                                                    <span class="badge badge-success font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-up mr-1"></i>+{{ $messagesReceivedDiffPercent }}%</span>
+                                                @elseif(($messagesReceivedDiffPercent ?? 0) < 0)
+                                                    <span class="badge badge-danger font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-down mr-1"></i>{{ $messagesReceivedDiffPercent }}%</span>
+                                                @else
+                                                    <span class="badge badge-secondary text-muted font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}">= 0%</span>
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="col-auto">
                                             <div class="icon icon-shape bg-gradient-info text-white rounded-circle shadow" style="background: linear-gradient(135deg, #11cdef, #1171ef) !important;">
@@ -261,8 +270,9 @@ $vendorViewBySuperAdmin = false;
                                             </div>
                                         </div>
                                     </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <span>{{ __tr('Messages entrants reçus') }}</span>
+                                    <p class="mt-3 mb-0 text-muted text-xs">
+                                        <span class="font-weight-bold text-dark">{{ __tr('Aujourd\'hui: __today__', ['__today__' => $messagesReceivedTodayCount ?? 0]) }}</span>
+                                        <span class="text-muted ml-1">{{ __tr('| Hier: __yesterday__', ['__yesterday__' => $messagesReceivedYesterdayCount ?? 0]) }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -301,7 +311,16 @@ $vendorViewBySuperAdmin = false;
                                     <div class="row">
                                         <div class="col">
                                             <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Commandes') }}</h5>
-                                            <span class="h2 font-weight-bold mb-0 text-success">{{ $ordersCount ?? 0 }}</span>
+                                            <div class="d-flex align-items-baseline">
+                                                <span class="h2 font-weight-bold mb-0 text-success mr-2">{{ $ordersTodayCount ?? 0 }}</span>
+                                                @if(($ordersDiffPercent ?? 0) > 0)
+                                                    <span class="badge badge-success font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-up mr-1"></i>+{{ $ordersDiffPercent }}%</span>
+                                                @elseif(($ordersDiffPercent ?? 0) < 0)
+                                                    <span class="badge badge-danger font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-down mr-1"></i>{{ $ordersDiffPercent }}%</span>
+                                                @else
+                                                    <span class="badge badge-secondary text-muted font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}">= 0%</span>
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="col-auto">
                                             <div class="icon icon-shape bg-gradient-success text-white rounded-circle shadow" style="background: linear-gradient(135deg, #2dce89, #2dcecc) !important;">
@@ -309,8 +328,11 @@ $vendorViewBySuperAdmin = false;
                                             </div>
                                         </div>
                                     </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <a href="{{ route('vendor.settings.read', ['pageType' => 'ecommerce']) }}" class="text-success font-weight-bold"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les produits') }}</a>
+                                    <p class="mt-3 mb-0 text-muted text-xs">
+                                        <span class="font-weight-bold text-dark">{{ __tr('Aujourd\'hui: __today__', ['__today__' => $ordersTodayCount ?? 0]) }}</span>
+                                        <span class="text-muted ml-1">{{ __tr('| Hier: __yesterday__', ['__yesterday__' => $ordersYesterdayCount ?? 0]) }}</span>
+                                        <br>
+                                        <a href="{{ route('vendor.settings.read', ['pageType' => 'orders']) }}" class="text-success font-weight-bold mt-1 d-inline-block"><i class="fas fa-shopping-cart mr-1"></i> {{ __tr('Gérer les commandes') }} ({{ $ordersCount ?? 0 }})</a>
                                     </p>
                                 </div>
                             </div>
@@ -522,25 +544,38 @@ $vendorViewBySuperAdmin = false;
                         @endif
                         {{-- /manage campaigns --}}
                          {{-- Messaging Processed--}}
-                        @if (hasVendorAccess('messaging'))
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats mb-4 mb-xl-0">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
-                                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Messages Processed') }}</h5>
-                                            <span class="h2 font-weight-bold mb-0">{{ __tr($totalMessagesProcessed) }}</span>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
-                                                <i class="fas fa-tasks text-gray-300"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
+                         @if (hasVendorAccess('messaging'))
+                         <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
+                             <div class="card card-stats mb-4 mb-xl-0 shadow-sm border-0" style="border-radius: 12px;">
+                                 <div class="card-body">
+                                     <div class="row">
+                                         <div class="col">
+                                             <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Messages Traités') }}</h5>
+                                             <div class="d-flex align-items-baseline">
+                                                 <span class="h2 font-weight-bold mb-0 text-primary mr-2">{{ __tr($totalMessagesProcessed) }}</span>
+                                                 @if(($messagesProcessedDiffPercent ?? 0) > 0)
+                                                     <span class="badge badge-success font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-up mr-1"></i>+{{ $messagesProcessedDiffPercent }}%</span>
+                                                 @elseif(($messagesProcessedDiffPercent ?? 0) < 0)
+                                                     <span class="badge badge-danger font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}"><i class="fas fa-arrow-down mr-1"></i>{{ $messagesProcessedDiffPercent }}%</span>
+                                                 @else
+                                                     <span class="badge badge-secondary text-muted font-weight-bold" style="font-size: 0.72rem; border-radius: 6px;" title="{{ __tr('Évolution vs hier') }}">= 0%</span>
+                                                 @endif
+                                             </div>
+                                         </div>
+                                         <div class="col-auto">
+                                             <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
+                                                 <i class="fas fa-tasks text-gray-300"></i>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <p class="mt-3 mb-0 text-muted text-xs">
+                                         <span class="font-weight-bold text-dark">{{ __tr('Aujourd\'hui: __today__', ['__today__' => $messagesProcessedTodayCount ?? 0]) }}</span>
+                                         <span class="text-muted ml-1">{{ __tr('| Hier: __yesterday__', ['__yesterday__' => $messagesProcessedYesterdayCount ?? 0]) }}</span>
+                                     </p>
+                                 </div>
+                             </div>
+                         </div>
+                         @endif
                          {{-- /Messaging Processed --}}
                     </div>
                 </div>

@@ -326,7 +326,40 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->where('is_incoming_message', 1)
                 ->whereDate('created_at', Carbon::today())
                 ->count(),
+            'messagesReceivedYesterdayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 1)
+                ->whereDate('created_at', Carbon::yesterday())
+                ->count(),
+            'messagesReceivedDiffPercent' => (function() use ($vendorId) {
+                $today = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->where('is_incoming_message', 1)->whereDate('created_at', Carbon::today())->count();
+                $yesterday = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->where('is_incoming_message', 1)->whereDate('created_at', Carbon::yesterday())->count();
+                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
+                return $today > 0 ? 100 : 0;
+            })(),
             'ordersCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->count() : 0,
+            'ordersTodayCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::today())->count() : 0,
+            'ordersYesterdayCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::yesterday())->count() : 0,
+            'ordersDiffPercent' => (function() use ($vendorId) {
+                if (!\Schema::hasTable('orders')) return 0;
+                $today = \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::today())->count();
+                $yesterday = \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::yesterday())->count();
+                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
+                return $today > 0 ? 100 : 0;
+            })(),
+            'messagesProcessedTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->whereNull('is_system_message')
+                ->whereDate('created_at', Carbon::today())
+                ->count(),
+            'messagesProcessedYesterdayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->whereNull('is_system_message')
+                ->whereDate('created_at', Carbon::yesterday())
+                ->count(),
+            'messagesProcessedDiffPercent' => (function() use ($vendorId) {
+                $today = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->whereNull('is_system_message')->whereDate('created_at', Carbon::today())->count();
+                $yesterday = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->whereNull('is_system_message')->whereDate('created_at', Carbon::yesterday())->count();
+                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
+                return $today > 0 ? 100 : 0;
+            })(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'messageHistory' => $messageHistory,
             'label_date_stats' => $labelStats,
