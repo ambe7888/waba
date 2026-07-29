@@ -91,7 +91,7 @@ $currentAppTheme ='';
 
     <div class="main-content">
         <!-- Sleek Top Progress Line -->
-        <div id="top-progress-bar" style="position: fixed; top: 0; left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, #2563eb, #10b981, #06b6d4); box-shadow: 0 0 10px rgba(37, 99, 235, 0.6); z-index: 999999; transition: width 0.4s ease, opacity 0.3s ease; pointer-events: none; opacity: 0;"></div>
+        <div id="top-progress-bar" style="position: fixed; top: 0; left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, #25D366, #10b981, #2563eb); box-shadow: 0 0 10px rgba(37, 211, 102, 0.7); z-index: 999999; transition: width 0.4s ease, opacity 0.3s ease; pointer-events: none; opacity: 0;"></div>
         <script>
             window.addEventListener('beforeunload', function() {
                 var bar = document.getElementById('top-progress-bar');
