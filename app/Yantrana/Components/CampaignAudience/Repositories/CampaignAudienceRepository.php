@@ -79,7 +79,7 @@ class CampaignAudienceRepository extends BaseRepository
             // ── Batch fetch group→contact mappings ──
             $groupContactMap = [];
             if (!empty($allGroupIds)) {
-                $groupContacts = \Illuminate\Support\Facades\DB::table('contact_groups_contacts')
+                $groupContacts = \Illuminate\Support\Facades\DB::table('group_contacts')
                     ->whereIn('contact_groups__id', array_unique($allGroupIds))
                     ->select('contact_groups__id', 'contacts__id')
                     ->get();
