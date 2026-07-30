@@ -466,11 +466,14 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             $query->where('_uid', $requestContactUid);
         }
 
+        $vendorIdForSubquery = data_get($options, 'vendors__id', getVendorId());
+
         // -----------------------------------------
         // LATEST MESSAGE JOIN
         // -----------------------------------------
         $query->joinSub(
             DB::table('whatsapp_message_logs')
+                ->where('vendors__id', $vendorIdForSubquery)
                 ->selectRaw('contacts__id, MAX(messaged_at) AS latest_message')
                 ->groupBy('contacts__id'),
             'latest_messages',
@@ -484,9 +487,10 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // -----------------------------------------
         $query->leftJoinSub(
             DB::table('whatsapp_message_logs')
-                ->selectRaw('contacts__id, COUNT(*) AS unread_messages_count')
+                ->where('vendors__id', $vendorIdForSubquery)
                 ->where('status', 'received')
                 ->where('is_incoming_message', 1)
+                ->selectRaw('contacts__id, COUNT(*) AS unread_messages_count')
                 ->groupBy('contacts__id'),
             'unread_counts',
             'contacts._id',
