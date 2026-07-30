@@ -230,23 +230,23 @@
                                              <div class="alert alert-info py-2 px-3 my-2 text-sm shadow-sm d-flex align-items-center justify-content-between" style="border-radius: 8px;">
                                                  <div>
                                                      <i class="fas fa-bolt text-warning mr-1"></i>
-                                                     <strong>{{ __tr('Ciblage Automatique 24h :') }}</strong> {{ __tr("Pour les campagnes sans modèle Meta, si aucune audience n'est choisie, le système ciblera automatiquement 100% des contacts actifs 24h.") }}
+                                                     <strong>{{ __tr('Ciblage Automatique 24h :') }}</strong> {{ __tr("Pour les campagnes sans modèle Meta, seuls les contacts ayant écrit dans les 24h reçoivent le message. Le système les cible automatiquement.") }}
                                                  </div>
                                                  <span class="badge badge-warning text-dark font-weight-bold ml-2 py-2 px-3 shadow-sm" style="font-size: 0.88rem; border-radius: 8px; white-space: nowrap;">
-                                                     <i class="fas fa-users mr-1"></i>{{ $active24hCount ?? 0 }} {{ __tr('actif(s)') }}
+                                                     <i class="fas fa-users mr-1"></i>{{ $active24hCount ?? 0 }} {{ __tr('actif(s) 24h') }}
                                                  </span>
                                              </div>
                                          @endif
 
                                          <div class="d-flex justify-content-between align-items-center mb-1">
-                                             <label for="lwSelectAudiencesField" class="mb-0 font-weight-bold text-muted small">{{ __tr('Audience (Optionnel pour Non-Modèle)') }}</label>
+                                             <label for="lwSelectAudiencesField" class="mb-0 font-weight-bold text-muted small">{{ __tr('Audience (Optionnel)') }}</label>
                                          </div>
 
                                         {{-- select audience --}}
                                         <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectAudiencesField"
-                                        data-form-group-class="" data-selected=" " data-allow-empty-option="true" :label="__tr('Audience')" name="audience_uid">
+                                        data-form-group-class="" data-selected=" " data-allow-empty-option="true" :label="__tr('Audience (Optionnel)')" name="audience_uid">
                                             <x-slot name="selectOptions">
-                                                <option value="">{{ $isNonTemplateCampaign ? __tr('⚡ Tous les contacts actifs 24h (__count__ contacts)', ['__count__' => $active24hCount ?? 0]) : __tr('Sélectionnez une Audience') }}</option>
+                                                <option value="">{{ $isNonTemplateCampaign ? __tr('⚡ Contacts actifs des 24h (__count__ contacts)', ['__count__' => $active24hCount ?? 0]) : __tr('Sélectionnez une Audience') }}</option>
                                                 @if(isset($vendorAudiences))
                                                     @foreach($vendorAudiences as $vendorAudience)
                                                     <option value="{{ $vendorAudience['_uid'] }}">{{ $vendorAudience['title'] }}</option>
