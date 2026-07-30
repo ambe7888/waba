@@ -3057,39 +3057,47 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     protected function setParameterValue(&$contact, &$inputs, $item)
     {
         $inputValue = $inputs[$item];
+        $rawValue = '-';
 
         if (isExternalApiRequest()) {
-            return $this->dynamicValuesReplacement($inputValue, $contact);
-        }
-        // for any internal requests
-        if (Str::startsWith($inputValue, 'dynamic_contact_')) {
+            $rawValue = $this->dynamicValuesReplacement($inputValue, $contact);
+        } elseif (Str::startsWith($inputValue, 'dynamic_contact_')) {
             // assign phone value
             if ($inputValue == 'dynamic_contact_phone_number') {
                 $inputValue = 'dynamic_contact_wa_id';
             }
             // check if value permitted
             if (!array_key_exists($inputValue, configItem('contact_data_mapping'))) {
-                return null;
+                return '-';
             }
             // correct the name
             $fieldName = str_replace('dynamic_contact_', '', $inputValue);
             // country value
             switch ($fieldName) {
                 case 'country':
-                    return $contact->country?->name ?: '-';
+                    $rawValue = $contact->country?->name ?: '-';
+                    break;
+                default:
+                    $rawValue = $contact->{$fieldName} ?: '-';
                     break;
             }
-            return $contact->{$fieldName} ?: '-';
-            // custom field values
         } elseif (Str::startsWith($inputValue, 'contact_custom_field_')) {
             $fieldName = str_replace('contact_custom_field_', '', $inputValue);
             // for api external request find value by field name
             if (isExternalApiRequest()) {
-                return $contact->valueWithField?->firstWhere('customField.input_name', $fieldName)?->field_value ?: '-';
+                $rawValue = $contact->valueWithField?->firstWhere('customField.input_name', $fieldName)?->field_value ?: '-';
+            } else {
+                $rawValue = $contact->customFieldValues?->firstWhere('contact_custom_fields__id', $fieldName)?->field_value ?: '-';
             }
-            return $contact->customFieldValues?->firstWhere('contact_custom_fields__id', $fieldName)?->field_value ?: '-';
+        } else {
+            $rawValue = $inputs[$item] ?: '-';
         }
-        return $inputs[$item] ?: '-';
+
+        // Sanitize for Meta template parameter compliance (Error #132018 prevention)
+        $cleanValue = str_replace(["\r", "\n", "\t"], ' ', (string) $rawValue);
+        $cleanValue = preg_replace('/\s+/', ' ', $cleanValue);
+        $cleanValue = trim($cleanValue);
+        return $cleanValue !== '' ? $cleanValue : '-';
     }
 
     /**
