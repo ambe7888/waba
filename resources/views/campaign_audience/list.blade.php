@@ -101,13 +101,10 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     <div id="audienceSpecificTargetSection">
                         <div class="form-group">
                             <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
-                            <select name="contacts[]" id="contacts" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                                @foreach($contacts as $contact)
-                                    <option value="{{ $contact->_id }}">{{ $contact->first_name }} {{ $contact->last_name }} (+{{ $contact->wa_id }})</option>
-                                @endforeach
+                            <select name="contacts[]" id="contacts" class="form-control" multiple placeholder="<?= __tr('Tapez pour rechercher un contact...') ?>">
                             </select>
                             <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-muted"><?= __tr('Sélectionnez les contacts pour cette audience') ?></small>
+                                <small class="text-muted"><?= __tr('Tapez un nom ou un numéro pour rechercher') ?></small>
                                 <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
                                     0 <?= __tr('contact(s) sélectionné(s)') ?>
                                 </small>
@@ -154,8 +151,41 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 @push('appScripts')
 <script>
+    // ── Selectize AJAX Remote for Contacts ──
+    var contactsSelectize;
+    var searchDebounceTimer;
+    $(document).ready(function() {
+        contactsSelectize = $('#contacts').selectize({
+            plugins: ['remove_button'],
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            maxOptions: 50,
+            create: false,
+            placeholder: '<?= __tr("Tapez pour rechercher un contact...") ?>',
+            load: function(query, callback) {
+                if (!query.length || query.length < 2) return callback();
+                var self = this;
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route("vendor.campaign_audience.contacts.search") }}',
+                        type: 'GET',
+                        data: { q: query },
+                        dataType: 'json',
+                        error: function() { callback(); },
+                        success: function(res) { callback(res); }
+                    });
+                }, 300);
+            },
+            onChange: function() {
+                updateAudienceSelectionCounts();
+            }
+        })[0].selectize;
+    });
+
     function updateAudienceSelectionCounts() {
-        let contactsCount = ($('#contacts').val() || []).length;
+        let contactsCount = contactsSelectize ? contactsSelectize.items.length : 0;
         let groupsCount = ($('#groups').val() || []).length;
         let labelsCount = ($('#labels').val() || []).length;
 
@@ -164,7 +194,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         $('#lwSelectedLabelsBadge').text(labelsCount + ' <?= __tr("étiquette(s) sélectionnée(s)") ?>');
     }
 
-    $('#contacts, #groups, #labels').on('change', updateAudienceSelectionCounts);
+    $('#groups, #labels').on('change', updateAudienceSelectionCounts);
 
     // Prevent double-click submission
     $('#audienceForm').on('submit', function() {
@@ -176,17 +206,13 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
     });
 
     function selectAllAudienceContacts() {
-        let selectize = $('#contacts')[0]?.selectize;
-        if (selectize) {
-            selectize.setValue(Object.keys(selectize.options));
-            updateAudienceSelectionCounts();
-        }
+        // Not applicable with AJAX mode — show a hint
+        alert('<?= __tr("Utilisez l\'option \"Cibler tous les contacts\" pour sélectionner la totalité de vos contacts.") ?>');
     }
 
     function deselectAllAudienceContacts() {
-        let selectize = $('#contacts')[0]?.selectize;
-        if (selectize) {
-            selectize.clear();
+        if (contactsSelectize) {
+            contactsSelectize.clear();
             updateAudienceSelectionCounts();
         }
     }
@@ -242,13 +268,29 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         $('#isAllContactsCheck').prop('checked', isAll);
         toggleAllContactsOption(isAll);
 
-        if(form.find('#contacts')[0].selectize) {
-            form.find('#contacts')[0].selectize.setValue(parsedContacts);
+        // Pre-load existing contacts via AJAX for edit mode
+        if (contactsSelectize && parsedContacts.length > 0 && !isAll) {
+            $.ajax({
+                url: '{{ route("vendor.campaign_audience.contacts.fetch") }}',
+                type: 'GET',
+                data: { ids: parsedContacts },
+                dataType: 'json',
+                success: function(res) {
+                    contactsSelectize.clearOptions();
+                    contactsSelectize.clear(true);
+                    res.forEach(function(item) {
+                        contactsSelectize.addOption(item);
+                    });
+                    contactsSelectize.setValue(res.map(function(i) { return i.value; }), true);
+                    updateAudienceSelectionCounts();
+                }
+            });
         }
-        if(form.find('#groups')[0].selectize) {
+
+        if(form.find('#groups')[0] && form.find('#groups')[0].selectize) {
             form.find('#groups')[0].selectize.setValue(parseItems(groups));
         }
-        if(form.find('#labels')[0].selectize) {
+        if(form.find('#labels')[0] && form.find('#labels')[0].selectize) {
             form.find('#labels')[0].selectize.setValue(parseItems(labels));
         }
         
@@ -267,13 +309,14 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         $('#isAllContactsCheck').prop('checked', false);
         toggleAllContactsOption(false);
         reEnableSubmitButton();
-        if(form.find('#contacts')[0].selectize) {
-            form.find('#contacts')[0].selectize.clear();
+        if(contactsSelectize) {
+            contactsSelectize.clearOptions();
+            contactsSelectize.clear();
         }
-        if(form.find('#groups')[0].selectize) {
+        if(form.find('#groups')[0] && form.find('#groups')[0].selectize) {
             form.find('#groups')[0].selectize.clear();
         }
-        if(form.find('#labels')[0].selectize) {
+        if(form.find('#labels')[0] && form.find('#labels')[0].selectize) {
             form.find('#labels')[0].selectize.clear();
         }
         updateAudienceSelectionCounts();

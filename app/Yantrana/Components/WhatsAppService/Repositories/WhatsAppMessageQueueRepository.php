@@ -96,8 +96,17 @@ class WhatsAppMessageQueueRepository extends BaseRepository implements WhatsAppM
         // go grab queue records for processing
         return $this->primaryModel::select([
             '_id',
+            '_uid',
             'status',
             'scheduled_at',
+            'phone_with_country_code',
+            'campaigns__id',
+            'contacts__id',
+            'vendors__id',
+            'full_name',
+            'retries',
+            '__data',
+            'updated_at',
         ])->where([
             // waiting for processing
             'status' => 1,

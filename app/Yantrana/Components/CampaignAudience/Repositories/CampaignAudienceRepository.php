@@ -39,28 +39,82 @@ class CampaignAudienceRepository extends BaseRepository
             ->toArray();
 
         if (!empty($data['data'])) {
-            // Preload group and label titles for display
+            // ── Pre-collect ALL group/label IDs across all rows ──
             $allGroupIds = [];
             $allLabelIds = [];
+            $allDirectContactIds = [];
+            $hasAllContactsRows = false;
+
             foreach ($data['data'] as $row) {
+                if (in_array('all_contacts', $row['contacts'] ?: [])) {
+                    $hasAllContactsRows = true;
+                    continue;
+                }
                 if (!empty($row['groups'])) {
                     $allGroupIds = array_merge($allGroupIds, $row['groups']);
                 }
                 if (!empty($row['labels'])) {
                     $allLabelIds = array_merge($allLabelIds, $row['labels']);
                 }
+                if (!empty($row['contacts'])) {
+                    $filteredContacts = array_filter($row['contacts'], fn($c) => $c !== 'all_contacts');
+                    $allDirectContactIds = array_merge($allDirectContactIds, $filteredContacts);
+                }
             }
+
+            // ── Batch fetch group titles ──
             $groupTitles = [];
-            $labelTitles = [];
             if (!empty($allGroupIds)) {
                 $groupTitles = \App\Yantrana\Components\Contact\Models\ContactGroupModel::whereIn('_id', array_unique($allGroupIds))
                     ->pluck('title', '_id')->toArray();
             }
+
+            // ── Batch fetch label titles ──
+            $labelTitles = [];
             if (!empty($allLabelIds)) {
                 $labelTitles = \App\Yantrana\Components\Contact\Models\LabelModel::whereIn('_id', array_unique($allLabelIds))
                     ->pluck('title', '_id')->toArray();
             }
 
+            // ── Batch fetch group→contact mappings ──
+            $groupContactMap = [];
+            if (!empty($allGroupIds)) {
+                $groupContacts = \Illuminate\Support\Facades\DB::table('contact_groups_contacts')
+                    ->whereIn('contact_groups__id', array_unique($allGroupIds))
+                    ->select('contact_groups__id', 'contacts__id')
+                    ->get();
+                foreach ($groupContacts as $gc) {
+                    $groupContactMap[$gc->contact_groups__id][] = $gc->contacts__id;
+                }
+            }
+
+            // ── Batch fetch label→contact mappings ──
+            $labelContactMap = [];
+            if (!empty($allLabelIds)) {
+                $labelContacts = \Illuminate\Support\Facades\DB::table('contact_labels')
+                    ->whereIn('labels__id', array_unique($allLabelIds))
+                    ->select('labels__id', 'contacts__id')
+                    ->get();
+                foreach ($labelContacts as $lc) {
+                    $labelContactMap[$lc->labels__id][] = $lc->contacts__id;
+                }
+            }
+
+            // ── Cache "all contacts" count (only once if needed) ──
+            $allContactsCount = null;
+            if ($hasAllContactsRows) {
+                $allContactsCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->count();
+            }
+
+            // ── Batch validate that direct contact IDs exist ──
+            $validContactIds = [];
+            if (!empty($allDirectContactIds)) {
+                $validContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                    ->whereIn('_id', array_unique($allDirectContactIds))
+                    ->pluck('_id')->toArray();
+            }
+
+            // ── Now process each row using cached data (ZERO additional queries) ──
             foreach ($data['data'] as &$row) {
                 // Keep originals for edit (mapped to numeric/string values)
                 $row['contacts_raw'] = $row['contacts'] ?: [];
@@ -71,43 +125,36 @@ class CampaignAudienceRepository extends BaseRepository
                 $row['is_all_contacts'] = $isAllContacts;
 
                 if ($isAllContacts) {
-                    $realCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->count();
-                    $row['contacts_formatted'] = $realCount . ' contact(s) (⚡ Tous les contacts)';
+                    $row['contacts_formatted'] = $allContactsCount . ' contact(s) (⚡ Tous les contacts)';
                     $row['groups_formatted'] = '-';
                     $row['labels_formatted'] = '-';
                     continue;
                 }
 
-                // Calculate real targeted contact count with deduplication
-                $contactIds = collect($row['contacts'] ?: []);
-                $groupContactIds = collect();
-                $labelContactIds = collect();
+                // Calculate real targeted contact count with deduplication from cached data
+                $contactIds = collect(array_intersect($row['contacts'] ?: [], $validContactIds));
 
-                if (!empty($row['groups'])) {
-                    $groupContactIds = \Illuminate\Support\Facades\DB::table('contact_groups_contacts')
-                        ->whereIn('contact_groups__id', $row['groups'])
-                        ->pluck('contacts__id');
+                $groupContactIds = collect();
+                foreach (($row['groups'] ?: []) as $gid) {
+                    if (isset($groupContactMap[$gid])) {
+                        $groupContactIds = $groupContactIds->merge($groupContactMap[$gid]);
+                    }
                 }
-                if (!empty($row['labels'])) {
-                    $labelContactIds = \Illuminate\Support\Facades\DB::table('contact_labels')
-                        ->whereIn('labels__id', $row['labels'])
-                        ->pluck('contacts__id');
+
+                $labelContactIds = collect();
+                foreach (($row['labels'] ?: []) as $lid) {
+                    if (isset($labelContactMap[$lid])) {
+                        $labelContactIds = $labelContactIds->merge($labelContactMap[$lid]);
+                    }
                 }
 
                 // Merge all and deduplicate
-                $allContactIds = $contactIds->merge($groupContactIds)->merge($labelContactIds)->unique();
-                // Only count contacts that actually exist for this vendor
-                if ($allContactIds->isNotEmpty()) {
-                    $realCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-                        ->whereIn('_id', $allContactIds->toArray())
-                        ->count();
-                } else {
-                    $realCount = 0;
-                }
+                $allTargetContactIds = $contactIds->merge($groupContactIds)->merge($labelContactIds)->unique();
+                $realCount = $allTargetContactIds->count();
 
                 $row['contacts_formatted'] = $realCount . ' contact(s)';
 
-                // Display group/label names
+                // Display group/label names from cached titles
                 $groupNames = [];
                 foreach (($row['groups'] ?: []) as $gid) {
                     $groupNames[] = $groupTitles[$gid] ?? '#' . $gid;

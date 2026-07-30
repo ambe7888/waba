@@ -4,6 +4,7 @@ namespace App\Yantrana\Components\CampaignAudience\Controllers;
 use App\Yantrana\Base\BaseController;
 use App\Yantrana\Base\BaseRequest;
 use App\Yantrana\Components\CampaignAudience\CampaignAudienceEngine;
+use App\Yantrana\Components\Contact\Models\ContactModel;
 use Illuminate\Validation\Rule;
 
 class CampaignAudienceController extends BaseController
@@ -34,11 +35,6 @@ class CampaignAudienceController extends BaseController
         validateVendorAccess('manage_campaigns');
         $vendorId = getVendorId();
 
-        $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-            ->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
-            ->limit(500)
-            ->get();
-
         $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
             ->select('_id', '_uid', 'title')
             ->get();
@@ -47,7 +43,7 @@ class CampaignAudienceController extends BaseController
             ->select('_id', '_uid', 'title')
             ->get();
 
-        return $this->loadView('campaign_audience.list', compact('contacts', 'groups', 'labels'));
+        return $this->loadView('campaign_audience.list', compact('groups', 'labels'));
     }
 
     /**
@@ -97,5 +93,71 @@ class CampaignAudienceController extends BaseController
         validateVendorAccess('manage_campaigns');
         $processReaction = $this->campaignAudienceEngine->processDelete($audienceUid);
         return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+     * Search contacts via AJAX for Selectize remote loading
+     *
+     * @param BaseRequest $request
+     * @return json
+     *---------------------------------------------------------------- */
+    public function searchContacts(BaseRequest $request)
+    {
+        validateVendorAccess('manage_campaigns');
+        $vendorId = getVendorId();
+        $search = trim($request->get('q', ''));
+
+        $query = ContactModel::where('vendors__id', $vendorId)
+            ->select('_id', 'first_name', 'last_name', 'wa_id');
+
+        if (!empty($search)) {
+            $escapedSearch = str_replace(['%', '_'], ['\\%', '\\_'], $search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('first_name', 'LIKE', "%{$escapedSearch}%")
+                  ->orWhere('last_name', 'LIKE', "%{$escapedSearch}%")
+                  ->orWhere('wa_id', 'LIKE', "%{$escapedSearch}%");
+            });
+        }
+
+        $contacts = $query->orderBy('first_name')->limit(50)->get();
+
+        return response()->json($contacts->map(function ($c) {
+            return [
+                'value' => (string) $c->_id,
+                'text' => trim($c->first_name . ' ' . $c->last_name) . ' (+' . $c->wa_id . ')'
+            ];
+        }));
+    }
+
+    /**
+     * Fetch specific contacts by IDs (for Selectize pre-loading on edit)
+     *
+     * @param BaseRequest $request
+     * @return json
+     *---------------------------------------------------------------- */
+    public function fetchContactsByIds(BaseRequest $request)
+    {
+        validateVendorAccess('manage_campaigns');
+        $vendorId = getVendorId();
+        $ids = $request->get('ids', []);
+
+        if (empty($ids)) {
+            return response()->json([]);
+        }
+
+        $contacts = ContactModel::where('vendors__id', $vendorId)
+            ->where(function ($q) use ($ids) {
+                $q->whereIn('_id', $ids)
+                  ->orWhereIn('_uid', $ids);
+            })
+            ->select('_id', 'first_name', 'last_name', 'wa_id')
+            ->get();
+
+        return response()->json($contacts->map(function ($c) {
+            return [
+                'value' => (string) $c->_id,
+                'text' => trim($c->first_name . ' ' . $c->last_name) . ' (+' . $c->wa_id . ')'
+            ];
+        }));
     }
 }

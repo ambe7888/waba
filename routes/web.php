@@ -714,6 +714,18 @@ Route::middleware([
                             \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
                             'processDelete',
                         ])->name('vendor.campaign_audience.write.delete');
+
+                        // AJAX search contacts for Selectize remote loading
+                        Route::get('/contacts/search', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'searchContacts',
+                        ])->name('vendor.campaign_audience.contacts.search');
+
+                        // AJAX fetch contacts by IDs for Selectize pre-loading on edit
+                        Route::get('/contacts/fetch', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'fetchContactsByIds',
+                        ])->name('vendor.campaign_audience.contacts.fetch');
                     });
 
                 Route::prefix('/campaign')->group(function () {

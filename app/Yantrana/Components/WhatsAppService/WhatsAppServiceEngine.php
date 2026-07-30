@@ -1088,8 +1088,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'queue_setup_using_artisan_at' => now()
             ]);
         }
-        // stuck in processing messages
-        // $stuckInProcessingMessages = $this->whatsAppMessageQueueRepository->stuckInProcessing();
+        // recover messages stuck in processing state (crash recovery)
+        $this->whatsAppMessageQueueRepository->stuckInProcessing();
         $queuedMessages = $this->whatsAppMessageQueueRepository->getQueueItemsForProcess();
         if (__isEmpty($queuedMessages)) {
             return $this->engineSuccessResponse([], __tr('Nothing to process'));
