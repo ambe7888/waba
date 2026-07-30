@@ -263,7 +263,7 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
         if (isThisDemoVendorAccountAccess()) {
             $query->whereIn('contacts.wa_id', getDemoNumbersForTest());
         }
-        return $query->count();
+        return $query->distinct('whatsapp_message_logs.contacts__id')->count('whatsapp_message_logs.contacts__id');
     }
     /**
      * Get unread count for vendor
@@ -291,7 +291,7 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
         if (isThisDemoVendorAccountAccess()) {
             $query->whereIn('contacts.wa_id', getDemoNumbersForTest());
         }
-        return $query->count();
+        return $query->distinct('whatsapp_message_logs.contacts__id')->count('whatsapp_message_logs.contacts__id');
     }
 
     /**
