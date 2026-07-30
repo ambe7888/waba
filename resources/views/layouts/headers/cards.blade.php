@@ -577,4 +577,3 @@ $vendorViewBySuperAdmin = false;
     </div>
     @endif
     </div>
-    @endif
