@@ -22,54 +22,60 @@
         </div>
     </div>
     <div class="row">
-        <div class="col mb-5 mb-xl-0">
-            <div class="card bg-white shadow">
-                <div class="card-header bg-transparent">
+        <div class="col-12 mb-4">
+            <div class="card bg-white shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header bg-transparent border-0 pb-0">
                     <div class="row align-items-center">
                         <div class="col">
-                            <h6 class="text-uppercase text-light ls-1 mb-1">{{  __tr('Last 12 Months') }}</h6>
-                            <h2 class="text-white mb-0">{{  __tr('New Vendor Registrations') }}</h2>
+                            <h6 class="text-uppercase text-muted font-weight-bold ls-1 mb-1" style="font-size: 0.75rem;">{{  __tr('Last 12 Months') }}</h6>
+                            <h2 class="text-dark font-weight-bold mb-0" style="font-size: 1.25rem;">{{  __tr('New Vendor Registrations') }}</h2>
                         </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <!-- Chart -->
-                    <div class="chart">
+                    <div class="chart position-relative" style="width: 100%; min-height: 280px; max-height: 350px; overflow: hidden;">
                         <canvas id="lwNewVendorRegistrationGraph" class="chart-canvas" height="300"></canvas>
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row mt-5">
-        <div class="col-xl-12 mb-5 mb-xl-0">
-            <div class="card shadow mb-5">
-                <div class="card-header border-0">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header border-0 bg-transparent py-3">
                     <div class="row align-items-center">
                         <div class="col">
-                            <h3 class="mb-0">{{  __tr('New Vendors') }}</h3>
+                            <h3 class="mb-0 font-weight-bold text-dark" style="font-size: 1.1rem;">{{  __tr('New Vendors') }}</h3>
                         </div>
                         <div class="col text-right">
-                            <a href="{{ route('central.vendors') }}" class="btn btn-sm btn-primary">{{  __tr('See all') }}</a>
+                            <a href="{{ route('central.vendors') }}" class="btn btn-sm btn-primary font-weight-bold" style="border-radius: 6px;">{{  __tr('See all') }}</a>
                         </div>
                     </div>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive" style="overflow-x: auto; width: 100%;">
                     <!-- Projects table -->
                     <table class="table align-items-center table-flush">
                         <thead class="thead-light">
                             <tr>
-                                <th scope="col">{{  __tr('Vendor Title') }}</th>
-                                <th scope="col">{{  __tr('Registered on') }}</th>
-                                <th scope="col">{{  __tr('Vendor Status') }}</th>
+                                <th scope="col" class="font-weight-bold text-muted" style="font-size: 0.75rem;">{{  __tr('Vendor Title') }}</th>
+                                <th scope="col" class="font-weight-bold text-muted" style="font-size: 0.75rem;">{{  __tr('Registered on') }}</th>
+                                <th scope="col" class="font-weight-bold text-muted" style="font-size: 0.75rem;">{{  __tr('Vendor Status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($newVendors as $newVendor)
                             <tr>
-                                <th scope="row">  <a href="{{ route('vendor.dashboard',['vendorIdOrUid'=>$newVendor->_uid])}}">{{ $newVendor->title }}</a></th>
-                                <td>{{ formatDate($newVendor->created_at) }}</td>
-                                <td>{{ configItem("status_codes." . $newVendor->status) }}</td>
+                                <th scope="row" class="font-weight-bold">  <a href="{{ route('vendor.dashboard',['vendorIdOrUid'=>$newVendor->_uid])}}" class="text-primary">{{ $newVendor->title }}</a></th>
+                                <td class="text-muted">{{ formatDate($newVendor->created_at) }}</td>
+                                <td>
+                                    @if(($newVendor->status ?? 1) == 1)
+                                        <span class="badge badge-success font-weight-bold" style="border-radius: 6px; padding: 0.35em 0.6em;">{{ configItem("status_codes." . $newVendor->status) }}</span>
+                                    @else
+                                        <span class="badge badge-secondary font-weight-bold" style="border-radius: 6px; padding: 0.35em 0.6em;">{{ configItem("status_codes." . $newVendor->status) }}</span>
+                                    @endif
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
