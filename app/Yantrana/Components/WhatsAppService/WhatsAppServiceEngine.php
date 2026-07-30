@@ -254,6 +254,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $allLabels = $this->labelRepository->fetchItAll([
             'vendors__id' => $vendorId
         ]);
+        // get all the audiences
+        $vendorAudiences = \App\Yantrana\Components\CampaignAudience\Models\CampaignAudienceModel::where('vendors__id', $vendorId)->get();
+
         // active 24h contacts count
         $active24hCount = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
             ->whereHas('lastIncomingMessage', function($query) {
