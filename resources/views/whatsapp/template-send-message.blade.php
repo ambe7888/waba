@@ -240,16 +240,11 @@
 
                                          <div class="d-flex justify-content-between align-items-center mb-1">
                                              <label for="lwSelectAudiencesField" class="mb-0 font-weight-bold text-muted small">{{ __tr('Audience (Optionnel pour Non-Modèle)') }}</label>
-                                             @if($isNonTemplateCampaign)
-                                             <button type="button" class="btn btn-link btn-sm p-0 text-danger font-weight-bold" onclick="if($('#lwSelectAudiencesField')[0] && $('#lwSelectAudiencesField')[0].selectize) { $('#lwSelectAudiencesField')[0].selectize.setValue(''); }" style="font-size: 0.82rem; text-decoration: none;">
-                                                 <i class="fas fa-times-circle mr-1"></i>{{ __tr('Retirer l\'audience (Revenir au ciblage 24h)') }}
-                                             </button>
-                                             @endif
                                          </div>
 
                                         {{-- select audience --}}
                                         <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectAudiencesField"
-                                        data-form-group-class="" data-selected=" " name="audience_uid">
+                                        data-form-group-class="" data-selected=" " data-allow-empty-option="true" :label="__tr('Audience')" name="audience_uid">
                                             <x-slot name="selectOptions">
                                                 <option value="">{{ $isNonTemplateCampaign ? __tr('⚡ Tous les contacts actifs 24h (__count__ contacts)', ['__count__' => $active24hCount ?? 0]) : __tr('Sélectionnez une Audience') }}</option>
                                                 @if(isset($vendorAudiences))
