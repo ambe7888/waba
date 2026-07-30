@@ -55,9 +55,71 @@ const Map configItems = {
 </code>
 @endif
 
+{{-- Server Maintenance / Migration Notice Settings --}}
+<fieldset x-data="{panelOpened:true}" class="mt-4" x-cloak>
+    <legend @click="panelOpened = !panelOpened" style="cursor: pointer;">
+        <i class="fas fa-bullhorn text-warning mr-2"></i>{{ __tr('Notification de Migration / Maintenance Serveur (Dashboard Vendeurs)') }}
+        <small class="text-muted">{{ __tr('Cliquer pour plier/déplier') }}</small>
+    </legend>
+    <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'mobile_app_configuration']) ?>">
+        <div class="alert alert-warning">
+            {{ __tr('Activez ce bandeau d\'alerte pour informer vos vendeurs d\'une intervention technique sur leur tableau de bord.') }}
+        </div>
+
+        <x-lw.checkbox id="lwEnableServerMaintenanceNotice" name="enable_server_maintenance_notice" :offValue="0" :checked="getAppSettings('enable_server_maintenance_notice')" data-lw-plugin="lwSwitchery" :label="__tr('Afficher le bandeau d\'information de migration sur le Dashboard')" />
+
+        <div class="form-group mt-3">
+            <label for="lwServerMaintenanceNoticeMessage">{{ __tr('Message de la notification') }}</label>
+            <textarea rows="3" id="lwServerMaintenanceNoticeMessage" class="lw-form-field form-control" placeholder="{{ __tr('Ex: Une migration importante aura lieu ce soir...') }}" name="server_maintenance_notice_message">{!! getAppSettings('server_maintenance_notice_message', 'Une migration importante de nos serveurs est programmée ce soir entre Minuit (00h00) et 06h00 du matin. Des perturbations temporaires de la plateforme peuvent survenir pendant cette période.') !!}</textarea>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Enregistrer l\'annonce') }}</button>
+        </div>
+    </form>
+</fieldset>
+{{-- /Server Maintenance / Migration Notice Settings --}}
+
+{{-- Mobile Apps Visibility & Download Settings --}}
+<fieldset x-data="{panelOpened:true}" class="mt-4" x-cloak>
+    <legend @click="panelOpened = !panelOpened" style="cursor: pointer;">
+        <i class="fas fa-mobile-alt text-primary mr-2"></i>{{ __tr('Disponibilité des Applications Mobiles (Android & iPhone / iOS)') }}
+        <small class="text-muted">{{ __tr('Cliquer pour plier/déplier') }}</small>
+    </legend>
+    <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'mobile_app_configuration']) ?>">
+        <div class="alert alert-info">
+            {{ __tr('Configurez l\'affichage et les liens de vos applications Android et iPhone. Si une option est désactivée, elle sera masquée du tableau de bord et du menu latéral des vendeurs.') }}
+        </div>
+
+        <!-- Android App Settings -->
+        <div class="card mb-3 border p-3">
+            <h5 class="font-weight-bold text-dark mb-2"><i class="fab fa-android text-success mr-2"></i>{{ __tr('Application Android') }}</h5>
+            <x-lw.checkbox id="lwEnableAndroidApp" name="enable_android_app" :offValue="0" :checked="getAppSettings('enable_android_app')" data-lw-plugin="lwSwitchery" :label="__tr('Activer et afficher l\'application Android (APK / Play Store)')" />
+            <div class="form-group mt-2">
+                <label for="lwAndroidAppUrl">{{ __tr('Lien de téléchargement Android (Fichier APK ou Lien Play Store)') }}</label>
+                <input type="text" id="lwAndroidAppUrl" class="lw-form-field form-control" placeholder="{{ url('downloads/whatsclick.apk') }}" name="android_app_url" value="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" />
+            </div>
+        </div>
+
+        <!-- iOS / iPhone App Settings -->
+        <div class="card mb-3 border p-3">
+            <h5 class="font-weight-bold text-dark mb-2"><i class="fab fa-apple text-dark mr-2"></i>{{ __tr('Application iPhone (iOS)') }}</h5>
+            <x-lw.checkbox id="lwEnableIosApp" name="enable_ios_app" :offValue="0" :checked="getAppSettings('enable_ios_app')" data-lw-plugin="lwSwitchery" :label="__tr('Activer et afficher l\'application iPhone / iOS')" />
+            <div class="form-group mt-2">
+                <label for="lwIosAppUrl">{{ __tr('Lien App Store pour iPhone (URL App Store)') }}</label>
+                <input type="text" id="lwIosAppUrl" class="lw-form-field form-control" placeholder="https://apps.apple.com/app/id..." name="ios_app_url" value="{{ getAppSettings('ios_app_url') }}" />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Enregistrer les applications') }}</button>
+        </div>
+    </form>
+</fieldset>
+{{-- /Mobile Apps Visibility & Download Settings --}}
+
 {{-- Firebase Notification Settings --}}
-<fieldset x-data="{panelOpened:false}" x-cloak>
-    <legend @click="panelOpened = !panelOpened">{{ __tr('Firebase Notification Settings') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
+<fieldset x-data="{panelOpened:false}" class="mt-4" x-cloak>
+    <legend @click="panelOpened = !panelOpened" style="cursor: pointer;">{{ __tr('Firebase Notification Settings') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
         <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'mobile_app_configuration']) ?>">
 
         <div class="alert alert-light">

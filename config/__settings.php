@@ -1564,6 +1564,39 @@ return [
                 'placeholder'   => '',
                 'default'       => '',
                 'ignore_empty' => true
+            ],
+            'enable_android_app' => [
+                'key' => 'enable_android_app',
+                'data_type' => 2,    // bool
+                'default' => false,
+            ],
+            'android_app_url' => [
+                'key' => 'android_app_url',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true
+            ],
+            'enable_ios_app' => [
+                'key' => 'enable_ios_app',
+                'data_type' => 2,    // bool
+                'default' => false,
+            ],
+            'ios_app_url' => [
+                'key' => 'ios_app_url',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true
+            ],
+            'enable_server_maintenance_notice' => [
+                'key' => 'enable_server_maintenance_notice',
+                'data_type' => 2,    // bool
+                'default' => true,
+            ],
+            'server_maintenance_notice_message' => [
+                'key' => 'server_maintenance_notice_message',
+                'data_type' => 1,    // string
+                'default' => 'Une migration importante de nos serveurs est programmée ce soir entre Minuit (00h00) et 06h00 du matin. Des perturbations temporaires de la plateforme peuvent survenir pendant cette période.',
+                'ignore_empty' => true
             ]
         ],
         'saas-automation' => [

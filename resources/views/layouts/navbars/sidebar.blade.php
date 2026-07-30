@@ -638,12 +638,22 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </div>
                 </li>
                 @endif
+                @if(getAppSettings('enable_android_app'))
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url('downloads/whatsclick.apk') }}" download>
+                    <a class="nav-link" href="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" target="_blank" download>
                         <i class="fab fa-android text-success"></i>
                         {{ __tr('Application Android') }}
                     </a>
                 </li>
+                @endif
+                @if(getAppSettings('enable_ios_app'))
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ getAppSettings('ios_app_url', '#') }}" target="_blank">
+                        <i class="fab fa-apple text-dark"></i>
+                        {{ __tr('Application iPhone (iOS)') }}
+                    </a>
+                </li>
+                @endif
                 @endif
             </ul>
         </div>

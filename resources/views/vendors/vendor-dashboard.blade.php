@@ -97,24 +97,66 @@ $vendorViewBySuperAdmin = null;
     </div>
     @endif
 
+    {{-- Server Maintenance / Migration Notice Banner --}}
+    @if (getAppSettings('enable_server_maintenance_notice'))
+    <div class="alert alert-warning shadow-sm border-0 mb-4 fade show" role="alert" style="background: linear-gradient(135deg, #fff7ed, #ffedd5) !important; border-left: 5px solid #f97316 !important; border-radius: 12px; padding: 1.25rem 1.5rem; color: #9a3412;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm" style="width: 42px; height: 42px; background: #f97316; color: white; flex-shrink: 0;">
+                    <i class="fas fa-server" style="font-size: 1.2rem;"></i>
+                </div>
+                <div>
+                    <strong style="font-size: 1rem; color: #7c2d12;" class="d-block mb-1">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> {{ __tr('Notification Importante : Migration de Serveur Prévue') }}
+                    </strong>
+                    <span style="font-size: 0.88rem; color: #9a3412; line-height: 1.4;">
+                        {!! getAppSettings('server_maintenance_notice_message') ?: __tr('Une migration importante de nos serveurs est programmée ce soir entre Minuit (00h00) et 06h00 du matin. Des perturbations temporaires de la plateforme peuvent survenir pendant cette période.') !!}
+                    </span>
+                </div>
+            </div>
+            <button type="button" class="close text-muted position-relative p-0 ml-3" data-dismiss="alert" aria-label="Close" style="font-size: 1.3rem; outline: none;">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    </div>
+    @endif
+
+    {{-- Mobile Apps Banner (Android & iPhone) --}}
+    @if (getAppSettings('enable_android_app') || getAppSettings('enable_ios_app'))
     <div class="alert alert-info shadow-sm border-0 mb-4" role="alert" style="background: linear-gradient(135deg, #0f172a, #1e293b) !important; color: white; border-radius: 12px; padding: 1.25rem 1.5rem;">
         <div class="d-flex align-items-center justify-content-between flex-wrap">
             <div class="d-flex align-items-center mb-2 mb-md-0">
-                <i class="fab fa-android mr-3 text-success" style="font-size: 2.2rem;"></i>
+                <div class="d-flex mr-3">
+                    @if(getAppSettings('enable_android_app'))
+                        <i class="fab fa-android text-success mr-2" style="font-size: 2.2rem;"></i>
+                    @endif
+                    @if(getAppSettings('enable_ios_app'))
+                        <i class="fab fa-apple text-white" style="font-size: 2.2rem;"></i>
+                    @endif
+                </div>
                 <div>
                     <strong style="font-size: 1.05rem;" class="text-white">{{ __tr('Gérez vos messages en déplacement !') }}</strong>
                     <br>
-                    <span class="text-white-50" style="font-size: 0.85rem;">{{ __tr('Téléchargez notre application mobile officielle pour Android et restez connecté où que vous soyez.') }}</span>
+                    <span class="text-white-50" style="font-size: 0.85rem;">{{ __tr('Téléchargez notre application mobile officielle pour rester connecté où que vous soyez.') }}</span>
                 </div>
             </div>
-            <div>
-                <a class="btn btn-sm btn-success font-weight-bold" style="background-color: #25d366; border-color: #25d366; color: white;"
-                    href="{{ url('downloads/whatsclick.apk') }}" download>
-                    <i class="fas fa-download mr-1"></i> {{ __tr('Télécharger l\'APK') }}
+            <div class="d-flex flex-wrap align-items-center">
+                @if(getAppSettings('enable_android_app'))
+                <a class="btn btn-sm btn-success font-weight-bold mr-2 mb-1" style="background-color: #25d366; border-color: #25d366; color: white;"
+                    href="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" target="_blank" download>
+                    <i class="fab fa-android mr-1"></i> {{ __tr('Android (APK)') }}
                 </a>
+                @endif
+                @if(getAppSettings('enable_ios_app'))
+                <a class="btn btn-sm btn-light font-weight-bold mb-1" style="color: #0f172a;"
+                    href="{{ getAppSettings('ios_app_url', '#') }}" target="_blank">
+                    <i class="fab fa-apple mr-1"></i> {{ __tr('iPhone (App Store)') }}
+                </a>
+                @endif
             </div>
         </div>
     </div>
+    @endif
 
     <div class="row mb-4">
         <div class="col-12">
