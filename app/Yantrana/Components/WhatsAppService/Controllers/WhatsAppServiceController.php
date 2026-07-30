@@ -130,13 +130,16 @@ class WhatsAppServiceController extends BaseController
         validateVendorAccess('manage_campaigns');
         $validations = [
             // 'template_uid' => 'required',
-            'contact_group' => 'required|array',
             'timezone' => 'required',
             'title' => 'required',
             'contact_labels' => 'array',
             'schedule_at' => 'nullable|date',
             'expire_at' => 'nullable|date|after:schedule_at'
         ];
+        // contact_group is only required when NOT using an audience
+        if (empty($request->audience_uid)) {
+            $validations['contact_group'] = 'required|array';
+        }
         if($request->selected_preset_message_uid) {
             $validations['selected_preset_message_uid'] = 'required';
         } else {
