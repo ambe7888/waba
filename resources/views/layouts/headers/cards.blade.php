@@ -575,6 +575,6 @@ $vendorViewBySuperAdmin = false;
             </div>
         </div>
     </div>
-    @endifv>
+    @endif
     </div>
     @endif
