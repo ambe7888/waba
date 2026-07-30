@@ -55,11 +55,20 @@ class ProcessDripCampaigns extends Command
                 try {
                     $this->info("Sending step {$step->_id} to contact {$sub->contact->phone_with_country_code}");
                     
-                    if ($step->template) {
+                    $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+
+                    if ($step->botReply) {
+                        // Send Non-Meta model (Preset Message / Bot Reply)
+                        $botReply = $step->botReply;
+                        $replyText = $botReply->reply_text;
+                        $interactionMessageData = $botReply->__data['interaction_message'] ?? null;
+                        $waEngine->sendReplyBotMessage($sub->contact->_uid, $replyText, $sub->contact->vendors__id, $interactionMessageData);
+                    } elseif ($step->custom_message) {
+                        // Send custom message (non-template)
+                        $waEngine->sendReplyBotMessage($sub->contact->_uid, $step->custom_message, $sub->contact->vendors__id);
+                    } elseif ($step->template) {
                         // Send template message
-                        $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
                         $templateData = $step->template->__data['template'] ?? [];
-                        
                         $components = []; // Simplified
                         $waEngine->sendActualWhatsAppTemplateMessage(
                             $sub->contact->vendors__id,
@@ -73,10 +82,6 @@ class ProcessDripCampaigns extends Command
                             null,
                             null
                         );
-                    } elseif ($step->custom_message) {
-                        // Send custom message (non-template)
-                        $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
-                        $waEngine->sendReplyBotMessage($sub->contact->_uid, $step->custom_message, $sub->contact->vendors__id);
                     }
                     
                     $sub->last_step_id = $step->_id;

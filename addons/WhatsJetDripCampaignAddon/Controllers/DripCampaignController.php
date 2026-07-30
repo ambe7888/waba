@@ -67,7 +67,7 @@ class DripCampaignController extends Controller
             ->firstOrFail();
             
         $steps = DripStep::where('addon_drip_campaigns__id', $campaign->_id)
-            ->with('template')
+            ->with(['template', 'botReply'])
             ->get()
             ->sortBy(function($step) {
                 $val = $step->delay_value;
@@ -80,10 +80,13 @@ class DripCampaignController extends Controller
             ->where('status', 'approved')
             ->get();
 
+        $presetMessages = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', $vendorId)->get();
+
         return view('WhatsJetDripCampaignAddon::builder', [
             'campaign' => $campaign,
             'steps' => $steps,
-            'templates' => $templates
+            'templates' => $templates,
+            'presetMessages' => $presetMessages
         ]);
     }
 
@@ -95,7 +98,9 @@ class DripCampaignController extends Controller
         $request->validate([
             'delay_value' => 'required|integer|min:0',
             'delay_type' => 'required|in:minutes,hours,days',
-            'whatsapp_templates__id' => 'required_without:custom_message',
+            'whatsapp_templates__id' => 'nullable',
+            'bot_replies__id' => 'nullable',
+            'custom_message' => 'nullable|string',
         ]);
 
         $campaign = DripCampaign::where('_uid', $campaignId)
@@ -106,8 +111,9 @@ class DripCampaignController extends Controller
             'addon_drip_campaigns__id' => $campaign->_id,
             'delay_value' => $request->delay_value,
             'delay_type' => $request->delay_type,
-            'whatsapp_templates__id' => $request->whatsapp_templates__id,
-            'custom_message' => $request->custom_message,
+            'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
+            'bot_replies__id' => $request->bot_replies__id ?: null,
+            'custom_message' => $request->custom_message ?: null,
         ]);
 
         return back()->with('success', __tr('Step added successfully.'));
@@ -138,7 +144,8 @@ class DripCampaignController extends Controller
         $request->validate([
             'delay_value' => 'required|integer|min:0',
             'delay_type' => 'required|in:minutes,hours,days',
-            'whatsapp_templates__id' => 'nullable|integer',
+            'whatsapp_templates__id' => 'nullable',
+            'bot_replies__id' => 'nullable',
             'custom_message' => 'nullable|string',
         ]);
 
@@ -151,8 +158,9 @@ class DripCampaignController extends Controller
         $step->update([
             'delay_value' => $request->delay_value,
             'delay_type' => $request->delay_type,
-            'whatsapp_templates__id' => $request->whatsapp_templates__id,
-            'custom_message' => $request->custom_message,
+            'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
+            'bot_replies__id' => $request->bot_replies__id ?: null,
+            'custom_message' => $request->custom_message ?: null,
         ]);
 
         return back()->with('success', __tr('Step updated successfully.'));

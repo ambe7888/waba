@@ -225,12 +225,19 @@
                                                 </a>
                                             </div>
                                         @endif
+                                        
+                                         @if($isNonTemplateCampaign)
+                                             <div class="alert alert-info py-2 px-3 my-2 text-sm shadow-sm" style="border-radius: 8px;">
+                                                 <i class="fas fa-bolt text-warning mr-1"></i>
+                                                 <strong>{{ __tr('Ciblage Automatique 24h :') }}</strong> {{ __tr("Pour les campagnes sans modèle Meta, si vous ne sélectionnez pas d'audience, le système ciblera automatiquement 100% des contacts qui vous ont écrit dans les dernières 24 heures.") }}
+                                             </div>
+                                         @endif
 
                                         {{-- select audience --}}
                                         <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwSelectAudiencesField"
-                                        data-form-group-class="" data-selected=" " :label="__tr('Audience')" name="audience_uid" required="required">
+                                        data-form-group-class="" data-selected=" " :label="__tr('Audience')" name="audience_uid">
                                             <x-slot name="selectOptions">
-                                                <option value="">{{ __tr('Sélectionnez une Audience') }}</option>
+                                                <option value="">{{ $isNonTemplateCampaign ? __tr('Tous les contacts actifs 24h (Automatique)') : __tr('Sélectionnez une Audience') }}</option>
                                                 @if(isset($vendorAudiences))
                                                     @foreach($vendorAudiences as $vendorAudience)
                                                     <option value="{{ $vendorAudience['_uid'] }}">{{ $vendorAudience['title'] }}</option>

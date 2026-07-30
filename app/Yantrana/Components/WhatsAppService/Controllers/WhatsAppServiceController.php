@@ -136,8 +136,8 @@ class WhatsAppServiceController extends BaseController
             'schedule_at' => 'nullable|date',
             'expire_at' => 'nullable|date|after:schedule_at'
         ];
-        // contact_group is only required when NOT using an audience
-        if (empty($request->audience_uid)) {
+        // contact_group is only required when NOT using an audience and NOT sending a preset message (non-template)
+        if (empty($request->audience_uid) && empty($request->selected_preset_message_uid)) {
             $validations['contact_group'] = 'required|array';
         }
         if($request->selected_preset_message_uid) {

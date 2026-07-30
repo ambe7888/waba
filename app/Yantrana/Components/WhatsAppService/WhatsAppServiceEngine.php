@@ -828,7 +828,19 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $audienceContactIds = [];
         $audience = null;
 
-        if ($audienceUid) {
+        if ($presetMessageUid && empty($audienceUid) && empty($request->contact_group)) {
+            // Automatically detect contacts with an active 24h conversation window
+            $active24hContactIds = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->whereHas('lastIncomingMessage', function($query) {
+                    $query->where('messaged_at', '>', now()->subHours(24));
+                })->pluck('_id')->toArray();
+
+            if (empty($active24hContactIds)) {
+                return $this->engineFailedResponse([], __tr("Aucun contact avec une fenêtre de 24h active (ayant écrit durant les 24 dernières heures) n'a été trouvé."));
+            }
+            $groupContactIds = $active24hContactIds;
+            $labelIds = [];
+        } elseif ($audienceUid) {
             $audience = \App\Yantrana\Components\CampaignAudience\Models\CampaignAudienceModel::where('_uid', $audienceUid)->first();
             if (__isEmpty($audience)) {
                 return $this->engineFailedResponse([], __tr('Invalid Audience'));

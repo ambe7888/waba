@@ -23,6 +23,7 @@ class DripStep extends BaseModel
         'delay_value',
         'delay_type',
         'whatsapp_templates__id',
+        'bot_replies__id',
         'custom_message',
     ];
 
@@ -34,5 +35,10 @@ class DripStep extends BaseModel
     public function template()
     {
         return $this->belongsTo(\App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::class, 'whatsapp_templates__id', '_id');
+    }
+
+    public function botReply()
+    {
+        return $this->belongsTo(\App\Yantrana\Components\BotReply\Models\BotReplyModel::class, 'bot_replies__id', '_id');
     }
 }
