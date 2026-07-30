@@ -146,7 +146,7 @@ $vendorViewBySuperAdmin = false;
                                     <i class="fas fa-gift text-success mr-1"></i> {{ __tr('Campagne Gratuite Disponible !') }}
                                 </span>
                                 <span class="badge badge-success font-weight-bold ml-2 px-2 py-1" style="font-size: 0.72rem; border-radius: 6px; background-color: #10b981;">
-                                    {{ __tr('__count__ client(s) actif(s) 24h (0 FCFA)', ['__count__' => $activeContacts24hCount ?? 0]) }}
+                                    {{ __tr('__count__ client(s) actif(s) 24h', ['__count__' => $activeContacts24hCount ?? 0]) }}
                                 </span>
                                 <p class="mb-0 text-muted" style="font-size: 0.8rem; line-height: 1.3;">
                                     {{ __tr('Envoyez une diffusion sans frais Meta aux clients qui vous ont écrit ces dernières 24h.') }}
@@ -159,7 +159,7 @@ $vendorViewBySuperAdmin = false;
                                 <i class="fas fa-users mr-1"></i> {{ __tr('Voir contacts') }}
                             </button>
                             <a href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}" class="btn btn-sm btn-success text-white font-weight-bold px-3 py-1 shadow-sm mr-3" style="border-radius: 6px !important; background-color: #10b981; border-color: #10b981; font-size: 0.8rem;">
-                                <i class="fas fa-paper-plane mr-1"></i> {{ __tr('Lancer (0 FCFA)') }}
+                                <i class="fas fa-paper-plane mr-1"></i> {{ __tr('Lancer') }}
                             </a>
                             <button type="button" class="close position-relative p-0 text-muted ml-2" data-dismiss="alert" aria-label="Close" style="font-size: 1.25rem; line-height: 1; outline: none;">
                                 <span aria-hidden="true">&times;</span>
@@ -222,14 +222,14 @@ $vendorViewBySuperAdmin = false;
                     </style>
                     {{-- /Banner Conversations Actives --}}
 
-                    <div class="row mb-4">
+                    <div class="row">
                         {{-- Orders Card --}}
                         @php
                             $hasEcommerce = vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'];
                         @endphp
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
                             @if ($hasEcommerce)
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -260,7 +260,7 @@ $vendorViewBySuperAdmin = false;
                                 </div>
                             </div>
                             @else
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0" style="opacity: 0.7; background-color: rgba(248, 249, 250, 0.85) !important;">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100" style="opacity: 0.7; background-color: rgba(248, 249, 250, 0.85) !important;">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -282,8 +282,8 @@ $vendorViewBySuperAdmin = false;
                         </div>
 
                         {{-- Messages Received Today --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -314,8 +314,8 @@ $vendorViewBySuperAdmin = false;
                         </div>
 
                         {{-- Unread Messages --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -337,8 +337,8 @@ $vendorViewBySuperAdmin = false;
 
                         {{-- AI Credits Card --}}
                         @if (vendorPlanDetails('ai_chat_bot', 1)['is_limit_available'])
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -358,13 +358,11 @@ $vendorViewBySuperAdmin = false;
                             </div>
                         </div>
                         @endif
-                    </div>
 
-                    <div class="row mb-2">
                         @if (hasVendorAccess('manage_contacts'))
                         {{-- total contacts --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -388,8 +386,8 @@ $vendorViewBySuperAdmin = false;
                         {{-- /total contacts --}}
                         @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
                             {{-- total groups --}}
-                            <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                                <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                            <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                                <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col">
@@ -415,8 +413,8 @@ $vendorViewBySuperAdmin = false;
                         @endif
                         @if (hasVendorAccess('manage_campaigns'))
                         {{-- total totalCampaigns --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -441,8 +439,8 @@ $vendorViewBySuperAdmin = false;
                         @endif
                         @if (hasVendorAccess('manage_templates'))
                         {{-- total totalTemplates --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -467,8 +465,8 @@ $vendorViewBySuperAdmin = false;
                         @endif
                         @if (hasVendorAccess('manage_bot_replies'))
                         {{-- total totalBotReplies --}}
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -493,8 +491,8 @@ $vendorViewBySuperAdmin = false;
                         @endif
                           {{-- total active team member --}}
                           @if (hasVendorAccess('administrative'))
-                          <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                             <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                          <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                             <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                  <div class="card-body">
                                      <div class="row">
                                          <div class="col">
@@ -519,8 +517,8 @@ $vendorViewBySuperAdmin = false;
                          {{-- /total active team member --}}
                           {{-- manage campaigns --}}
                         @if (hasVendorAccess('manage_campaigns'))
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                            <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                        <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                            <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
@@ -540,8 +538,8 @@ $vendorViewBySuperAdmin = false;
                         {{-- /manage campaigns --}}
                           {{-- Messaging Processed--}}
                          @if (hasVendorAccess('messaging'))
-                         <div class="col-xl-3 col-lg-4 col-md-6 mb-md-4">
-                             <div class="card card-stats card-stats-pro mb-4 mb-xl-0 border-0">
+                         <div class="col-xl-3 col-lg-3 col-md-6 mb-4">
+                             <div class="card card-stats card-stats-pro mb-0 border-0 h-100">
                                  <div class="card-body">
                                      <div class="row">
                                          <div class="col">
