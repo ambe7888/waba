@@ -134,30 +134,6 @@ $vendorViewBySuperAdmin = false;
             <!-- Card stats -->
             <div class="row">
                 <div class="col-12">
-                    {{-- Server Maintenance / Migration Notice Top E-Commerce Style Banner --}}
-                    @if (getAppSettings('enable_server_maintenance_notice'))
-                    <div class="alert alert-dismissible fade show mb-4 border-0 shadow-sm p-3" role="alert" style="background: linear-gradient(90deg, #c2410c, #ea580c, #f97316) !important; color: #ffffff !important; border-radius: 12px !important;">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap">
-                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.2); color: white; flex-shrink: 0;">
-                                    <i class="fas fa-server" style="font-size: 1.05rem;"></i>
-                                </div>
-                                <div>
-                                    <strong style="font-size: 0.95rem; color: #ffffff; letter-spacing: 0.02em;" class="d-block mb-1">
-                                        <i class="fas fa-exclamation-circle text-warning mr-1"></i> {{ __tr('Migration & Maintenance Serveur Prévue') }}
-                                    </strong>
-                                    <span style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.95); line-height: 1.35;">
-                                        {!! getAppSettings('server_maintenance_notice_message') ?: __tr('Une migration importante de nos serveurs est programmée ce soir entre Minuit (00h00) et 06h00 du matin. Des perturbations temporaires de la plateforme peuvent survenir pendant cette période.') !!}
-                                    </span>
-                                </div>
-                            </div>
-                            <button type="button" class="close text-white position-relative p-0 ml-3" data-dismiss="alert" aria-label="Close" style="font-size: 1.3rem; outline: none; opacity: 0.9;">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-
                     {{-- Banner Conversations Actives (Refined & Non-intrusive) --}}
                     @if (hasVendorAccess('manage_campaigns') && ($activeContacts24hCount ?? 0) > 0)
                     <div class="alert alert-dismissible fade show mb-4 p-3 border-0 shadow-sm d-flex align-items-center justify-content-between flex-wrap" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08)) !important; border-left: 4px solid #10b981 !important; border-radius: 12px !important;">

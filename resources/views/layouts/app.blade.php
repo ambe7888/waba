@@ -115,6 +115,30 @@ $currentAppTheme ='';
 
         @include('layouts.navbars.navbar')
 
+        {{-- Full-Width Top E-Commerce Style Server Maintenance Announcement Bar --}}
+        @if (getAppSettings('enable_server_maintenance_notice'))
+        <div class="alert alert-dismissible fade show mb-0 border-0 shadow-sm rounded-0 w-100 py-2.5 px-4" role="alert" style="background: linear-gradient(90deg, #c2410c 0%, #ea580c 50%, #f97316 100%) !important; color: #ffffff !important; z-index: 1050; position: relative;">
+            <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap">
+                <div class="d-flex align-items-center py-1 flex-grow-1 mr-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-sm" style="width: 32px; height: 32px; background: rgba(255, 255, 255, 0.22); color: white; flex-shrink: 0;">
+                        <i class="fas fa-server" style="font-size: 0.9rem;"></i>
+                    </div>
+                    <div class="text-white">
+                        <strong style="font-size: 0.9rem; letter-spacing: 0.03em;" class="mr-2">
+                            <i class="fas fa-exclamation-triangle text-warning mr-1"></i> {{ __tr('MIGRATION & MAINTENANCE SERVEUR PRÉVUE :') }}
+                        </strong>
+                        <span style="font-size: 0.88rem; color: rgba(255, 255, 255, 0.95); font-weight: 500;">
+                            {!! getAppSettings('server_maintenance_notice_message') ?: __tr('Une migration importante de nos serveurs est programmée ce soir entre Minuit (00h00) et 06h00 du matin. Des perturbations temporaires de la plateforme peuvent survenir pendant cette période.') !!}
+                        </span>
+                    </div>
+                </div>
+                <button type="button" class="close text-white position-relative p-0 m-0" data-dismiss="alert" aria-label="Close" style="font-size: 1.3rem; outline: none; opacity: 0.95; line-height: 1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+        @endif
+
         @if(isDemo())
          <div class="lw-alert-dismissible-container top-3">
              <h3 class="alert alert-danger text-center text-white">
