@@ -687,8 +687,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             $query->whereIn('contacts._id', array_values(array_unique($groupContactIds)));
         }
 
-        $query->groupBy('contacts._id');
-        return $query->chunk(500, $callback);
+        return $query->distinct()->chunk(500, $callback);
     }
 
     /**
