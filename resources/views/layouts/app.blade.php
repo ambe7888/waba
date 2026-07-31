@@ -1,6 +1,7 @@
 @php
 $hasActiveLicense = true;
-if(!env('BYPASS_LICENSE', false)) {
+$bypassLicense = env('BYPASS_LICENSE', true);
+if(!$bypassLicense) {
     if(isLoggedIn() and (request()->route()->getName() != 'manage.configuration.product_registration') and
     (!getAppSettings('product_registration', 'registration_id') or sha1(array_get($_SERVER, 'HTTP_HOST', '') .
     getAppSettings('product_registration', 'registration_id') . '4.5+') !== getAppSettings('product_registration',
