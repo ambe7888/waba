@@ -70,6 +70,10 @@ $currentAppTheme ='';
     {!! getAppSettings('page_head_code') !!}
     @endif
     <style>
+        /* Sidebar must stay above main-content elements (.navbar-top z-index:3, .header position:relative) */
+        .navbar-vertical.fixed-left.lw-sidebar-container {
+            z-index: 5 !important;
+        }
         @media (min-width: 768px) {
             body:not(.lw-minimized-menu):not(.lw-guest-page) .main-content {
                 margin-left: 250px !important;
