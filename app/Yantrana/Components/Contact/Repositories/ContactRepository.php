@@ -466,7 +466,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             $query->where('_uid', $requestContactUid);
         }
 
-        $vendorIdForSubquery = data_get($options, 'vendors__id', getVendorId());
+        $vendorIdForSubquery = $vendorId ?: getVendorId();
 
         // -----------------------------------------
         // LATEST MESSAGE JOIN
