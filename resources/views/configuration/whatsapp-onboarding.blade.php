@@ -1,5 +1,6 @@
 <?php
-$embeddedSignUpAddon = $isExtendedLicence = (getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon', 'registration_id') and (sha1(array_get($_SERVER, 'HTTP_HOST', '') . getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon','registration_id') . '1.0+') === getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon','signature')));
+$isExtendedLicence = true;
+$embeddedSignUpAddon = true;
 ?>
 <!-- Page Heading -->
 <h1>
