@@ -73,15 +73,12 @@ $currentAppTheme ='';
         @media (min-width: 768px) {
             body.lw-authenticated-page:not(.lw-minimized-menu) .main-content {
                 margin-left: 250px !important;
-                width: calc(100% - 250px) !important;
             }
             body.lw-authenticated-page.lw-minimized-menu .main-content {
                 margin-left: 60px !important;
-                width: calc(100% - 60px) !important;
             }
             body.lw-guest-page .main-content {
                 margin-left: 0 !important;
-                width: 100% !important;
             }
         }
         @media (max-width: 767.98px) {
