@@ -357,7 +357,11 @@ if (! function_exists('appTimezone')) {
             }
         }
         if (! __isEmpty($appTimezone)) {
-            $carbonDate->timezone = $appTimezone;
+            try {
+                $carbonDate->timezone = $appTimezone;
+            } catch (\Throwable $th) {
+                $carbonDate->timezone = config('app.timezone', 'UTC');
+            }
         }
 
         return $carbonDate;
