@@ -820,22 +820,28 @@
                         <!-- /Promotional -->
 
                         <!-- ai_bot -->
+                        <!-- Drip Campaign Subscription -->
                         @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
                         @php 
                             $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
                         @endphp
-                        @if($dripCampaigns->count())
-                        <fieldset>
-                            <legend>{{  __tr('Drip Campaign Subscription') }}</legend>
+                        <fieldset class="form-group border p-3 rounded mb-3">
+                            <legend class="w-auto px-2 font-weight-bold" style="font-size: 1.05rem;"><i class="fas fa-water text-primary mr-1"></i> {{  __tr('Inscription à la campagne Drip (Drip Campaign)') }}</legend>
+                            @if($dripCampaigns->count())
                             <select id="lwDripCampaign" class="form-control" name="addon_drip_campaigns__id">
                                 <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
                                 @foreach ($dripCampaigns as $dripCampaign)
                                     <option <%= __tData.addon_drip_campaigns__id == "{{ $dripCampaign->_id }}" ? 'selected' : '' %> value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">{{ __tr("When this bot is triggered, the contact will be subscribed to the selected Drip Campaign.") }}</small>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Lorsque cette réponse automatique sera déclenchée, le contact sera automatiquement inscrit à la campagne Drip sélectionnée.") }}</small>
+                            @else
+                            <div class="alert alert-warning mb-0 py-2">
+                                <i class="fas fa-exclamation-circle mr-1"></i> {{ __tr("Aucune campagne Drip active trouvée. Vous devez d'abord créer une campagne Drip pour pouvoir y inscrire vos contacts.") }}
+                                <a href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}" target="_blank" class="btn btn-sm btn-outline-primary ml-2"><i class="fas fa-plus mr-1"></i> {{ __tr("Créer une campagne Drip") }}</a>
+                            </div>
+                            @endif
                         </fieldset>
-                        @endif
                         @endif
                         
                         <fieldset>

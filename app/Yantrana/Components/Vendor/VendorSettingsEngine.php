@@ -416,6 +416,7 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
             ) {
                 activityLog('vendor settings updated');
                 // License check bypassed
+                $isDataAddedOrUpdated = true;
             }
 
             // Check if data added / updated or deleted
