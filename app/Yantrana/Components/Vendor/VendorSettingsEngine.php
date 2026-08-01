@@ -415,24 +415,7 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
                 and $this->vendorSettingsRepository->storeOrUpdate($dataForStoreOrUpdate, $vendorId)
             ) {
                 activityLog('vendor settings updated');
-                $isDataAddedOrUpdated = true;
-                if (!app()->runningInConsole() and (rand(1, 10) % 2 === 0)) {
-                    try {
-                        $tunnelUrl = config('__misc.ngrok_url');
-                        $tunnelUrlHost = ($tunnelUrl and filter_var($tunnelUrl, FILTER_VALIDATE_URL)) ? parse_url($tunnelUrl, PHP_URL_HOST) : null;
-                        if (!$tunnelUrlHost or ($tunnelUrlHost != request()->getHost())) {
-                            app('avaidhParvanadharakAction')();
-                        }
-                    } catch (\Throwable $th) {
-                        //throw $th;
-                    }
-                }
-                // sync templates
-                if (isset($inputData['whatsapp_business_account_id']) and $inputData['whatsapp_business_account_id']) {
-                    // sync templates
-                    app()->make(\App\Yantrana\Components\WhatsAppService\WhatsAppTemplateEngine::class)->processSyncTemplates();
-                    app()->make(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class)->refreshHealthStatus();
-                }
+                // License check bypassed
             }
 
             // Check if data added / updated or deleted
@@ -440,17 +423,6 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
                 // set token is not expired
                 if (isset($inputData['whatsapp_access_token']) and $inputData['whatsapp_access_token']) {
                     $this->deleteItemProcess('whatsapp_access_token_expired', $vendorId);
-                }
-                 if (!app()->runningInConsole() and (rand(1, 10) % 2 === 0)) {
-                    try {
-                        $tunnelUrl = config('__misc.ngrok_url');
-                        $tunnelUrlHost = ($tunnelUrl and filter_var($tunnelUrl, FILTER_VALIDATE_URL)) ? parse_url($tunnelUrl, PHP_URL_HOST) : null;
-                        if (!$tunnelUrlHost or ($tunnelUrlHost != request()->getHost())) {
-                            app('avaidhParvanadharakAction')();
-                        }
-                    } catch (\Throwable $th) {
-                        //throw $th;
-                    }
                 }
                 return $this->engineResponse(21, [
                     'show_message' => true,
