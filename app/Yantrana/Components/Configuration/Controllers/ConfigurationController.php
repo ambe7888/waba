@@ -308,7 +308,7 @@ class ConfigurationController extends BaseController
             }
         }
         $existingRegistrationId = getAppSettings('product_registration', 'registration_id');
-        if ($existingRegistrationId and (!$request->registration_id or ($existingRegistrationId != $request->registration_id))) {
+        if (!$request->isMethod('post') and $existingRegistrationId and (!$request->registration_id or ($existingRegistrationId != $request->registration_id))) {
             abort(404, __tr('Invalid Request'));
         }
 
