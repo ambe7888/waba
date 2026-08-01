@@ -1,6 +1,6 @@
 <?php
-$isExtendedLicence = true;
 $embeddedSignUpAddon = true;
+$isExtendedLicence = (getAppSettings('product_registration', 'licence') === 'dee257a8c3a2656b7d7fbe9a91dd8c7c41d90dc9');
 ?>
 <!-- Page Heading -->
 <h1>

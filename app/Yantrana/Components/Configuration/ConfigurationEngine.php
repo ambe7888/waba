@@ -173,7 +173,7 @@ class ConfigurationEngine extends BaseEngine implements ConfigurationEngineInter
             return $this->engineResponse(18, ['show_message' => true], __tr('Invalid page type.'));
         }
         $embeddedSignUpAddon = true;
-        $isExtendedLicense = true;
+        $isExtendedLicense = (getAppSettings('product_registration', 'licence') === 'dee257a8c3a2656b7d7fbe9a91dd8c7c41d90dc9');
         // Check if input data exists
         if (! __isEmpty($inputData)) {
             // Get selected default settings
