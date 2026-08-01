@@ -172,8 +172,8 @@ class ConfigurationEngine extends BaseEngine implements ConfigurationEngineInter
         if (__isEmpty($defaultSettings)) {
             return $this->engineResponse(18, ['show_message' => true], __tr('Invalid page type.'));
         }
-        $embeddedSignUpAddon = true;
-        $isExtendedLicense = true;
+        $embeddedSignUpAddon = (getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon', 'registration_id') and (sha1(array_get($_SERVER, 'HTTP_HOST', '') . getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon','registration_id') . '1.0+') === getAppSettings('lwAddonWhatsJetEmbeddedSignUpAddon','signature')));
+        $isExtendedLicense = (getAppSettings('product_registration', 'licence') === 'dee257a8c3a2656b7d7fbe9a91dd8c7c41d90dc9');
         // Check if input data exists
         if (! __isEmpty($inputData)) {
             // Get selected default settings
