@@ -85,7 +85,7 @@ class WhatsAppTemplateRepository extends BaseRepository implements WhatsAppTempl
      */
     function getApprovedTemplatesByNewest() {
         return $this->primaryModel::where([
-            'status' => app('gairniyojitChachpasani')() ? 'APPROVED' : 'APPROVED_TEMPLATES',
+            'status' => 'APPROVED',
             'vendors__id' => getVendorId(),
         ])->latest()->get();
     }
