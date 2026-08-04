@@ -50,17 +50,17 @@
                                 <h5 class="text-primary font-weight-bold mb-1">
                                     <i class="fas fa-clock"></i> 
                                     @if($step->delay_value == 0)
-                                        {{ __tr('Immediately') }}
+                                        {{ __tr('Immédiatement') }}
                                     @else
                                         @php
                                             $delayTypes = [
-                                                'minutes' => __tr('Minutes'),
-                                                'hours' => __tr('Hours'),
-                                                'days' => __tr('Days'),
+                                                'minutes' => __tr('minutes'),
+                                                'hours' => __tr('heures'),
+                                                'days' => __tr('jours'),
                                             ];
-                                            $delayTypeTranslated = $delayTypes[$step->delay_type] ?? $step->delay_type;
+                                            $delayTypeTranslated = strtolower($delayTypes[$step->delay_type] ?? $step->delay_type);
                                         @endphp
-                                        {{ __tr('After :value :type', ['value' => $step->delay_value, 'type' => $delayTypeTranslated]) }}
+                                        {{ __tr('Après') }} {{ $step->delay_value }} {{ $delayTypeTranslated }}
                                     @endif
                                 </h5>
                                  <p class="text-muted mb-0">
@@ -186,7 +186,17 @@
                                  </div>
                                  <div class="modal-footer">
                                      <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Cancel') }}</button>
-                                     <button type="submit" class="btn btn-primary">{{ __tr('Save Changes') }}</button>
+                                     <button type="submit" class="btn btn-primary" onclick="
+                                         var msgField = document.getElementById('lwDripCustomMessage{{ $step->_uid }}');
+                                         if (msgField && msgField.value) {
+                                             var hidden = document.createElement('input');
+                                             hidden.type = 'hidden';
+                                             hidden.name = 'custom_message_b64';
+                                             hidden.value = btoa(unescape(encodeURIComponent(msgField.value)));
+                                             this.form.appendChild(hidden);
+                                             msgField.disabled = true;
+                                         }
+                                     ">{{ __tr('Save Changes') }}</button>
                                  </div>
                              </div>
                          </form>
@@ -276,7 +286,17 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Cancel') }}</button>
-                    <button type="submit" class="btn btn-primary">{{ __tr('Add Step') }}</button>
+                    <button type="submit" class="btn btn-primary" onclick="
+                        var msgField = document.getElementById('lwDripCustomMessage');
+                        if (msgField && msgField.value) {
+                            var hidden = document.createElement('input');
+                            hidden.type = 'hidden';
+                            hidden.name = 'custom_message_b64';
+                            hidden.value = btoa(unescape(encodeURIComponent(msgField.value)));
+                            this.form.appendChild(hidden);
+                            msgField.disabled = true;
+                        }
+                    ">{{ __tr('Add Step') }}</button>
                 </div>
             </div>
         </form>

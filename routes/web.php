@@ -18,6 +18,7 @@ use App\Yantrana\Components\Vendor\Controllers\VendorSettingsController;
 use App\Yantrana\Components\Translation\Controllers\TranslationController;
 use App\Yantrana\Components\Subscription\Controllers\SubscriptionController;
 use App\Yantrana\Components\Contact\Controllers\ContactCustomFieldController;
+use App\Yantrana\Components\Contact\Controllers\ContactReminderController;
 use App\Yantrana\Components\Subscription\Controllers\StripeWebhookController;
 use App\Yantrana\Components\Configuration\Controllers\ConfigurationController;
 use App\Yantrana\Components\Subscription\Controllers\ManualSubscriptionController;
@@ -1519,6 +1520,17 @@ Route::middleware([
                     ContactController::class,
                     'processContactUnblock',
                 ])->name('vendor.contact.write.unblock');
+
+                // Contact Reminder routes
+                Route::post('/{contactUid}/reminder/store', [
+                    ContactReminderController::class,
+                    'storeReminder',
+                ])->name('vendor.contact.reminder.store');
+
+                Route::post('/{contactUid}/reminder/cancel', [
+                    ContactReminderController::class,
+                    'cancelReminder',
+                ])->name('vendor.contact.reminder.cancel');
 
                 // ContactCustomField Routes Group Start
                 Route::prefix('/custom-fields')->group(function () {

@@ -1,6 +1,77 @@
 @php
     $isNotNonTemplateCampaign = (!isset($nonTemplateCampaign) or !$nonTemplateCampaign);
 @endphp
+<style>
+    /* Design Système WhatsClick - Formulaire Bot Reply (Style Vert Émeraude Unifié) */
+    .lw-form-modal-body fieldset {
+        background-color: #fafdfb !important;
+        border: 1px solid #a7f3d0 !important;
+        border-left: 4px solid #10b981 !important;
+        border-radius: 0.75rem !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 1px 3px rgba(16, 185, 129, 0.04) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .lw-form-modal-body fieldset:hover {
+        border-color: #6ee7b7 !important;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.08) !important;
+    }
+    .lw-form-modal-body fieldset legend {
+        width: auto !important;
+        padding: 0.25rem 0.75rem !important;
+        font-size: 0.875rem !important;
+        font-weight: 700 !important;
+        color: #065f46 !important;
+        background-color: #ecfdf5 !important;
+        border: 1px solid #a7f3d0 !important;
+        border-radius: 0.5rem !important;
+        margin-bottom: 0.75rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+    .lw-form-modal-body .help-text {
+        background-color: #ecfdf5 !important;
+        border: 1px solid #a7f3d0 !important;
+        border-radius: 0.5rem !important;
+        color: #065f46 !important;
+        font-size: 0.85rem !important;
+    }
+    .lw-form-modal-body .lw-insert-var-btn {
+        transition: all 0.15s ease-in-out;
+        text-transform: none !important;
+    }
+    .lw-form-modal-body .lw-insert-var-btn:hover {
+        background-color: #10b981 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+    .lw-form-modal-body .form-control {
+        border-radius: 0.5rem !important;
+        border: 1px solid #cbd5e1 !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+    }
+    .lw-form-modal-body .form-control:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    }
+</style>
+<script>
+if (typeof window.insertVariableAtCursor !== 'function') {
+    window.insertVariableAtCursor = function(targetId, textToInsert) {
+        var elem = document.getElementById(targetId);
+        if (!elem) return;
+        var start = elem.selectionStart || 0;
+        var end = elem.selectionEnd || 0;
+        var val = elem.value || '';
+        elem.value = val.substring(0, start) + textToInsert + val.substring(end);
+        elem.selectionStart = elem.selectionEnd = start + textToInsert.length;
+        elem.focus();
+        elem.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+}
+</script>
 <!-- Add New Advance Bot Reply Modal -->
 <x-lw.modal id="lwAddNewAdvanceBotReply" modal-dialog-class="modal-lg lw-modal-xl" :header="$isNotNonTemplateCampaign ? __tr('Add New Bot Reply') : __tr('Add New Preset Message')" :hasForm="true">
     <!--  Add New Bot Reply Form -->
@@ -27,7 +98,7 @@
                 name="name" required="true" />
             <!-- /Name -->
             <fieldset class="lw-dynamic-template-container">
-                <legend>{{  __tr('Reply Message') }}</legend>
+                <legend><i class="fas fa-reply text-success mr-1"></i> {{  __tr('Reply Message') }}</legend>
 
                 <div x-show="isAdvanceBot == 'template'" x-data="{ selectedTemplate: '', onTemplateChange() {
 
@@ -88,7 +159,14 @@
                             placeholder="{{ __tr('Add your main message body text here') }}" name="reply_text" required="true"
                             maxlength="1024" oninput="$('#replyTextCounter').text(this.value.length)"></textarea>
                         <x-whatsapp-format-buttons inputId="lwAdvanceBotReplyTextField" />
-                        <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+                        <div class="help-text my-3 border p-3">
+    <div class="mb-2"><i class="fas fa-info-circle text-success mr-1"></i> {{  __tr("You are free to use following dynamic variables for reply text, which will get replaced with contact's concerned field value.") }} <small class="text-success font-weight-bold">({{ __tr("Click a variable to insert it") }})</small></div>
+    <div class="pt-1">
+        @foreach($dynamicFields as $dynField)
+            <span class="badge badge-success cursor-pointer font-weight-bold mr-1 mb-2 p-2 shadow-sm lw-insert-var-btn" style="cursor: pointer; font-size: 0.85rem;" onclick="insertVariableAtCursor('lwAdvanceBotReplyTextField', '{{ $dynField }}')" title="{{ __tr('Click to insert') }}">{{ $dynField }}</span>
+        @endforeach
+    </div>
+</div>
                     </div>
                     <!-- /Reply_Text -->
                     <div x-show="isAdvanceBot == 'interactive' || isAdvanceBot == 'media'">
@@ -150,7 +228,14 @@
                             <label for="lwMediaCaptionText">{{  __tr('Caption/Text') }}</label>
                             <textarea name="caption" id="lwCaptionField" class="form-control" rows="2"></textarea>
                             <x-whatsapp-format-buttons inputId="lwCaptionField" />
-                            <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for caption, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+                            <div class="help-text my-3 border p-3">
+    <div class="mb-2"><i class="fas fa-info-circle text-success mr-1"></i> {{  __tr("You are free to use following dynamic variables for caption, which will get replaced with contact's concerned field value.") }} <small class="text-success font-weight-bold">({{ __tr("Click a variable to insert it") }})</small></div>
+    <div class="pt-1">
+        @foreach($dynamicFields as $dynField)
+            <span class="badge badge-success cursor-pointer font-weight-bold mr-1 mb-2 p-2 shadow-sm lw-insert-var-btn" style="cursor: pointer; font-size: 0.85rem;" onclick="insertVariableAtCursor('lwCaptionField', '{{ $dynField }}')" title="{{ __tr('Click to insert') }}">{{ $dynField }}</span>
+        @endforeach
+    </div>
+</div>
                         </div>
                         <div x-show="headerType == 'text'" class="form-group">
                             <div class="d-flex align-items-center justify-content-between mb-1">
@@ -304,12 +389,12 @@
             @if($isNotNonTemplateCampaign)
                 <fieldset x-data="{ collapsed: true, assignUserType: 'no_action' }" class="border p-3 mb-3">
                     <legend class="w-auto px-2" style="cursor: pointer;" @click="collapsed = !collapsed">
-                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> {{  __tr('Actions') }}
+                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> <i class="fas fa-bolt text-success mr-1"></i> {{  __tr('Actions') }}
                     </legend>
                     <div x-show="!collapsed" x-transition>
                         <!-- Assign Team Member -->
                         <fieldset>
-                            <legend>{{  __tr('Assign Team Member') }}</legend>
+                            <legend><i class="fas fa-user-plus text-success mr-1"></i> {{  __tr('Assign Team Member') }}</legend>
                             <x-lw.input-field id="lwCurrentlyAssignedUserId" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="" x-model="assignUserType">
                                 <x-slot name="selectOptions">
                                     <optgroup label="{{ __tr('No Action Perform') }}">
@@ -347,7 +432,7 @@
 
                         <!-- Assign Label -->
                         <fieldset>
-                            <legend>{{  __tr('Assign Labels/Tags') }}</legend>
+                            <legend><i class="fas fa-tag text-success mr-1"></i> {{  __tr('Assign Labels/Tags') }}</legend>
                             <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsField" data-form-group-class="mt--4" name="bot_actions[contact_labels][]" multiple >
                                 <x-slot name="selectOptions">
                                 <option value="">{{ __tr('Select Labels') }}</option>
@@ -355,13 +440,14 @@
                                         <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                     @endforeach
                                 </x-slot>
-                            </x-lw.input-field>                            
+                            </x-lw.input-field>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("The selected labels will be assigned to the contact when triggered.") }}</small>
                         </fieldset>
                         <!-- /Assign Label -->
 
                         <!-- Unassign Label -->
                         <fieldset>
-                            <legend>{{  __tr('Unassign Labels/Tags') }}</legend>
+                            <legend><i class="fas fa-tag-slash text-success mr-1"></i> {{  __tr('Unassign Labels/Tags') }}</legend>
                             <x-lw.input-field type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsField" data-form-group-class="mt--4" name="bot_actions[unassign_contact_labels][]" multiple >
                                 <x-slot name="selectOptions">
                                 <option value="">{{ __tr('Select Labels') }}</option>
@@ -369,43 +455,72 @@
                                         <option value="{{ $label['_id'] }}">{{ $label['title'] }}</option>
                                     @endforeach
                                 </x-slot>
-                            </x-lw.input-field>                            
+                            </x-lw.input-field>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("The selected labels will be removed from the contact when triggered.") }}</small>
                         </fieldset>
                         <!-- /Unassign Label -->
 
                         <!-- Promotional -->
                         <fieldset>
-                            <legend>{{  __tr('Promotional') }}</legend>
+                            <legend><i class="fas fa-bullhorn text-success mr-1"></i> {{  __tr('Promotional') }}</legend>
                             <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
                                     <option value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Defines whether this bot reply is promotional.") }}</small>
                         </fieldset>
                         <!-- /Promotional -->
 
+                        <!-- Drip Campaign Subscription -->
+                        @if(class_exists('Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                        @php 
+                            $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
+                        @endphp
+                        <fieldset class="lw-drip-fieldset form-group border p-3 rounded mb-3">
+                            <legend class="w-auto px-2 font-weight-bold" style="font-size: 1.05rem;"><i class="fas fa-water text-success mr-1"></i> {{  __tr('Inscription à la campagne de relance') }}</legend>
+                            @if($dripCampaigns->count())
+                            <select id="lwAddDripCampaign" class="form-control" name="addon_drip_campaigns__id">
+                                <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
+                                @foreach ($dripCampaigns as $dripCampaign)
+                                    <option value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
+                                @endforeach
+                            </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("When this bot reply is triggered, the contact will be automatically subscribed to the selected drip campaign.") }}</small>
+                            @else
+                            <div class="alert alert-warning mb-0 py-2">
+                                <i class="fas fa-exclamation-circle mr-1"></i> {{ __tr("Aucune campagne Drip active trouvée. Vous devez d'abord créer une campagne Drip pour pouvoir y inscrire vos contacts.") }}
+                                <a href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}" target="_blank" class="btn btn-sm btn-outline-primary ml-2"><i class="fas fa-plus mr-1"></i> {{ __tr("Créer une campagne Drip") }}</a>
+                            </div>
+                            @endif
+                        </fieldset>
+                        @endif
+                        <!-- /Drip Campaign Subscription -->
+
                         <!-- AI Bot -->
                         <fieldset>
-                            <legend>{{  __tr('AI Bot') }}</legend>
+                            <legend><i class="fas fa-robot text-success mr-1"></i> {{  __tr('AI Bot') }}</legend>
                             <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
                                     <option value="<?= $aiBotKey ?>"><?= $aiBot['title'] ?></option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Allows enabling or disabling AI Bot handling for this contact.") }}</small>
                         </fieldset>
                         <!-- /AI Bot -->
 
                         <!-- Reply Bot -->
                         <fieldset>
-                            <legend>{{  __tr('Reply Bot') }}</legend>
+                            <legend><i class="fas fa-comment-dots text-success mr-1"></i> {{  __tr('Reply Bot') }}</legend>
                             <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
                                     <option value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Allows triggering or pausing other automated bot replies.") }}</small>
                         </fieldset>
                         <!-- /Reply Bot -->
                     </div>
@@ -460,7 +575,7 @@
             <x-lw.input-field type="text" id="lwNameEditField" data-form-group-class="" :label="__tr('Name')" value="<%- __tData.name %>" name="name"  required="true"/>
         <!-- /Name -->
         <fieldset class="lw-dynamic-template-container">
-            <legend>{{  __tr('Reply') }}</legend>
+            <legend><i class="fas fa-reply text-success mr-1"></i> {{  __tr('Reply Message') }}</legend>
         <% if(__tData.__data?.template_message) { %>
             <input type="hidden" name="message_type" value="template">
             <div x-data="{ selectedTemplate: '<%= __tData.__data?.template_message?.template_data?.inputs?.template_uid %>',
@@ -527,7 +642,14 @@
         <label for="lwReplyTextEditField">{{ __tr('Reply Text') }}</label>
         <textarea cols="10" rows="3" id="lwReplyTextEditField" value="<%- __tData.reply_text %>" class="lw-form-field form-control" placeholder="{{ __tr('Reply Text') }}" name="reply_text"  required="true"><%- __tData.reply_text %></textarea>
         <x-whatsapp-format-buttons inputId="lwReplyTextEditField" />
-        <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for reply text, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+        <div class="help-text my-3 border p-3">
+    <div class="mb-2"><i class="fas fa-info-circle text-success mr-1"></i> {{  __tr("You are free to use following dynamic variables for reply text, which will get replaced with contact's concerned field value.") }} <small class="text-success font-weight-bold">({{ __tr("Click a variable to insert it") }})</small></div>
+    <div class="pt-1">
+        @foreach($dynamicFields as $dynField)
+            <span class="badge badge-success cursor-pointer font-weight-bold mr-1 mb-2 p-2 shadow-sm lw-insert-var-btn" style="cursor: pointer; font-size: 0.85rem;" onclick="insertVariableAtCursor('lwAdvanceBotReplyTextField', '{{ $dynField }}')" title="{{ __tr('Click to insert') }}">{{ $dynField }}</span>
+        @endforeach
+    </div>
+</div>
             </div>
             <% } %>
             <% if(__tData.__data?.media_message)  { %>
@@ -597,7 +719,14 @@
                     <label for="lwMediaCaptionText">{{  __tr('Caption/Text') }}</label>
                     <textarea name="caption" id="lwCaptionFieldEdit" class="form-control" rows="2"><%- __tData.__data?.media_message.caption %></textarea>
                     <x-whatsapp-format-buttons inputId="lwCaptionFieldEdit" />
-                    <div class="help-text my-3 border p-3">{{  __tr('You are free to use following dynamic variables for caption, which will get replaced with contact\'s concerned field value.') }} <div><code>{{ implode(' ', $dynamicFields) }}</code></div></div>
+                    <div class="help-text my-3 border p-3">
+    <div class="mb-2"><i class="fas fa-info-circle text-success mr-1"></i> {{  __tr("You are free to use following dynamic variables for caption, which will get replaced with contact's concerned field value.") }} <small class="text-success font-weight-bold">({{ __tr("Click a variable to insert it") }})</small></div>
+    <div class="pt-1">
+        @foreach($dynamicFields as $dynField)
+            <span class="badge badge-success cursor-pointer font-weight-bold mr-1 mb-2 p-2 shadow-sm lw-insert-var-btn" style="cursor: pointer; font-size: 0.85rem;" onclick="insertVariableAtCursor('lwCaptionField', '{{ $dynField }}')" title="{{ __tr('Click to insert') }}">{{ $dynField }}</span>
+        @endforeach
+    </div>
+</div>
                 </div>
                 <% } %>
             </fieldset>
@@ -736,14 +865,14 @@
                 <!-- Bot Actions -->
                 <fieldset x-data="{ collapsed: true }">
                     <legend class="w-auto px-2" style="cursor: pointer;" @click="collapsed = !collapsed">
-                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> {{  __tr('Bot Actions') }}
+                        <i class="fa mr-1" :class="collapsed ? 'fa-chevron-right' : 'fa-chevron-down'"></i> <i class="fas fa-bolt text-success mr-1"></i> {{  __tr('Actions') }}
                     </legend>
                     <div x-show="!collapsed" x-transition>
                         <!-- Assign Team Member -->
                         <fieldset x-data="{ 
                             assignUserType: '<%= !_.isEmpty(__tData.__data?.bot_actions?.assigned_users_id) ? __tData.__data?.bot_actions?.assigned_users_id : 'no_action'  %>'
                         }">
-                            <legend>{{  __tr('Assign Team Member') }}</legend>
+                            <legend><i class="fas fa-user-plus text-success mr-1"></i> {{  __tr('Assign Team Member') }}</legend>
                             <x-lw.input-field id="lwCurrentlyAssignedUserIdEdit" type="selectize" data-form-group-class="mt--4" name="bot_actions[assigned_users_id]" class="custom-select" data-selected="<%= __tData.__data?.bot_actions?.assigned_users_id %>" x-model="assignUserType">
                                 <x-slot name="selectOptions">
                                     <optgroup label="{{ __tr('No Action Perform') }}">
@@ -781,7 +910,7 @@
 
                         <!-- Assign Label -->
                         <fieldset>
-                            <legend>{{  __tr('Assign Label') }}</legend>
+                            <legend><i class="fas fa-tag text-success mr-1"></i> {{  __tr('Assign Labels/Tags') }}</legend>
                             <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwAssignLabelsEditField" data-form-group-class="" name="bot_actions[contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.contact_labels %>]">
                                 <x-slot name="selectOptions">
                                 <option value="">{{ __tr('Select Labels') }}</option>
@@ -795,7 +924,7 @@
 
                         <!-- Unassign Label -->
                         <fieldset>
-                            <legend>{{  __tr('Unassign Label') }}</legend>
+                            <legend><i class="fas fa-tag-slash text-success mr-1"></i> {{  __tr('Unassign Labels/Tags') }}</legend>
                             <x-lw.input-field :label="__tr('Labels/Tags')" type="selectize" data-lw-plugin="lwSelectize" id="lwUnassignLabelsEditField" data-form-group-class="" name="bot_actions[unassign_contact_labels][]" multiple data-selected="[<%- __tData.__data?.bot_actions?.unassign_contact_labels %>]">
                                 <x-slot name="selectOptions">
                                 <option value="">{{ __tr('Select Labels') }}</option>
@@ -809,24 +938,25 @@
 
                         <!-- Promotional -->
                         <fieldset>
-                            <legend>{{  __tr('Promotional') }}</legend>
+                            <legend><i class="fas fa-bullhorn text-success mr-1"></i> {{  __tr('Promotional') }}</legend>
                             <select id="lwPromotional" class="form-control" placeholder="<?= __tr('Promotional') ?>" name="bot_actions[promotional]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.promotional') as $promotionalKey => $promotionalItem)
                                     <option <%= __tData.__data?.bot_actions?.promotional == "{{ $promotionalKey }}" ? 'selected' : '' %> value="<?= $promotionalKey ?>"><?= $promotionalItem['title'] ?></option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Defines whether this bot reply is promotional.") }}</small>
                         </fieldset>
                         <!-- /Promotional -->
 
                         <!-- ai_bot -->
                         <!-- Drip Campaign Subscription -->
-                        @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
+                        @if(class_exists('Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
                         @php 
                             $dripCampaigns = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', getVendorId())->where('status', 1)->get(); 
                         @endphp
-                        <fieldset class="form-group border p-3 rounded mb-3">
-                            <legend class="w-auto px-2 font-weight-bold" style="font-size: 1.05rem;"><i class="fas fa-water text-primary mr-1"></i> {{  __tr('Inscription à la campagne Drip (Drip Campaign)') }}</legend>
+                        <fieldset class="lw-drip-fieldset form-group border p-3 rounded mb-3">
+                            <legend class="w-auto px-2 font-weight-bold" style="font-size: 1.05rem;"><i class="fas fa-water text-success mr-1"></i> {{  __tr('Inscription à la campagne de relance') }}</legend>
                             @if($dripCampaigns->count())
                             <select id="lwDripCampaign" class="form-control" name="addon_drip_campaigns__id">
                                 <option value=""><?= __tr('No Action (Do not subscribe)') ?></option>
@@ -834,7 +964,7 @@
                                     <option <%= __tData.addon_drip_campaigns__id == "{{ $dripCampaign->_id }}" ? 'selected' : '' %> value="<?= $dripCampaign->_id ?>"><?= $dripCampaign->title ?></option>
                                 @endforeach
                             </select>
-                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Lorsque cette réponse automatique sera déclenchée, le contact sera automatiquement inscrit à la campagne Drip sélectionnée.") }}</small>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("When this bot reply is triggered, the contact will be automatically subscribed to the selected drip campaign.") }}</small>
                             @else
                             <div class="alert alert-warning mb-0 py-2">
                                 <i class="fas fa-exclamation-circle mr-1"></i> {{ __tr("Aucune campagne Drip active trouvée. Vous devez d'abord créer une campagne Drip pour pouvoir y inscrire vos contacts.") }}
@@ -845,7 +975,7 @@
                         @endif
                         
                         <fieldset>
-                            <legend>{{  __tr('AI Bot') }}</legend>
+                            <legend><i class="fas fa-robot text-success mr-1"></i> {{  __tr('AI Bot') }}</legend>
                             <select id="lwAiBot" class="form-control" placeholder="<?= __tr('AI Bot') ?>" name="bot_actions[ai_bot]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.ai_bot') as $aiBotKey => $aiBot)
@@ -857,13 +987,14 @@
 
                         <!-- Reply Bot -->
                         <fieldset>
-                            <legend>{{  __tr('Reply Bot') }}</legend>
+                            <legend><i class="fas fa-comment-dots text-success mr-1"></i> {{  __tr('Reply Bot') }}</legend>
                             <select id="lwReplyBot" class="form-control" placeholder="<?= __tr('Reply Bot') ?>" name="bot_actions[reply_bot]">
                                 <option value="no_action"><?= __tr('No Action') ?></option>
                                 @foreach (configItem('bot_actions.reply_bot') as $replyBotKey => $replyBot)
                                     <option <%= __tData.__data?.bot_actions?.reply_bot == "{{ $replyBotKey }}" ? 'selected' : '' %> value="<?= $replyBotKey ?>"><?= $replyBot['title'] ?></option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted mt-2"><i class="fas fa-info-circle mr-1"></i> {{ __tr("Allows triggering or pausing other automated bot replies.") }}</small>
                         </fieldset>
                         <!-- /Reply Bot -->
                     </div>

@@ -2396,3 +2396,63 @@ if (!function_exists('getSaaSAutomationMessageComponents')) {
     }
 }
 
+if (!function_exists('triggerSaaSRenewalWhatsAppNotification')) {
+    /**
+     * Send automated SaaS Renewal WhatsApp Template message to vendor admin user
+     *
+     * @param int $vendorId
+     * @param object|null $subscription
+     * @return void
+     */
+    function triggerSaaSRenewalWhatsAppNotification($vendorId, $subscription = null)
+    {
+        $saasAdminVendorId = getAppSettings('saas_admin_vendor_id');
+        $saasRenewalTemplate = getAppSettings('saas_renewal_template');
+
+        if (empty($saasAdminVendorId) || empty($saasRenewalTemplate)) {
+            return;
+        }
+
+        // Find primary vendor user (Admin user)
+        $vendorAdminUser = \App\Models\User::where('vendors__id', $vendorId)
+            ->whereNotNull('mobile_number')
+            ->where('mobile_number', '!=', '')
+            ->first();
+
+        if (!$vendorAdminUser) {
+            return;
+        }
+
+        $waId = preg_replace('/[^0-9]/', '', $vendorAdminUser->mobile_number);
+        if (empty($waId)) {
+            return;
+        }
+
+        try {
+            $waEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+            ignoreFacebookApiError(true);
+            
+            $renewalVars = getAppSettings('saas_renewal_template_vars');
+            $messageComponents = getSaaSAutomationMessageComponents($renewalVars, $vendorAdminUser, $subscription);
+
+            $waEngine->sendActualWhatsAppTemplateMessage(
+                (int)$saasAdminVendorId, // Vendor ID of Super Admin
+                0, // Contact ID (0 for unregistered contact)
+                $waId, // To phone number
+                '', // Contact UID
+                $saasRenewalTemplate, // Template Name
+                'fr', // Template Language
+                ['name' => $saasRenewalTemplate, 'language' => 'fr'], // template proforma
+                [], // template components
+                $messageComponents, // message components
+                null // campaign ID
+            );
+            ignoreFacebookApiError(false);
+        } catch (\Exception $e) {
+            ignoreFacebookApiError(false);
+            \Illuminate\Support\Facades\Log::error("SaaS Automation Renewal Message Failed: " . $e->getMessage());
+        }
+    }
+}
+
+

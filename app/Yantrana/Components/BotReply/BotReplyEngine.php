@@ -576,10 +576,17 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
                 "name" => [
                     "required",
                     "max:200",
-                    Rule::unique('bot_replies')->where(fn(Builder $query) => $query->where([
-                        'vendors__id' => $vendorId,
-                        'bot_flows__id'  => null,
-                    ]))->ignore($botReply->_id, '_id')
+                    Rule::unique('bot_replies')->where(function (Builder $query) use ($vendorId, $request) {
+                        $query->where('vendors__id', $vendorId)->whereNull('bot_flows__id');
+                        if ($request->trigger_type == 'NT_CAMPAIGN_MESSAGE') {
+                            $query->where('trigger_type', 'NT_CAMPAIGN_MESSAGE');
+                        } else {
+                            $query->where(function ($q) {
+                                $q->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
+                                  ->orWhereNull('trigger_type');
+                            });
+                        }
+                    })->ignore($botReply->_id, '_id')
                 ],
             ]);
         }

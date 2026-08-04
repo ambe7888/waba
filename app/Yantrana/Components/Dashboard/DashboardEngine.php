@@ -322,10 +322,20 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 })
                 ->count(),
             'unreadMessagesCount' => $this->whatsAppMessageLogRepository->getUnreadCount($vendorId),
+            'unreadContactsCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 1)
+                ->where('status', 'received')
+                ->distinct('contacts__id')
+                ->count('contacts__id'),
             'messagesReceivedTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 1)
                 ->whereDate('created_at', Carbon::today())
                 ->count(),
+            'uniqueContactsTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 1)
+                ->whereDate('created_at', Carbon::today())
+                ->distinct('contacts__id')
+                ->count('contacts__id'),
             'messagesReceivedYesterdayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 1)
                 ->whereDate('created_at', Carbon::yesterday())

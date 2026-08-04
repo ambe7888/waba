@@ -69,17 +69,20 @@ class ProcessDripCampaigns extends Command
                     } elseif ($step->template) {
                         // Send template message
                         $templateData = $step->template->__data['template'] ?? [];
-                        $components = []; // Simplified
+                        $templateName = $step->template->template_name ?: ($templateData['name'] ?? '');
+                        $templateLang = $step->template->language ?: ($templateData['language'] ?? 'fr');
+                        $templateComponents = $templateData['components'] ?? [];
+
                         $waEngine->sendActualWhatsAppTemplateMessage(
                             $sub->contact->vendors__id,
                             $sub->contact->_id,
                             $sub->contact->wa_id,
                             $sub->contact->_uid,
-                            $templateData['name'] ?? '',
-                            $templateData['language'] ?? 'fr',
-                            $templateData,
-                            $components,
-                            null,
+                            $templateName,
+                            $templateLang,
+                            ['name' => $templateName, 'language' => $templateLang],
+                            $templateComponents,
+                            [],
                             null
                         );
                     }

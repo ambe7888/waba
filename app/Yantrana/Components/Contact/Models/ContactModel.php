@@ -88,6 +88,8 @@ class ContactModel extends BaseModel
     protected $appends = [
         'full_name',
         'name_initials',
+        'active_drip_campaign',
+        'active_reminder',
     ];
 
     protected $hidden = [
@@ -246,5 +248,56 @@ class ContactModel extends BaseModel
         $columns = Schema::getColumnListing($this->getTable());
         $columns = array_diff($columns, $ignoreColumns);
         return $query->select($columns);
+    }
+
+    /**
+     * Get active drip campaign for the contact if subscribed and status = 1 (active)
+     *
+     * @return array|null
+     */
+    public function getActiveDripCampaignAttribute()
+    {
+        if (class_exists('Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber')) {
+            $sub = \Addons\WhatsJetDripCampaignAddon\Models\DripSubscriber::where('contacts__id', $this->_id)
+                ->where('status', 1)
+                ->with('campaign')
+                ->first();
+
+            if ($sub && $sub->campaign) {
+                return [
+                    'id' => $sub->campaign->_id,
+                    'title' => $sub->campaign->title,
+                    'start_date' => $sub->start_date,
+                    'last_step_id' => $sub->last_step_id,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get active pending reminder for the contact
+     *
+     * @return array|null
+     */
+    public function getActiveReminderAttribute()
+    {
+        $reminder = \App\Yantrana\Components\Contact\Models\ContactReminderModel::where('contacts__id', $this->_id)
+            ->where('status', 1) // 1 = pending
+            ->orderBy('scheduled_at', 'asc')
+            ->first();
+
+        if ($reminder) {
+            return [
+                '_uid' => $reminder->_uid,
+                'scheduled_at' => $reminder->scheduled_at,
+                'scheduled_at_formatted' => \Carbon\Carbon::parse($reminder->scheduled_at)->translatedFormat('d/m/Y à H:i'),
+                'action_type' => $reminder->action_type,
+                'title_note' => $reminder->title_note,
+            ];
+        }
+
+        return null;
     }
 }

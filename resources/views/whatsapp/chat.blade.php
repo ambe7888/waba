@@ -198,7 +198,7 @@
                                            :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
                                            class="lw-contact-card lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
                                             
-                                            <div class="lw-contact-card-body">
+                                            <div class="lw-contact-card-body">                                                 
                                                 <!-- Avatar -->
                                                 <div class="lw-contact-avatar-wrapper">
                                                     <div class="lw-contact-avatar-modern text-white text-center">
@@ -208,20 +208,34 @@
                                                 
                                                 <!-- Info -->
                                                 <div class="lw-contact-info">
-                                                    <!-- Row 1: Name & Trash Button -->
+                                                    <!-- Row 1: Name & Badges -->
                                                     <div class="lw-contact-title-row d-flex align-items-center justify-content-between">
-                                                        <span class="lw-contact-name text-truncate" x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
-                                                        <span class="lw-contact-name text-truncate" x-show="!contactItem.full_name">
-                                                            @if(hasVendorAccess('hide_contact_phone_numbers'))
-                                                                <span x-text="contactItem.wa_id"></span>
-                                                            @else
-                                                                <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
-                                                            @endif
-                                                        </span>
+                                                        <div class="d-flex align-items-center text-truncate" style="gap: 6px;">
+                                                            <span class="lw-contact-name text-truncate" x-show="contactItem.full_name" x-text="contactItem.full_name"></span>
+                                                            <span class="lw-contact-name text-truncate" x-show="!contactItem.full_name">
+                                                                @if(hasVendorAccess('hide_contact_phone_numbers'))
+                                                                    <span x-text="contactItem.wa_id"></span>
+                                                                @else
+                                                                    <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
+                                                                @endif
+                                                            </span>
+
+                                                            <!-- Drip Campaign & Reminder Badges -->
+                                                            <template x-if="contactItem && contactItem.active_reminder">
+                                                                <span class="badge badge-warning px-1 py-0 shadow-sm" style="font-size: 10px; border-radius: 6px; background-color: #f59e0b !important; color: #ffffff !important;" :title="(contactItem.active_reminder && contactItem.active_reminder.scheduled_at_formatted) ? ('{{ __tr('Rappel prévu le :') }} ' + contactItem.active_reminder.scheduled_at_formatted) : ''">
+                                                                    <i class="fas fa-bell text-white lw-bell-pulse" style="font-size: 10px;"></i>
+                                                                </span>
+                                                            </template>
+                                                            <template x-if="contactItem && contactItem.active_drip_campaign">
+                                                                <span class="badge badge-success px-1 py-0 shadow-sm" style="font-size: 10px; border-radius: 6px; background-color: #10b981 !important; color: #ffffff !important;" :title="(contactItem.active_drip_campaign && contactItem.active_drip_campaign.title) ? ('{{ __tr('Campagne Drip en cours :') }} ' + contactItem.active_drip_campaign.title) : ''">
+                                                                    <i class="fas fa-clock text-white" style="font-size: 10px;"></i>
+                                                                </span>
+                                                            </template>
+                                                        </div>
                                                     </div>
                                                     
                                                     <!-- Row 2: Phone and Unread Badge -->
-                                                    <div class="lw-contact-meta-row">
+                                                    <div class="lw-contact-meta-row d-flex align-items-center justify-content-between">
                                                         <span class="lw-contact-phone">
                                                             <span x-show="contactItem.full_name">
                                                                 @if(hasVendorAccess('hide_contact_phone_numbers'))
@@ -232,8 +246,8 @@
                                                             </span>
                                                             <span x-show="!contactItem.full_name" class="lw-contact-phone-placeholder">&nbsp;</span>
                                                         </span>
-                                                        <span x-show="contactItem.unread_messages_count"
-                                                              class="lw-contact-unread-badge"
+                                                        <span x-show="contactItem && contactItem.unread_messages_count"
+                                                              class="lw-contact-unread-badge lw-unread-pulse-badge ml-2"
                                                               x-text="contactItem.unread_messages_count"></span>
                                                     </div>
 
@@ -304,6 +318,18 @@
                                                                     <a target="_blank" class="text-white" style="text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" x-bind:href="'https://api.whatsapp.com/send?phone=' + contact.wa_id" x-text="contact.wa_id ? __Utils.formatAsLocaleNumber(Number(contact.wa_id)) : ''"></a>
                                                                 @endif
                                                             </span>
+                                                            <template x-if="contact && contact.active_drip_campaign">
+                                                                <span class="badge badge-pill badge-info ml-2 px-2 py-1" style="font-size: 11px; font-weight: 600; background: rgba(255, 255, 255, 0.25); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 12px; vertical-align: middle;" :title="'{{ __tr('Campagne Drip en cours :') }} ' + contact.active_drip_campaign.title">
+                                                                    <i class="fas fa-clock text-success mr-1"></i>
+                                                                    <span x-text="contact.active_drip_campaign.title"></span>
+                                                                </span>
+                                                            </template>
+                                                            <template x-if="contact && contact.active_reminder">
+                                                                <span class="badge badge-pill badge-warning ml-2 px-2 py-1" style="font-size: 11px; font-weight: 600; background: rgba(255, 193, 7, 0.35); color: #ffffff; border: 1px solid rgba(255, 193, 7, 0.6); border-radius: 12px; vertical-align: middle;" :title="'{{ __tr('Rappel prévu le :') }} ' + contact.active_reminder.scheduled_at_formatted + ' (' + contact.active_reminder.title_note + ')'">
+                                                                    <i class="fas fa-bell text-warning mr-1"></i>
+                                                                    <span x-text="contact.active_reminder.scheduled_at_formatted"></span>
+                                                                </span>
+                                                            </template>
                                                         </div>
                                                         <template x-if="isDirectMessageDeliveryWindowOpened">
                                                             <span class="status text-success " x-text="directMessageDeliveryWindowOpenedTillMessage"></span>
@@ -323,6 +349,11 @@
                                                              @include('WhatsJetCallingAddon::call-button')
                                                          @endif
                                                          {{-- Whatsapp call button --}}
+                                                         <template x-if="contact && contact.active_reminder">
+                                                             <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="openContactReminderModal(contact)" :title="'{{ __tr('Rappel prévu le :') }} ' + contact.active_reminder.scheduled_at_formatted">
+                                                                 <i class="fas fa-bell text-warning"></i>
+                                                             </a>
+                                                         </template>
                                                         <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="isChatSearchOpened = !isChatSearchOpened; if(isChatSearchOpened) { $nextTick(() => document.getElementById('chatSearchInput').focus()) }" title="Rechercher">
                                                             <i class="fas fa-search text-white"></i>
                                                         </a>
@@ -636,7 +667,7 @@
                                                             </div>
                                                         </button>
                                                     </x-lw.form>
-                                                    
+
                                                     <!-- Format Buttons for Chat -->
                                                     <div class="px-3 pb-2 pt-1 d-none">
                                                         <x-whatsapp-format-buttons inputId="lwChatWindowMessageBody" />
@@ -1070,6 +1101,46 @@
                                     </x-lw.form>
                                 </div>
 
+                                 <!-- Rappels & Relances Card -->
+                                 <div class="lw-crm-card" style="position: relative;">
+                                     <div class="lw-crm-section-header">
+                                         <span><i class="fas fa-bell text-warning mr-1"></i> {{ __tr('Rappels & Relances') }}</span>
+                                         <button type="button" class="lw-crm-btn-round" @click="openContactReminderModal(contact)" title="{{ __tr('Programmer un rappel') }}">
+                                             <i class="fa fa-plus"></i>
+                                         </button>
+                                     </div>
+                                     
+                                     <template x-if="contact && contact.active_reminder">
+                                         <div class="p-3 rounded border border-warning" style="background: rgba(255, 193, 7, 0.08);">
+                                             <div class="d-flex align-items-center justify-content-between mb-2">
+                                                 <span class="badge badge-warning px-2 py-1" style="font-size: 11px;">
+                                                     <i class="fas fa-clock mr-1"></i>
+                                                     <span x-text="contact.active_reminder.scheduled_at_formatted"></span>
+                                                 </span>
+                                                 <span class="badge badge-secondary" x-text="contact.active_reminder.action_type == 'auto_message' ? '{{ __tr('WhatsApp Auto') }}' : '{{ __tr('Notification') }}'"></span>
+                                             </div>
+                                             <p class="small text-dark font-weight-500 mb-2" x-text="contact.active_reminder.title_note"></p>
+                                             <div class="d-flex justify-content-end">
+                                                 <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 11px; border-radius: 12px;" @click="cancelContactReminder(contact)">
+                                                     <i class="fas fa-times mr-1"></i> {{ __tr('Annuler le rappel') }}
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </template>
+                                     
+                                     <template x-if="contact && !contact.active_reminder">
+                                         <div class="text-center py-2 text-muted small">
+                                             <i class="far fa-bell-slash d-block mb-1 opacity-5" style="font-size: 20px;"></i>
+                                             <span>{{ __tr('Aucune relance programmée') }}</span>
+                                             <div class="mt-2">
+                                                 <button type="button" class="btn btn-sm btn-outline-success px-3" style="border-radius: 20px;" @click="openContactReminderModal(contact)">
+                                                     <i class="fas fa-plus mr-1"></i> {{ __tr('Ajouter un rappel') }}
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </template>
+                                 </div>
+
                                  <!-- Notes Card -->
                                 <div class="lw-crm-card" x-data="{openNotesEdit:false,contactNotes:''}" x-effect="contactNotes = contact?.__data?.contact_notes || ''">
                                     <div class="lw-crm-section-header">
@@ -1124,6 +1195,24 @@
                                                 showErrorMessage(msg || 'Erreur de mise à jour.');
                                             }
                                         });
+                                    },
+                                    deleteOrder(orderUid) {
+                                        var self = this;
+                                        if (confirm('{{ __tr('Voulez-vous vraiment supprimer cette commande ?') }}')) {
+                                            __DataRequest.post('{{ route("vendor.ecommerce.orders.delete", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
+                                                var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                                var msg = response.message || (response.data && response.data.message) || 'Commande supprimée.';
+                                                if (isSuccess) {
+                                                    showSuccessMessage(msg);
+                                                    self.ordersList = self.ordersList.filter(o => o._uid !== orderUid);
+                                                    if (typeof window.onUpdateContactDetails === 'function') {
+                                                        window.onUpdateContactDetails();
+                                                    }
+                                                } else {
+                                                    showErrorMessage(msg || 'Erreur lors de la suppression.');
+                                                }
+                                            });
+                                        }
                                     },
                                     getOrderTotal(ord) {
                                         if (!ord || !ord.order_details) return 0;
@@ -1422,17 +1511,22 @@
                                             <div class="p-2 border rounded mb-2 shadow-sm" style="border-radius: 10px; background: #ffffff; border: 1.5px solid #cbd5e1 !important;">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
-                                                    <span class="badge text-white" 
-                                                          :class="{
-                                                              'bg-success': ord.status === 'delivered',
-                                                              'bg-info': ord.status === 'shipped' || ord.status === 'processing',
-                                                              'bg-primary': ord.status === 'confirmed',
-                                                              'bg-warning text-dark': ord.status === 'validated',
-                                                              'bg-danger': ord.status === 'cancelled'
-                                                          }"
-                                                          style="font-size: 0.65rem; border-radius: 12px;"
-                                                          x-text="ord.status === 'delivered' ? 'Livrée' : (ord.status === 'shipped' ? 'En livraison' : (ord.status === 'confirmed' ? 'Confirmée' : (ord.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))">
-                                                    </span>
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="badge text-white" 
+                                                              :class="{
+                                                                  'bg-success': ord.status === 'delivered',
+                                                                  'bg-info': ord.status === 'shipped' || ord.status === 'processing',
+                                                                  'bg-primary': ord.status === 'confirmed',
+                                                                  'bg-warning text-dark': ord.status === 'validated',
+                                                                  'bg-danger': ord.status === 'cancelled'
+                                                              }"
+                                                              style="font-size: 0.65rem; border-radius: 12px;"
+                                                              x-text="ord.status === 'delivered' ? 'Livrée' : (ord.status === 'shipped' ? 'En livraison' : (ord.status === 'confirmed' ? 'Confirmée' : (ord.status === 'cancelled' ? 'Annulée' : 'Nouvelle')))">
+                                                        </span>
+                                                        <button type="button" @click="deleteOrder(ord._uid)" class="btn btn-sm btn-link text-danger p-0 ml-2" style="font-size: 0.8rem; line-height: 1; text-decoration: none;" title="{{ __tr('Supprimer la commande') }}">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div class="text-xs font-weight-bold text-emerald mb-1" style="color: #059669;" x-text="getOrderTotal(ord).toLocaleString() + ' CFA'"></div>
@@ -2120,6 +2214,457 @@
     }
 }); 
 })(jQuery);
+window.openContactReminderModal = function(contact) {
+    if (!contact) return;
+    var form = document.getElementById('lwContactReminderForm');
+    if (form) {
+        form.action = __Utils.apiURL("{{ route('vendor.contact.reminder.store', ['contactUid']) }}", {'contactUid': contact._uid});
+        if (contact.active_reminder) {
+            $('#lwContactReminderActiveNotice').show();
+            $('#lwReminderNoticeTime').text(contact.active_reminder.scheduled_at_formatted);
+        } else {
+            $('#lwContactReminderActiveNotice').hide();
+        }
+        $('#lwContactReminderModal').modal('show');
+    }
+};
+
+window.cancelContactReminder = function(contact) {
+    if (!contact || !contact.active_reminder) return;
+    if (confirm("{{ __tr('Voulez-vous vraiment annuler cette relance ?') }}")) {
+        var cancelUrl = __Utils.apiURL("{{ route('vendor.contact.reminder.cancel', ['contactUid']) }}", {'contactUid': contact._uid});
+        __DataRequest.post(cancelUrl, {}, function(response) {
+            if (response && response.reaction == 1) {
+                showSuccessNotification(response.message || '{{ __tr("Relance annulée avec succès !") }}');
+                var chatData = document.querySelector('[x-data="initialMessageData"]');
+                if (chatData) {
+                    var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
+                    if (alpineData) {
+                        if (alpineData.contact) {
+                            alpineData.contact.active_reminder = null;
+                        }
+                        if (alpineData.contacts && alpineData.contact) {
+                            if (Array.isArray(alpineData.contacts)) {
+                                var item = alpineData.contacts.find(function(c) { return c._uid === alpineData.contact._uid; });
+                                if (item) item.active_reminder = null;
+                            } else if (alpineData.contacts[alpineData.contact._uid]) {
+                                alpineData.contacts[alpineData.contact._uid].active_reminder = null;
+                                alpineData.contacts = Object.assign({}, alpineData.contacts);
+                            }
+                        }
+                    }
+                }
+                if (typeof window.onUpdateContactDetails === 'function') {
+                    window.onUpdateContactDetails();
+                }
+            }
+        });
+    }
+};
+</script>
+
+@php
+    $vendorApprovedTemplates = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', getVendorId())
+        ->whereIn('status', ['APPROVED', 'approved', 1])
+        ->get(['_uid', 'template_name', 'language', '__data']);
+
+    $vendorBotReplies = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', getVendorId())
+        ->where('status', 1)
+        ->get(['_uid', 'name', 'reply_text']);
+@endphp
+
+<style>
+/* UI-UX Pro Max Modal Custom Styling */
+#lwContactReminderModal .modal-content {
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+}
+#lwContactReminderModal .modal-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    padding: 1.25rem 1.75rem !important;
+    border-bottom: none !important;
+}
+#lwContactReminderModal .modal-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1.15rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+#lwContactReminderModal .close {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+    transition: transform 0.2s ease;
+}
+#lwContactReminderModal .close:hover {
+    transform: scale(1.1);
+    opacity: 1 !important;
+}
+
+/* Time Shortcut Chips */
+.lw-reminder-chip {
+    border-radius: 25px !important;
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+}
+.lw-reminder-chip:hover {
+    border-color: #10b981 !important;
+    color: #059669 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12) !important;
+}
+.lw-reminder-chip.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Option Cards for Action Type */
+.lw-action-type-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    background: #ffffff;
+    transition: all 0.25s ease;
+    position: relative;
+    user-select: none;
+}
+.lw-action-type-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+}
+.lw-action-type-card.active-notif {
+    border-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.06) !important;
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15) !important;
+}
+.lw-action-type-card.active-auto {
+    border-color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.06) !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15) !important;
+}
+.lw-action-type-card.active-tmpl {
+    border-color: #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.06) !important;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15) !important;
+}
+
+.lw-action-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+.lw-action-type-card:hover .lw-action-icon-circle {
+    transform: scale(1.1);
+}
+
+.lw-custom-textarea {
+    border-radius: 12px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    padding: 12px 16px !important;
+    font-size: 0.9rem !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.lw-custom-textarea:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
+
+.lw-custom-select {
+    border-radius: 12px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    height: 44px !important;
+    padding: 8px 14px !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+}
+.lw-custom-select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Modal Footer */
+#lwContactReminderModal .modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #f1f5f9 !important;
+    padding: 1.1rem 1.75rem !important;
+}
+.lw-btn-submit-reminder {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 10px 24px !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+.lw-btn-submit-reminder:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4) !important;
+    color: #ffffff !important;
+}
+.lw-btn-cancel-reminder {
+    border-radius: 25px !important;
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #64748b !important;
+    background: #ffffff !important;
+}
+.lw-btn-cancel-reminder:hover {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+}
+
+/* Unread Badge Green Pulse Animation */
+.lw-unread-pulse-badge {
+    box-shadow: 0 0 0 0 rgba(38, 211, 102, 0.7);
+    animation: lw-badge-pulse 2s infinite;
+}
+@keyframes lw-badge-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(38, 211, 102, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(38, 211, 102, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(38, 211, 102, 0);
+    }
+}
+</style>
+
+<!-- Contact Reminder Modal (Project Standard x-lw.modal) -->
+<x-lw.modal id="lwContactReminderModal" :header="__tr('Schedule a Reminder')" :hasForm="true">
+    <x-lw.form id="lwContactReminderForm" method="post" data-callback="onReminderSaved" action="" x-data="{
+        presetTime: 'tomorrow_same_time', 
+        actionType: 'notification', 
+        customDatetime: '', 
+        selectedTemplateName: '', 
+        selectedTemplateLanguage: 'fr',
+        titleNote: '',
+        templatesList: {{ json_encode($vendorApprovedTemplates->keyBy('template_name')) }},
+        templateFields: [],
+        templateFieldValues: {},
+        onTemplateChange(name) {
+            this.selectedTemplateName = name;
+            this.templateFields = [];
+            this.templateFieldValues = {};
+            if (!name || !this.templatesList[name]) return;
+            
+            var tmplObj = this.templatesList[name];
+            this.selectedTemplateLanguage = tmplObj.language || 'fr';
+            var components = (tmplObj.__data && tmplObj.__data.template && tmplObj.__data.template.components) ? tmplObj.__data.template.components : [];
+            
+            var fields = [];
+            components.forEach(function(comp) {
+                if (comp.type === 'BODY' && comp.text) {
+                    var matches = comp.text.match(/\{\{\d+\}\}/g);
+                    if (matches) {
+                        var uniqueVars = Array.from(new Set(matches));
+                        uniqueVars.forEach(function(v) {
+                            var num = v.replace(/[\{\}]/g, '');
+                            var exampleVal = (comp.example && comp.example.body_text && comp.example.body_text[0] && comp.example.body_text[0][num - 1]) ? comp.example.body_text[0][num - 1] : '';
+                            fields.push({
+                                key: 'field_' + num,
+                                label: '{{ __tr('Variable') }} {{' + num + '}}',
+                                example: exampleVal
+                            });
+                        });
+                    }
+                } else if (comp.type === 'HEADER' && comp.format === 'TEXT' && comp.text) {
+                    var matches = comp.text.match(/\{\{\d+\}\}/g);
+                    if (matches) {
+                        var uniqueVars = Array.from(new Set(matches));
+                        uniqueVars.forEach(function(v) {
+                            var num = v.replace(/[\{\}]/g, '');
+                            fields.push({
+                                key: 'header_field_' + num,
+                                label: '{{ __tr('En-tête Variable') }} {{' + num + '}}',
+                                example: ''
+                            });
+                        });
+                    }
+                }
+            });
+            this.templateFields = fields;
+        }
+    }">
+        <div class="lw-form-modal-body p-4">
+            <div id="lwContactReminderActiveNotice" class="alert alert-warning mb-4 py-2 px-3" style="display:none; border-radius: 12px; border: 1.5px solid #fcd34d; background: #fffbeb;">
+                <i class="fas fa-exclamation-triangle text-warning mr-2"></i>
+                {{ __tr('A reminder is already scheduled for:') }} <strong id="lwReminderNoticeTime" class="text-dark"></strong>. {{ __tr('Saving a new reminder will overwrite the previous one.') }}
+            </div>
+
+            <!-- Shortcut Buttons -->
+            <label class="form-label font-weight-700 text-dark mb-2" style="font-size: 0.88rem; color: #1e293b;">
+                <i class="fas fa-clock text-emerald mr-1" style="color: #10b981;"></i> {{ __tr('Time Shortcut:') }}
+            </label>
+            <div class="d-flex flex-wrap mb-4" style="gap: 8px;">
+                <button type="button" class="lw-reminder-chip" :class="presetTime == 'in_2_hours' ? 'active' : ''" @click="presetTime = 'in_2_hours'"><i class="fas fa-bolt mr-1"></i> {{ __tr('In 2h') }}</button>
+                <button type="button" class="lw-reminder-chip" :class="presetTime == 'today_14h' ? 'active' : ''" @click="presetTime = 'today_14h'"><i class="fas fa-sun mr-1"></i> {{ __tr('Today 2pm') }}</button>
+                <button type="button" class="lw-reminder-chip" :class="presetTime == 'today_18h' ? 'active' : ''" @click="presetTime = 'today_18h'"><i class="fas fa-moon mr-1"></i> {{ __tr('Today 6pm') }}</button>
+                <button type="button" class="lw-reminder-chip" :class="presetTime == 'tomorrow_same_time' ? 'active' : ''" @click="presetTime = 'tomorrow_same_time'"><i class="far fa-calendar-alt mr-1"></i> {{ __tr('Tomorrow Same Time') }}</button>
+                <button type="button" class="lw-reminder-chip" :class="presetTime == 'custom' ? 'active' : ''" @click="presetTime = 'custom'"><i class="fas fa-sliders-h mr-1"></i> {{ __tr('Custom') }}</button>
+            </div>
+            <input type="hidden" name="preset_time" :value="presetTime">
+
+            <div x-show="presetTime == 'custom'" class="form-group mb-4" x-cloak>
+                <label class="form-label font-weight-700 text-dark" style="font-size: 0.88rem;">{{ __tr('Date & Time:') }}</label>
+                <input type="datetime-local" class="form-control lw-custom-select" name="custom_datetime" x-model="customDatetime">
+            </div>
+
+            <!-- Action Type Card Selection -->
+            <label class="form-label font-weight-700 text-dark mb-2" style="font-size: 0.88rem; color: #1e293b;">
+                <i class="fas fa-layer-group text-primary mr-1"></i> {{ __tr('Reminder Type:') }}
+            </label>
+            <div class="row mb-4">
+                <div class="col-4 px-1">
+                    <div class="lw-action-type-card" :class="actionType == 'notification' ? 'active-notif' : ''" @click="actionType = 'notification'">
+                        <input type="radio" name="action_type" value="notification" x-model="actionType" class="d-none">
+                        <div class="lw-action-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="font-weight-700 text-dark" style="font-size: 0.83rem;">{{ __tr('Internal Notification') }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ __tr('Alert for agent') }}</div>
+                    </div>
+                </div>
+                <div class="col-4 px-1">
+                    <div class="lw-action-type-card" :class="actionType == 'auto_message' ? 'active-auto' : ''" @click="actionType = 'auto_message'">
+                        <input type="radio" name="action_type" value="auto_message" x-model="actionType" class="d-none">
+                        <div class="lw-action-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                        <div class="font-weight-700 text-dark" style="font-size: 0.83rem;">{{ __tr('WhatsApp Message') }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ __tr('Direct message on WhatsApp') }}</div>
+                    </div>
+                </div>
+                <div class="col-4 px-1">
+                    <div class="lw-action-type-card" :class="actionType == 'template_message' ? 'active-tmpl' : ''" @click="actionType = 'template_message'">
+                        <input type="radio" name="action_type" value="template_message" x-model="actionType" class="d-none">
+                        <div class="lw-action-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                        <div class="font-weight-700 text-dark" style="font-size: 0.83rem;">{{ __tr('Message After 24h') }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ __tr('Message to send after 24h') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Reply Selector (when actionType == 'auto_message') -->
+            <div x-show="actionType == 'auto_message'" class="form-group mb-3" x-cloak>
+                <label class="form-label font-weight-700 text-dark mb-1" style="font-size: 0.85rem; color: #1e293b;">
+                    <i class="fas fa-robot text-primary mr-1"></i> {{ __tr('Insert Predefined Bot Reply:') }}
+                </label>
+                <select class="form-control lw-custom-select" @change="if ($el.value) { titleNote = $el.value; }">
+                    <option value="">{{ __tr('-- Select a Bot Reply --') }}</option>
+                    @foreach($vendorBotReplies as $bot)
+                        <option value="{{ $bot->reply_text }}">{{ $bot->name }} ({{ Str::limit($bot->reply_text, 45) }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- WhatsApp Template Selector (when actionType == 'template_message') -->
+            <div x-show="actionType == 'template_message'" class="form-group mb-3" x-cloak>
+                <label class="form-label font-weight-700 text-dark" style="font-size: 0.88rem;">{{ __tr('Select WhatsApp Template:') }}</label>
+                <select class="form-control lw-custom-select" name="template_name" x-model="selectedTemplateName" @change="onTemplateChange($el.value)">
+                    <option value="">{{ __tr('-- Select a template --') }}</option>
+                    @foreach($vendorApprovedTemplates as $tmpl)
+                        <option value="{{ $tmpl->template_name }}" data-lang="{{ $tmpl->language ?? 'fr' }}">{{ $tmpl->template_name }}</option>
+                    @endforeach
+                </select>
+                <input type="hidden" name="template_language" :value="selectedTemplateLanguage">
+                <small class="form-text text-muted mt-1"><i class="fas fa-shield-alt text-success mr-1"></i> {{ __tr('Meta compliant for messaging outside 24h window.') }}</small>
+            </div>
+
+            <!-- Meta Template Dynamic Variables -->
+            <div x-show="actionType == 'template_message' && templateFields.length > 0" class="card p-3 mb-4" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px;" x-cloak>
+                <div class="font-weight-700 text-dark mb-2 small d-flex align-items-center">
+                    <i class="fas fa-sliders-h text-primary mr-1.5"></i> {{ __tr('Variables du modèle Meta :') }}
+                </div>
+                <div class="row">
+                    <template x-for="field in templateFields" :key="field.key">
+                        <div class="col-6 mb-2">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.78rem; font-weight: 600;" x-text="field.label"></label>
+                            <input type="text" :name="field.key" x-model="templateFieldValues[field.key]" class="form-control form-control-sm lw-custom-select" :placeholder="field.example ? ('Ex: ' + field.example) : '{{ __tr('Ex: Valentin ou {first_name}') }}'" required>
+                        </div>
+                    </template>
+                </div>
+                <small class="text-muted mt-1" style="font-size: 0.73rem;">
+                    <i class="fas fa-info-circle text-info mr-1"></i> {{ __tr('Vous pouvez écrire du texte fixe ou utiliser {first_name}, {full_name}, {phone}.') }}
+                </small>
+            </div>
+
+            <!-- Note / Message Body -->
+            <div class="form-group mb-0">
+                <label class="form-label font-weight-700 text-dark" style="font-size: 0.88rem;" x-text="actionType == 'template_message' ? '{{ __tr('Reminder Note:') }}' : (actionType == 'auto_message' ? '{{ __tr('WhatsApp Text Message:') }}' : '{{ __tr('Internal Reminder Note:') }}')"></label>
+                <textarea class="form-control lw-custom-textarea" name="title_note" x-model="titleNote" rows="3" placeholder="{{ __tr('Ex: Follow up with customer to confirm order...') }}" :required="actionType != 'template_message'"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between align-items-center">
+            <button type="button" class="btn lw-btn-cancel-reminder" data-dismiss="modal">{{ __tr('Close') }}</button>
+            <button type="submit" class="btn lw-btn-submit-reminder">
+                <i class="fas fa-check-circle mr-2"></i> {{ __tr('Save') }}
+            </button>
+        </div>
+    </x-lw.form>
+</x-lw.modal>
+
+<script type="text/javascript">
+function onReminderSaved(response) {
+    if (response && response.reaction == 1) {
+        $('#lwContactReminderModal').modal('hide');
+        showSuccessNotification(response.message || '{{ __tr("Rappel enregistré !") }}');
+        
+        var chatData = document.querySelector('[x-data="initialMessageData"]');
+        if (chatData) {
+            var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
+            if (alpineData) {
+                if (alpineData.contact && response.data && response.data.reminder) {
+                    alpineData.contact.active_reminder = response.data.reminder;
+                }
+                if (alpineData.contacts && response.data && response.data.reminder) {
+                    if (Array.isArray(alpineData.contacts)) {
+                        var item = alpineData.contacts.find(function(c) { return c._uid === alpineData.contact._uid; });
+                        if (item) item.active_reminder = response.data.reminder;
+                    } else if (alpineData.contact && alpineData.contacts[alpineData.contact._uid]) {
+                        alpineData.contacts[alpineData.contact._uid].active_reminder = response.data.reminder;
+                        alpineData.contacts = Object.assign({}, alpineData.contacts);
+                    }
+                }
+            }
+        }
+        if (typeof window.onUpdateContactDetails === 'function') {
+            window.onUpdateContactDetails();
+        }
+    }
+}
 </script>
 @endpush
 @endsection()

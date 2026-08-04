@@ -47,7 +47,7 @@ $vendorViewBySuperAdmin = null;
     </div>
     @endif
     @include('layouts.headers.cards')
-    @if(hasVendorAccess() or $vendorViewBySuperAdmin )
+    @if(hasVendorAccess() or hasVendorUserAccess() or $vendorViewBySuperAdmin )
 <div class="container-fluid">
     @php
         $whatsappSetupDone = isWhatsAppBusinessAccountReady($vendorIdOrUid) && !getVendorSettings('whatsapp_access_token_expired', null, null, $vendorIdOrUid);
@@ -133,209 +133,227 @@ $vendorViewBySuperAdmin = null;
         </div>
     </div>
     @endif
-
+    <!-- Onboarding / Quick Start Guide (Sleek, Modern & Always Displayed) -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card onboarding-card border-0" style="background: white; border-radius: 16px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; overflow: hidden;">
-                <!-- Header Card with Gradient -->
-                <div class="card-header border-0 py-4 d-flex align-items-center justify-content-between flex-wrap" style="background: linear-gradient(135deg, #128c7e, #25d366) !important; border-radius: 16px 16px 0 0 !important; cursor: pointer;" data-toggle="collapse" data-target="#onboardingCollapse" aria-expanded="{{ $percentage == 100 ? 'false' : 'true' }}">
-                    <div>
-                        <h3 class="text-white mb-1 font-weight-bold" style="font-size: 1.25rem;">
-                            <i class="fas fa-flag-checkered mr-2"></i> {{ __tr('Guide de Démarrage Rapide') }}
-                            <i class="fas fa-chevron-down ml-2" style="font-size: 0.95rem;"></i>
-                        </h3>
-                        <p class="text-white-50 mb-0" style="font-size: 0.85rem;">
-                            {{ __tr('Suivez ces étapes pour configurer pleinement votre compte et commencer vos campagnes.') }}
-                        </p>
+            <div class="card border-0 shadow-sm" style="background: #ffffff; border-radius: 12px !important; overflow: hidden; border-left: 4px solid {{ $percentage == 100 ? '#10b981' : '#3b82f6' }} !important;">
+                <!-- Sleek Header Bar -->
+                <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap" style="cursor: pointer;" data-toggle="collapse" data-target="#onboardingCollapse" aria-expanded="{{ $percentage == 100 ? 'false' : 'true' }}">
+                    <div class="d-flex align-items-center mb-2 mb-md-0">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 shadow-xs" style="width: 36px; height: 36px; background-color: {{ $percentage == 100 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)' }}; color: {{ $percentage == 100 ? '#10b981' : '#3b82f6' }}; flex-shrink: 0;">
+                            <i class="fas {{ $percentage == 100 ? 'fa-check-circle' : 'fa-flag-checkered' }}" style="font-size: 1.05rem;"></i>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center flex-wrap">
+                                <h4 class="mb-0 font-weight-bold text-dark mr-2" style="font-size: 0.98rem; color: #0f172a !important;">
+                                    {{ __tr('Guide de Démarrage Rapide') }}
+                                </h4>
+                                @if($percentage == 100)
+                                    <span class="badge font-weight-bold px-2 py-1 text-white" style="background-color: #059669 !important; font-size: 0.72rem; border-radius: 6px;">
+                                        <i class="fas fa-check mr-1"></i> 100% {{ __tr('terminé') }}
+                                    </span>
+                                @else
+                                    <span class="badge font-weight-bold px-2 py-1 text-white" style="background-color: #3b82f6 !important; font-size: 0.72rem; border-radius: 6px;">
+                                        {{ $completedSteps }}/{{ $totalSteps }} {{ __tr('étapes') }}
+                                    </span>
+                                @endif
+                            </div>
+                            <small class="text-muted d-block mt-0.5" style="font-size: 0.8rem; color: #64748b !important;">
+                                @if($percentage == 100)
+                                    {{ __tr('Toutes les étapes de configuration sont validées et votre compte est opérationnel.') }}
+                                @else
+                                    {{ __tr('Suivez ces étapes pour configurer pleinement votre compte et commencer vos campagnes.') }}
+                                @endif
+                            </small>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center mt-2 mt-md-0">
-                        <span class="h2 text-white font-weight-bold mb-0 mr-2" style="font-size: 1.8rem;">{{ $percentage }}%</span>
-                        <span class="text-white-50 mr-3" style="font-size: 0.85rem;">{{ __tr('terminé') }}</span>
-                    </div>
-                </div>
-                
-                <div id="onboardingCollapse" class="collapse {{ $percentage == 100 ? '' : 'show' }}">
-                    <div class="card-body p-4">
-                    <!-- Progress Bar -->
-                    <div class="onboarding-progress-wrapper mb-4">
-                        <div class="progress rounded-pill shadow-inner" style="height: 10px; background-color: #f0f2f5; overflow: hidden;">
+                    <div class="d-flex align-items-center">
+                        <div class="mr-3 text-right">
+                            <span class="font-weight-bold" style="font-size: 1.05rem; color: {{ $percentage == 100 ? '#10b981' : '#3b82f6' }} !important;">{{ $percentage }}%</span>
+                        </div>
+                        <div class="progress rounded-pill" style="width: 80px; height: 7px; background-color: #f1f5f9; overflow: hidden;">
                             <div class="progress-bar rounded-pill" role="progressbar" 
-                                 style="width: {{ $percentage }}%; background: linear-gradient(90deg, #128c7e, #25d366); transition: width 0.6s ease;" 
+                                 style="width: {{ $percentage }}%; background-color: {{ $percentage == 100 ? '#10b981' : '#3b82f6' }} !important; transition: width 0.6s ease;" 
                                  aria-valuenow="{{ $percentage }}" aria-valuemin="0" aria-valuemax="100">
                             </div>
                         </div>
+                        <i class="fas fa-chevron-down ml-3 text-muted" style="font-size: 0.85rem;"></i>
                     </div>
+                </div>
 
-                    <!-- Steps List -->
-                    <div class="row">
-                        <!-- Step 1 -->
-                        <div class="col-12 mb-3">
-                            <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8f9fa; border-left: 4px solid {{ $whatsappSetupDone ? '#2dce89' : '#fb6340' }}; transition: all 0.3s ease; border-radius: 8px !important;">
-                                <div class="mr-3 mt-1">
-                                    @if($whatsappSetupDone)
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(45, 206, 137, 0.15); color: #2dce89; font-size: 1.1rem;">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(251, 99, 64, 0.15); color: #fb6340; font-size: 1.1rem;">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h4 class="h5 mb-1 font-weight-bold {{ $whatsappSetupDone ? 'text-muted text-decoration-line-through' : 'text-dark' }}" style="font-size: 1rem;">
-                                        1. {{ __tr('Configuration de l\'API WhatsApp Cloud') }}
-                                    </h4>
-                                    <p class="mb-2 text-sm text-muted">
-                                        @if(getVendorSettings('whatsapp_access_token_expired', null, null, $vendorIdOrUid))
-                                            <span class="text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-1"></i> {{ __tr('Votre jeton WhatsApp semble avoir expiré. Veuillez en générer un nouveau.') }}</span>
-                                        @elseif($whatsappSetupDone)
-                                            {{ __tr('Votre compte WhatsApp Cloud API est configuré et prêt pour l\'envoi de messages.') }}
+                <!-- Collapsible Body -->
+                <div id="onboardingCollapse" class="collapse {{ $percentage == 100 ? '' : 'show' }}">
+                    <div class="card-body p-4 border-top">
+                        <div class="row">
+                            <!-- Step 1 -->
+                            <div class="col-12 mb-3">
+                                <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8fafc; border-left: 4px solid {{ $whatsappSetupDone ? '#10b981' : '#f59e0b' }}; border-radius: 8px !important;">
+                                    <div class="mr-3 mt-1">
+                                        @if($whatsappSetupDone)
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.95rem;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         @else
-                                            {{ __tr('Connectez votre compte développeur Facebook et configurez les clés d\'accès de votre compte WhatsApp Business.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size: 0.95rem;">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
                                         @endif
-                                    </p>
-                                    @if(!$whatsappSetupDone || getVendorSettings('whatsapp_access_token_expired', null, null, $vendorIdOrUid))
-                                        <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.settings.read', ['pageType' => 'whatsapp-cloud-api-setup']) }}">
-                                            <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Configurer l\'API WhatsApp') }}
-                                        </a>
-                                    @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="h5 mb-1 font-weight-bold text-dark" style="font-size: 0.93rem; color: #0f172a !important;">
+                                            1. {{ __tr('Configuration de l\'API WhatsApp Cloud') }}
+                                        </h4>
+                                        <p class="mb-2 text-sm" style="color: #475569 !important; font-size: 0.82rem;">
+                                            @if(getVendorSettings('whatsapp_access_token_expired', null, null, $vendorIdOrUid))
+                                                <span class="text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-1"></i> {{ __tr('Votre jeton WhatsApp semble avoir expiré. Veuillez en générer un nouveau.') }}</span>
+                                            @elseif($whatsappSetupDone)
+                                                {{ __tr('Votre compte WhatsApp Cloud API est configuré et prêt pour l\'envoi de messages.') }}
+                                            @else
+                                                {{ __tr('Connectez votre compte développeur Facebook et configurez les clés d\'accès de votre compte WhatsApp Business.') }}
+                                            @endif
+                                        </p>
+                                        @if(!$whatsappSetupDone || getVendorSettings('whatsapp_access_token_expired', null, null, $vendorIdOrUid))
+                                            <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.settings.read', ['pageType' => 'whatsapp-cloud-api-setup']) }}">
+                                                <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Configurer l\'API WhatsApp') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Step 2 -->
-                        <div class="col-12 mb-3">
-                            <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8f9fa; border-left: 4px solid {{ $templatesDone ? '#2dce89' : '#8898aa' }}; transition: all 0.3s ease; border-radius: 8px !important;">
-                                <div class="mr-3 mt-1">
-                                    @if($templatesDone)
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(45, 206, 137, 0.15); color: #2dce89; font-size: 1.1rem;">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 36px; height: 36px; background-color: #e9ecef; font-size: 0.95rem;">
-                                            2
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h4 class="h5 mb-1 font-weight-bold {{ $templatesDone ? 'text-muted text-decoration-line-through' : 'text-dark' }}" style="font-size: 1rem;">
-                                        2. {{ __tr('Synchronisation des modèles de messages') }}
-                                    </h4>
-                                    <p class="mb-2 text-sm text-muted">
+                            <!-- Step 2 -->
+                            <div class="col-12 mb-3">
+                                <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8fafc; border-left: 4px solid {{ $templatesDone ? '#10b981' : '#94a3b8' }}; border-radius: 8px !important;">
+                                    <div class="mr-3 mt-1">
                                         @if($templatesDone)
-                                            {{ __tr('Vos modèles de messages approuvés par Meta ont été correctement synchronisés.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.95rem;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         @else
-                                            {{ __tr('Importez et synchronisez vos modèles de messages approuvés par Meta pour pouvoir les utiliser.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 32px; height: 32px; background-color: #e2e8f0; font-size: 0.85rem;">
+                                                2
+                                            </div>
                                         @endif
-                                    </p>
-                                    @if(!$templatesDone)
-                                        <a class="btn btn-sm btn-primary text-white {{ !$whatsappSetupDone ? 'disabled' : '' }}" href="{{ route('vendor.whatsapp_service.templates.read.list_view') }}">
-                                            <i class="fas fa-sync mr-1"></i> {{ __tr('Synchroniser les modèles') }}
-                                        </a>
-                                    @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="h5 mb-1 font-weight-bold text-dark" style="font-size: 0.93rem; color: #0f172a !important;">
+                                            2. {{ __tr('Synchronisation des modèles de messages') }}
+                                        </h4>
+                                        <p class="mb-2 text-sm" style="color: #475569 !important; font-size: 0.82rem;">
+                                            @if($templatesDone)
+                                                {{ __tr('Vos modèles de messages approuvés par Meta ont été correctement synchronisés.') }}
+                                            @else
+                                                {{ __tr('Importez et synchronisez vos modèles de messages approuvés par Meta pour pouvoir les utiliser.') }}
+                                            @endif
+                                        </p>
+                                        @if(!$templatesDone)
+                                            <a class="btn btn-sm btn-primary text-white {{ !$whatsappSetupDone ? 'disabled' : '' }}" href="{{ route('vendor.whatsapp_service.templates.read.list_view') }}">
+                                                <i class="fas fa-sync mr-1"></i> {{ __tr('Synchroniser les modèles') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Step 3 -->
-                        <div class="col-12 mb-3">
-                            <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8f9fa; border-left: 4px solid {{ $groupsDone ? '#2dce89' : '#8898aa' }}; transition: all 0.3s ease; border-radius: 8px !important;">
-                                <div class="mr-3 mt-1">
-                                    @if($groupsDone)
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(45, 206, 137, 0.15); color: #2dce89; font-size: 1.1rem;">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 36px; height: 36px; background-color: #e9ecef; font-size: 0.95rem;">
-                                            3
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h4 class="h5 mb-1 font-weight-bold {{ $groupsDone ? 'text-muted text-decoration-line-through' : 'text-dark' }}" style="font-size: 1rem;">
-                                        3. {{ __tr('Création de groupes de contacts') }}
-                                    </h4>
-                                    <p class="mb-2 text-sm text-muted">
+                            <!-- Step 3 -->
+                            <div class="col-12 mb-3">
+                                <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8fafc; border-left: 4px solid {{ $groupsDone ? '#10b981' : '#94a3b8' }}; border-radius: 8px !important;">
+                                    <div class="mr-3 mt-1">
                                         @if($groupsDone)
-                                            {{ __tr('Vous avez créé des groupes de contacts pour vos campagnes.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.95rem;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         @else
-                                            {{ __tr('Créez des groupes de contacts (ex: clients, prospects, VIP) pour segmenter vos diffusions.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 32px; height: 32px; background-color: #e2e8f0; font-size: 0.85rem;">
+                                                3
+                                            </div>
                                         @endif
-                                    </p>
-                                    @if(!$groupsDone)
-                                        <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.contact.group.read.list_view') }}">
-                                            <i class="fas fa-users mr-1"></i> {{ __tr('Gérer les groupes') }}
-                                        </a>
-                                    @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="h5 mb-1 font-weight-bold text-dark" style="font-size: 0.93rem; color: #0f172a !important;">
+                                            3. {{ __tr('Création de groupes de contacts') }}
+                                        </h4>
+                                        <p class="mb-2 text-sm" style="color: #475569 !important; font-size: 0.82rem;">
+                                            @if($groupsDone)
+                                                {{ __tr('Vous avez créé des groupes de contacts pour vos campagnes.') }}
+                                            @else
+                                                {{ __tr('Créez des groupes de contacts (ex: clients, prospects, VIP) pour segmenter vos diffusions.') }}
+                                            @endif
+                                        </p>
+                                        @if(!$groupsDone)
+                                            <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.contact.group.read.list_view') }}">
+                                                <i class="fas fa-users mr-1"></i> {{ __tr('Gérer les groupes') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Step 4 -->
-                        <div class="col-12 mb-3">
-                            <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8f9fa; border-left: 4px solid {{ $contactsDone ? '#2dce89' : '#8898aa' }}; transition: all 0.3s ease; border-radius: 8px !important;">
-                                <div class="mr-3 mt-1">
-                                    @if($contactsDone)
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(45, 206, 137, 0.15); color: #2dce89; font-size: 1.1rem;">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 36px; height: 36px; background-color: #e9ecef; font-size: 0.95rem;">
-                                            4
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h4 class="h5 mb-1 font-weight-bold {{ $contactsDone ? 'text-muted text-decoration-line-through' : 'text-dark' }}" style="font-size: 1rem;">
-                                        4. {{ __tr('Création ou importation de vos contacts') }}
-                                    </h4>
-                                    <p class="mb-2 text-sm text-muted">
+                            <!-- Step 4 -->
+                            <div class="col-12 mb-3">
+                                <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8fafc; border-left: 4px solid {{ $contactsDone ? '#10b981' : '#94a3b8' }}; border-radius: 8px !important;">
+                                    <div class="mr-3 mt-1">
                                         @if($contactsDone)
-                                            {{ __tr('Vos contacts ont été ajoutés et sont prêts.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.95rem;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         @else
-                                            {{ __tr('Ajoutez vos destinataires manuellement ou importez-les en masse via un fichier Excel ou CSV.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 32px; height: 32px; background-color: #e2e8f0; font-size: 0.85rem;">
+                                                4
+                                            </div>
                                         @endif
-                                    </p>
-                                    @if(!$contactsDone)
-                                        <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.contact.read.list_view') }}">
-                                            <i class="fas fa-user-plus mr-1"></i> {{ __tr('Gérer les contacts') }}
-                                        </a>
-                                    @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="h5 mb-1 font-weight-bold text-dark" style="font-size: 0.93rem; color: #0f172a !important;">
+                                            4. {{ __tr('Création ou importation de vos contacts') }}
+                                        </h4>
+                                        <p class="mb-2 text-sm" style="color: #475569 !important; font-size: 0.82rem;">
+                                            @if($contactsDone)
+                                                {{ __tr('Vos contacts ont été ajoutés et sont prêts.') }}
+                                            @else
+                                                {{ __tr('Ajoutez vos destinataires manuellement ou importez-les en masse via un fichier Excel ou CSV.') }}
+                                            @endif
+                                        </p>
+                                        @if(!$contactsDone)
+                                            <a class="btn btn-sm btn-primary text-white" href="{{ route('vendor.contact.read.list_view') }}">
+                                                <i class="fas fa-user-plus mr-1"></i> {{ __tr('Gérer les contacts') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Step 5 -->
-                        <div class="col-12">
-                            <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8f9fa; border-left: 4px solid {{ $campaignsDone ? '#2dce89' : '#8898aa' }}; transition: all 0.3s ease; border-radius: 8px !important;">
-                                <div class="mr-3 mt-1">
-                                    @if($campaignsDone)
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: rgba(45, 206, 137, 0.15); color: #2dce89; font-size: 1.1rem;">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 36px; height: 36px; background-color: #e9ecef; font-size: 0.95rem;">
-                                            5
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h4 class="h5 mb-1 font-weight-bold {{ $campaignsDone ? 'text-muted text-decoration-line-through' : 'text-dark' }}" style="font-size: 1rem;">
-                                        5. {{ __tr('Lancement de votre première campagne') }}
-                                    </h4>
-                                    <p class="mb-2 text-sm text-muted">
+                            <!-- Step 5 -->
+                            <div class="col-12">
+                                <div class="onboarding-step-item d-flex align-items-start p-3 rounded" style="background: #f8fafc; border-left: 4px solid {{ $campaignsDone ? '#10b981' : '#94a3b8' }}; border-radius: 8px !important;">
+                                    <div class="mr-3 mt-1">
                                         @if($campaignsDone)
-                                            {{ __tr('Félicitations, vous avez déjà configuré et envoyé des campagnes de messages.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.95rem;">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         @else
-                                            {{ __tr('Planifiez ou envoyez votre première campagne de diffusion à vos groupes de contacts.') }}
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width: 32px; height: 32px; background-color: #e2e8f0; font-size: 0.85rem;">
+                                                5
+                                            </div>
                                         @endif
-                                    </p>
-                                    @if(!$campaignsDone)
-                                        <a class="btn btn-sm btn-primary text-white {{ (!$whatsappSetupDone || !$templatesDone || !$contactsDone) ? 'disabled' : '' }}" href="{{ route('vendor.campaign.read.list_view') }}">
-                                            <i class="fas fa-paper-plane mr-1"></i> {{ __tr('Gérer les campagnes') }}
-                                        </a>
-                                    @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="h5 mb-1 font-weight-bold text-dark" style="font-size: 0.93rem; color: #0f172a !important;">
+                                            5. {{ __tr('Lancement de votre première campagne') }}
+                                        </h4>
+                                        <p class="mb-2 text-sm" style="color: #475569 !important; font-size: 0.82rem;">
+                                            @if($campaignsDone)
+                                                {{ __tr('Félicitations, vous avez déjà configuré et envoyé des campagnes de messages.') }}
+                                            @else
+                                                {{ __tr('Planifiez ou envoyez votre première campagne de diffusion à vos groupes de contacts.') }}
+                                            @endif
+                                        </p>
+                                        @if(!$campaignsDone)
+                                            <a class="btn btn-sm btn-primary text-white {{ (!$whatsappSetupDone || !$templatesDone || !$contactsDone) ? 'disabled' : '' }}" href="{{ route('vendor.campaign.read.list_view') }}">
+                                                <i class="fas fa-paper-plane mr-1"></i> {{ __tr('Gérer les campagnes') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -343,7 +361,7 @@ $vendorViewBySuperAdmin = null;
                 </div>
             </div>
         </div>
-        </div>
+    </div>
     </div>
 </div>
 @endif

@@ -1642,6 +1642,18 @@ return [
                 'default' => '',
                 'ignore_empty' => true,
             ],
+            'saas_renewal_template' => [
+                'key' => 'saas_renewal_template',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
+            'saas_renewal_template_vars' => [
+                'key' => 'saas_renewal_template_vars',
+                'data_type' => 1,    // string
+                'default' => '',
+                'ignore_empty' => true,
+            ],
         ]
     ],
 ];

@@ -225,6 +225,7 @@ class BotReplyRepository extends BaseRepository implements BotReplyRepositoryInt
             '__data',
             'bot_flows__id',
             'status',
+            'addon_drip_campaigns__id',
         ])->where($whereConditions)->get();
     }
 

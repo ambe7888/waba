@@ -469,18 +469,39 @@ class ECommerceController extends BaseController
 
         if (empty($order)) {
             return $this->processResponse(2, [
-                2 => __tr('Commande introuvable.')
+                2 => __tr('Order not found.')
             ], [
-                'message' => __tr('Commande introuvable.')
+                'message' => __tr('Order not found.')
+            ]);
+        }
+
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::find($order->contacts__id);
+        if ($contact) {
+            $orderRef = '#' . substr($order->_uid, 0, 8);
+            $systemMsg = "🗑️ Commande {$orderRef} supprimée par l'agent";
+            storeWhatsAppLogChatHistory([
+                'status' => 'initialize',
+                'contacts__id' => $contact->_id,
+                'vendors__id' => $vendorId,
+                'contact_wa_id' => $contact->wa_id,
+                'is_system_message' => 1,
+                'is_incoming_message' => 0,
+                'messaged_at' => now(),
+                'message' => $systemMsg,
+                '__data' => [
+                    'system_message_data' => [
+                        'message' => $systemMsg
+                    ]
+                ]
             ]);
         }
 
         $order->delete();
 
         return $this->processResponse(1, [
-            1 => __tr('Commande supprimée avec succès.')
+            1 => __tr('Order deleted successfully.')
         ], [
-            'message' => __tr('Commande supprimée avec succès.')
+            'message' => __tr('Order deleted successfully.')
         ]);
     }
 
@@ -624,9 +645,9 @@ class ECommerceController extends BaseController
         $newOrder->load('contact');
 
         return $this->processResponse(1, [
-            1 => __tr('Commande créée avec succès !')
+            1 => __tr('Order created successfully!')
         ], [
-            'message' => __tr('Commande créée avec succès !'),
+            'message' => __tr('Order created successfully!'),
             'order' => $newOrder
         ]);
     }
@@ -641,7 +662,7 @@ class ECommerceController extends BaseController
         
         if (empty($contact)) {
             return $this->processResponse(2, [], [
-                'message' => __tr('Veuillez ajouter au moins un contact WhatsApp pour créer une commande de test.')
+                'message' => __tr('Please add at least one WhatsApp contact to create a test order.')
             ]);
         }
 
@@ -660,7 +681,7 @@ class ECommerceController extends BaseController
         ]);
 
         return $this->processResponse(1, [], [
-            'message' => __tr('Commande de test créée (#__uid__). Recharchez la page pour voir la notification.', ['__uid__' => substr($newOrder->_uid, 0, 8)])
+            'message' => __tr('Test order created (#__uid__). Reload page to see notification.', ['__uid__' => substr($newOrder->_uid, 0, 8)])
         ]);
     }
 
@@ -739,7 +760,27 @@ class ECommerceController extends BaseController
             'status' => 'validated',
         ]);
 
-        // Orders are displayed in the dedicated orders section — no need to write to contact_notes
+        // Store system message log in chat history
+        $totalPrice = $request->total_price ?: ($request->price ?: 0);
+        $currency = $request->currency ?: 'CFA';
+        $orderRef = '#' . substr($newOrder->_uid, 0, 8);
+        $systemMsg = "📦 Nouvelle commande créée {$orderRef} ({$totalPrice} {$currency})";
+
+        storeWhatsAppLogChatHistory([
+            'status' => 'initialize',
+            'contacts__id' => $contact->_id,
+            'vendors__id' => $vendorId,
+            'contact_wa_id' => $contact->wa_id,
+            'is_system_message' => 1,
+            'is_incoming_message' => 0,
+            'messaged_at' => now(),
+            'message' => $systemMsg,
+            '__data' => [
+                'system_message_data' => [
+                    'message' => $systemMsg
+                ]
+            ]
+        ]);
 
         return response()->json([
             'reaction_code' => 1,

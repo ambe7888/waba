@@ -21,6 +21,9 @@ class DripCampaignController extends Controller
         $campaigns = DripCampaign::where('vendors__id', $vendorId)
             ->withCount('steps')
             ->withCount('subscribers')
+            ->withCount(['subscribers as active_subscribers_count' => function ($query) {
+                $query->where('status', 1);
+            }])
             ->orderBy('_id', 'desc')
             ->get();
             
@@ -80,7 +83,13 @@ class DripCampaignController extends Controller
             ->where('status', 'approved')
             ->get();
 
-        $presetMessages = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', $vendorId)->get();
+        $presetMessages = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', $vendorId)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->whereNull('bot_flows__id')
+                  ->orWhere('trigger_type', 'NT_CAMPAIGN_MESSAGE');
+            })
+            ->get();
 
         return view('WhatsJetDripCampaignAddon::builder', [
             'campaign' => $campaign,
@@ -107,13 +116,18 @@ class DripCampaignController extends Controller
             ->where('vendors__id', getVendorId())
             ->firstOrFail();
 
+        $customMessage = $request->custom_message;
+        if ($request->has('custom_message_b64')) {
+            $customMessage = base64_decode($request->custom_message_b64);
+        }
+
         DripStep::create([
             'addon_drip_campaigns__id' => $campaign->_id,
             'delay_value' => $request->delay_value,
             'delay_type' => $request->delay_type,
             'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
             'bot_replies__id' => $request->bot_replies__id ?: null,
-            'custom_message' => $request->custom_message ?: null,
+            'custom_message' => $customMessage ?: null,
         ]);
 
         return back()->with('success', __tr('Step added successfully.'));
@@ -155,12 +169,17 @@ class DripCampaignController extends Controller
             ->where('vendors__id', getVendorId())
             ->firstOrFail();
 
+        $customMessage = $request->custom_message;
+        if ($request->has('custom_message_b64')) {
+            $customMessage = base64_decode($request->custom_message_b64);
+        }
+
         $step->update([
             'delay_value' => $request->delay_value,
             'delay_type' => $request->delay_type,
             'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
             'bot_replies__id' => $request->bot_replies__id ?: null,
-            'custom_message' => $request->custom_message ?: null,
+            'custom_message' => $customMessage ?: null,
         ]);
 
         return back()->with('success', __tr('Step updated successfully.'));

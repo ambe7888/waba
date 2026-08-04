@@ -14,12 +14,12 @@
         background: transparent !important;
     }
     .saas-login-card {
-        background: rgba(255, 255, 255, 0.95);
+        background: linear-gradient(135deg, rgba(236, 253, 245, 0.97) 0%, rgba(209, 250, 229, 0.97) 100%);
         backdrop-filter: blur(15px);
         -webkit-backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(16, 185, 129, 0.3);
         border-radius: 1.5rem;
-        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.18);
         overflow: hidden;
         width: 100%;
         max-width: 100%;
@@ -47,8 +47,8 @@
         width: 100% !important;
         max-width: 100% !important;
         height: auto !important;
-        background-color: #f9fafb !important;
-        border: 1px solid #e5e7eb !important;
+        background-color: #ffffff !important;
+        border: 1px solid #a7f3d0 !important;
         border-radius: 0.75rem !important;
         padding: 0.875rem 1.25rem !important;
         font-size: 1rem;

@@ -227,63 +227,198 @@ $currentAppTheme ='';
     <?= __yesset(['dist/js/common-vendorlibs.js','dist/js/vendorlibs.js', 'argon/bootstrap/dist/js/bootstrap.bundle.min.js', 'argon/js/argon.js', 'dist/push-js/push.min.js'], true) ?>
     @stack('js')
     @if (hasVendorAccess() or hasVendorUserAccess())
+    <style>
+    /* QR Code Modal Pro-Max Styling */
+    #lwScanMeDialog .modal-content {
+        border: none !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18) !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+    }
+    #lwScanMeDialog .modal-header {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+        color: #ffffff !important;
+        padding: 1.25rem 1.75rem !important;
+        border-bottom: none !important;
+    }
+    #lwScanMeDialog .modal-title {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 1.15rem !important;
+    }
+    #lwScanMeDialog .close {
+        color: #ffffff !important;
+        opacity: 0.9 !important;
+        transition: transform 0.2s ease;
+    }
+    #lwScanMeDialog .close:hover {
+        transform: scale(1.1);
+        opacity: 1 !important;
+    }
+    .lw-qr-card-container {
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 24px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    .lw-qr-card-container:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    .lw-qr-image-wrapper {
+        background: #ffffff;
+        display: inline-block;
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .lw-qr-image-wrapper:hover {
+        transform: scale(1.02);
+        box-shadow: 0 12px 35px rgba(16, 185, 129, 0.15);
+    }
+    .lw-qr-image-wrapper img {
+        max-width: 220px;
+        height: auto;
+        display: block;
+    }
+    .lw-qr-phone-badge {
+        display: inline-block;
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 6px 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .lw-qr-input-group {
+        background: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1.5px solid #cbd5e1;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .lw-qr-input-group:focus-within {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+    .lw-qr-input-group .form-control {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        font-size: 0.88rem;
+        color: #334155;
+    }
+    .lw-qr-btn-copy {
+        border: none !important;
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        font-size: 0.82rem !important;
+        padding: 0 16px !important;
+        transition: all 0.2s ease !important;
+    }
+    .lw-qr-btn-copy:hover {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+    .lw-qr-btn-wa {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+        padding: 8px 18px !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+        transition: all 0.2s ease !important;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+    }
+    .lw-qr-btn-wa:hover {
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35) !important;
+    }
+    #lwScanMeDialog .modal-footer {
+        background: #f8fafc !important;
+        border-top: 1px solid #f1f5f9 !important;
+        padding: 1rem 1.75rem !important;
+    }
+    </style>
+
     {{-- QR CODE model --}}
     <x-lw.modal id="lwScanMeDialog" :header="__tr('Scan QR Code to Start Chat')">
         @if (getVendorSettings('current_phone_number_number'))
-        <div class="alert alert-dark text-center text-success">
-            {{ __tr('You can use following QR Codes to invite people to get connect with you on this platform.') }}
+        <div class="alert text-center py-2 px-3 mb-4" style="border-radius: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-weight: 600; font-size: 0.88rem;">
+            <i class="fas fa-qrcode mr-2"></i> {{ __tr('You can use following QR Codes to invite people to get connect with you on this platform.') }}
         </div>
         @if (!empty(getVendorSettings('whatsapp_phone_numbers')))
         @foreach (getVendorSettings('whatsapp_phone_numbers') as $whatsappPhoneNumber)
-        <fieldset class="text-center">
-            <legend class="text-center">{{ $whatsappPhoneNumber['verified_name'] ?? '' }} ({{
-                $whatsappPhoneNumber['display_phone_number'] }})</legend>
-            <div class="text-center">
+        <div class="lw-qr-card-container text-center">
+            @if(!empty($whatsappPhoneNumber['verified_name']))
+            <h4 class="font-weight-700 text-dark mb-3" style="font-size: 1.1rem; color: #1e293b;">{{ $whatsappPhoneNumber['verified_name'] }}</h4>
+            @endif
+
+            <div class="lw-qr-image-wrapper mb-3">
                 <img class="lw-qr-image" src="{{ route('vendor.whatsapp_qr', [
-            'vendorUid' => getVendorUid(),
-            'phoneNumber' => cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']),
-        ]) }}">
-            </div>
-            <div class="form-group">
-                <h3 class="text-muted">{{ __tr('Phone Number') }}</h3>
-                <h3 class="text-success">{{ $whatsappPhoneNumber['display_phone_number'] }}</h3>
-                <label for="lwWhatsAppQRImage{{ $loop->index }}">{{ __tr('URL for QR Image') }}</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" readonly id="lwWhatsAppQRImage{{ $loop->index }}" value="{{ route('vendor.whatsapp_qr', [
                     'vendorUid' => getVendorUid(),
                     'phoneNumber' => cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']),
-                ]) }}">
+                ]) }}" alt="QR Code">
+            </div>
+
+            <div class="mb-4">
+                <div class="text-muted small font-weight-600 mb-1" style="font-size: 0.8rem;">{{ __tr('Phone Number') }}</div>
+                <div class="lw-qr-phone-badge">
+                    <i class="fab fa-whatsapp mr-1"></i> {{ $whatsappPhoneNumber['display_phone_number'] }}
+                </div>
+            </div>
+
+            <!-- URL for QR Image -->
+            <div class="form-group text-left mb-3">
+                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('URL for QR Image:') }}</label>
+                <div class="input-group lw-qr-input-group">
+                    <input type="text" class="form-control" readonly id="lwWhatsAppQRImage{{ $loop->index }}" value="{{ route('vendor.whatsapp_qr', [
+                        'vendorUid' => getVendorUid(),
+                        'phoneNumber' => cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']),
+                    ]) }}">
                     <div class="input-group-append">
-                        <button class="btn btn-outline-light" type="button"
-                            onclick="lwCopyToClipboard('lwWhatsAppQRImage{{ $loop->index }}')">
-                            <?= __tr('Copy') ?>
+                        <button class="btn lw-qr-btn-copy" type="button" onclick="lwCopyToClipboard('lwWhatsAppQRImage{{ $loop->index }}')">
+                            <i class="far fa-copy mr-1"></i> {{ __tr('Copy') }}
                         </button>
                     </div>
                 </div>
             </div>
-            <div class="form-group">
-                <h3 class="text-muted">{{ __tr('WhatsApp URL') }}</h3>
-                <div class="input-group">
+
+            <!-- WhatsApp URL -->
+            <div class="form-group text-left mb-0">
+                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('WhatsApp URL:') }}</label>
+                <div class="input-group lw-qr-input-group">
                     <input type="text" class="form-control" readonly id="lwWhatsAppUrl{{ $loop->index }}"
                         value="https://wa.me/{{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}">
-                    <div class="input-group-append lw-whatsapp-group">
-                        <button class="btn btn-outline-light" type="button"
-                            onclick="lwCopyToClipboard('lwWhatsAppUrl{{ $loop->index }}')">
-                            <?= __tr('Copy') ?>
+                    <div class="input-group-append">
+                        <button class="btn lw-qr-btn-copy" type="button" onclick="lwCopyToClipboard('lwWhatsAppUrl{{ $loop->index }}')">
+                            <i class="far fa-copy mr-1"></i> {{ __tr('Copy') }}
                         </button>
-                        <a type="button" class="btn btn-outline-success" target="_blank"
-                            href="https://api.whatsapp.com/send?phone={{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}"><i
-                                class="fab fa-whatsapp"></i> &nbsp;{{ __tr('WhatsApp Now') }}</a>
+                        <a class="btn lw-qr-btn-wa" target="_blank"
+                            href="https://api.whatsapp.com/send?phone={{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}">
+                            <i class="fab fa-whatsapp mr-1.5" style="font-size: 1.1rem;"></i> {{ __tr('WhatsApp Now') }}
+                        </a>
                     </div>
                 </div>
             </div>
-        </fieldset>
+        </div>
         @endforeach
         @else
-        <div class="alert alert-info">{{ __tr('Please resync phone numbers.') }}</div>
+        <div class="alert alert-info text-center py-3" style="border-radius: 12px;">{{ __tr('Please resync phone numbers.') }}</div>
         @endif
         @else
-        <div class="text-danger">
+        <div class="alert alert-warning text-center py-3" style="border-radius: 12px;">
             {{ __tr('Phone number does not configured yet.') }}
         </div>
         @endif
@@ -449,8 +584,30 @@ $currentAppTheme ='';
                     }
                 @endif
                 if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (data.assignedUserId == loggedInUserId)))) {
-                    // chat updates
-                    if(isWindowTabActive && data.contactUid && $('[data-contact-uid=' + data.contactUid + ']').length) {
+                    // Play sound & push notification for any new incoming message
+                    if(data.isNewIncomingMessage) {
+                        if($('#lwMessageAlertTone').length && $('#lwMessageAlertTone')[0]) {
+                            try {
+                                $('#lwMessageAlertTone')[0].play();
+                            } catch(e) {}
+                        }
+                        if (!isWindowTabActive && typeof Push !== 'undefined') {
+                            Push.create("{{ __tr('__siteName__ - New Message', [
+                                '__siteName__' => getAppSettings('name')
+                            ])}}", {
+                                body: data.contactDescription,
+                                icon: "{{ getAppSettings('small_logo_image_url') }}",
+                                onClick: function () {
+                                    window.focus();
+                                    this.close();
+                                }
+                            });
+                        }
+                    }
+
+                    // Only prepend chat messages & mark as read if the user currently HAS THIS SPECIFIC CONTACT OPEN IN THE CHAT WINDOW
+                    var activeChatContactUid = $('#lwWhatsAppChatWindow').length ? ($('#lwWhatsAppChatWindow').attr('data-contact-uid') || $('#lwWhatsAppChatWindow').data('contact-uid')) : null;
+                    if(isWindowTabActive && data.contactUid && activeChatContactUid && activeChatContactUid === data.contactUid) {
                         __DataRequest.get(__Utils.apiURL("{{ route('vendor.chat_message.data.read', ['contactUid', 'way']) }}{{ ((isset($assigned) and $assigned) ? '?assigned=to-me' : '') }}", {'contactUid': data.contactUid, 'way':'prepend'}),{}, function(responseData) {
                             __DataRequest.updateModels({
                                 '@whatsappMessageLogs' : 'append',
@@ -458,27 +615,7 @@ $currentAppTheme ='';
                             });
                             window.lwScrollTo('#lwEndOfChats', true);
                         });
-                    } else if((!isRestrictedVendorUser || (isRestrictedVendorUser && (data.assignedUserId == loggedInUserId)))) {
-                        // play the sound for incoming message notifications
-                        if(data.isNewIncomingMessage && $('#lwMessageAlertTone').length) {
-                            // play the sound
-                            $('#lwMessageAlertTone')[0].play();
-                            if (!isWindowTabActive) {
-                                // show the notification
-                            Push.create("{{ __tr('__siteName__ - New Message', [
-                            '__siteName__' => getAppSettings('name')
-                        ])}}", {
-                                body: data.contactDescription,
-                                icon: "{{ getAppSettings('small_logo_image_url') }}",
-                                // timeout: 4000,
-                                onClick: function () {
-                                    window.focus();
-                                    this.close();
-                                }
-                            });
-                        };
-                        };
-                    };
+                    }
                 };
 
                 lastEventData = _.cloneDeep(data);

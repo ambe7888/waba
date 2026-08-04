@@ -136,19 +136,21 @@ $vendorViewBySuperAdmin = false;
                 <div class="col-12">
                     {{-- Banner Conversations Actives (Refined & Non-intrusive) --}}
                     @if (hasVendorAccess('manage_campaigns') && ($activeContacts24hCount ?? 0) > 0)
-                    <div class="alert alert-dismissible fade show mb-4 p-3 border-0 shadow-sm d-flex align-items-center justify-content-between flex-wrap" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08)) !important; border-left: 4px solid #10b981 !important; border-radius: 12px !important;">
+                    <div class="alert alert-dismissible fade show mb-4 p-3 border-0 shadow-sm d-flex align-items-center justify-content-between flex-wrap" style="background: #ffffff !important; border-left: 4px solid #10b981 !important; border-radius: 12px !important;">
                         <div class="d-flex align-items-center mb-2 mb-md-0">
-                            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mr-3 shadow-sm pulsing-green-icon" style="width: 36px; height: 36px; background-color: #10b981 !important; flex-shrink: 0;">
-                                <i class="fas fa-bolt" style="font-size: 0.95rem;"></i>
+                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center mr-3 shadow-sm pulsing-green-icon" style="width: 38px; height: 38px; background-color: #10b981 !important; flex-shrink: 0;">
+                                <i class="fas fa-bolt" style="font-size: 1rem; color: #ffffff !important;"></i>
                             </div>
                             <div>
-                                <span class="font-weight-bold text-dark" style="font-size: 0.92rem;">
-                                    <i class="fas fa-gift text-success mr-1"></i> {{ __tr('Campagne Gratuite Disponible !') }}
-                                </span>
-                                <span class="badge badge-success font-weight-bold ml-2 px-2 py-1" style="font-size: 0.72rem; border-radius: 6px; background-color: #10b981;">
-                                    {{ __tr('__count__ client(s) actif(s) 24h', ['__count__' => $activeContacts24hCount ?? 0]) }}
-                                </span>
-                                <p class="mb-0 text-muted" style="font-size: 0.8rem; line-height: 1.3;">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <span class="font-weight-bold" style="font-size: 0.95rem; color: #0f172a !important;">
+                                        <i class="fas fa-gift text-success mr-1"></i> {{ __tr('Campagne Gratuite Disponible !') }}
+                                    </span>
+                                    <span class="badge font-weight-bold ml-2 px-2.5 py-1 text-white shadow-xs" style="font-size: 0.75rem; border-radius: 6px; background-color: #059669 !important; color: #ffffff !important; letter-spacing: 0.3px;">
+                                        {{ __tr('__count__ client(s) actif(s) 24h', ['__count__' => $activeContacts24hCount ?? 0]) }}
+                                    </span>
+                                </div>
+                                <p class="mb-0 font-weight-500 mt-1" style="font-size: 0.84rem; line-height: 1.4; color: #334155 !important;">
                                     {{ __tr('Envoyez une diffusion sans frais Meta aux clients qui vous ont écrit ces dernières 24h.') }}
                                 </p>
                             </div>
@@ -306,8 +308,7 @@ $vendorViewBySuperAdmin = false;
                                         </div>
                                     </div>
                                     <p class="mt-3 mb-0 text-muted text-xs">
-                                        <span class="font-weight-bold text-dark">{{ __tr('Aujourd\'hui: __today__', ['__today__' => $messagesReceivedTodayCount ?? 0]) }}</span>
-                                        <span class="text-muted ml-1">{{ __tr('| Hier: __yesterday__', ['__yesterday__' => $messagesReceivedYesterdayCount ?? 0]) }}</span>
+                                        <span class="font-weight-bold text-dark">{{ __tr('__count__ clients uniques aujourd\'hui', ['__count__' => $uniqueContactsTodayCount ?? 0]) }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -319,8 +320,8 @@ $vendorViewBySuperAdmin = false;
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col">
-                                            <h5 class="card-title text-uppercase mb-1" style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;">{{ __tr('Non Lus') }}</h5>
-                                            <span class="h2 font-weight-bold mb-0 {{ ($unreadMessagesCount ?? 0) > 0 ? 'text-danger' : 'text-muted' }}" style="font-size: 1.7rem; font-weight: 800;">{{ $unreadMessagesCount ?? 0 }}</span>
+                                            <h5 class="card-title text-uppercase mb-1" style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: #64748b;">{{ __tr('Discussions Non Lues') }}</h5>
+                                            <span class="h2 font-weight-bold mb-0 {{ ($unreadContactsCount ?? 0) > 0 ? 'text-danger' : 'text-muted' }}" style="font-size: 1.7rem; font-weight: 800;">{{ $unreadContactsCount ?? ($unreadMessagesCount ?? 0) }}</span>
                                         </div>
                                         <div class="col-auto">
                                             <div class="icon icon-shape text-white rounded-circle shadow-sm" style="width: 46px; height: 46px; background: linear-gradient(135deg, #f97316, #ea580c) !important; border-radius: 12px !important; display: flex; align-items: center; justify-content: center;">
@@ -328,8 +329,9 @@ $vendorViewBySuperAdmin = false;
                                             </div>
                                         </div>
                                     </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <a href="{{ route('vendor.chat_message.contact.view') }}" class="font-weight-bold" style="color: #ea580c;"><i class="fas fa-comment-dots mr-1"></i> {{ __tr('Ouvrir la messagerie') }}</a>
+                                    <p class="mt-3 mb-0 text-muted text-xs d-flex justify-content-between align-items-center">
+                                        <span class="text-muted font-weight-500">{{ __tr('__total__ bulles non lues', ['__total__' => $unreadMessagesCount ?? 0]) }}</span>
+                                        <a href="{{ route('vendor.chat_message.contact.view') }}" class="font-weight-bold ml-1" style="color: #ea580c;">{{ __tr('Ouvrir') }} <i class="fas fa-arrow-right ml-1"></i></a>
                                     </p>
                                 </div>
                             </div>

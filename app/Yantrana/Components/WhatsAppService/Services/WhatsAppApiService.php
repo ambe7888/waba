@@ -165,8 +165,11 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
         return $this->apiPostRequest("{$this->getServiceConfiguration('current_phone_number_id')}/{$messageEndpoint}", $templateMessagePayload);
     }
 
-    private function cleanMediaLinks(array $data): array
+    private function cleanMediaLinks(?array $data = []): array
     {
+        if (empty($data)) {
+            return [];
+        }
         $mediaTypes = ['image', 'video', 'document'];
         $isCarouselTemplate = data_get($data, '1.type'); // carousel
 

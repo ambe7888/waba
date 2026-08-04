@@ -48,11 +48,32 @@ if ($saasAdminVendorId) {
         <fieldset class="lw-fieldset mb-4">
             <legend class="lw-fieldset-legend">{{ __tr('Automated WhatsApp Templates') }}</legend>
             
-            <div class="alert alert-info">
-                {{ __tr('Note: Ensure the template names exactly match those approved in your Meta WhatsApp Manager for the selected Vendor Account.') }}
-                <br>
-                <strong>{{ __tr('Supported dynamic variables:') }}</strong>
-                <code>{first_name}</code>, <code>{last_name}</code>, <code>{full_name}</code>, <code>{email}</code>, <code>{mobile_number}</code>, <code>{app_name}</code>, <code>{account_name}</code>, <code>{expiry_date}</code>, <code>{subscription_amount}</code>
+            <div class="card bg-white border-0 shadow-sm mb-4" style="border-left: 4px solid #11cdef !important; border-radius: 8px;">
+                <div class="card-body p-3" style="color: #1e293b;">
+                    <div class="d-flex align-items-center mb-2" style="color: #00838f;">
+                        <i class="fas fa-info-circle mr-2 fa-lg"></i>
+                        <span class="font-weight-bold" style="font-size: 0.95rem;">{{ __tr('Configuration des Modèles WhatsApp Automated') }}</span>
+                    </div>
+                    <p class="mb-2 text-dark font-weight-500" style="font-size: 0.875rem; line-height: 1.5; color: #334155 !important;">
+                        {{ __tr('Note: Ensure the template names exactly match those approved in your Meta WhatsApp Manager for the selected Vendor Account.') }}
+                    </p>
+                    <div class="pt-2 border-top">
+                        <strong class="d-block mb-2 text-dark" style="font-size: 0.85rem; color: #0f172a !important;">
+                            <i class="fas fa-code mr-1 text-info"></i> {{ __tr('Supported dynamic variables:') }}
+                        </strong>
+                        <div class="d-flex flex-wrap align-items-center">
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{first_name}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{last_name}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{full_name}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{email}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{mobile_number}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{app_name}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{account_name}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{expiry_date}</span>
+                            <span class="badge badge-secondary text-dark border px-2 py-1 m-1" style="font-size: 0.82rem; font-family: monospace; background-color: #f1f5f9; color: #0f172a !important;">{subscription_amount}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Welcome Template -->
@@ -104,7 +125,7 @@ if ($saasAdminVendorId) {
             </div>
 
             <!-- Subscription Expired -->
-            <div class="form-group pb-2 mb-2">
+            <div class="form-group pb-4 mb-4">
                 <label for="saas_expired_template" class="font-weight-bold">{{ __tr('Subscription Expired Template') }}</label>
                 <select class="form-control saas-template-select" name="saas_expired_template" id="saas_expired_template" data-vars-container="#expired-vars-container" data-template-type="expired">
                     <option value="">{{ __tr('--- Select Expired Template ---') }}</option>
@@ -124,6 +145,30 @@ if ($saasAdminVendorId) {
                     <div class="template-preview-text text-sm bg-light p-2 rounded mb-3 border"></div>
                     <div class="vars-inputs-list"></div>
                     <input type="hidden" name="saas_expired_template_vars" id="saas_expired_template_vars_hidden">
+                </div>
+            </div>
+
+            <!-- Subscription Renewal / Re-subscription -->
+            <div class="form-group pb-2 mb-2 border-top pt-4">
+                <label for="saas_renewal_template" class="font-weight-bold">{{ __tr('Subscription Renewal Template') }}</label>
+                <select class="form-control saas-template-select" name="saas_renewal_template" id="saas_renewal_template" data-vars-container="#renewal-vars-container" data-template-type="renewal">
+                    <option value="">{{ __tr('--- Select Renewal Template ---') }}</option>
+                    @foreach($approvedTemplates as $tmpl)
+                        <option value="{{ $tmpl->template_name }}" {{ getAppSettings('saas_renewal_template') == $tmpl->template_name ? 'selected' : '' }}>
+                            {{ $tmpl->template_name }} ({{ $tmpl->language }})
+                        </option>
+                    @endforeach
+                </select>
+                <small class="form-text text-muted mb-2">
+                    {{ __tr('Sent automatically to the client when they renew or activate their subscription.') }}
+                </small>
+
+                <!-- Renewal Vars Container -->
+                <div id="renewal-vars-container" class="mt-2 p-3 border rounded bg-white shadow-sm" style="display: none;">
+                    <div class="text-xs font-weight-bold text-uppercase text-secondary mb-2">{{ __tr('Template Preview & Variable Mappings') }}</div>
+                    <div class="template-preview-text text-sm bg-light p-2 rounded mb-3 border"></div>
+                    <div class="vars-inputs-list"></div>
+                    <input type="hidden" name="saas_renewal_template_vars" id="saas_renewal_template_vars_hidden">
                 </div>
             </div>
         </fieldset>
@@ -148,11 +193,13 @@ $(document).ready(function() {
     const welcomeTemplateVars = @json(json_decode(getAppSettings('saas_welcome_template_vars', '[]'), true));
     const expiryReminderTemplateVars = @json(json_decode(getAppSettings('saas_expiry_reminder_template_vars', '[]'), true));
     const expiredTemplateVars = @json(json_decode(getAppSettings('saas_expired_template_vars', '[]'), true));
+    const renewalTemplateVars = @json(json_decode(getAppSettings('saas_renewal_template_vars', '[]'), true));
     
     const savedVars = {
         'welcome': welcomeTemplateVars || {},
         'expiry_reminder': expiryReminderTemplateVars || {},
-        'expired': expiredTemplateVars || {}
+        'expired': expiredTemplateVars || {},
+        'renewal': renewalTemplateVars || {}
     };
 
     function parseTemplateVariables(template) {

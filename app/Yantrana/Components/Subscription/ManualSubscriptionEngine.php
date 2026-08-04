@@ -262,7 +262,7 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
             ], [
                 'status' => 'cancelled',
             ]);
-            if ($this->manualSubscriptionRepository->storeIt([
+            if ($newSub = $this->manualSubscriptionRepository->storeIt([
                 'plan_id' => $planId,
                 'charges_frequency' => $planFrequencyKey,
                 'charges' => $planCharge,
@@ -283,6 +283,10 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
                     ->update(['plan_ai_credits' => $planAiCredits]);
+
+                // SaaS Automated WhatsApp Notification on Renewal / Activation
+                triggerSaaSRenewalWhatsAppNotification($vendor->_id, $newSub);
+
                 return $this->manualSubscriptionRepository->transactionResponse(1, [], __tr('Manual Subscription added.'));
             }
             return $this->manualSubscriptionRepository->transactionResponse(2, [], __tr('Manual Subscription not added.'));
@@ -730,6 +734,10 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendorId)
                     ->update(['plan_ai_credits' => $planAiCredits]);
+
+                // SaaS Automated WhatsApp Notification on Renewal / Activation
+                triggerSaaSRenewalWhatsAppNotification($vendorId, $subscriptionRequestRecord);
+
                 return $this->engineSuccessResponse([
                     'txn_reference' => $request['txn_reference'],
                     'redirectRoute' => route('payment.success.page', ['txnId' => $request['txn_reference']]),

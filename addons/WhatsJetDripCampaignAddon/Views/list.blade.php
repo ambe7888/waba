@@ -48,7 +48,14 @@
                             <tr>
                                 <td><strong>{{ $campaign->title }}</strong></td>
                                 <td><span class="badge badge-info">{{ $campaign->steps_count }}</span></td>
-                                <td><span class="badge badge-success">{{ $campaign->subscribers_count }}</span></td>
+                                <td>
+                                    <span class="badge {{ $campaign->active_subscribers_count > 0 ? 'badge-success' : 'badge-secondary' }}" title="{{ __tr('Abonnés en cours') }}">
+                                        {{ $campaign->active_subscribers_count }} {{ __tr('actif(s)') }}
+                                    </span>
+                                    @if($campaign->subscribers_count > 0)
+                                        <small class="text-muted ml-1" title="{{ __tr('Total historique des abonnés') }}">({{ $campaign->subscribers_count }} {{ __tr('total') }})</small>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($campaign->status == 1)
                                         <span class="badge badge-primary">{{ __tr('Active') }}</span>
