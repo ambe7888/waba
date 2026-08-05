@@ -39,15 +39,16 @@ $currentAppTheme ='';
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="{{ getAppSettings('name') }}">
 
-    <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:opsz,wght@12..36,300..900&display=swap" rel="stylesheet">
+    <!-- Fonts: async non-blocking load -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=TikTok+Sans:opsz,wght@12..36,300..900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:opsz,wght@12..36,300..900&display=swap" rel="stylesheet"></noscript>
     @stack('head')
     {!! __yesset(
     [
     // Icons
-    'static-assets/packages/fontawesome/css/all.css',
+    'static-assets/packages/fontawesome/css/all.min.css',
     'dist/css/common-vendorlibs.css',
     'dist/css/vendorlibs.css',
     'argon/css/argon.min.css',
