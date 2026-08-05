@@ -17,6 +17,8 @@ class InfoMaterialController extends BaseController
      */
     public function index()
     {
+        session(['last_viewed_resources_at' => now()]);
+
         if (hasCentralAccess()) {
             $materials = InfoMaterialModel::orderBy('created_at', 'desc')->paginate(20);
         } else {
@@ -29,6 +31,7 @@ class InfoMaterialController extends BaseController
 
         return view('info_material.index', compact('materials'));
     }
+
 
     /**
      * Show the form for creating a new resource.

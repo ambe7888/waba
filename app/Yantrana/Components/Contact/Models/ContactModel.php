@@ -58,9 +58,11 @@ class ContactModel extends BaseModel
         'messaged_at' => 'datetime',
         'unread_messages_count' => 'integer',
         'disable_ai_bot' => 'integer',
+        'is_pinned' => 'integer',
         'wa_id' => 'string',
         '__data' => 'array',
     ];
+
 
         /**
      * Let the system knows Text columns treated as JSON
@@ -83,7 +85,10 @@ class ContactModel extends BaseModel
      * @var array - The attributes that are mass assignable.
      */
     protected $fillable = [
+        'is_pinned',
+        'pinned_at',
     ];
+
 
     protected $appends = [
         'full_name',

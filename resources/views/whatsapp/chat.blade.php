@@ -220,7 +220,12 @@
                                                                 @endif
                                                             </span>
 
-                                                            <!-- Drip Campaign & Reminder Badges -->
+                                                            <!-- Pin, Drip Campaign & Reminder Badges -->
+                                                            <template x-if="contactItem && contactItem.is_pinned">
+                                                                <span class="badge px-1 py-0 shadow-sm" style="font-size: 10px; border-radius: 6px; background-color: #10b981 !important; color: #ffffff !important;" title="{{ __tr('Conversation épinglée') }}">
+                                                                    <i class="fas fa-thumbtack text-white" style="font-size: 10px; transform: rotate(-45deg);"></i>
+                                                                </span>
+                                                            </template>
                                                             <template x-if="contactItem && contactItem.active_reminder">
                                                                 <span class="badge badge-warning px-1 py-0 shadow-sm" style="font-size: 10px; border-radius: 6px; background-color: #f59e0b !important; color: #ffffff !important;" :title="(contactItem.active_reminder && contactItem.active_reminder.scheduled_at_formatted) ? ('{{ __tr('Rappel prévu le :') }} ' + contactItem.active_reminder.scheduled_at_formatted) : ''">
                                                                     <i class="fas fa-bell text-white lw-bell-pulse" style="font-size: 10px;"></i>
@@ -402,7 +407,19 @@
                                                                 @click="if (isDirectMessageDeliveryWindowOpened == false) { $event.preventDefault(); console.log('blocked'); return; }"
                                                                 data-method="post" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwUnblockContact-template" title="{{ __tr('Unblock') }}" data-callback="appFuncs.modelSuccessCallback" aria-disabled="true"><i class="fa fa-ban"></i> {{ __tr('Unblock') }}</a>
                                                             </template>
+
+                                                            <template x-if="contact">
+                                                                <a x-cloak
+                                                                   :href="__Utils.apiURL('{{ route('vendor.contact.write.pin', ['contactIdOrUid']) }}', { contactIdOrUid: contact._uid })"
+                                                                   data-method="post"
+                                                                   class="dropdown-item lw-ajax-link-action"
+                                                                   data-callback="appFuncs.modelSuccessCallback">
+                                                                   <i class="fas fa-thumbtack mr-1" :style="contact?.is_pinned ? 'color:#10b981;' : ''"></i>
+                                                                   <span x-text="contact?.is_pinned ? '{{ __tr('Désépingler') }}' : '{{ __tr('Épingler') }}'"></span>
+                                                                </a>
+                                                            </template>
                                                         </div>
+
                                                         <span class="lw-whatsapp-bar-icon-btn ml-3 d-md-none" @click.prevent="isContactCrmBlockOpened = true"><i class="fa fa-user-tie"></i></span>
                                                     </div>
                                                     </template>

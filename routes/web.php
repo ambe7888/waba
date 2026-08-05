@@ -1279,6 +1279,19 @@ Route::middleware([
                     SubscriptionController::class,
                     'show',
                 ])->name('subscription.read.show');
+
+                // Vendor subscription history
+                Route::get('/history', [
+                    ManualSubscriptionController::class,
+                    'vendorSubscriptionHistory',
+                ])->name('vendor.subscription.history');
+
+                // Printable invoice for a manual subscription
+                Route::get('/invoice/{subscriptionUid}/print', [
+                    ManualSubscriptionController::class,
+                    'vendorInvoice',
+                ])->name('vendor.subscription.invoice.print');
+
                 // cancel subscription
                 Route::get('/cancel', [
                     SubscriptionController::class,
@@ -1520,6 +1533,11 @@ Route::middleware([
                     ContactController::class,
                     'processContactUnblock',
                 ])->name('vendor.contact.write.unblock');
+
+                Route::post('/{contactIdOrUid}/pin-process', [
+                    ContactController::class,
+                    'processPinContact',
+                ])->name('vendor.contact.write.pin');
 
                 // Contact Reminder routes
                 Route::post('/{contactUid}/reminder/store', [

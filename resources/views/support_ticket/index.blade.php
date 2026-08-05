@@ -1,13 +1,13 @@
-@extends('layouts.app', ['title' => __tr('Support Tickets')])
+@extends('layouts.app', ['title' => __tr('Tickets d\'Assistance')])
 
 @section('content')
 @include('users.partials.header', [
-    'title' => __tr('Support Tickets'),
-    'description' => '',
-    'class' => 'col-lg-7'
+    'title' => __tr('Tickets d\'Assistance'),
+    'description' => __tr('Suivez l\'avancement de vos demandes d\'assistance et créez de nouveaux tickets.'),
 ])
 
-<div class="container-fluid mt-lg--6">
+<div class="container-fluid pt-4 pb-5">
+
     <div class="row">
         <!-- Action Button and Filters -->
         <div class="col-xl-12 mb-4">

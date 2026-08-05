@@ -119,7 +119,8 @@ class CampaignAudienceController extends BaseController
             });
         }
 
-        $contacts = $query->orderBy('first_name')->limit(50)->get();
+        $limit = empty($search) ? 1000 : 200;
+        $contacts = $query->orderBy('first_name')->limit($limit)->get();
 
         return response()->json($contacts->map(function ($c) {
             return [
@@ -127,6 +128,7 @@ class CampaignAudienceController extends BaseController
                 'text' => trim($c->first_name . ' ' . $c->last_name) . ' (+' . $c->wa_id . ')'
             ];
         }));
+
     }
 
     /**

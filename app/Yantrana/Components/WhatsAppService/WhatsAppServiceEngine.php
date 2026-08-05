@@ -4608,7 +4608,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'assignedUserId' => $contact->assigned_users__id,
                 'formatted_last_message_time' => $contact->lastMessage?->formatted_message_time,
                 'contactDescription' => $contactDescription,
+                'messageText' => $messageBody ?: ($messageType ?? 'Nouveau message'),
             ]));
+
             // Check if new incoming message
             if (getAppSettings('enable_firebase_notification') and $isNewIncomingMessage) {
                 sendFCMNotification(

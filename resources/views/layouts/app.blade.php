@@ -534,6 +534,17 @@ $currentAppTheme ='';
         navigator.serviceWorker.register('/sw.js');
         // check if the window tab is active
         var isWindowTabActive = true;
+        // --- Badge titre d'onglet ---
+        var _lwOriginalTitle = document.title;
+        var _lwUnreadBadgeCount = 0;
+        function _lwUpdateTabTitle() {
+            if (_lwUnreadBadgeCount > 0) {
+                document.title = '(' + _lwUnreadBadgeCount + ') ' + _lwOriginalTitle;
+            } else {
+                document.title = _lwOriginalTitle;
+            }
+        }
+        // ------------------------------------
         $(window).on("blur focus", function(e) {
             var prevType = $(this).data("prevType");
             //  reduce double fire issues
@@ -544,6 +555,9 @@ $currentAppTheme ='';
                         break;
                     case "focus":
                         isWindowTabActive = true;
+                        // Reset badge when user returns to the tab
+                        _lwUnreadBadgeCount = 0;
+                        _lwUpdateTabTitle();
                         break;
                 };
             };
@@ -591,6 +605,11 @@ $currentAppTheme ='';
                                 $('#lwMessageAlertTone')[0].play();
                             } catch(e) {}
                         }
+                        // Incrémenter le badge si l'onglet n'est pas actif
+                        if (!isWindowTabActive) {
+                            _lwUnreadBadgeCount++;
+                            _lwUpdateTabTitle();
+                        }
                         if (!isWindowTabActive && typeof Push !== 'undefined') {
                             Push.create("{{ __tr('__siteName__ - New Message', [
                                 '__siteName__' => getAppSettings('name')
@@ -628,12 +647,56 @@ $currentAppTheme ='';
                     @if(hasVendorAccess('messaging'))
                     if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (data.assignedUserId == loggedInUserId)))) {
                         // is incoming message
-                        if(data.isNewIncomingMessage && !isUnreadRequestInProgress) {
-                            isUnreadRequestInProgress = true;
-                            __DataRequest.get("{{ route('vendor.chat_message.read.unread_count') }}",{}, function(responseData) {
-                                isUnreadRequestInProgress = false;
-                            });
+                        if(data.isNewIncomingMessage) {
+                            // 1. Play soft audio chime
+                            try {
+                                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                var osc = audioCtx.createOscillator();
+                                var gain = audioCtx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+                                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                                osc.connect(gain);
+                                gain.connect(audioCtx.destination);
+                                osc.start();
+                                osc.stop(audioCtx.currentTime + 0.35);
+                            } catch(e) {}
+
+                            // 2. Desktop Browser Notification
+                            if ("Notification" in window) {
+                                if (Notification.permission === "granted") {
+                                    try {
+                                        var title = data.contactDescription || "Nouveau message WhatsApp";
+                                        var bodyText = data.messageText || "Vous avez reçu un nouveau message.";
+                                        var notif = new Notification(title, {
+                                            body: bodyText,
+                                            icon: "{{ asset('imgs/favicon.ico') }}",
+                                            tag: 'wa-msg-' + (data.contactUid || Date.now())
+                                        });
+                                        notif.onclick = function() {
+                                            window.focus();
+                                            if (data.contactUid) {
+                                                window.location.href = "{{ route('vendor.chat_message.contact.view') }}/" + data.contactUid;
+                                            }
+                                        };
+                                    } catch(err) {
+                                        console.log("Desktop Notification Error:", err);
+                                    }
+                                } else if (Notification.permission !== "denied") {
+                                    Notification.requestPermission();
+                                }
+                            }
+
+                            if (!isUnreadRequestInProgress) {
+                                isUnreadRequestInProgress = true;
+                                __DataRequest.get("{{ route('vendor.chat_message.read.unread_count') }}",{}, function(responseData) {
+                                    isUnreadRequestInProgress = false;
+                                });
+                            }
                         };
+
                         // contact list update
                         if($('.lw-whatsapp-chat-window').length) {
                             __DataRequest.get(__Utils.apiURL("{!! route('vendor.contacts.data.read', ['contactUid','way' => 'append','request_contact' => '', 'assigned'=> ($assigned ?? '')]); !!}", {'contactUid': $('#lwWhatsAppChatWindow').data('contact-uid'),'request_contact' : 'request_contact=' + data.contactUid + '&'}),{}, function() {});

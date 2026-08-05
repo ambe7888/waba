@@ -967,4 +967,17 @@ class ContactController extends BaseController
 
         return $this->processResponse($processReaction, [], [], true);
     }
+
+    /**
+     * Épingler / Désépingler un contact
+     *
+     * @param string $contactIdOrUid
+     * @return json object
+     */
+    public function processPinContact($contactIdOrUid)
+    {
+        $processReaction = $this->contactEngine->processPinContact($contactIdOrUid);
+        return $this->processResponse($processReaction, [], [], true);
+    }
 }
+

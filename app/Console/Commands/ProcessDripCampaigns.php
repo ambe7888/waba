@@ -20,9 +20,10 @@ class ProcessDripCampaigns extends Command
         $subscribers = DripSubscriber::where('status', 1)->with(['campaign', 'contact'])->get();
 
         foreach ($subscribers as $sub) {
-            if (!$sub->contact || !$sub->campaign) {
+            if (!$sub->contact || !$sub->campaign || $sub->campaign->status != 1) {
                 continue;
             }
+
 
             $minutesSinceStart = Carbon::parse($sub->start_date)->diffInMinutes(Carbon::now());
 

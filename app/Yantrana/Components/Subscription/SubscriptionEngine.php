@@ -196,6 +196,32 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
             'status' => 'pending',
         ]);
 
+        $subscriptionPlans = getPaidPlans();
+        $subscriptionStatus = configItem('subscription_status');
+        $userManualSubscriptions = \App\Yantrana\Components\Subscription\Models\ManualSubscriptionModel::where('vendors__id', $vendorId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($sub) use ($subscriptionPlans, $subscriptionStatus) {
+                $planTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.title', __tr('Unknown Plan'));
+                $freqTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.charges.' . $sub->charges_frequency . '.title', $sub->charges_frequency);
+                $isExpired = $sub->ends_at && $sub->ends_at < now();
+                return [
+                    '_uid'          => $sub->_uid,
+                    'plan_title'    => $planTitle,
+                    'freq_title'    => $freqTitle,
+                    'charges'       => formatAmount($sub->charges, true, true),
+                    'charges_raw'   => $sub->charges,
+                    'created_at'    => $sub->created_at ? $sub->created_at->format('d/m/Y') : '-',
+                    'ends_at'       => $sub->ends_at ? $sub->ends_at->format('d/m/Y') : '-',
+                    'ends_at_raw'   => $sub->ends_at,
+                    'status'        => \Illuminate\Support\Arr::get($subscriptionStatus, $sub->status, $sub->status),
+                    'status_code'   => $sub->status,
+                    'is_expired'    => $isExpired,
+                    'is_active'     => !$isExpired && $sub->status == 1,
+                    'gateway'       => $sub->gateway ?? '-',
+                ];
+            });
+
         $dataToReturn = [
             'intent' => null,
             'currentPlan' => $currentPlan,
@@ -209,6 +235,7 @@ class SubscriptionEngine extends BaseEngine implements SubscriptionEngineInterfa
             'freePlanStructure' => getConfigFreePlan(),
             'isValidStripeKeys' => $isValidStripeKeys,
             'existingManualSubscriptionPendingRequest' => $existingManualSubscriptionPendingRequest,
+            'userManualSubscriptions' => $userManualSubscriptions,
         ];
 
         if (getAppSettings('enable_stripe') and $isValidStripeKeys) {

@@ -1211,4 +1211,83 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
            'errorMessage' => 'Something went wrong, please contact system administrator',
                 ], __tr('Payment Failed'));
     }
+
+    /**
+     * Get the vendor's own subscription history (for vendor dashboard)
+     *
+     * @return EngineResponse
+     */
+    public function getVendorSubscriptionHistory()
+    {
+        $vendorId = getVendorId();
+        $subscriptionPlans = getPaidPlans();
+        $subscriptionStatus = configItem('subscription_status');
+
+        $subscriptions = \App\Yantrana\Components\Subscription\Models\ManualSubscriptionModel::where('vendors__id', $vendorId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($sub) use ($subscriptionPlans, $subscriptionStatus) {
+                $planTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.title', __tr('Unknown Plan'));
+                $freqTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.charges.' . $sub->charges_frequency . '.title', $sub->charges_frequency);
+                $isExpired = $sub->ends_at && $sub->ends_at < now();
+                return [
+                    '_uid'          => $sub->_uid,
+                    'plan_title'    => $planTitle,
+                    'freq_title'    => $freqTitle,
+                    'charges'       => formatAmount($sub->charges, true, true),
+                    'charges_raw'   => $sub->charges,
+                    'created_at'    => $sub->created_at ? $sub->created_at->format('d/m/Y') : '-',
+                    'ends_at'       => $sub->ends_at ? $sub->ends_at->format('d/m/Y') : '-',
+                    'ends_at_raw'   => $sub->ends_at,
+                    'status'        => \Illuminate\Support\Arr::get($subscriptionStatus, $sub->status, $sub->status),
+                    'status_code'   => $sub->status,
+                    'is_expired'    => $isExpired,
+                    'is_active'     => !$isExpired && $sub->status == 1,
+                    'gateway'       => $sub->gateway ?? '-',
+                    'txn_reference' => $sub->__data['manual_txn_details']['txn_reference'] ?? '-',
+                    'payment_method'=> $sub->__data['manual_txn_details']['selected_payment_method'] ?? '-',
+                    'remarks'       => $sub->remarks ?? '',
+                ];
+            });
+
+        return $this->engineSuccessResponse([
+            'subscriptions' => $subscriptions,
+        ]);
+    }
+
+    /**
+     * Generate and return a printable invoice for a manual subscription
+     *
+     * @param string $subscriptionUid
+     * @return mixed
+     */
+    public function getManualInvoiceData($subscriptionUid)
+    {
+        $vendorId = getVendorId();
+        $sub = \App\Yantrana\Components\Subscription\Models\ManualSubscriptionModel::where('_uid', $subscriptionUid)
+            ->where('vendors__id', $vendorId)
+            ->first();
+
+        if (!$sub) {
+            return $this->engineResponse(18, null, __tr('Invoice not found'));
+        }
+
+        $subscriptionPlans = getPaidPlans();
+        $subscriptionStatus = configItem('subscription_status');
+
+        $planTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.title', __tr('Unknown Plan'));
+        $freqTitle = \Illuminate\Support\Arr::get($subscriptionPlans, $sub->plan_id . '.charges.' . $sub->charges_frequency . '.title', $sub->charges_frequency);
+        $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+
+        return $this->engineSuccessResponse([
+            'subscription' => $sub,
+            'plan_title'   => $planTitle,
+            'freq_title'   => $freqTitle,
+            'vendor'       => $vendor,
+            'status_label' => \Illuminate\Support\Arr::get($subscriptionStatus, $sub->status, $sub->status),
+            'txn_reference'=> $sub->__data['manual_txn_details']['txn_reference'] ?? null,
+            'payment_method'=> $sub->__data['manual_txn_details']['selected_payment_method'] ?? null,
+        ]);
+    }
 }
+

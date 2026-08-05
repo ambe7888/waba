@@ -1,452 +1,397 @@
-@extends('layouts.app', ['title' => __tr('Campaign Status')])
+@extends('layouts.app', ['title' => __tr('Statut de la Campagne')])
 @section('content')
 @include('users.partials.header', [
-'title' => __tr('Campaign Dashboard'),
-'description' => '',
-'class' => 'col-lg-7'
+    'title' => __tr('Tableau de Bord de la Campagne'),
+    'description' => __tr('Consultez les statistiques d\'envoi en temps réel et les performances de votre campagne.'),
 ])
 @php
 $campaignData = $campaign->__data;
 $selectedGroups = Arr::get($campaignData, 'selected_groups', []);
 $isRestrictByTemplateContactLanguage = Arr::get($campaignData, 'is_for_template_language_only');
 $isAllContacts = Arr::get($campaignData, 'is_all_contacts');
-// $messageLog = $campaign->messageLog;
-// $queueMessages = $campaign->queueMessages;
 $campaignUid=$campaign->_uid;
 @endphp
 
-<div class="container-fluid mt-lg--6 lw-campaign-window-{{ $campaign->_uid }}" x-cloak x-data="initialRequiredData">
+<div class="container-fluid pt-4 pb-5 lw-campaign-window-{{ $campaign->_uid }}" x-cloak x-data="initialRequiredData">
     <div class="row" x-data="{ failedCampaignType: '', modalHeader: '', campaignId: '{{ $campaign->_id }}', recampaignType: '' }">
-        <!-- button -->
-        <div class="col-12 mb-3">
-            <div class="float-right">
-                <a class="lw-btn btn btn-light" href="{{ route('vendor.campaign.read.list_view') }}">{{ __tr('Back to Campaigns') }}</a>
-                <a class="lw-btn btn btn-primary" href="{{ route('vendor.campaign.new.view') }}">{{ __tr('Create New Campaign') }}</a>
-                <a class="lw-btn btn btn-secondary " href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}">{{ __tr('Create New Non-Template Campaign') }}</a>
+        <!-- Boutons d'Action Principaux -->
+        <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
+            <div>
+                <a class="btn btn-outline-secondary font-weight-bold shadow-xs" href="{{ route('vendor.campaign.read.list_view') }}" style="border-radius: 10px; padding: 8px 18px;">
+                    <i class="fas fa-arrow-left mr-2"></i>{{ __tr('Retour aux Campagnes') }}
+                </a>
+            </div>
+            <div class="d-flex align-items-center" style="gap: 10px;">
+                <a class="btn text-white font-weight-bold shadow-sm" href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border: none; border-radius: 10px; padding: 8px 18px; font-size: 0.88rem;">
+                    <i class="fas fa-bolt mr-2"></i>{{ __tr('Nouvelle Campagne Libre') }}
+                </a>
+                <a class="btn text-white font-weight-bold shadow-sm" href="{{ route('vendor.campaign.new.view') }}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; padding: 8px 20px; font-size: 0.88rem;">
+                    <i class="fas fa-plus-circle mr-2"></i>{{ __tr('Créer une Campagne') }}
+                </a>
             </div>
         </div>
-        <!--/ button -->
+
+        <!-- Carte Principale d'Information de la Campagne -->
         <div class="col-12 mb-4">
-            <div class="card card-stats mb-4 mb-xl-0 ">
-                <div class="card-body ">
-                    <div class="row">
-                        <div class="col">
-                            <span class="float-right">
-                                <span class="rounded py-1 px-3 bg-warning text-white mb-2" x-text="statusText"></span>
-                                @if($campaign->status == 5) <span class="rounded py-1 px-3 badge-dark text-white mb-2">{{  __tr('Archived') }}</span> @endif
-                            </span>
-                            <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Campaign Name') }}</h5>
-                            <span class="h2 font-weight-bold mb-0">{{ $campaign->title }}</span>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                             <template x-if="campaignStatus == 'executed'">
-                                <em class="d-block text-muted mb-2">
-                                    {!! __tr('Overall sending messages process took __time__  from scheduled time including requeued messages etc.', [
+            <div class="card border-0 shadow-sm" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+                <div class="card-header border-0 pt-4 pb-3 d-flex justify-content-between align-items-center flex-wrap" style="background: #ecfdf5; border-bottom: 2px solid #a7f3d0;">
+                    <div>
+                        <span class="text-uppercase font-weight-bold" style="color: #059669; font-size: 0.8rem; letter-spacing: 0.5px;">{{ __tr('Titre de la Campagne') }}</span>
+                        <h2 class="font-weight-bold mb-0" style="color: #065f46; font-size: 1.5rem;">{{ $campaign->title }}</h2>
+                    </div>
+                    <div class="d-flex align-items-center mt-2 mt-sm-0" style="gap: 8px;">
+                        <span class="badge font-weight-bold px-3 py-2 text-white shadow-xs" style="border-radius: 20px; font-size: 0.85rem; background: #10b981;" x-text="statusText"></span>
+                        @if($campaign->status == 5) 
+                            <span class="badge font-weight-bold px-3 py-2 badge-dark text-white" style="border-radius: 20px; font-size: 0.85rem;">{{ __tr('Archivée') }}</span> 
+                        @endif
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-lg-7">
+                            <template x-if="campaignStatus == 'executed'">
+                                <div class="p-3 mb-3 rounded-lg" style="background: #f0fdf4; border-left: 4px solid #10b981; color: #166534; font-size: 0.92rem;">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    {!! __tr('L\'exécution complète a pris __time__ à partir de l\'heure programmée (incluant les réessais).', [
                                         '__time__' => '<strong x-text="timeTookFromScheduledAtFormatted"></strong>'
                                     ]) !!}
-                                </em>
+                                </div>
                             </template>
-                             <template x-if="campaignStatus == 'processing'">
-                                <em class="d-block text-muted mb-2">
-                                    {!! __tr('Sending messages are in process it took __time__ for the processed messages until now, __contactsInQueue__ contact(s) still in queue', [
+                            <template x-if="campaignStatus == 'processing'">
+                                <div class="p-3 mb-3 rounded-lg" style="background: #fefce8; border-left: 4px solid #f59e0b; color: #854d0e; font-size: 0.92rem;">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                                    {!! __tr('Envois en cours depuis __time__, __contactsInQueue__ contact(s) encore en file d\'attente.', [
                                         '__time__' => '<strong x-text="timeTookFromScheduledAtFormatted"></strong>',
                                         '__contactsInQueue__' => '<strong x-text="__Utils.formatAsLocaleNumber(inQueuedCount)"></strong>'
                                     ]) !!}
-                                </em>
+                                </div>
                             </template>
-                            <h3 class="mr-2"><span class="text-success">{{ __tr('Execution Scheduled at') }}</span>
-                            <h3>
-                                @if(data_get($campaign->__data, 'send_message_via_marketing_message_api'))
-                                    <span class="text-default">{{ __tr('Messages send via: Marketing Massages API (Marketing Lite)') }}</span>
-                                @else
-                                    <span class="text-default">{{ __tr('Messages send via: WhatsApp Cloud API') }}</span>
-                                @endif
-                            </h3>
-                            @if ($campaign->timezone and getVendorSettings('timezone') != $campaign->timezone)
-                            <div class="">{!! __tr('__scheduledAt__ as per your account timezone which is __selectedTimezone__', [
-                                '__scheduledAt__' => formatDateTime($campaign->scheduled_at),
-                                '__selectedTimezone__' => '<strong>'. getVendorSettings('timezone') .'</strong>'
-                                ]) !!} </div>
-                            <div class=" text-muted">{!! __tr('__scheduledAt__ as per the __selectedTimezone__ timezone', [
-                                '__scheduledAt__' => formatDateTime($campaign->scheduled_at, null, null,
-                                $campaign->timezone),
-                                '__selectedTimezone__' => '<strong>'. $campaign->timezone .'</strong>'
-                                ]) !!}</div>
-                            @else
-                            <span class="text-nowrap">{{ formatDateTime($campaign->scheduled_at) }}</span>
-                            @endif
 
-                            {{-- Abort Campaign --}}
+                            <div class="mb-3">
+                                <span class="font-weight-bold text-dark d-block mb-1" style="font-size: 0.95rem;">
+                                    <i class="fas fa-calendar-alt text-success mr-2"></i>{{ __tr('Exécution programmée le :') }}
+                                </span>
+                                @if ($campaign->timezone and getVendorSettings('timezone') != $campaign->timezone)
+                                    <div class="text-dark font-weight-bold">{!! __tr('__scheduledAt__ (selon votre fuseau horaire : __selectedTimezone__)', [
+                                        '__scheduledAt__' => formatDateTime($campaign->scheduled_at),
+                                        '__selectedTimezone__' => '<strong class="text-success">'. getVendorSettings('timezone') .'</strong>'
+                                    ]) !!}</div>
+                                @else
+                                    <span class="h4 font-weight-bold text-dark mb-0">{{ formatDateTime($campaign->scheduled_at) }}</span>
+                                @endif
+
+                                @if(data_get($campaign->__data, 'send_message_via_marketing_message_api'))
+                                    <small class="d-block text-muted mt-1"><i class="fas fa-paper-plane mr-1 text-primary"></i> {{ __tr('Canal : Marketing Messages API (Marketing Lite)') }}</small>
+                                @else
+                                    <small class="d-block text-muted mt-1"><i class="fab fa-whatsapp mr-1 text-success"></i> {{ __tr('Canal : WhatsApp Cloud API') }}</small>
+                                @endif
+                            </div>
+
                             <template x-if="campaignStatus == 'processing'">
-                                <a class="lw-ajax-link-action-via-confirm lw-btn btn btn-danger" data-confirm="#lwCampaignAbort-template" data-method="post" href="{{ route('vendor.campaign.write.abort', ['campaignIdOrUid' => $campaign->_uid]) }}" data-callback="__Utils.viewReload"><i class="fas fa-ban"></i> {{ __tr('Abort') }}</a>
+                                <a class="lw-ajax-link-action-via-confirm btn btn-danger font-weight-bold shadow-sm" data-confirm="#lwCampaignAbort-template" data-method="post" href="{{ route('vendor.campaign.write.abort', ['campaignIdOrUid' => $campaign->_uid]) }}" data-callback="__Utils.viewReload" style="border-radius: 8px;">
+                                    <i class="fas fa-ban mr-1"></i> {{ __tr('Interrompre la Campagne') }}
+                                </a>
                             </template>
-                            {{-- /Abort Campaign --}}
 
                             @if ($campaign->scheduled_at > now())
-                            <div class="text-warning">{{ formatDiffForHumans($campaign->scheduled_at, 3) }}</div>
+                                <div class="badge badge-warning p-2 font-weight-bold" style="font-size: 0.85rem;"><i class="fas fa-clock mr-1"></i> {{ formatDiffForHumans($campaign->scheduled_at, 3) }}</div>
                             @else
-                            <template x-if="(executedCount == 0) && inQueuedCount && !totalFailed">
-                                <div class="text-warning my-3">
-                                    {{  __tr('Awaiting execution') }} <i class="fa fa-spin fa-spinner"></i>
-                                </div>
-                            </template>
+                                <template x-if="(executedCount == 0) && inQueuedCount && !totalFailed">
+                                    <div class="text-warning font-weight-bold my-2">
+                                        {{ __tr('En attente d\'exécution par le serveur') }} <i class="fas fa-circle-notch fa-spin ml-1"></i>
+                                    </div>
+                                </template>
                             @endif
-                            </h3>
+
                             @if(!__isEmpty(data_get($campaign, '__data.expiry_at')))
-                                <div class="text-danger mt-3">{{ __tr('Expire On:') }} {{ formatDateTime(data_get($campaign, '__data.expiry_at')) }}</div>
+                                <div class="text-danger font-weight-bold mt-2" style="font-size: 0.88rem;">
+                                    <i class="fas fa-hourglass-end mr-1"></i> {{ __tr('Expire le :') }} {{ formatDateTime(data_get($campaign, '__data.expiry_at')) }}
+                                </div>
                             @endif
+                        </div>
 
-                            </p>
-                            <div class="my-3">
-                                @if ($campaign->template_name)
-                                <h5 class="card-title text-uppercase text-muted mb-2">{{ __tr('template Name') }} ({{ __tr('language') }})</h5>
-                                <span class="h3 font-weight-bold mb-2">{{ $campaign->template_name }} (<span class="h3 font-weight-bold mb-2">{{ $campaign->template_language }}</span>)</span>
-                                </h5>
-                                @endif
-                                @if ($campaign->__data['preset_message_name'] ?? null)
-                                <h5 class="card-title text-uppercase text-muted mb-2">{{ __tr('Preset Message Name') }}</h5>
-                                <span class="h3 font-weight-bold mb-2">{{ $campaign->__data['preset_message_name'] }}</span>
-                                @endif
-                            </div>
+                        <div class="col-lg-5 border-left pl-lg-4 mt-3 mt-lg-0">
+                            @if ($campaign->template_name)
+                                <div class="p-3 mb-2 rounded-lg" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                    <span class="text-uppercase text-muted font-weight-bold d-block" style="font-size: 0.75rem;">{{ __tr('Modèle Meta WhatsApp') }}</span>
+                                    <span class="h4 font-weight-bold text-dark mb-0"><i class="fab fa-whatsapp text-success mr-2"></i>{{ $campaign->template_name }}</span>
+                                    <small class="badge badge-secondary ml-2 font-weight-bold">{{ $campaign->template_language }}</small>
+                                </div>
+                            @endif
+                            @if ($campaign->__data['preset_message_name'] ?? null)
+                                <div class="p-3 rounded-lg" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                    <span class="text-uppercase text-muted font-weight-bold d-block" style="font-size: 0.75rem;">{{ __tr('Message Pré-enregistré (Bot)') }}</span>
+                                    <span class="h4 font-weight-bold text-dark mb-0"><i class="fas fa-robot text-primary mr-2"></i>{{ $campaign->__data['preset_message_name'] }}</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-12">
-            <div class="row mb-4">
-                {{-- total contacts --}}
+
+        <!-- Grille des Statistiques KPI -->
+        <div class="col-12 mb-4">
+            <div class="row" style="row-gap: 16px;">
+                {{-- Total Contacts --}}
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Total Contacts') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="totalContacts"></span>
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('Total Contacts') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="totalContacts"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-info text-white rounded-circle shadow">
-                                        <i class="fas fa-user"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #eff6ff; color: #2563eb;">
+                                    <i class="fas fa-users" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
+                            <div class="text-muted text-sm pt-2 border-top">
                                 @if ($isAllContacts)
-                                {{ __tr('All contacts') }}
+                                    <span class="font-weight-bold text-dark">{{ __tr('Tous les contacts') }}</span>
                                 @elseif(isset($campaign->__data['audience_title']))
-                                {{ __tr('Audience: ') }}
-                                <strong class="text-nowrap text-warning">{{ $campaign->__data['audience_title'] }}</strong>
+                                    <span class="font-weight-bold text-primary">{{ __tr('Audience : ') }}{{ $campaign->__data['audience_title'] }}</span>
                                 @else
-                                {{ __tr('All contacts from: ') }}
-                                @foreach ($selectedGroups as $selectedGroup)
-                                <strong class="text-nowrap text-warning">{{ $selectedGroup['title'] }}</strong>
-                                @endforeach
-                                {{ __tr('groups.') }}
+                                    <span class="text-truncate d-block">{{ __tr('Groupes cibles') }}</span>
                                 @endif
-                                @if ($isRestrictByTemplateContactLanguage)
-                                <span class="">{!! __tr('Excluding those contacts which don\'t have __languageCode__
-                                    language', [
-                                    '__languageCode__' => "<span class='text-warning'>". e($campaign->template_language)
-                                        ."</span>"
-                                    ]) !!}</span>
-                                @endif
+
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'total'; $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for All Contacts', ['__campaignTitle__' => $campaign->title]) }}');" :disabled="!['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
+                                    <div class="mt-2 text-right">
+                                        <button type="button" x-on:click="recampaignType = 'total'; $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour tous les contacts') }}');" :disabled="!['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-primary font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                     </div>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /total contacts --}}
-                {{-- delivered to --}}
+
+                {{-- Total Delivered --}}
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Total Delivered') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="totalDeliveredInPercent"></span>
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('Total Livrés') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="totalDeliveredInPercent"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
-                                        <i class="fas fa-check"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #e0f2fe; color: #0284c7;">
+                                    <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(totalDelivered)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(totalDelivered)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'delivered', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Delivered Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="totalDelivered == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'delivered', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour les contacts livrés') }}')" :disabled="totalDelivered == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-info font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /delivered to --}}
-                {{-- read by --}}
+
+                {{-- Total Read --}}
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Total Read') }}</h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="totalReadInPercent"></span>
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('Total Lus') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="totalReadInPercent"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-success text-white rounded-circle shadow">
-                                        <i class="fas fa-check-double"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #ecfdf5; color: #10b981;">
+                                    <i class="fas fa-check-double" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(totalRead)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(totalRead)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'read', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Read Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="totalRead == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'read', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour les contacts lus') }}')" :disabled="totalRead == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-success font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /read by --}}
-                {{-- failed --}}
+
+                {{-- Total Failed --}}
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Total Failed') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="__Utils.formatAsLocaleNumber(totalFailedInPercent)"></span>
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('Total Échecs') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="__Utils.formatAsLocaleNumber(totalFailedInPercent)"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #fef2f2; color: #ef4444;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(totalFailed)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(totalFailed)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'failed', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Failed Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="totalFailed == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'failed', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour les échecs') }}')" :disabled="totalFailed == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-danger font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /failed --}}
-                {{-- expired --}}
-                <div class="col-xl-3 col-lg-4 col-md-6 mt-4">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('Total Expired') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="__Utils.formatAsLocaleNumber(totalExpiredInPercent)"></span>
+
+                {{-- Total Expired --}}
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('Total Expirés') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="__Utils.formatAsLocaleNumber(totalExpiredInPercent)"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-danger text-white rounded-circle shadow">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #fff7ed; color: #f97316;">
+                                    <i class="fas fa-clock" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(expiredCount)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(expiredCount)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'expired', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Expired Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="expiredCount == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'expired', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour les expirés') }}')" :disabled="expiredCount == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-warning font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /expired --}}
+
                 {{-- Total Sent --}}
-                <div class="col-xl-3 col-lg-4 col-md-6 mt-4">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('In Sent') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="__Utils.formatAsLocaleNumber(totalSentInPercent)"></span>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('En Cours d\'Envoi') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="__Utils.formatAsLocaleNumber(totalSentInPercent)"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #f3e8ff; color: #a855f7;">
+                                    <i class="fas fa-paper-plane" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(totalSent)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(totalSent)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'sent', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Sent Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="totalSent == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'sent', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour les envois') }}')" :disabled="totalSent == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-purple font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /Total Sent --}}
+
                 {{-- In Queue --}}
-                <div class="col-xl-3 col-lg-4 col-md-6 mt-4">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('In Queue') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="__Utils.formatAsLocaleNumber(totalInQueueInPercent)"></span>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; background: #ffffff;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-uppercase font-weight-bold text-muted" style="font-size: 0.75rem;">{{ __tr('En File d\'Attente') }}</span>
+                                    <h2 class="font-weight-bold text-dark mb-0 mt-1" x-text="__Utils.formatAsLocaleNumber(totalInQueueInPercent)"></h2>
                                 </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
-                                        <i class="fas fa-hourglass-end"></i>
-                                    </div>
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; background: #f1f5f9; color: #475569;">
+                                    <i class="fas fa-hourglass-half" style="font-size: 1.25rem;"></i>
                                 </div>
                             </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(inQueueCount)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
+                            <div class="text-muted text-sm pt-2 border-top d-flex justify-content-between align-items-center">
+                                <span><strong x-text="__Utils.formatAsLocaleNumber(inQueueCount)"></strong> {{ __tr('Contacts') }}</span>
                                 @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'in_queue', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for In Queue Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="inQueueCount == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
+                                    <button type="button" x-on:click="recampaignType = 'in_queue', $dispatch('set-modal-title', '{{ __tr('Créer un groupe pour la file d\'attente') }}')" :disabled="inQueueCount == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="btn btn-xs btn-outline-secondary font-weight-bold" style="border-radius: 6px;">{{ __tr('Relancer') }}</button>
                                 @endif
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {{-- /In Queue --}}
-                {{-- Accepted --}}
-                <div class="col-xl-3 col-lg-4 col-md-6 mt-4">
-                    <div class="card card-stats mb-4 mb-xl-0">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col">
-                                    <h5 class="card-title text-uppercase text-muted mb-0">{{ __tr('In Accepted') }}
-                                    </h5>
-                                    <span class="h2 font-weight-bold mb-0" x-text="__Utils.formatAsLocaleNumber(totalAcceptedInPercent)"></span>
-                                </div>
-                                <div class="col-auto">
-                                    <div class="icon icon-shape bg-primary text-white rounded-circle shadow">
-                                        <i class="fas fa-pause"></i>
-                                    </div>
-                                </div>
-                            </div>
-                            <p class="mt-3 mb-0 text-muted text-sm">
-                                <span class="text-nowrap" x-text="__Utils.formatAsLocaleNumber(acceptedCount)"></span>
-                                <span class="text-nowrap">{{ __tr('Contacts') }}</span>
-                                @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                                    <div class="float-right">
-                                        <button type="button" x-on:click="recampaignType = 'accepted', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Accepted Contacts', ['__campaignTitle__' => $campaign->title]) }}')" :disabled="acceptedCount == 0 || !['executed', 'aborted'].includes(campaignStatus)" data-toggle="modal" data-target="#lwAddNewGroup" class="lw-btn btn btn-sm btn-primary" href="#">{{ __tr('Recampaign') }}</button>
-                                    </div>
-                                @endif
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {{-- /Accepted --}}
-            </div>
-            {{-- message log --}}
-              <div class="row">
-                <!--start of tabs-->
-        <ul class="nav nav-tabs col-12 pr-5 mb-1" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <a class="nav-link <?= $pageType == "queue" ? 'active' : '' ?>"
-                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'queue', 'logStatus' => 'all']) ?>#logData">
-                    <?= __tr('Queue') ?>
-                </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link <?= $pageType == "executed" ? 'active' : '' ?>"
-                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'executed', 'logStatus' => 'all']) ?>#logData">
-                    <?= __tr('Executed') ?>
-                </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link <?= $pageType == "expired" ? 'active' : '' ?>"
-                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'expired']) ?>#logData">
-                    <?= __tr('Expired') ?>
-                </a>
-            </li>
-            <li class="nav-item text-right col my-2">
-                @if (($pageType == "queue") and ($campaign->status == 1))
-                <template x-if="campaignStatus == 'executed' && (queueFailedCount > 0)">
-                <a class="btn btn-warning btn-sm lw-ajax-link-action" data-confirm="#requeueFailedMessageConfirm-template" data-method="post" href="{{ route('vendor.campaign.requeue.log.write.failed', [
-                    'campaignUid' => $campaignUid
-                ]) }}"><i class="fa fa-redo-alt"></i> {{  __tr('Requeue Failed Message') }}</a>
-                 </template>
-                @endif
-                <button @click="window.reloadDT('#lwCampaignQueueLog');" class="btn btn-dark btn-sm"><i class="fa fa-sync"></i> {{  __tr('Refresh') }}</button>
-                @if($campaignStatus=="executed")
-                    @if($pageType== "queue")
-                        <a href="{{ route('vendor.campaign.queue.log.report.write',['campaignUid' => $campaignUid ] 
-                        ) }}" data-method="post" class="btn btn-dark btn-sm"><i class="fa fa-download"></i> {{  __tr('Report') }}</a>
-
-                        @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                            <button type="button" x-on:click="failedCampaignType = 'queue', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Queue Contacts', ['__campaignTitle__' => $campaign->title]) }}')" data-toggle="modal" data-target="#lwAddNewGroup" :disabled="totalFailed == 0" :title="totalFailed == 0 ? '{{ __tr('No failed contacts are available in the Queue tab') }}' : ''" class="btn btn-primary btn-sm">{{  __tr('Recampaign') }}</button>
-                        @endif
-                    @elseif($pageType== "executed")
-                        <a href="{{ route('vendor.campaign.executed.report.write',['campaignUid' => $campaignUid ] 
-                            ) }}" data-method="post" class="btn btn-dark btn-sm"><i class="fa fa-download"></i> {{  __tr('Report') }}</a>
-
-                        @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                            <button type="button" x-on:click="failedCampaignType = 'executed', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Executed Contacts', ['__campaignTitle__' => $campaign->title]) }}')" data-toggle="modal" data-target="#lwAddNewGroup" :disabled="totalDelivered == 0" :title="totalDelivered == 0 ? '{{ __tr('No contacts are available in the Executed tab') }}' : ''" class="btn btn-primary btn-sm">{{  __tr('Recampaign') }}</button>
-                        @endif
-                    @elseif($pageType== "expired")
-                        <a href="{{ route('vendor.campaign.expired.log.report.write',['campaignUid' => $campaignUid ] 
-                            ) }}" data-method="post" class="btn btn-dark btn-sm"><i class="fa fa-download"></i> {{  __tr('Report') }}</a>
-
-                        @if(hasVendorAccess('manage_contacts', 'add_edit_delete_archive_group'))
-                            <button type="button" x-on:click="failedCampaignType = 'expired', $dispatch('set-modal-title', '{{ __tr('__campaignTitle__ : Create New Group for Expired Contacts', ['__campaignTitle__' => $campaign->title]) }}')" data-toggle="modal" data-target="#lwAddNewGroup" :disabled="expiredCount == 0" :title="expiredCount == 0 ? '{{ __tr('No contacts are available in the Expired tab') }}' : ''" class="btn btn-primary btn-sm">{{  __tr('Recampaign') }}</button>
-                        @endif
-                    @endif
-                @endif
-                {{-- </template> --}}
-            </li>
-        </ul>
-        <!--/end of tabs -->
-              </div>
-        <!-- tab Container -->
-        <div class="row">
-            <div class="col-12 mb-4 lw-nested-nav-tabs-container" id="logData">
-                @if($pageType== "queue")
-                    @include('whatsapp.campaign-queue-log-partial')
-                    @elseif($pageType== "executed")
-                    @include('whatsapp.campaign-executed-log-partial')
-                    @elseif($pageType== "expired")
-                    @include('whatsapp.campaign-expired-log-partial')
-                    @endif
             </div>
         </div>
+
+        <!-- Section des Journaux de Logs (Tabs) -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header border-0 bg-white pt-4 pb-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                        <!-- Onglets du Log -->
+                        <ul class="nav nav-pills p-1" id="myTab" role="tablist" style="background: #f1f5f9; border-radius: 12px; gap: 4px;">
+                            <li class="nav-item">
+                                <a class="nav-link font-weight-bold px-4 py-2 <?= $pageType == 'queue' ? 'active' : '' ?>" 
+                                   style="border-radius: 9px; font-size: 0.88rem; <?= $pageType == 'queue' ? 'background: #10b981; color: white;' : 'color: #64748b;' ?>" 
+                                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'queue', 'logStatus' => 'all']) ?>#logData">
+                                    <i class="fas fa-list-ol mr-2"></i><?= __tr('File d\'attente') ?>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link font-weight-bold px-4 py-2 <?= $pageType == 'executed' ? 'active' : '' ?>" 
+                                   style="border-radius: 9px; font-size: 0.88rem; <?= $pageType == 'executed' ? 'background: #10b981; color: white;' : 'color: #64748b;' ?>" 
+                                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'executed', 'logStatus' => 'all']) ?>#logData">
+                                    <i class="fas fa-check-circle mr-2"></i><?= __tr('Exécutés') ?>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link font-weight-bold px-4 py-2 <?= $pageType == 'expired' ? 'active' : '' ?>" 
+                                   style="border-radius: 9px; font-size: 0.88rem; <?= $pageType == 'expired' ? 'background: #10b981; color: white;' : 'color: #64748b;' ?>" 
+                                   href="<?= route('vendor.campaign.status.view', ['campaignUid' => $campaignUid, 'pageType' => 'expired']) ?>#logData">
+                                    <i class="fas fa-clock mr-2"></i><?= __tr('Expirés') ?>
+                                </a>
+                            </li>
+                        </ul>
+
+                        <!-- Actions des Logs (Réactualiser / Rapports) -->
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            @if (($pageType == "queue") and ($campaign->status == 1))
+                                <template x-if="campaignStatus == 'executed' && (queueFailedCount > 0)">
+                                    <a class="btn btn-warning btn-sm font-weight-bold lw-ajax-link-action" data-confirm="#requeueFailedMessageConfirm-template" data-method="post" href="{{ route('vendor.campaign.requeue.log.write.failed', ['campaignUid' => $campaignUid]) }}" style="border-radius: 8px;">
+                                        <i class="fas fa-redo-alt mr-1"></i> {{ __tr('Réessayer les échecs') }}
+                                    </a>
+                                </template>
+                            @endif
+                            
+                            <button @click="window.reloadDT('#lwCampaignQueueLog');" class="btn btn-outline-secondary btn-sm font-weight-bold" style="border-radius: 8px;">
+                                <i class="fas fa-sync-alt mr-1"></i> {{ __tr('Actualiser') }}
+                            </button>
+
+                            @if($campaignStatus == "executed")
+                                @if($pageType == "queue")
+                                    <a href="{{ route('vendor.campaign.queue.log.report.write', ['campaignUid' => $campaignUid]) }}" data-method="post" class="btn btn-dark btn-sm font-weight-bold" style="border-radius: 8px;">
+                                        <i class="fas fa-download mr-1"></i> {{ __tr('Télécharger Rapport') }}
+                                    </a>
+                                @elseif($pageType == "executed")
+                                    <a href="{{ route('vendor.campaign.executed.report.write', ['campaignUid' => $campaignUid]) }}" data-method="post" class="btn btn-dark btn-sm font-weight-bold" style="border-radius: 8px;">
+                                        <i class="fas fa-download mr-1"></i> {{ __tr('Télécharger Rapport') }}
+                                    </a>
+                                @elseif($pageType == "expired")
+                                    <a href="{{ route('vendor.campaign.expired.log.report.write', ['campaignUid' => $campaignUid]) }}" data-method="post" class="btn btn-dark btn-sm font-weight-bold" style="border-radius: 8px;">
+                                        <i class="fas fa-download mr-1"></i> {{ __tr('Télécharger Rapport') }}
+                                    </a>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0 lw-nested-nav-tabs-container" id="logData">
+                    @if($pageType == "queue")
+                        @include('whatsapp.campaign-queue-log-partial')
+                    @elseif($pageType == "executed")
+                        @include('whatsapp.campaign-executed-log-partial')
+                    @elseif($pageType == "expired")
+                        @include('whatsapp.campaign-expired-log-partial')
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <script type="text/template" id="requeueFailedMessageConfirm-template">
-            <h2>{{ __tr('Are You Sure!') }}</h2>
-            <p>{{ __tr('You want requeue all the failed messages to process it again?') }}</p>
+            <h2>{{ __tr('Êtes-vous sûr ?') }}</h2>
+            <p>{{ __tr('Voulez-vous remettre en file d\'attente tous les messages échoués pour les retraiter ?') }}</p>
         </script>
-        </div>
+    </div>
 
-        <!-- Add New Group Modal -->
-        <x-lw.modal id="lwAddNewGroup" :header="__tr('Add New Group')" :hasForm="true">
-            <!--  Add New Group Form -->
-            <x-lw.form id="lwAddNewGroupForm" :action="route('vendor.contact.group.write.create')"
-                :data-callback-params="['modalId' => '#lwAddNewGroup', 'datatableId' => '#lwGroupList']"
-                data-callback="appFuncs.modelSuccessCallback">
+    <!-- Modale Ajout de Groupe -->
+    <x-lw.modal id="lwAddNewGroup" :header="__tr('Créer un nouveau groupe de contacts')" :hasForm="true">
+        <x-lw.form id="lwAddNewGroupForm" :action="route('vendor.contact.group.write.create')"
+            :data-callback-params="['modalId' => '#lwAddNewGroup', 'datatableId' => '#lwGroupList']"
+            data-callback="appFuncs.modelSuccessCallback">
+
                 <!-- form body -->
                 <div class="lw-form-modal-body">
 

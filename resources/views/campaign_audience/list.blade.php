@@ -99,50 +99,78 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     </div>
 
                     <div id="audienceSpecificTargetSection">
-                        <div class="form-group">
-                            <label for="contacts"><?= __tr('Contacts Individuels') ?></label>
-                            <select name="contacts[]" id="contacts" class="form-control" multiple placeholder="<?= __tr('Tapez pour rechercher un contact...') ?>">
-                            </select>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <small class="text-muted"><?= __tr('Tapez un nom ou un numéro pour rechercher') ?></small>
-                                <small class="badge badge-pill badge-primary font-weight-bold" id="lwSelectedContactsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('contact(s) sélectionné(s)') ?>
-                                </small>
+                    <div id="audienceSpecificTargetSection">
+                        <!-- Contacts Individuels -->
+                        <div class="form-group mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label for="contacts" class="mb-0 font-weight-bold text-dark" style="font-size: 0.9rem;">
+                                    <i class="fas fa-user text-primary mr-1"></i><?= __tr('Contacts Individuels') ?>
+                                </label>
+                                <span class="text-muted font-weight-normal" id="lwSelectedContactsBadge" style="font-size: 0.8rem;">
+                                    0 <?= __tr('sélectionné(s)') ?>
+                                </span>
                             </div>
+                            <select name="contacts[]" id="contacts" class="form-control" multiple placeholder="<?= __tr('Cliquez pour voir la liste ou tapez un nom/numéro...') ?>">
+                            </select>
+                            <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;"><?= __tr('Cliquez pour dérouler la liste complète ou tapez un nom/numéro.') ?></small>
                         </div>
 
-                        <div class="form-group">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label for="groups" class="mb-0"><?= __tr('Groupes de contacts') ?></label>
-                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedGroupsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('groupe(s) sélectionné(s)') ?>
-                                </small>
+                        <!-- Groupes de contacts (Sélection visuelle sans touche Control) -->
+                        <div class="form-group mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="mb-0 font-weight-bold text-dark" style="font-size: 0.9rem;">
+                                    <i class="fas fa-layer-group text-info mr-1"></i><?= __tr('Groupes de contacts') ?>
+                                </label>
+                                <span class="text-muted font-weight-normal" id="lwSelectedGroupsBadge" style="font-size: 0.8rem;">
+                                    0 <?= __tr('sélectionné(s)') ?>
+                                </span>
                             </div>
-                            <select name="groups[]" id="groups" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                                @foreach($groups as $group)
-                                    <option value="{{ $group->_id }}">{{ $group->title }}</option>
-                                @endforeach
-                            </select>
+                            @if(count($groups) > 0)
+                                <div class="d-flex flex-wrap" style="gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px;">
+                                    @foreach($groups as $group)
+                                        <label class="custom-control custom-checkbox border rounded px-3 py-2 m-0 lw-checkable-pill" style="cursor: pointer; background: #f8fafc; transition: all 0.2s; user-select: none;">
+                                            <input type="checkbox" name="groups[]" value="{{ $group->_id }}" class="custom-control-input group-checkbox" onchange="updateAudienceSelectionCounts()">
+                                            <span class="custom-control-label font-weight-bold text-dark" style="font-size: 0.85rem;">
+                                                {{ $group->title }}
+                                            </span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-muted small italic p-2 border rounded bg-light"><?= __tr('Aucun groupe disponible.') ?></div>
+                            @endif
                         </div>
 
-                        <div class="form-group">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label for="labels" class="mb-0"><?= __tr('Étiquettes') ?></label>
-                                <small class="badge badge-pill badge-info font-weight-bold" id="lwSelectedLabelsBadge" style="font-size: 0.85rem;">
-                                    0 <?= __tr('étiquette(s) sélectionnée(s)') ?>
-                                </small>
+                        <!-- Étiquettes (Sélection visuelle sans touche Control) -->
+                        <div class="form-group mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="mb-0 font-weight-bold text-dark" style="font-size: 0.9rem;">
+                                    <i class="fas fa-tags text-warning mr-1"></i><?= __tr('Étiquettes') ?>
+                                </label>
+                                <span class="text-muted font-weight-normal" id="lwSelectedLabelsBadge" style="font-size: 0.8rem;">
+                                    0 <?= __tr('sélectionnée(s)') ?>
+                                </span>
                             </div>
-                            <select name="labels[]" id="labels" class="form-control" multiple data-lw-plugin="lwSelectize" data-max-options="100000">
-                                @foreach($labels as $label)
-                                    <option value="{{ $label->_id }}">{{ $label->title }}</option>
-                                @endforeach
-                            </select>
+                            @if(count($labels) > 0)
+                                <div class="d-flex flex-wrap" style="gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px;">
+                                    @foreach($labels as $label)
+                                        <label class="custom-control custom-checkbox border rounded px-3 py-2 m-0 lw-checkable-pill" style="cursor: pointer; background: #f8fafc; transition: all 0.2s; user-select: none;">
+                                            <input type="checkbox" name="labels[]" value="{{ $label->_id }}" class="custom-control-input label-checkbox" onchange="updateAudienceSelectionCounts()">
+                                            <span class="custom-control-label font-weight-bold text-dark" style="font-size: 0.85rem;">
+                                                {{ $label->title }}
+                                            </span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-muted small italic p-2 border rounded bg-light"><?= __tr('Aucune étiquette disponible.') ?></div>
+                            @endif
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= __tr('Fermer') ?></button>
-                    <button type="submit" class="btn btn-primary"><?= __tr('Enregistrer') ?></button>
+                    <button type="submit" class="btn btn-primary font-weight-bold" style="background: #10b981; border: none;"><?= __tr('Enregistrer l\'Audience') ?></button>
                 </div>
             </form>
         </div>
@@ -160,23 +188,23 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             valueField: 'value',
             labelField: 'text',
             searchField: ['text'],
-            maxOptions: 50,
+            maxOptions: 1000,
+            preload: 'focus',
             create: false,
-            placeholder: '<?= __tr("Tapez pour rechercher un contact...") ?>',
+            placeholder: '<?= __tr("Cliquez pour voir la liste ou tapez un nom/numéro...") ?>',
             load: function(query, callback) {
-                if (!query.length || query.length < 2) return callback();
                 var self = this;
                 clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = setTimeout(function() {
                     $.ajax({
                         url: '{{ route("vendor.campaign_audience.contacts.search") }}',
                         type: 'GET',
-                        data: { q: query },
+                        data: { q: query || '' },
                         dataType: 'json',
                         error: function() { callback(); },
                         success: function(res) { callback(res); }
                     });
-                }, 300);
+                }, 150);
             },
             onChange: function() {
                 updateAudienceSelectionCounts();
@@ -186,36 +214,39 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
     function updateAudienceSelectionCounts() {
         let contactsCount = contactsSelectize ? contactsSelectize.items.length : 0;
-        let groupsCount = ($('#groups').val() || []).length;
-        let labelsCount = ($('#labels').val() || []).length;
+        let groupsCount = $('.group-checkbox:checked').length;
+        let labelsCount = $('.label-checkbox:checked').length;
 
-        $('#lwSelectedContactsBadge').text(contactsCount + ' <?= __tr("contact(s) sélectionné(s)") ?>');
-        $('#lwSelectedGroupsBadge').text(groupsCount + ' <?= __tr("groupe(s) sélectionné(s)") ?>');
-        $('#lwSelectedLabelsBadge').text(labelsCount + ' <?= __tr("étiquette(s) sélectionnée(s)") ?>');
+        // Visual highlight for checkable pills
+        $('.group-checkbox, .label-checkbox').each(function() {
+            if ($(this).is(':checked')) {
+                $(this).closest('.lw-checkable-pill').css({
+                    'background': '#ecfdf5',
+                    'border-color': '#10b981',
+                    'color': '#065f46'
+                });
+            } else {
+                $(this).closest('.lw-checkable-pill').css({
+                    'background': '#f8fafc',
+                    'border-color': '#e2e8f0',
+                    'color': '#1e293b'
+                });
+            }
+        });
+
+        $('#lwSelectedContactsBadge').text(contactsCount + ' <?= __tr("sélectionné(s)") ?>');
+        $('#lwSelectedGroupsBadge').text(groupsCount + ' <?= __tr("sélectionné(s)") ?>');
+        $('#lwSelectedLabelsBadge').text(labelsCount + ' <?= __tr("sélectionnée(s)") ?>');
     }
-
-    $('#groups, #labels').on('change', updateAudienceSelectionCounts);
 
     // Prevent double-click submission
     $('#audienceForm').on('submit', function() {
         var $btn = $(this).find('button[type="submit"]');
         if ($btn.prop('disabled')) {
-            return false; // Already submitting
+            return false;
         }
         $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> <?= __tr("Enregistrement...") ?>');
     });
-
-    function selectAllAudienceContacts() {
-        // Not applicable with AJAX mode — show a hint
-        alert('<?= __tr("Utilisez l\'option \"Cibler tous les contacts\" pour sélectionner la totalité de vos contacts.") ?>');
-    }
-
-    function deselectAllAudienceContacts() {
-        if (contactsSelectize) {
-            contactsSelectize.clear();
-            updateAudienceSelectionCounts();
-        }
-    }
 
     function toggleAllContactsOption(isAll) {
         if (isAll) {
@@ -229,7 +260,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
     function reEnableSubmitButton() {
         var $btn = $('#audienceForm').find('button[type="submit"]');
-        $btn.prop('disabled', false).html('<?= __tr("Enregistrer") ?>');
+        $btn.prop('disabled', false).html('<?= __tr("Enregistrer l\'Audience") ?>');
     }
 
     function onAudienceSaved(response) {
@@ -287,13 +318,20 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             });
         }
 
-        if(form.find('#groups')[0] && form.find('#groups')[0].selectize) {
-            form.find('#groups')[0].selectize.setValue(parseItems(groups));
-        }
-        if(form.find('#labels')[0] && form.find('#labels')[0].selectize) {
-            form.find('#labels')[0].selectize.setValue(parseItems(labels));
-        }
-        
+        // Set group checkboxes
+        $('.group-checkbox').prop('checked', false);
+        let parsedGroups = parseItems(groups);
+        parsedGroups.forEach(function(gid) {
+            $('.group-checkbox[value="' + gid + '"]').prop('checked', true);
+        });
+
+        // Set label checkboxes
+        $('.label-checkbox').prop('checked', false);
+        let parsedLabels = parseItems(labels);
+        parsedLabels.forEach(function(lid) {
+            $('.label-checkbox[value="' + lid + '"]').prop('checked', true);
+        });
+
         updateAudienceSelectionCounts();
         $('#lwCreateAudienceModal').modal('show');
     }
@@ -313,15 +351,11 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             contactsSelectize.clearOptions();
             contactsSelectize.clear();
         }
-        if(form.find('#groups')[0] && form.find('#groups')[0].selectize) {
-            form.find('#groups')[0].selectize.clear();
-        }
-        if(form.find('#labels')[0] && form.find('#labels')[0].selectize) {
-            form.find('#labels')[0].selectize.clear();
-        }
+        $('.group-checkbox, .label-checkbox').prop('checked', false);
         updateAudienceSelectionCounts();
     });
 </script>
 @endpush
 </div>
 @endsection
+

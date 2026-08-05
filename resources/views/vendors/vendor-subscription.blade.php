@@ -277,8 +277,111 @@ $planDetails = vendorPlanDetails(null, null, $vendorInfo['id']);
             </script>
         </div>
     </div>
+
+    {{-- Mes Factures & Abonnements (Bottom of Subscription Page) --}}
+    @if(hasVendorAccess() && isset($userManualSubscriptions))
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header border-0 pt-4 pb-3" style="background: #ecfdf5; border-bottom: 2px solid #a7f3d0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-1 font-weight-bold" style="color: #065f46; font-size: 1.15rem;">
+                                <i class="fas fa-file-invoice mr-2" style="color: #10b981;"></i>{{ __tr('Historique des Factures & Abonnements') }}
+                            </h3>
+                            <p class="text-muted small mb-0" style="color: #047857;">{{ __tr('Retrouvez l\'ensemble de vos règlements et téléchargez vos reçus officiels.') }}</p>
+                        </div>
+                        <span class="badge" style="background: #10b981; color: #ffffff; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                            {{ count($userManualSubscriptions) }} {{ __tr('Facture(s)') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0 bg-white">
+                    @if($userManualSubscriptions->isEmpty())
+                        <div class="text-center py-5">
+                            <div style="font-size: 2.5rem; color: #a7f3d0; margin-bottom: 0.8rem;">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <h5 class="font-weight-normal text-muted">{{ __tr('Aucune facture trouvée') }}</h5>
+                            <p class="text-muted small mb-0">{{ __tr('Vos abonnements souscrits apparaîtront automatiquement ici.') }}</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" style="font-size: 0.9rem;">
+                                <thead>
+                                    <tr style="background: #f0fdf4; border-bottom: 2px solid #d1fae5;">
+                                        <th class="px-4 py-3 text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Plan souscrit') }}</th>
+                                        <th class="px-3 py-3 text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Montant') }}</th>
+                                        <th class="px-3 py-3 text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Date début') }}</th>
+                                        <th class="px-3 py-3 text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Date fin') }}</th>
+                                        <th class="px-3 py-3 text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Statut') }}</th>
+                                        <th class="px-4 py-3 text-uppercase text-right" style="font-size: 0.74rem; letter-spacing: 0.05em; color: #065f46; font-weight: 700;">{{ __tr('Action') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($userManualSubscriptions as $sub)
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td class="px-4 py-3 align-middle">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 flex-shrink-0"
+                                                    style="width: 36px; height: 36px; background: {{ $sub['is_active'] ? '#ecfdf5' : '#f1f5f9' }}; color: {{ $sub['is_active'] ? '#10b981' : '#64748b' }};">
+                                                    <i class="fas fa-id-card" style="font-size: 0.85rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <div style="color: #0f172a; font-weight: 600;">{{ $sub['plan_title'] }}</div>
+                                                    <div class="text-muted" style="font-size: 0.78rem;">{{ $sub['freq_title'] }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3 align-middle">
+                                            <span style="color: #047857; font-weight: 700; font-size: 0.95rem;">{{ $sub['charges'] }}</span>
+                                        </td>
+                                        <td class="px-3 py-3 align-middle text-muted">{{ $sub['created_at'] }}</td>
+                                        <td class="px-3 py-3 align-middle text-muted">
+                                            @if($sub['is_expired'])
+                                                <span class="text-danger font-weight-bold">{{ $sub['ends_at'] }}</span>
+                                            @else
+                                                {{ $sub['ends_at'] }}
+                                            @endif
+                                        </td>
+                                        <td class="px-3 py-3 align-middle">
+                                            @if($sub['is_active'])
+                                                <span class="badge" style="background: #d1fae5; color: #047857; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                                    <i class="fas fa-check-circle mr-1"></i> {{ __tr('Actif') }}
+                                                </span>
+                                            @elseif($sub['is_expired'])
+                                                <span class="badge" style="background: #fee2e2; color: #dc2626; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                                    <i class="fas fa-times-circle mr-1"></i> {{ __tr('Expiré') }}
+                                                </span>
+                                            @else
+                                                <span class="badge" style="background: #fef3c7; color: #d97706; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                                    <i class="fas fa-clock mr-1"></i> {{ $sub['status'] }}
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 align-middle text-right">
+                                            <a href="{{ route('vendor.subscription.invoice.print', ['subscriptionUid' => $sub['_uid']]) }}"
+                                               target="_blank"
+                                               class="btn btn-sm"
+                                               style="background: #10b981; color: #ffffff; border-radius: 8px; font-size: 0.82rem; padding: 6px 14px; font-weight: 600; border: none; box-shadow: 0 2px 6px rgba(16,185,129,0.25);"
+                                               title="{{ __tr('Télécharger / Imprimer la facture') }}">
+                                                <i class="fas fa-file-invoice mr-1"></i> {{ __tr('Facture') }}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 @endif
+
 @push('appScripts')
 <script>
     (function(window) {

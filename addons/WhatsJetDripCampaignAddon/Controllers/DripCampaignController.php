@@ -198,4 +198,24 @@ class DripCampaignController extends Controller
         
         return back()->with('success', __tr('Campaign deleted successfully.'));
     }
+
+    /**
+     * Toggle Status of a Campaign (Active / Inactive)
+     */
+    public function toggleStatus($campaignUid)
+    {
+        $campaign = DripCampaign::where('_uid', $campaignUid)
+            ->where('vendors__id', getVendorId())
+            ->firstOrFail();
+
+        $newStatus = ($campaign->status == 1) ? 2 : 1;
+        $campaign->update(['status' => $newStatus]);
+
+        $message = ($newStatus == 1)
+            ? __tr('Campagne Drip activée avec succès.')
+            : __tr('Campagne Drip désactivée avec succès.');
+
+        return back()->with('success', $message);
+    }
 }
+

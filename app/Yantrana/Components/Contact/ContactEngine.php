@@ -2484,4 +2484,37 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
 
         return $array;
     }
+
+    /**
+     * Épingler / Désépingler une conversation (style WhatsApp)
+     *
+     * @param string $contactUid
+     * @return EngineResponse
+     */
+    public function processPinContact(string $contactUid)
+    {
+        $contact = $this->contactRepository->fetchIt($contactUid);
+
+        if (__isEmpty($contact) || $contact->vendors__id != getVendorId()) {
+            return $this->engineResponse(18, [], __tr('Contact introuvable.'));
+        }
+
+        $newPinnedState = $contact->is_pinned ? 0 : 1;
+        $contact->is_pinned = $newPinnedState;
+        $contact->pinned_at = $newPinnedState ? now() : null;
+        $updated = $contact->save();
+
+        if (!$updated) {
+            return $this->engineFailedResponse([], __tr('Impossible de modifier l\'épinglage.'));
+        }
+
+        return $this->engineSuccessResponse([
+            'is_pinned' => (bool) $newPinnedState,
+            'contactUid' => $contactUid,
+        ], $newPinnedState
+            ? __tr('Conversation épinglée')
+            : __tr('Conversation désépinglée')
+        );
+    }
 }
+

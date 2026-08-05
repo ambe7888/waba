@@ -1,13 +1,13 @@
-@extends('layouts.app', ['title' => __tr('View Support Ticket')])
+@extends('layouts.app', ['title' => __tr('Détail du Ticket')])
 
 @section('content')
 @include('users.partials.header', [
-    'title' => __tr('Support Ticket').' #'.substr($ticket->_uid, 0, 8),
-    'description' => '',
-    'class' => 'col-lg-7'
+    'title' => __tr('Ticket d\'assistance #') . substr($ticket->_uid, 0, 8),
+    'description' => __tr('Consultez et répondez à cette demande d\'assistance.'),
 ])
 
-<div class="container-fluid mt-lg--6">
+<div class="container-fluid pt-4 pb-5">
+
     <div class="row">
         <div class="col-xl-8">
             <div class="card shadow border-0">

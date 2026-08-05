@@ -452,4 +452,31 @@ class ManualSubscriptionController extends BaseController
         // Send response
         return $this->processResponse($processReaction, [], [], true);
     }
+
+    /**
+     * Vendor's own subscription history page
+     *
+     * @return \Illuminate\View\View
+     */
+    public function vendorSubscriptionHistory()
+    {
+        $processReaction = $this->manualSubscriptionEngine->getVendorSubscriptionHistory();
+        return $this->loadView('subscription.vendor-history', $processReaction->data());
+    }
+
+    /**
+     * Printable invoice for a manual subscription
+     *
+     * @param string $subscriptionUid
+     * @return \Illuminate\View\View
+     */
+    public function vendorInvoice($subscriptionUid)
+    {
+        $processReaction = $this->manualSubscriptionEngine->getManualInvoiceData($subscriptionUid);
+        if ($processReaction->failed()) {
+            abort(404);
+        }
+        return view('subscription.invoice-print', $processReaction->data());
+    }
 }
+

@@ -65,6 +65,12 @@ class WhatsJetDripCampaignAddonServiceProvider extends ServiceProvider
                 'deleteCampaign'
             ])->name('addon.WhatsJetDripCampaignAddon.delete_campaign');
 
+            Route::post('/drip-campaigns/{campaignUid}/toggle-status', [
+                \Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class,
+                'toggleStatus'
+            ])->name('addon.WhatsJetDripCampaignAddon.toggle_status');
+
+
             Route::get('/drip-campaigns/{campaignId}/builder', [
                 \Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class,
                 'builder'

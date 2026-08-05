@@ -480,7 +480,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             'contacts._id',
             '=',
             'latest_messages.contacts__id'
-        )->orderBy('latest_messages.latest_message', 'desc');
+        )->orderByRaw('contacts.is_pinned DESC')->orderBy('latest_messages.latest_message', 'desc');
 
         // -----------------------------------------
         // UNREAD COUNT JOIN (LEFT)

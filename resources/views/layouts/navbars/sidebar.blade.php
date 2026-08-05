@@ -17,7 +17,21 @@ if (\Illuminate\Support\Facades\Auth::check()) {
         }
     }
 }
+
+// Count for new resource notifications
+$newResourcesBadgeCount = 0;
+if (\Illuminate\Support\Facades\Auth::check()) {
+    $lastViewed = session('last_viewed_resources_at');
+    $resQuery = \App\Yantrana\Components\InfoMaterial\Models\InfoMaterialModel::query();
+    if ($lastViewed) {
+        $resQuery->where('created_at', '>', $lastViewed);
+    } else {
+        $resQuery->where('created_at', '>=', now()->subDays(7));
+    }
+    $newResourcesBadgeCount = $resQuery->count();
+}
 @endphp
+
 
 <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-white lw-sidebar-container"
     id="sidenav-main">
@@ -262,9 +276,14 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ markAsActiveLink('info_material.index') }}" href="{{ route('info_material.index') }}">
-                        <i class="fas fa-book"></i> {{ __tr('Resource Library') }}
+                        <i class="fas fa-book" style="position: relative;">
+                            @if($newResourcesBadgeCount > 0)
+                                <span class="badge badge-success" style="position: absolute; top: -6px; right: -8px; padding: 2px 4px; font-size: 8px; border-radius: 50%; background: #10b981; color: white; line-height: 1; font-family: sans-serif !important; font-style: normal !important; font-weight: bold !important; z-index: 10;">{{ $newResourcesBadgeCount }}</span>
+                            @endif
+                        </i> {{ __tr('Resource Library') }}
                     </a>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="#configurationMenu" data-toggle="collapse" role="button"
                         aria-expanded="true" aria-controls="configurationMenu">
@@ -542,23 +561,35 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ markAsActiveLink('support_ticket.index') }}"
+                    <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('support_ticket.index') }}"
                         href="{{ route('support_ticket.index') }}">
-                        <i class="fas fa-ticket-alt" style="position: relative;">
-                            @if($supportTicketBadgeCount > 0)
-                                <span class="badge badge-danger" style="position: absolute; top: -6px; right: -8px; padding: 2px 4px; font-size: 8px; border-radius: 50%; line-height: 1; font-family: sans-serif !important; font-style: normal !important; font-weight: bold !important; z-index: 10;">{{ $supportTicketBadgeCount }}</span>
-                            @endif
-                        </i>
-                        {{ __tr('Support Tickets') }}
+                        <div>
+                            <i class="fas fa-ticket-alt"></i>
+                            <span>{{ __tr('Support Tickets') }}</span>
+                        </div>
+                        @if($supportTicketBadgeCount > 0)
+                            <span class="badge badge-danger font-weight-bold ml-auto" style="border-radius: 12px; padding: 2px 7px; font-size: 0.72rem;">
+                                {{ $supportTicketBadgeCount }}
+                            </span>
+                        @endif
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ markAsActiveLink('info_material.index') }}"
+                    <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('info_material.index') }}"
                         href="{{ route('info_material.index') }}">
-                        <i class="fas fa-book"></i>
-                        {{ __tr('Resource Library') }}
+                        <div>
+                            <i class="fas fa-book"></i>
+                            <span>{{ __tr('Resource Library') }}</span>
+                        </div>
+                        @if($newResourcesBadgeCount > 0)
+                            <span class="badge font-weight-bold ml-auto" style="background: #10b981; color: #ffffff; border-radius: 12px; font-size: 0.72rem; padding: 2px 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);">
+                                {{ $newResourcesBadgeCount }}
+                            </span>
+                        @endif
                     </a>
                 </li>
+
+
                 <li class="nav-item">
                     <a class="nav-link {{ markAsActiveLink('subscription.read.show') }}"
                         href="{{ route('subscription.read.show') }}">
