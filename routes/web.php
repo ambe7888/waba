@@ -75,9 +75,8 @@ Route::get('/sitemap.xml', function () {
     
     $urls = [
         ['loc' => $baseUrl . '/', 'priority' => '1.0', 'changefreq' => 'daily'],
-        ['loc' => $baseUrl . '/user/login', 'priority' => '0.8', 'changefreq' => 'monthly'],
-        ['loc' => $baseUrl . '/vendor/register', 'priority' => '0.8', 'changefreq' => 'monthly'],
-        ['loc' => $baseUrl . '/page/terms-and-policies', 'priority' => '0.5', 'changefreq' => 'yearly'],
+        ['loc' => $baseUrl . '/login', 'priority' => '0.8', 'changefreq' => 'monthly'],
+        ['loc' => $baseUrl . '/terms-and-policies', 'priority' => '0.5', 'changefreq' => 'yearly'],
     ];
 
     try {
