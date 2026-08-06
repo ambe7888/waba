@@ -67,6 +67,49 @@ Route::match(['get', 'post'], '/deploy-vps-waba-7888', function () {
     }
 });
 
+// Dynamic XML Sitemap for Search Engines (SEO)
+Route::get('/sitemap.xml', function () {
+    $baseUrl = config('app.url', 'https://whats-click.com');
+    $baseUrl = rtrim($baseUrl, '/');
+    $lastMod = date('Y-m-d');
+    
+    $urls = [
+        ['loc' => $baseUrl . '/', 'priority' => '1.0', 'changefreq' => 'daily'],
+        ['loc' => $baseUrl . '/user/login', 'priority' => '0.8', 'changefreq' => 'monthly'],
+        ['loc' => $baseUrl . '/vendor/register', 'priority' => '0.8', 'changefreq' => 'monthly'],
+        ['loc' => $baseUrl . '/page/terms-and-policies', 'priority' => '0.5', 'changefreq' => 'yearly'],
+    ];
+
+    try {
+        if (class_exists(\App\Yantrana\Components\Page\Models\PageModel::class)) {
+            $pages = \App\Yantrana\Components\Page\Models\PageModel::where('status', 1)->get();
+            foreach ($pages as $page) {
+                $urls[] = [
+                    'loc' => route('page.view', ['pageId' => $page->_id, 'slug' => slugIt($page->title)]),
+                    'priority' => '0.6',
+                    'changefreq' => 'monthly',
+                ];
+            }
+        }
+    } catch (\Exception $e) {}
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    foreach ($urls as $url) {
+        $xml .= '<url>';
+        $xml .= '<loc>' . htmlspecialchars($url['loc']) . '</loc>';
+        $xml .= '<lastmod>' . $lastMod . '</lastmod>';
+        $xml .= '<changefreq>' . $url['changefreq'] . '</changefreq>';
+        $xml .= '<priority>' . $url['priority'] . '</priority>';
+        $xml .= '</url>';
+    }
+    $xml .= '</urlset>';
+
+    return response($xml, 200, [
+        'Content-Type' => 'application/xml; charset=utf-8'
+    ]);
+})->name('public.sitemap');
+
 Route::get('/', [
     HomeController::class,
     'homePageView',

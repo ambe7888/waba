@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /vendor/
+Disallow: /manage/
+Disallow: /api/
+Disallow: /storage/*.log
+
+Sitemap: https://whats-click.com/sitemap.xml

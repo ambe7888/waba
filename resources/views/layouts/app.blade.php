@@ -27,17 +27,45 @@ $currentAppTheme ='';
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title> {!! (isset($title) and $title) ? $title : __tr('Welcome') !!} - {{ getAppSettings('name') }}</title>
-    <!-- Light Theme Favicon -->
-    <link href="{{getAppSettings('favicon_image_url') }}" rel="icon">
-    
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="{{ route('pwa.manifest') }}">
-    <meta name="theme-color" content="#2dce89">
-    <link rel="apple-touch-icon" href="{{ getAppSettings('favicon_image_url') }}">
-    <!-- iOS/Safari PWA Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="{{ getAppSettings('name') }}">
+    <!-- Primary SEO Meta Tags -->
+    <link rel="canonical" href="{{ url()->current() }}" />
+    <meta name="description" content="{!! (isset($description) and $description) ? strip_tags($description) : 'WhatsClick - Solution de Marketing WhatsApp tout-en-un. Envoyez des campagnes en masse, créez des chatbots intelligents et gérez vos contacts et équipes efficacement.' !!}">
+    <meta name="keywords" content="WhatsClick, marketing WhatsApp, campagnes WhatsApp, chatbot WhatsApp, envoi en masse WhatsApp, WhatsApp Cloud API, automatisation WhatsApp">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="{!! (isset($title) and $title) ? $title : __tr('Welcome') !!} - {{ getAppSettings('name') }}">
+    <meta property="og:description" content="WhatsClick - Solution de Marketing WhatsApp tout-en-un pour entreprises et agences. Boostez vos ventes avec des campagnes ciblées et automatisées.">
+    <meta property="og:image" content="{{ getAppSettings('logo_image_url') ?: asset('imgs/small-logo.png') }}">
+    <meta property="og:site_name" content="{{ getAppSettings('name') ?: 'WhatsClick' }}">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ url()->current() }}">
+    <meta name="twitter:title" content="{!! (isset($title) and $title) ? $title : __tr('Welcome') !!} - {{ getAppSettings('name') }}">
+    <meta name="twitter:description" content="WhatsClick - Solution de Marketing WhatsApp tout-en-un pour entreprises et agences.">
+    <meta name="twitter:image" content="{{ getAppSettings('logo_image_url') ?: asset('imgs/small-logo.png') }}">
+
+    <!-- Structured Data (JSON-LD) for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "{{ getAppSettings('name') ?: 'WhatsClick' }}",
+      "url": "https://whats-click.com",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "description": "Plateforme de marketing et d'automatisation WhatsApp pour entreprises et agences.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "WhatsClick",
+        "url": "https://whats-click.com",
+        "logo": "{{ getAppSettings('logo_image_url') ?: asset('imgs/small-logo.png') }}"
+      }
+    }
+    </script>
 
     <!-- Fonts: async non-blocking load -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

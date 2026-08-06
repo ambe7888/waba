@@ -165,7 +165,7 @@ Route::group([
 Route::get('/app-version', function () {
     return response()->json([
         'version' => '1.0.4',
-        'apk_url' => 'https://wb.4adev.com/whatsclick-latest.apk'
+        'apk_url' => url('downloads/whatsclick-latest.apk')
     ]);
 })->name('api.app_version');
 // Mobile app apis

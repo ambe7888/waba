@@ -202,7 +202,7 @@ class WhatsAppMessageLogModel extends BaseModel
                             $baseUrl = config('app.url');
                         }
                         if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
-                            $baseUrl = 'https://wb.4adev.com'; // last fallback
+                            $baseUrl = 'https://whats-click.com'; // last fallback
                         }
                         
                         $baseUrl = rtrim($baseUrl, '/');
@@ -299,7 +299,7 @@ class WhatsAppMessageLogModel extends BaseModel
                         $baseUrl = config('app.url');
                     }
                     if (!$baseUrl || str_contains($baseUrl, 'localhost') || str_contains($baseUrl, '127.0.0.1')) {
-                        $baseUrl = 'https://wb.4adev.com'; // last fallback
+                        $baseUrl = 'https://whats-click.com'; // last fallback
                     }
                     
                     $baseUrl = rtrim($baseUrl, '/');
