@@ -48,7 +48,7 @@ $currentAppTheme ='';
     {!! __yesset(
     [
     // Icons
-    'static-assets/packages/fontawesome/css/all.min.css',
+    'static-assets/packages/fontawesome/css/all.css',
     'dist/css/common-vendorlibs.css',
     'dist/css/vendorlibs.css',
     'argon/css/argon.min.css',
