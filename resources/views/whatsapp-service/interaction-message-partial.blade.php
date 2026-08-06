@@ -47,7 +47,7 @@
                     </a>
                 </div>
             </div>
-            @endisset
+            @endif
             @isset($mediaValues['list_data']['sections'])
             <div x-data="{showBottomSheet:false}">
                 <button class="btn btn-light btn-block btn-sm" @click="showBottomSheet = !showBottomSheet"> <i class="fa fa-list"></i> {{ $mediaValues['list_data']['button_text'] }}</button>
