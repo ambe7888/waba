@@ -158,7 +158,7 @@ class WhatsAppMessageLogModel extends BaseModel
                     $unsupportedMessageType = Arr::get($dataArray, 'webhook_responses.incoming.0.changes.0.value.messages.0.unsupported.type');
                     $errorMessage .= $unsupportedMessageType ? ' - ' . $unsupportedMessageType : '';
                 }
-                return $errorMessage;
+                return translateWhatsAppError($errorMessage);
             }
         );
     }

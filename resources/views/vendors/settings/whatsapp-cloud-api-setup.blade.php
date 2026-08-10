@@ -34,10 +34,37 @@
     <div class="col-md-8"
         x-data="{ enableStep2: {{ getVendorSettings('facebook_app_id') ? 1 : 0 }}, enableStep3: {{ getVendorSettings('whatsapp_access_token') ? 1 : 0 }} }"
         x-cloak>
-        <!-- Page Heading -->
-        <h1>
-            <?= __tr('WhatsApp Cloud API Setup') ?>
-        </h1>
+        <!-- Header & Summary Dashboard -->
+        <div class="card bg-dark text-white shadow-sm border-0 mb-4 overflow-hidden" style="border-radius: 16px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+            <div class="card-body p-4 position-relative">
+                <div class="d-flex align-items-center justify-content-between flex-wrap">
+                    <div class="mb-3 mb-md-0">
+                        <span class="badge badge-success px-3 py-2 text-uppercase mb-2" style="letter-spacing: 1px; font-size: 0.75rem; border-radius: 20px; background-color: #10b981;">
+                            <i class="fab fa-whatsapp mr-1"></i> WhatsApp Business API Meta
+                        </span>
+                        <h2 class="text-white font-weight-bold mb-1">
+                            {{ __tr('Configuration WhatsApp Cloud API') }}
+                        </h2>
+                        <p class="text-white-50 mb-0" style="font-size: 0.9rem;">
+                            {{ __tr('Gérez la connexion, le numéro de téléphone et la santé de votre compte WhatsApp Business officiel Meta.') }}
+                        </p>
+                    </div>
+                    <div>
+                        @if (isWhatsAppBusinessAccountReady())
+                            <div class="d-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981;">
+                                <i class="fas fa-check-circle text-success mr-2"></i>
+                                <span class="text-success font-weight-bold small">{{ __tr('API Meta Connectée & Active') }}</span>
+                            </div>
+                        @else
+                            <div class="d-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b;">
+                                <i class="fas fa-exclamation-triangle text-warning mr-2"></i>
+                                <span class="text-warning font-weight-bold small">{{ __tr('Connexion API Requise') }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="accordion" id="whatsAppSetupSettingsBlock" x-data="{isSetupInProcess:false,newWhatsAppBusinessAccountId:null}" x-cloak>
             <template x-if="isSetupInProcess">
                 <div class="text-center">

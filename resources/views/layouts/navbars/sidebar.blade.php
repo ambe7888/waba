@@ -397,6 +397,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         {{ __tr('Dashboard') }}
                     </a>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="#" data-toggle="modal" data-target="#lwScanMeDialog">
                         <i class="fa fa-qrcode text-dark"></i>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import 'main_layout_screen.dart';
@@ -79,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _handleForgotPassword() async {
-    final url = Uri.parse('https://wb.4adev.com/auth/forgot-password');
+    final url = Uri.parse('${baseUrl}auth/forgot-password');
     try {
       final success = await launchUrl(url, mode: LaunchMode.externalApplication);
       if (!success) {

@@ -36,6 +36,9 @@ class Contact {
   final String? lastMessageTime;
   final List<ContactLabel> labels;
   final String? lastMessageStatus;
+  final bool? isAiBotActive;
+  final String? status;
+  final String? assignedUserName;
 
   Contact({
     required this.uid,
@@ -47,6 +50,9 @@ class Contact {
     this.lastMessageTime,
     this.labels = const [],
     this.lastMessageStatus,
+    this.isAiBotActive = true,
+    this.status = 'Open',
+    this.assignedUserName,
   });
 
   factory Contact.fromJson(Map<String, dynamic> json) {
@@ -77,6 +83,9 @@ class Contact {
       lastMessageTime: lastMsgTime,
       labels: parsedLabels,
       lastMessageStatus: lastMsgStatus,
+      isAiBotActive: json['is_ai_bot_active'] ?? json['is_bot_active'] ?? true,
+      status: json['status'] ?? 'Open',
+      assignedUserName: json['assigned_user_name'] ?? json['assigned_to']?['name'],
     );
   }
 

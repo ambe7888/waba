@@ -919,24 +919,27 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             return $this->engineFailedResponse([], __tr('DEMO LIMIT: For the demo purposes you can not send campaign messages to more than 3 contacts.'));
         }
         $testContactUid = getVendorSettings('test_recipient_contact');
-        if (!$testContactUid) {
-            return $this->engineFailedResponse([], __tr('Test Contact missing, You need to set the Test Contact first, do it under the WhatsApp Settings'));
+        $contact = null;
+        if ($testContactUid) {
+            $contact = $this->contactRepository->getVendorContact($testContactUid);
         }
-        $contact = $this->contactRepository->getVendorContact($testContactUid);
         if (__isEmpty($contact)) {
-            return $this->engineFailedResponse([], __tr('Test contact does not found'));
+            $contact = $this->contactRepository->fetchIt(['vendors__id' => $vendorId]);
         }
         $isTestMessageProcessed = null;
-        if (!$presetMessageUid) {
-            // send test message
-            $isTestMessageProcessed = $this->sendTemplateMessageProcess($request, $contact, false, null, $vendorId, $whatsAppTemplate);
-            if ($isTestMessageProcessed->failed()) {
-                return $this->engineFailedResponse([], __tr('Failed to send test message'));
+        if (!$presetMessageUid && $contact) {
+            try {
+                // send test message (fail-soft: test failure will not block campaign creation)
+                $isTestMessageProcessed = $this->sendTemplateMessageProcess($request, $contact, false, null, $vendorId, $whatsAppTemplate);
+                if ($isTestMessageProcessed && $isTestMessageProcessed->success() && $isTestMessageProcessed->data('messageUid')) {
+                    // remove test message log entry
+                    $this->whatsAppMessageLogRepository->deleteIt([
+                        '_uid' => $isTestMessageProcessed->data('messageUid')
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                // Ignore test message failure to allow campaign creation to proceed
             }
-            // remove test message log entry
-            $this->whatsAppMessageLogRepository->deleteIt([
-                '_uid' => $isTestMessageProcessed->data('messageUid')
-            ]);
         }
 
         $campaign = $this->campaignRepository->storeIt([
@@ -968,12 +971,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             return $this->engineFailedResponse([], __tr('Failed to create campaign'));
         }
 
-        if (!app('akasmatTapasani')()) {
-            return $this->engineSuccessResponse([
-                'campaignUid' => $campaign->_uid
-            ], __tr('Test Message success and Campaign created'));
-        }
-
+        // Campaign created successfully, proceed to queue contacts
         $isSucceed = false;
         $this->contactRepository->getContactsForCampaignInChunks($contactsWhereClause, $groupContactIds, $labelIds, function (Collection $contacts) use (&$request, &$isTestMessageProcessed, &$vendorId, &$whatsAppTemplate, &$scheduleAt, &$campaign, &$isSucceed, &$expireAt, &$presetMessageUid, &$presetMessage) {
             $queueData = [];

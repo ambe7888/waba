@@ -81,13 +81,17 @@ class WhatsAppMessageQueueModel extends BaseModel
     {
         return Attribute::make(
             get: function (mixed $value, array $attributes) {
-                return str_replace(
+                $rawError = Arr::get(json_decode($attributes['__data'], true), 'process_response.error_message');
+                $cleanedError = str_replace(
                     [
                         'Recipient phone number not in allowed list  Recipient',
-                    ]
-                , [
-                    'Recipient',
-                ], Arr::get(json_decode($attributes['__data'], true), 'process_response.error_message'));
+                    ],
+                    [
+                        'Recipient',
+                    ],
+                    $rawError ?? ''
+                );
+                return translateWhatsAppError($cleanedError);
             }
         );
     }

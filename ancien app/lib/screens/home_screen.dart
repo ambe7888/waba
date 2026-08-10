@@ -429,62 +429,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     final isSelected = _assignedFilter == filter;
     final isDark = ThemeService().isDark;
 
-    // Use global badge counts from API
     int unreadCount = 0;
     if (filter == 'all' || filter == 'unassigned') {
       unreadCount = _unreadNewCount;
     } else if (filter == 'mine') {
       unreadCount = _unreadMyCount;
     }
-    
-    return Expanded(
-      child: InkWell(
-        onTap: () => _selectAssignedFilter(filter),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected 
-                ? const Color(0xFF198754) 
-                : (isDark ? ThemeService.darkCard : Colors.grey.withOpacity(0.1)),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected 
-                  ? const Color(0xFF198754) 
-                  : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                ),
-                overflow: TextOverflow.ellipsis,
+
+    final pillBg = isSelected
+        ? ThemeService.primaryColor
+        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0));
+    final pillTextColor = isSelected
+        ? Colors.white
+        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569));
+
+    return InkWell(
+      onTap: () => _selectAssignedFilter(filter),
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: pillBg,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: pillTextColor,
               ),
-              if (unreadCount > 0) ...[
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    unreadCount.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                    ),
+            ),
+            if (unreadCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white.withOpacity(0.3) : ThemeService.primaryColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  unreadCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -626,16 +625,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             ),
           ),
 
-          // Segmented filter for assignments
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Row(
+          // Segmented filter pills (WhatsMine Agent design)
+          Container(
+            height: 34,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _buildSegmentButton('Tous', 'all'),
+                _buildSegmentButton('All', 'all'),
                 const SizedBox(width: 8),
-                _buildSegmentButton('Mes messages', 'to-me'),
+                _buildSegmentButton('Mine', 'to-me'),
                 const SizedBox(width: 8),
-                _buildSegmentButton('Nouveaux', 'unassigned'),
+                _buildSegmentButton('Unassigned', 'unassigned'),
+                const SizedBox(width: 8),
+                _buildSegmentButton('Snoozed', 'snoozed'),
               ],
             ),
           ),

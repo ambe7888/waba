@@ -1,4 +1,4 @@
-const String baseUrl = 'https://wb.4adev.com/'; // Production server URL
+const String baseUrl = 'https://whats-click.com/'; // Production server URL
 const String baseApiUrl = '${baseUrl}api/';
 
 const String publicKey = '''-----BEGIN PUBLIC KEY-----

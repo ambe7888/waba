@@ -51,7 +51,7 @@ $currentAppTheme ='';
     <!-- Structured Data (JSON-LD) for Search Engines -->
     <script type="application/ld+json">
     {
-      "@context": "https://schema.org",
+      "@@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "{{ getAppSettings('name') ?: 'WhatsClick' }}",
       "url": "https://whats-click.com",

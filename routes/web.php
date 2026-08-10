@@ -616,6 +616,8 @@ Route::middleware([
                 'vendorDashboardView',
             ])->name('vendor.console');
 
+
+
             Route::post('/dashboard-stats-filter-data', [
                 DashboardController::class,
                 'dashboardStatsDataFilter',

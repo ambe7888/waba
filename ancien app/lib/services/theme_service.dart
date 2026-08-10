@@ -17,12 +17,12 @@ class ThemeService extends ChangeNotifier {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_themeKey);
-    if (saved == 'light') {
-      _themeMode = ThemeMode.light;
+    if (saved == 'dark') {
+      _themeMode = ThemeMode.dark;
     } else if (saved == 'system') {
       _themeMode = ThemeMode.system;
     } else {
-      _themeMode = ThemeMode.light;
+      _themeMode = ThemeMode.light; // Light mode default
     }
     notifyListeners();
   }
@@ -53,15 +53,17 @@ class ThemeService extends ChangeNotifier {
   }
 
   // ============================================
-  // Color Palette
+  // WhatsMine Agent Color Palette
   // ============================================
-  static const primaryColor = Color(0xFF198754);    // Teal 600
-  static const primaryDark = Color(0xFF0F766E);     // Teal 700
-  static const accentColor = Color(0xFF2DD4BF);     // Teal 300
+  static const primaryColor = Color(0xFF10B981);    // Emerald 500
+  static const primaryDark = Color(0xFF059669);     // Emerald 600
+  static const accentColor = Color(0xFF34D399);     // Emerald 400
 
-  // Dark mode surfaces
-  static const darkSurface = Color(0xFF0F172A);     // Slate 900
-  static const darkCard = Color(0xFF1E293B);         // Slate 800
+  // Dark mode surfaces (WhatsMine Dark Slate)
+  static const darkSurface = Color(0xFF0B132B);     // Deep Slate background
+  static const darkCard = Color(0xFF172136);        // Slate card background
+  static const darkBubble = Color(0xFF1E293B);      // Received bubble background
+  static const emeraldBubble = Color(0xFF10B981);   // Sent message bubble
 
   // Light mode surfaces
   static const lightSurface = Color(0xFFF8FAFC);    // Slate 50

@@ -26,6 +26,28 @@ $appName = getAppSettings('name');
     <meta property="twitter:description" content="{{ getAppSettings('description') }}" />
     <meta property="twitter:image" content="{{ getAppSettings('logo_image_url') }}" />
 
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ url()->current() }}" />
+
+    <!-- Structured Data (JSON-LD) for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "{{ $appName }}",
+      "url": "{{ url('/') }}",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "description": "{{ getAppSettings('description') }}",
+      "publisher": {
+        "@type": "Organization",
+        "name": "{{ $appName }}",
+        "url": "{{ url('/') }}",
+        "logo": "{{ getAppSettings('logo_image_url') }}"
+      }
+    }
+    </script>
+
     <!-- FAVICON -->
     <link href="{{ getAppSettings('favicon_image_url') }}" rel="icon">
     {!! __yesset([

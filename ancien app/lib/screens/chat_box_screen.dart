@@ -13,6 +13,7 @@ import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
 import 'contact_info_drawer.dart';
+import '../widgets/manage_conversation_sheet.dart';
 
 class ChatBoxScreen extends StatefulWidget {
   final Contact contact;
@@ -1417,7 +1418,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       actions: [
         if (_isSearching)
           IconButton(
-            icon: Icon(Icons.close_rounded),
+            icon: const Icon(Icons.close_rounded),
             onPressed: () {
               setState(() {
                 _isSearching = false;
@@ -1427,21 +1428,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             },
           )
         else ...[
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, size: 20),
-            tooltip: 'Rafraîchir',
-            onPressed: () => _loadMessages(),
-          ),
-          IconButton(
-            icon: Icon(Icons.phone_rounded, size: 20),
-            tooltip: 'Appeler',
-            onPressed: _makePhoneCall,
-          ),
-          IconButton(
-            icon: Icon(Icons.search_rounded, size: 20),
-            onPressed: () {
-              setState(() {
-                _isSearching = true;
               });
             },
           ),
@@ -1735,15 +1721,80 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  Widget _buildShortcutPill(String label, VoidCallback onTap, bool isDark, {bool isHighlight = false}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isHighlight
+              ? ThemeService.primaryColor.withOpacity(0.18)
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isHighlight
+                ? ThemeService.primaryColor.withOpacity(0.4)
+                : (isDark ? Colors.white12 : Colors.black12),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isHighlight
+                ? ThemeService.primaryColor
+                : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInputBar() {
+    final isDark = ThemeService().isDark;
+
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
           border: Border(top: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.03))),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-        child: _isRecording
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Quick Shortcuts Bar (WhatsMine Agent design)
+            if (!_isRecording)
+              Container(
+                height: 28,
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  children: [
+                    _buildShortcutPill('/shipping', () {
+                      _messageController.text = '/shipping ';
+                      _messageController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _messageController.text.length),
+                      );
+                    }, isDark),
+                    const SizedBox(width: 6),
+                    _buildShortcutPill('/returns', () {
+                      _messageController.text = '/returns ';
+                      _messageController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _messageController.text.length),
+                      );
+                    }, isDark),
+                    const SizedBox(width: 6),
+                    _buildShortcutPill('📄 Template', _showTemplatesSheet, isDark, isHighlight: true),
+                  ],
+                ),
+              ),
+
+            _isRecording
             ? Row(
                 children: [
                   Icon(Icons.fiber_manual_record, color: Color(0xFFEF4444), size: 16),

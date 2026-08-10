@@ -41,6 +41,54 @@ use App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppMessageLogRepos
 use App\Yantrana\Components\UserDevice\Repositories\UserDeviceRepository;
 use Google\Client as GoogleClient;
 
+if (! function_exists('translateWhatsAppError')) {
+    /**
+     * Translate Meta WhatsApp Cloud API raw error messages into French
+     *
+     * @param string|null $rawError
+     * @return string|null
+     */
+    function translateWhatsAppError($rawError)
+    {
+        if (empty($rawError) || !is_string($rawError)) {
+            return $rawError;
+        }
+
+        $errorTranslations = [
+            '130429' => '(#130429) Limite de débit atteinte : Trop de messages envoyés depuis ce numéro dans un court délai. Le système réessaiera automatiquement.',
+            '613'    => '(#613) Limite d\'appels API atteinte pour ce compte Meta. Réessai automatique en cours.',
+            '131026' => '(#131026) Message non livrable : Le destinataire ne peut pas recevoir ce message (numéro inactif ou non inscrit sur WhatsApp).',
+            '131047' => '(#131047) Fenêtre de discussion expirée (plus de 24h). Vous devez envoyer un modèle de message (Template) approuvé par Meta.',
+            '131009' => '(#131009) Nombre de paramètres incorrect dans le modèle de message.',
+            '131008' => '(#131008) Paramètre obligatoire manquant dans le modèle de message.',
+            '132001' => '(#132001) Le modèle de message n\'existe pas dans cette langue ou n\'a pas encore été validé par Meta.',
+            '132000' => '(#132000) Le modèle de message n\'existe pas ou a été supprimé sur Meta.',
+            '131056' => '(#131056) Limite globale de débit atteinte sur le compte WhatsApp Business.',
+            '131051' => '(#131051) Type de message non pris en charge par WhatsApp.',
+            '131000' => '(#131000) Erreur service WhatsApp / Meta temporaire.',
+            '130500' => '(#130500) L\'action a échoué du côté des serveurs Meta, veuillez réessayer.',
+        ];
+
+        foreach ($errorTranslations as $code => $frenchTranslation) {
+            if (str_contains($rawError, $code)) {
+                return $frenchTranslation;
+            }
+        }
+
+        if (str_contains($rawError, 'Rate limit hit') || str_contains($rawError, 'too many messages')) {
+            return '(#130429) Limite de débit atteinte : Trop de messages envoyés dans un court délai. Le système réessaiera automatiquement.';
+        }
+        if (str_contains($rawError, 'Message undeliverable')) {
+            return '(#131026) Message non livrable : Le numéro destinataire ne peut pas recevoir ce message.';
+        }
+        if (str_contains($rawError, 'Re-engagement message') || str_contains($rawError, '24 hour')) {
+            return '(#131047) Fenêtre de 24h expirée. Envoyez un modèle de message (Template).';
+        }
+
+        return $rawError;
+    }
+}
+
 if (! function_exists('getUserAuthInfo')) {
     /**
      * get the authenticated user info

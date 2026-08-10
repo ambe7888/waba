@@ -255,14 +255,23 @@ class ContactGroupEngine extends BaseEngine implements ContactGroupEngineInterfa
 
                         if (!__isEmpty($campaignLogData)) {
                             foreach ($campaignLogData as $campaignContact) {
-                                // Check if contact exists
-                                if (__isEmpty($campaignContact['contacts__id'])) {
-                                    continue;
+                                $contactId = $campaignContact['contacts__id'] ?? null;
+                                if (__isEmpty($contactId)) {
+                                    $phone = $campaignContact['contact_wa_id'] ?? $campaignContact['phone_number'] ?? $campaignContact['to_phone_number'] ?? null;
+                                    if ($phone) {
+                                        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+                                        $existContact = $this->contactRepository->fetchIt(['wa_id' => $cleanPhone, 'vendors__id' => getVendorId()]);
+                                        if ($existContact) {
+                                            $contactId = $existContact->_id;
+                                        }
+                                    }
                                 }
-                                $groupContactInsertData[] = [
-                                    'contact_groups__id' => $newGroup->_id,
-                                    'contacts__id' => $campaignContact['contacts__id']
-                                ];
+                                if (!__isEmpty($contactId)) {
+                                    $groupContactInsertData[] = [
+                                        'contact_groups__id' => $newGroup->_id,
+                                        'contacts__id' => $contactId
+                                    ];
+                                }
                             }
                         }
                     }
