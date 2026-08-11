@@ -1,0 +1,303 @@
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../services/theme_service.dart';
+import '../config/app_config.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'support_tickets_screen.dart';
+import 'resource_list_screen.dart';
+import 'login_screen.dart';
+import 'qr_code_screen.dart';
+import 'canned_replies_screen.dart';
+import 'notification_settings_screen.dart';
+import 'contact_groups_screen.dart';
+import 'templates_admin_screen.dart';
+import 'bot_replies_screen.dart';
+
+class AccountScreen extends StatefulWidget {
+  const AccountScreen({super.key});
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  Map<String, dynamic>? _vendorInfo;
+  int _roleId = 3; // default: agent
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    // Load role first from cache (instant)
+    _roleId = await ApiService().getUserRoleId();
+    if (mounted) setState(() {});
+
+    // Then fetch vendor info for display
+    final stats = await ApiService().fetchDashboardStats();
+    if (mounted && stats != null) {
+      setState(() {
+        _vendorInfo = stats['vendorInfo'] ?? stats;
+        _isLoading = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Déconnexion', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await ApiService().logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _showQrCode() {
+    // Determine the phone number. We fallback to '000000000' if not available.
+    String phone = '000000000';
+    if (_vendorInfo != null && _vendorInfo!['whatsapp_number'] != null) {
+      phone = _vendorInfo!['whatsapp_number'];
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QRCodeScreen(
+          vendorUid: _vendorInfo?['uid'] ?? '',
+          phoneNumber: phone,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeService().isDark;
+    final bool isAdmin = _roleId == 2;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: ThemeService.primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.person_rounded, color: ThemeService.primaryColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Compte',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          // Profil Header
+          Center(
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: ThemeService.primaryColor.withOpacity(0.2),
+              child: Icon(Icons.business, size: 40, color: ThemeService.primaryColor),
+            ),
+          ),
+          SizedBox(height: 16),
+          Center(
+            child: Text(
+              _vendorInfo?['title'] ?? 'Mon Entreprise',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (_vendorInfo?['whatsapp_number'] != null) ...[
+            SizedBox(height: 8),
+            Center(
+              child: Text(
+                '+${_vendorInfo!['whatsapp_number']}',
+                style: TextStyle(fontSize: 16, color: isDark ? Colors.white70 : Colors.black54),
+              ),
+            ),
+          ],
+          SizedBox(height: 32),
+
+          // Actions
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.qr_code, color: Colors.blue),
+                  title: Text('Mon Code QR'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: _showQrCode,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.folder_shared_rounded, color: Colors.teal),
+                  title: Text('Ressources partagées'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ResourceListScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.support_agent_rounded, color: Colors.deepPurple),
+                  title: Text('Assistance'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SupportTicketsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.flash_on_rounded, color: Colors.amber),
+                  title: const Text('Réponses Rapides'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CannedRepliesScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.group_work_rounded, color: Colors.purple),
+                  title: const Text('Groupes de Contacts'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ContactGroupsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.notifications_active_rounded, color: Colors.blue),
+                  title: const Text('Paramètres de Notifications'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: Colors.orange),
+                  title: Text(isDark ? 'Mode Clair' : 'Mode Sombre'),
+                  trailing: Switch(
+                    value: isDark,
+                    onChanged: (value) {
+                      ThemeService().toggleTheme();
+                    },
+                    activeColor: ThemeService.primaryColor,
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.system_update_rounded, color: Colors.blueAccent),
+                  title: Text('Mise à jour de l\'application'),
+                  subtitle: Text('Télécharger la version APK'),
+                  trailing: Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final url = Uri.parse('${baseUrl}downloads/whatsclick.apk');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Impossible d\'ouvrir le lien')),
+                      );
+                    }
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text('Déconnexion', style: TextStyle(color: Colors.red)),
+                  onTap: _logout,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text(
+              'Fonctionnalités & Paramètres',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                  ListTile(
+                    leading: const Icon(Icons.message_rounded, color: Colors.indigo),
+                    title: const Text('Modèles de messages (Templates)'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const TemplatesAdminScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.smart_toy_rounded, color: Colors.teal),
+                    title: const Text('Réponses Automatiques (Bot)'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const BotRepliesScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

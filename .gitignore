@@ -13,7 +13,7 @@ composer.phar
 storage/*.key
 .phpunit.result.cache
 
-# Environnement & secrets — ne jamais commiter
+# Environnement & secrets
 .env
 .env.backup
 .env.production
@@ -34,38 +34,6 @@ Homestead.yaml
 Homestead.json
 /.vagrant
 
-<<<<<<< HEAD
-/public/build
-/storage/pail
-.env.backup
-.env.production
-.phpactor.json
-auth.json
-Echange WABA.md
-envweb
-translations_modifie.xlsx
-scratch_schema.php
-test.php
-scratch_license.php
-scratch_license.php
-composer.lock
-scratch_license.php
-scratch_license.php
-/design template create whatsapp wizard
-design template create wizard/FireShot Capture 001 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 002 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-.gitignore
-design template create wizard/FireShot Capture 003 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 005 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 004 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-design template create wizard/FireShot Capture 006 - WhatsCRM - Chatbot, Flow Builder, API Access, WhatsApp CRM SAAS Sys_ - \[preview.codecanyon.net].png
-new-data-schema.sql
-composer.phar
-
-carousel_steps.html
-carousel_steps_generator.py
-design template create wizard/
-=======
 # Fichiers de travail locaux (scripts de test, brouillons, dumps)
 /scratch/
 PROJECT_LOG.md
@@ -75,22 +43,11 @@ translations_modifie.xlsx
 scratch_schema.php
 scratch_license.php
 test.php
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
 temp_alpine.js
 temp_script.js
 temp_test.js
 update_alpine.py
 update_preview.py
-<<<<<<< HEAD
-__pycache__/
-PROJECT_LOG.md
-update.md
-campagne.sql
-storage/firebase/firebase-service-account.json
-all_templates_dump.sql
-scratch/check_products.php
-scratch/test_api.php
-=======
 carousel_steps.html
 carousel_steps_generator.py
 campagne.sql
@@ -98,12 +55,12 @@ new-data-schema.sql
 all_templates_dump.sql
 design template create wizard/
 design template create whatsapp wizard/
->>>>>>> cbd36d040e200715c7cd741e355f6ca8ead310db
+scratch/check_products.php
+scratch/test_api.php
 
-# Local dumps & mobile app
+# Local dumps
 *.sql
 *.patch
-whatsclick_mobile/
 
 # Agent IDE config & customizations
 .agent/

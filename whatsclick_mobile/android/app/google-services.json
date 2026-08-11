@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1097437882003",
+    "project_id": "whatsclick-d5204",
+    "storage_bucket": "whatsclick-d5204.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097437882003:android:3fc82c76feeb72544c4f66",
+        "android_client_info": {
+          "package_name": "com.whatsclick.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZWbkqT5OtufDlgzhJPstiAlb1rcfFcm8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
