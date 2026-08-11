@@ -28,16 +28,11 @@ jobs:
           cache: true
 
       - name: Install Dependencies
+             - name: Install Dependencies
         run: |
-          PROJECT_DIR=""
-          if [ -d "whatsclick_mobile" ]; then
-            PROJECT_DIR="whatsclick_mobile"
-          elif [ -d "whatsjet_mobile" ]; then
-            PROJECT_DIR="whatsjet_mobile"
-          elif [ -d "ancien app" ]; then
-            PROJECT_DIR="ancien app"
-          else
-            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
+          PROJECT_DIR=$(find . -maxdepth 2 -name "pubspec.yaml" -type f -exec dirname {} \; | head -n 1)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERREUR: Aucun projet Flutter (pubspec.yaml) trouvé!"
             echo "Répertoires disponibles:"
             ls -la
             exit 1
@@ -57,20 +52,15 @@ jobs:
           if [ -d "whatsclick_mobile" ]; then
             PROJECT_DIR="whatsclick_mobile"
           elif [ -d "whatsjet_mobile" ]; then
-            PROJECT_DIR="whatsjet_mobile"
-          elif [ -d "ancien app" ]; then
-            PROJECT_DIR="ancien app"
-          else
-            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
+                  - name: Build APK (Release)
+        run: |
+          PROJECT_DIR=$(find . -maxdepth 2 -name "pubspec.yaml" -type f -exec dirname {} \; | head -n 1)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERREUR: Aucun projet Flutter (pubspec.yaml) trouvé!"
             exit 1
           fi
           cd "$PROJECT_DIR"
           flutter build apk --release
-
-      - name: Find Generated APK Path
-        id: locate_apk
-        run: |
-          path=$(find . -name "app-release.apk" | head -n 1)
           if [ -z "$path" ]; then
             echo "ERROR: No app-release.apk found!"
             exit 1
