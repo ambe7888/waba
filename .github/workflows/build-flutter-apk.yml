@@ -29,13 +29,20 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          PROJECT_DIR=""
           if [ -d "whatsclick_mobile" ]; then
-            cd "whatsclick_mobile"
+            PROJECT_DIR="whatsclick_mobile"
           elif [ -d "whatsjet_mobile" ]; then
-            cd "whatsjet_mobile"
+            PROJECT_DIR="whatsjet_mobile"
           elif [ -d "ancien app" ]; then
-            cd "ancien app"
+            PROJECT_DIR="ancien app"
+          else
+            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
+            echo "Répertoires disponibles:"
+            ls -la
+            exit 1
           fi
+          cd "$PROJECT_DIR"
           flutter pub get
 
       - name: Patch Outdated Gradle Configs
@@ -46,13 +53,18 @@ jobs:
 
       - name: Build APK (Release)
         run: |
+          PROJECT_DIR=""
           if [ -d "whatsclick_mobile" ]; then
-            cd "whatsclick_mobile"
+            PROJECT_DIR="whatsclick_mobile"
           elif [ -d "whatsjet_mobile" ]; then
-            cd "whatsjet_mobile"
+            PROJECT_DIR="whatsjet_mobile"
           elif [ -d "ancien app" ]; then
-            cd "ancien app"
+            PROJECT_DIR="ancien app"
+          else
+            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
+            exit 1
           fi
+          cd "$PROJECT_DIR"
           flutter build apk --release
 
       - name: Find Generated APK Path
