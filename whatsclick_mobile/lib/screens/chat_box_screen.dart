@@ -1896,6 +1896,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   ),
                 ],
               ),
+          ],
+        ),
       ),
     );
   }
