@@ -10,6 +10,11 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    
+    # On définit le dossier de travail par défaut pour toutes les étapes 'run'
+    defaults:
+      run:
+        working-directory: ./whatsclick_mobile
 
     steps:
       - name: Checkout Repository
@@ -28,67 +33,29 @@ jobs:
           cache: true
 
       - name: Install Dependencies
-        run: |
-          PROJECT_DIR=""
-          if [ -d "whatsclick_mobile" ]; then
-            PROJECT_DIR="whatsclick_mobile"
-          elif [ -d "whatsjet_mobile" ]; then
-            PROJECT_DIR="whatsjet_mobile"
-          elif [ -d "ancien app" ]; then
-            PROJECT_DIR="ancien app"
-          else
-            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
-            echo "Répertoires disponibles:"
-            ls -la
-            exit 1
-          fi
-          cd "$PROJECT_DIR"
-          flutter pub get
+        run: flutter pub get
 
       - name: Patch Outdated Gradle Configs
+        working-directory: ./
         run: |
           find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.compileSdkVersion/34/g' {} + 2>/dev/null || true
           find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.minSdkVersion/21/g' {} + 2>/dev/null || true
           find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.targetSdkVersion/34/g' {} + 2>/dev/null || true
 
       - name: Build APK (Release)
-        run: |
-          PROJECT_DIR=""
-          if [ -d "whatsclick_mobile" ]; then
-            PROJECT_DIR="whatsclick_mobile"
-          elif [ -d "whatsjet_mobile" ]; then
-            PROJECT_DIR="whatsjet_mobile"
-          elif [ -d "ancien app" ]; then
-            PROJECT_DIR="ancien app"
-          else
-            echo "ERROR: Aucun répertoire de projet Flutter trouvé!"
-            exit 1
-          fi
-          cd "$PROJECT_DIR"
-          flutter build apk --release
-
-      - name: Find Generated APK Path
-        id: locate_apk
-        run: |
-          path=$(find . -name "app-release.apk" | head -n 1)
-          if [ -z "$path" ]; then
-            echo "ERROR: No app-release.apk found!"
-            exit 1
-          fi
-          echo "APK_PATH=$path" >> $GITHUB_ENV
-          echo "Found APK at: $path"
+        run: flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WhatsClick-Mobile-APK
-          path: ${{ env.APK_PATH }}
+          path: whatsclick_mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
       - name: Create Release (On Tag Push)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ env.APK_PATH }}
+          files: whatsclick_mobile/build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
