@@ -29,32 +29,44 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          if [ -d "ancien app" ]; then
+          if [ -d "whatsclick_mobile" ]; then
+            cd "whatsclick_mobile"
+          elif [ -d "whatsjet_mobile" ]; then
+            cd "whatsjet_mobile"
+          elif [ -d "ancien app" ]; then
             cd "ancien app"
           fi
           flutter pub get
 
+      - name: Patch Outdated Gradle Configs
+        run: |
+          find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.compileSdkVersion/34/g' {} + 2>/dev/null || true
+          find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.minSdkVersion/21/g' {} + 2>/dev/null || true
+          find ~/.pub-cache/hosted/pub.dev -name build.gradle -exec sed -i 's/flutter.targetSdkVersion/34/g' {} + 2>/dev/null || true
+
       - name: Build APK (Release)
         run: |
-          if [ -d "ancien app" ]; then
+          if [ -d "whatsclick_mobile" ]; then
+            cd "whatsclick_mobile"
+          elif [ -d "whatsjet_mobile" ]; then
+            cd "whatsjet_mobile"
+          elif [ -d "ancien app" ]; then
             cd "ancien app"
           fi
           flutter build apk --release
 
-      - name: Find & Locate Generated APK
+      - name: Find Generated APK Path
         id: locate_apk
         run: |
-          if [ -f "ancien app/build/app/outputs/flutter-apk/app-release.apk" ]; then
-            path="ancien app/build/app/outputs/flutter-apk/app-release.apk"
-          elif [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
-            path="build/app/outputs/flutter-apk/app-release.apk"
-          else
-            path=$(find . -name "app-release.apk" | head -n 1)
+          path=$(find . -name "app-release.apk" | head -n 1)
+          if [ -z "$path" ]; then
+            echo "ERROR: No app-release.apk found!"
+            exit 1
           fi
           echo "APK_PATH=$path" >> $GITHUB_ENV
           echo "Found APK at: $path"
 
-      - name: Upload APK as Workflow Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WhatsClick-Mobile-APK
