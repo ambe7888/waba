@@ -1726,12 +1726,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isHighlight
-              ? ThemeService.primaryColor.withOpacity(0.18)
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.18)
               : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isHighlight
-                ? ThemeService.primaryColor.withOpacity(0.4)
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.4)
                 : (isDark ? Colors.white12 : Colors.black12),
           ),
         ),
@@ -1742,7 +1742,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: isHighlight
-                ? ThemeService.primaryColor
+                ? Theme.of(context).colorScheme.primary
                 : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
           ),
         ),
@@ -1751,7 +1751,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   }
 
   Widget _buildInputBar() {
-    final isDark = ThemeService().isDark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
       child: Container(
