@@ -1428,9 +1428,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             },
           )
         else ...[
-              });
-            },
-          ),
           IconButton(
             icon: Icon(Icons.send_rounded, size: 20),
             tooltip: 'Modèles Meta',
