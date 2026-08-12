@@ -383,6 +383,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     } catch (_) {
       _showDrawerNotice('Échec de la création de l\'étiquette');
       setState(() {
+        _isSavingLabels = false;
+      });
+    }
   }
 
   Future<void> _saveReminder() async {
