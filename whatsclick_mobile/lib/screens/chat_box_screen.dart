@@ -13,7 +13,6 @@ import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
 import 'contact_info_drawer.dart';
-import '../widgets/manage_conversation_sheet.dart';
 
 class ChatBoxScreen extends StatefulWidget {
   final Contact contact;

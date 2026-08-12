@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
-import '../config/app_config.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'contacts_screen.dart';
 import 'label_contacts_screen.dart';
 
 class DashboardScreen extends StatefulWidget {

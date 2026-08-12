@@ -676,8 +676,6 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildSegmentButton('Mine', 'to-me'),
                 const SizedBox(width: 8),
                 _buildSegmentButton('Unassigned', 'unassigned'),
-                const SizedBox(width: 8),
-                _buildSegmentButton('Snoozed', 'snoozed'),
               ],
             ),
           ),

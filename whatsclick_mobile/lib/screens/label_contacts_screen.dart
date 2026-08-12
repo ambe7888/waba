@@ -72,8 +72,9 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
       final prefs = await _getPrefs();
       final token = prefs['token'] ?? '';
       final List<String> params = ['label_date_filter=${widget.dateFilter}'];
-      if (widget.startDate != null)
+      if (widget.startDate != null) {
         params.add('start_date=${widget.startDate}');
+      }
       if (widget.endDate != null) params.add('end_date=${widget.endDate}');
       final url = Uri.parse(
           '${baseApiUrl}vendor/contact/by-label/${widget.labelUid}?${params.join('&')}');
@@ -102,18 +103,20 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
           return;
         }
       }
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Aucun contact trouvé';
           _isLoading = false;
         });
+      }
     } catch (e) {
       if (debug) debugPrint('LabelContactsScreen error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Erreur de chargement';
           _isLoading = false;
         });
+      }
     }
   }
 

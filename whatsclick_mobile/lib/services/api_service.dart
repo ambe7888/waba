@@ -18,6 +18,7 @@ class ApiService {
   ApiService._internal();
 
   String? _token;
+
   /// Last error message from uploadTempMedia (for UI display)
   String? lastUploadError;
 
@@ -168,7 +169,10 @@ class ApiService {
             return {'success': true};
           }
         }
-        return {'success': false, 'message': body['message'] ?? 'Code invalide.'};
+        return {
+          'success': false,
+          'message': body['message'] ?? 'Code invalide.'
+        };
       }
       return {'success': false, 'message': 'Erreur de connexion.'};
     } catch (e) {
@@ -190,35 +194,53 @@ class ApiService {
     final List<String> params = ['page=$page'];
     if (search != null && search.isNotEmpty) params.add('search=$search');
     if (selectedLabel != null) params.add('selected_labels=$selectedLabel');
-    if (labelDateFilter != null) params.add('label_date_filter=$labelDateFilter');
+    if (labelDateFilter != null)
+      params.add('label_date_filter=$labelDateFilter');
     if (startDate != null) params.add('start_date=$startDate');
     if (endDate != null) params.add('end_date=$endDate');
     if (assigned != null) params.add('assigned=$assigned');
 
-    final url = Uri.parse('${baseApiUrl}vendor/contact/contacts-data?' + params.join('&'));
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/contact/contacts-data?${params.join('&')}');
     try {
       final response = await http.get(url, headers: _getHeaders());
-      if (debug) debugPrint('fetchContacts status=${response.statusCode} body=${response.body}');
+      if (debug)
+        debugPrint(
+            'fetchContacts status=${response.statusCode} body=${response.body}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        
+
         // Format Yantrana classique avec reaction
-        if (body is Map && body.containsKey('reaction') && body['reaction'] == 1) {
-          final contactsData = body['client_models']?['contacts'] ?? body['data']?['contacts'];
-          final nextPageRaw = body['client_models']?['contactsPaginatePage'] ?? body['data']?['contactsPaginatePage'];
+        if (body is Map &&
+            body.containsKey('reaction') &&
+            body['reaction'] == 1) {
+          final contactsData =
+              body['client_models']?['contacts'] ?? body['data']?['contacts'];
+          final nextPageRaw = body['client_models']?['contactsPaginatePage'] ??
+              body['data']?['contactsPaginatePage'];
           final nextPage = _parseNextPage(nextPageRaw);
           List<Contact> list = [];
           if (contactsData is List) {
-            list = contactsData.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
+            list = contactsData
+                .map((c) =>
+                    Contact.fromJson(Map<String, dynamic>.from(c as Map)))
+                .toList();
           } else if (contactsData is Map) {
-            list = contactsData.values.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
+            list = contactsData.values
+                .map((c) =>
+                    Contact.fromJson(Map<String, dynamic>.from(c as Map)))
+                .toList();
           }
           return {'contacts': list, 'nextPage': nextPage};
-        } 
+        }
         // Format DataTables classique
-        else if (body is Map && body.containsKey('data') && body['data'] is List) {
+        else if (body is Map &&
+            body.containsKey('data') &&
+            body['data'] is List) {
           final contactsData = body['data'] as List;
-          List<Contact> list = contactsData.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
+          List<Contact> list = contactsData
+              .map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map)))
+              .toList();
           return {'contacts': list, 'nextPage': 0};
         }
       }
@@ -241,7 +263,7 @@ class ApiService {
     if (endDate != null) params.add('end_date=$endDate');
     if (agentId != null) params.add('agent_id=$agentId');
     if (params.isNotEmpty) {
-      query = '?' + params.join('&');
+      query = '?${params.join('&')}';
     }
     final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats$query');
     try {
@@ -252,7 +274,8 @@ class ApiService {
           final data = body['data'];
           if (data is Map<String, dynamic>) {
             if (data['vendorDashboardData'] is Map<String, dynamic>) {
-              return Map<String, dynamic>.from(data['vendorDashboardData'] as Map);
+              return Map<String, dynamic>.from(
+                  data['vendorDashboardData'] as Map);
             }
             return data;
           }
@@ -294,8 +317,10 @@ class ApiService {
         if (body['reaction'] == 1) {
           final models = body['client_models'] ?? {};
           return {
-            'unreadMessagesCount': (models['unreadMessagesCount'] as num?)?.toInt() ?? 0,
-            'myAssignedUnreadMessagesCount': (models['myAssignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
+            'unreadMessagesCount':
+                (models['unreadMessagesCount'] as num?)?.toInt() ?? 0,
+            'myAssignedUnreadMessagesCount':
+                (models['myAssignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
           };
         }
       }
@@ -349,7 +374,7 @@ class ApiService {
   /// Fetch single ticket details
   Future<Map<String, dynamic>?> fetchSupportTicketDetails(String uid) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid');
-    
+
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -362,14 +387,15 @@ class ApiService {
       throw Exception('HTTP ${response.statusCode}: ${response.body}');
     } catch (e) {
       if (debug) debugPrint('Fetch Ticket Details Error: $e');
-      throw e; // Rethrow to display in UI
+      rethrow; // Rethrow to display in UI
     }
   }
 
   /// Reply to a support ticket
-  Future<bool> replyToSupportTicket(String uid, String message, {List<File>? attachments}) async {
+  Future<bool> replyToSupportTicket(String uid, String message,
+      {List<File>? attachments}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid/reply');
-    
+
     try {
       if (attachments != null && attachments.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
@@ -383,17 +409,23 @@ class ApiService {
         for (var file in attachments) {
           final length = await file.length();
           File fileToUpload = file;
-          
+
           // If image is larger than 2MB, try to compress it
           if (length > 2000000) {
             final ext = file.path.split('.').last.toLowerCase();
             if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
               try {
                 final tempDir = await getTemporaryDirectory();
-                final targetPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.$ext';
-                final format = ext == 'png' ? CompressFormat.png : (ext == 'webp' ? CompressFormat.webp : CompressFormat.jpeg);
-                var compressedFile = await FlutterImageCompress.compressAndGetFile(
-                  file.absolute.path, 
+                final targetPath =
+                    '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.$ext';
+                final format = ext == 'png'
+                    ? CompressFormat.png
+                    : (ext == 'webp'
+                        ? CompressFormat.webp
+                        : CompressFormat.jpeg);
+                var compressedFile =
+                    await FlutterImageCompress.compressAndGetFile(
+                  file.absolute.path,
                   targetPath,
                   quality: 70,
                   format: format,
@@ -406,21 +438,26 @@ class ApiService {
               }
             }
           }
-          
+
           final finalLength = await fileToUpload.length();
           if (finalLength > 10485760) {
-            if (debug) debugPrint('File too large even after compression: ${finalLength}');
+            if (debug)
+              debugPrint('File too large even after compression: $finalLength');
             return false;
           }
-          request.files.add(await http.MultipartFile.fromPath('attachments[]', fileToUpload.path));
+          request.files.add(await http.MultipartFile.fromPath(
+              'attachments[]', fileToUpload.path));
         }
-        final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+        final streamedResponse =
+            await request.send().timeout(const Duration(seconds: 60));
         final response = await http.Response.fromStream(streamedResponse);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           return data['reaction'] == 1;
         } else {
-          if (debug) debugPrint('Upload failed: ${response.statusCode} - ${response.body}');
+          if (debug)
+            debugPrint(
+                'Upload failed: ${response.statusCode} - ${response.body}');
         }
         return false;
       } else {
@@ -443,22 +480,34 @@ class ApiService {
 
   /// Fetch chat messages for a specific contact
   Future<List<ChatMessage>?> fetchMessages(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final reaction = body['reaction'];
         if (reaction == 1) {
-          final logsData = body['client_models']?['whatsappMessageLogs'] ?? body['data']?['whatsappMessageLogs'];
+          final logsData = body['client_models']?['whatsappMessageLogs'] ??
+              body['data']?['whatsappMessageLogs'];
           if (logsData is List) {
-            return logsData.map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map))).toList();
+            return logsData
+                .map((m) =>
+                    ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .toList();
           } else if (logsData is Map) {
-            return logsData.values.map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map))).toList();
+            return logsData.values
+                .map((m) =>
+                    ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .toList();
           }
         }
       } else {
-        if (debug) debugPrint('Fetch Messages API Error: ${response.statusCode} ${response.body}');
+        if (debug)
+          debugPrint(
+              'Fetch Messages API Error: ${response.statusCode} ${response.body}');
       }
       return null;
     } catch (e) {
@@ -471,20 +520,24 @@ class ApiService {
   Future<bool> sendMessage(String contactUid, String messageBody) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'contact_uid': contactUid,
-          'message_body': messageBody,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contact_uid': contactUid,
+              'message_body': messageBody,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug) debugPrint('Send Message API Error: ${response.statusCode} ${response.body}');
+      if (debug)
+        debugPrint(
+            'Send Message API Error: ${response.statusCode} ${response.body}');
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Message Error: $e');
@@ -493,7 +546,8 @@ class ApiService {
   }
 
   /// Register FCM device token
-  Future<bool> registerDeviceToken(String fcmToken, String deviceId, String deviceType) async {
+  Future<bool> registerDeviceToken(
+      String fcmToken, String deviceId, String deviceType) async {
     final url = Uri.parse('${baseApiUrl}user-device/token');
     try {
       final response = await http.post(
@@ -541,7 +595,8 @@ class ApiService {
 
   /// Fetch contact details (groups, custom field values, etc)
   Future<Map<String, dynamic>?> fetchContactDetails(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contacts/$contactUid/get-update-data');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/contacts/$contactUid/get-update-data');
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -577,7 +632,8 @@ class ApiService {
       if (email != null) bodyMap['email'] = email;
       if (customFields != null) bodyMap['custom_input_fields'] = customFields;
       if (enableAiBot != null) bodyMap['enable_ai_bot'] = enableAiBot ? 1 : 0;
-      if (enableReplyBot != null) bodyMap['enable_reply_bot'] = enableReplyBot ? 1 : 0;
+      if (enableReplyBot != null)
+        bodyMap['enable_reply_bot'] = enableReplyBot ? 1 : 0;
 
       final response = await http.post(
         url,
@@ -599,7 +655,8 @@ class ApiService {
 
   /// Fetch labels and team members data
   Future<Map<String, dynamic>?> fetchLabelsAndAgents(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat-box-data/$contactUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/chat-box-data/$contactUid');
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -616,8 +673,10 @@ class ApiService {
   }
 
   /// Assign labels to contact
-  Future<bool> assignContactLabels(String contactUid, List<int> labelIds) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/assign-labels');
+  Future<bool> assignContactLabels(
+      String contactUid, List<int> labelIds) async {
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/assign-labels');
     try {
       final response = await http.post(
         url,
@@ -640,7 +699,8 @@ class ApiService {
 
   /// Assign chat agent to contact
   Future<bool> assignContactUser(String contactUid, String userUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/assign-user');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/assign-user');
     try {
       final response = await http.post(
         url,
@@ -663,7 +723,8 @@ class ApiService {
 
   /// Update contact internal notes
   Future<bool> updateContactNotes(String contactUid, String notes) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/update-notes');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/update-notes');
     try {
       final response = await http.post(
         url,
@@ -686,7 +747,8 @@ class ApiService {
 
   /// Block contact
   Future<bool> blockContact(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/$contactUid/block-process');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/$contactUid/block-process');
     try {
       final response = await http.post(
         url,
@@ -705,7 +767,8 @@ class ApiService {
 
   /// Unblock contact
   Future<bool> unblockContact(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/$contactUid/unblock-process');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/$contactUid/unblock-process');
     try {
       final response = await http.post(
         url,
@@ -723,8 +786,10 @@ class ApiService {
   }
 
   /// Fetch active quick replies for a contact
-  Future<List<Map<String, dynamic>>> fetchQuickReplies(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/bot-replies/$contactUid/all-active-bots');
+  Future<List<Map<String, dynamic>>> fetchQuickReplies(
+      String contactUid) async {
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/bot-replies/$contactUid/all-active-bots');
     try {
       final response = await http.get(url, headers: _getHeaders());
       if (response.statusCode == 200) {
@@ -745,7 +810,8 @@ class ApiService {
 
   /// Send a quick reply
   Future<bool> sendQuickReply(String contactUid, int botId) async {
-    final url = Uri.parse('${baseApiUrl}vendor/bot-replies/quick-reply-process');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/bot-replies/quick-reply-process');
     try {
       final response = await http.post(
         url,
@@ -788,8 +854,10 @@ class ApiService {
   }
 
   /// Send WhatsApp template message
-  Future<bool> sendTemplateMessage(String contactUid, String templateUid, Map<String, dynamic> variables) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/send-template-message');
+  Future<bool> sendTemplateMessage(String contactUid, String templateUid,
+      Map<String, dynamic> variables) async {
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/contact/send-template-message');
     try {
       final Map<String, dynamic> bodyMap = {
         'contact_uid': contactUid,
@@ -817,7 +885,8 @@ class ApiService {
   Future<String?> uploadTempMedia(File file, String mediaType) async {
     final url = Uri.parse('${baseApiUrl}media/upload-temp-media/$mediaType');
     try {
-      final token = _token ?? (await SharedPreferences.getInstance()).getString('auth_token');
+      final token = _token ??
+          (await SharedPreferences.getInstance()).getString('auth_token');
       if (token == null || token.isEmpty) {
         if (debug) debugPrint('Upload Temp Media Error: token manquant');
         return null;
@@ -836,11 +905,15 @@ class ApiService {
       if (mimeType == null || mimeType == 'application/octet-stream') {
         // Fallback based on the mediaType parameter
         if (mediaType.contains('audio')) {
-          mimeType = file.path.endsWith('.ogg') ? 'audio/ogg'
-              : file.path.endsWith('.mp3') ? 'audio/mpeg'
-              : file.path.endsWith('.aac') ? 'audio/aac'
-              : file.path.endsWith('.webm') ? 'audio/webm'
-              : 'audio/mp4'; // default for m4a / aac-lc recordings
+          mimeType = file.path.endsWith('.ogg')
+              ? 'audio/ogg'
+              : file.path.endsWith('.mp3')
+                  ? 'audio/mpeg'
+                  : file.path.endsWith('.aac')
+                      ? 'audio/aac'
+                      : file.path.endsWith('.webm')
+                          ? 'audio/webm'
+                          : 'audio/mp4'; // default for m4a / aac-lc recordings
         } else if (mediaType.contains('image')) {
           mimeType = file.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
         } else if (mediaType.contains('video')) {
@@ -848,21 +921,25 @@ class ApiService {
         } else {
           mimeType = 'application/pdf';
         }
-        if (debug) debugPrint('Upload Temp Media: MIME fallback -> $mimeType (mediaType=$mediaType, path=${file.path})');
+        if (debug)
+          debugPrint(
+              'Upload Temp Media: MIME fallback -> $mimeType (mediaType=$mediaType, path=${file.path})');
       }
 
       final typeParts = mimeType.split('/');
       final multipartFile = await http.MultipartFile.fromPath(
         'filepond',
         file.path,
-        contentType: MediaType(typeParts[0], typeParts.length > 1 ? typeParts[1] : 'octet-stream'),
+        contentType: MediaType(
+            typeParts[0], typeParts.length > 1 ? typeParts[1] : 'octet-stream'),
       );
       request.files.add(multipartFile);
 
-      final response = await request.send().timeout(const Duration(seconds: 45));
+      final response =
+          await request.send().timeout(const Duration(seconds: 45));
       final responseBody = await response.stream.bytesToString();
       debugPrint('Upload Temp Media [${response.statusCode}]: $responseBody');
-      
+
       if (response.statusCode == 200) {
         final body = jsonDecode(responseBody);
         if (body['reaction'] == 1) {
@@ -870,13 +947,18 @@ class ApiService {
           return body['data']?['fileName'] ?? body['data']?['file_name'];
         }
         // Server returned reaction != 1 — extract the message
-        final msg = body['data']?['message'] ?? body['message'] ?? 'Erreur serveur (reaction != 1)';
+        final msg = body['data']?['message'] ??
+            body['message'] ??
+            'Erreur serveur (reaction != 1)';
         lastUploadError = msg is String ? msg : msg.toString();
-        if (debug) debugPrint('Upload Temp Media Server Error: $lastUploadError');
+        if (debug)
+          debugPrint('Upload Temp Media Server Error: $lastUploadError');
       } else {
         lastUploadError = 'HTTP ${response.statusCode}';
       }
-      if (debug) debugPrint('Upload Temp Media API Error: status=${response.statusCode}');
+      if (debug)
+        debugPrint(
+            'Upload Temp Media API Error: status=${response.statusCode}');
       return null;
     } catch (e) {
       lastUploadError = e.toString();
@@ -886,27 +968,34 @@ class ApiService {
   }
 
   /// Send media message referencing uploaded temp file
-  Future<bool> sendMediaMessage(String contactUid, String mediaType, String fileName, {String? caption, String? originalFilename}) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send-media');
+  Future<bool> sendMediaMessage(
+      String contactUid, String mediaType, String fileName,
+      {String? caption, String? originalFilename}) async {
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send-media');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'contact_uid': contactUid,
-          'media_type': mediaType,
-          'uploaded_media_file_name': fileName,
-          'caption': caption ?? '',
-          'raw_upload_data': jsonEncode({
-            'original_filename': originalFilename ?? fileName,
-          }),
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contact_uid': contactUid,
+              'media_type': mediaType,
+              'uploaded_media_file_name': fileName,
+              'caption': caption ?? '',
+              'raw_upload_data': jsonEncode({
+                'original_filename': originalFilename ?? fileName,
+              }),
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug) debugPrint('Send Media Message API Error: ${response.statusCode} ${response.body}');
+      if (debug)
+        debugPrint(
+            'Send Media Message API Error: ${response.statusCode} ${response.body}');
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Media Message Error: $e');
@@ -918,16 +1007,19 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
     final url = Uri.parse('${baseApiUrl}vendor/campaign-list');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (debug) debugPrint('fetchCampaigns status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (debug) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
-        
+
         // 1. Standard API response (reaction == 1)
         if (body['reaction'] == 1) {
           final raw = body['data']?['campaignList'];
-          if (debug) debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
+          if (debug)
+            debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
           if (raw is Map && raw['data'] is List) {
             return List<Map<String, dynamic>>.from(raw['data']);
           }
@@ -935,12 +1027,12 @@ class ApiService {
             return List<Map<String, dynamic>>.from(raw);
           }
         }
-        
+
         // 2. Datatable direct response
         if (body['data'] is List) {
           return List<Map<String, dynamic>>.from(body['data']);
         }
-        
+
         // 3. Simple list response
         if (body is List) {
           return List<Map<String, dynamic>>.from(body);
@@ -963,12 +1055,13 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final latestVersion = data['version']?.toString() ?? '1.0.0';
-        
+
         if (_isNewerVersion(version, latestVersion)) {
           return {
             'version': latestVersion,
             'apk_url': data['apk_url'] ?? '${baseUrl}whatsclick-latest.apk',
-            'change_log': data['change_log'] ?? 'Correctifs et améliorations générales.',
+            'change_log':
+                data['change_log'] ?? 'Correctifs et améliorations générales.',
           };
         }
       }
@@ -992,6 +1085,7 @@ class ApiService {
     }
     return false;
   }
+
   /// Create a new contact label on the server
   Future<Map<String, dynamic>?> createContactLabel({
     required String title,
@@ -1025,9 +1119,12 @@ class ApiService {
 
   /// Fetch product list for mobile
   Future<List<Map<String, dynamic>>> fetchProducts({String search = ''}) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products?search=$search');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/ecommerce/products?search=$search');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1051,14 +1148,16 @@ class ApiService {
   Future<bool> sendProductMessage(String contactUid, String productUid) async {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/send-product');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'contact_uid': contactUid,
-          'product_uid': productUid,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contact_uid': contactUid,
+              'product_uid': productUid,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1075,7 +1174,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchCannedReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1100,15 +1201,17 @@ class ApiService {
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies/save');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'uid': uid,
-          'shortcut': shortcut,
-          'message': message,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'uid': uid,
+              'shortcut': shortcut,
+              'message': message,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1127,7 +1230,9 @@ class ApiService {
   Future<bool> deleteCannedReply(String uid) async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies/$uid');
     try {
-      final response = await http.delete(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .delete(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1143,8 +1248,11 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchContactGroups() async {
     final url = Uri.parse('${baseApiUrl}vendor/contact/mobile-groups');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
-      if (debug) debugPrint('fetchContactGroups status: ${response.statusCode}');
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (debug)
+        debugPrint('fetchContactGroups status: ${response.statusCode}');
       // Log FULL body to diagnose production issue
       if (debug) debugPrint('fetchContactGroups FULL body: ${response.body}');
       if (response.statusCode == 200) {
@@ -1152,13 +1260,18 @@ class ApiService {
         if (body['reaction'] == 1) {
           final data = body['data'];
           // Try every possible key structure
-          dynamic list = data?['groups']              // inline route
-              ?? data?['contactList']?['data']        // paginated old route
-              ?? data?['contactList']                 // plain array
-              ?? data?['contactGroups']?['data']
-              ?? data?['contactGroups']
-              ?? data?['data'];
-          if (debug) debugPrint('fetchContactGroups resolved list type: ${list?.runtimeType}, length: ${list is List ? (list as List).length : "N/A"}');
+          dynamic list = data?['groups'] // inline route
+              ??
+              data?['contactList']?['data'] // paginated old route
+              ??
+              data?['contactList'] // plain array
+              ??
+              data?['contactGroups']?['data'] ??
+              data?['contactGroups'] ??
+              data?['data'];
+          if (debug)
+            debugPrint(
+                'fetchContactGroups resolved list type: ${list?.runtimeType}, length: ${list is List ? (list).length : "N/A"}');
           if (list is List) {
             return List<Map<String, dynamic>>.from(list);
           }
@@ -1166,14 +1279,22 @@ class ApiService {
           if (data is Map) {
             for (final val in data.values) {
               if (val is List && val.isNotEmpty) {
-                if (debug) debugPrint('fetchContactGroups found list in data values: length ${val.length}');
-                try { return List<Map<String, dynamic>>.from(val); } catch (_) {}
+                if (debug)
+                  debugPrint(
+                      'fetchContactGroups found list in data values: length ${val.length}');
+                try {
+                  return List<Map<String, dynamic>>.from(val);
+                } catch (_) {}
               }
               if (val is Map) {
                 for (final innerVal in val.values) {
                   if (innerVal is List && innerVal.isNotEmpty) {
-                    if (debug) debugPrint('fetchContactGroups found nested list: length ${innerVal.length}');
-                    try { return List<Map<String, dynamic>>.from(innerVal); } catch (_) {}
+                    if (debug)
+                      debugPrint(
+                          'fetchContactGroups found nested list: length ${innerVal.length}');
+                    try {
+                      return List<Map<String, dynamic>>.from(innerVal);
+                    } catch (_) {}
                   }
                 }
               }
@@ -1192,7 +1313,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchAudiences() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (debug) debugPrint('fetchAudiences status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1212,7 +1335,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchAllLabels() async {
     final url = Uri.parse('${baseApiUrl}vendor/contact/labels-tags');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1244,11 +1369,13 @@ class ApiService {
         'groups': groups ?? [],
         'labels': labels ?? [],
       };
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode(payload),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
@@ -1263,7 +1390,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchSimpleContactsList() async {
     final url = Uri.parse('${baseApiUrl}vendor/contacts/simple-list');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1284,13 +1413,15 @@ class ApiService {
   Future<bool> createContactGroup(String title) async {
     final url = Uri.parse('${baseApiUrl}vendor/contact/groups/create');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'title': title,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'title': title,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1305,12 +1436,15 @@ class ApiService {
 
   /// Delete a contact group
   Future<bool> deleteContactGroup(String groupUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/groups/$groupUid/delete');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/contact/groups/$groupUid/delete');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1324,19 +1458,22 @@ class ApiService {
   }
 
   /// Assign groups to contact
-  Future<bool> assignGroupsToContact(List<String> contactUids, List<String> groupUids) async {
+  Future<bool> assignGroupsToContact(
+      List<String> contactUids, List<String> groupUids) async {
     final url = Uri.parse('${baseApiUrl}vendor/contact/assign-groups');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'contacts_uid': contactUids,
-          'groups_uid': groupUids,
-          'selected_contacts': contactUids,
-          'selected_groups': groupUids,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contacts_uid': contactUids,
+              'groups_uid': groupUids,
+              'selected_contacts': contactUids,
+              'selected_groups': groupUids,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1351,15 +1488,20 @@ class ApiService {
 
   /// Fetch contacts belonging to a specific group
   Future<List<Contact>> fetchGroupContacts(String groupUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/mobile-group-contacts/$groupUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/contact/mobile-group-contacts/$groupUid');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
           final list = body['data']?['contacts'] as List?;
           if (list != null) {
-            return list.map((c) => Contact.fromJson(Map<String, dynamic>.from(c))).toList();
+            return list
+                .map((c) => Contact.fromJson(Map<String, dynamic>.from(c)))
+                .toList();
           }
         }
       }
@@ -1374,7 +1516,9 @@ class ApiService {
   Future<bool> syncTemplates() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/sync');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 40));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 40));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1387,14 +1531,17 @@ class ApiService {
   }
 
   /// Create and schedule campaign (Admin Only)
-  Future<Map<String, dynamic>?> scheduleCampaign(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>?> scheduleCampaign(
+      Map<String, dynamic> data) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/schedule');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 35));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 35));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1415,10 +1562,14 @@ class ApiService {
   }
 
   /// Fetch Campaign Dashboard / Status (Admin Only)
-  Future<Map<String, dynamic>?> fetchCampaignDashboard(String campaignUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/dashboard/$campaignUid/status');
+  Future<Map<String, dynamic>?> fetchCampaignDashboard(
+      String campaignUid) async {
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/campaign/dashboard/$campaignUid/status');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 25));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 25));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1433,14 +1584,17 @@ class ApiService {
   }
 
   /// Create WhatsApp Template (Admin Only)
-  Future<Map<String, dynamic>?> createTemplate(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>?> createTemplate(
+      Map<String, dynamic> data) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/create');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode(data),
-      ).timeout(const Duration(seconds: 35));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 35));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1457,7 +1611,9 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchBotReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/list');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1473,9 +1629,12 @@ class ApiService {
 
   /// Toggle Bot Reply status
   Future<bool> toggleBotReplyStatus(String uid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/$uid/toggle-status');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/bot-replies-management/$uid/toggle-status');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1489,9 +1648,12 @@ class ApiService {
 
   /// Delete Bot Reply
   Future<bool> deleteBotReply(String uid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/$uid/delete');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/bot-replies-management/$uid/delete');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1512,17 +1674,19 @@ class ApiService {
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/add');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'name': name,
-          'trigger_type': triggerType,
-          'reply_trigger': replyTrigger,
-          'reply_text': replyText,
-          'message_type': 'simple',
-        }),
-      ).timeout(const Duration(seconds: 25));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'name': name,
+              'trigger_type': triggerType,
+              'reply_trigger': replyTrigger,
+              'reply_text': replyText,
+              'message_type': 'simple',
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
       }
@@ -1543,18 +1707,20 @@ class ApiService {
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/update');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          '_uid': uid,
-          'name': name,
-          'trigger_type': triggerType,
-          'reply_trigger': replyTrigger,
-          'reply_text': replyText,
-          'message_type': 'simple',
-        }),
-      ).timeout(const Duration(seconds: 25));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              '_uid': uid,
+              'name': name,
+              'trigger_type': triggerType,
+              'reply_trigger': replyTrigger,
+              'reply_text': replyText,
+              'message_type': 'simple',
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
       }
@@ -1566,17 +1732,20 @@ class ApiService {
   }
 
   /// Store Reminder
-  Future<bool> storeReminder(String contactUid, String note, String date) async {
-    final url = Uri.parse('${baseApiUrl}$contactUid/reminder/store');
+  Future<bool> storeReminder(
+      String contactUid, String note, String date) async {
+    final url = Uri.parse('$baseApiUrl$contactUid/reminder/store');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'note': note,
-          'reminder_date': date,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'note': note,
+              'reminder_date': date,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1590,9 +1759,11 @@ class ApiService {
 
   /// Cancel Reminder
   Future<bool> cancelReminder(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}$contactUid/reminder/cancel');
+    final url = Uri.parse('$baseApiUrl$contactUid/reminder/cancel');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1608,10 +1779,14 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchDripCampaigns() async {
     final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        if (body['reaction'] == 1 && body['data'] != null && body['data']['campaigns'] != null) {
+        if (body['reaction'] == 1 &&
+            body['data'] != null &&
+            body['data']['campaigns'] != null) {
           return List<Map<String, dynamic>>.from(body['data']['campaigns']);
         }
       }
@@ -1624,9 +1799,12 @@ class ApiService {
 
   /// Toggle Drip Campaign Status
   Future<bool> toggleDripCampaign(String campaignUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/toggle-status');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/drip-campaigns/$campaignUid/toggle-status');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
@@ -1638,4 +1816,3 @@ class ApiService {
     }
   }
 }
-

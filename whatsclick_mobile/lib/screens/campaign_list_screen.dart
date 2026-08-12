@@ -39,17 +39,19 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     });
     try {
       final data = await ApiService().fetchCampaigns();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _campaigns = data;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Erreur de chargement des campagnes';
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -361,11 +363,12 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
     }
     setState(() => _isLoading = true);
     final data = await ApiService().fetchCampaignDashboard(uid);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _stats = data;
         _isLoading = false;
       });
+    }
   }
 
   @override
@@ -598,29 +601,32 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   Future<void> _loadAudiences() async {
     final audiences = await ApiService().fetchAudiences();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _audiences = audiences;
         _loadingAudiences = false;
       });
+    }
   }
 
   Future<void> _loadGroups() async {
     final groups = await ApiService().fetchContactGroups();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _groups = groups;
         _loadingGroups = false;
       });
+    }
   }
 
   Future<void> _loadLabels() async {
     final labels = await ApiService().fetchAllLabels();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _labels = labels;
         _loadingLabels = false;
       });
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -647,11 +653,12 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   Future<void> _loadTemplates() async {
     final tpls = await ApiService().fetchTemplates();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _templates = tpls;
         _loadingTemplates = false;
       });
+    }
   }
 
   void _onTemplateSelected(String uid) {
@@ -989,8 +996,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   }
 
   Widget _buildAudiencesList() {
-    if (_loadingAudiences)
+    if (_loadingAudiences) {
       return const Center(child: CircularProgressIndicator());
+    }
     return Column(
       children: [
         // Create Audience Button
@@ -1047,8 +1055,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   }
 
   Widget _buildContactsList() {
-    if (_loadingContacts)
+    if (_loadingContacts) {
       return const Center(child: CircularProgressIndicator());
+    }
     if (_contacts.isEmpty) {
       return const Center(child: Text('Aucun contact trouvé.'));
     }
@@ -1106,8 +1115,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   // ── Step 3: Template + Variables ────────────────────────────────────────────
   Widget _buildStep3() {
-    if (_loadingTemplates)
+    if (_loadingTemplates) {
       return const Center(child: CircularProgressIndicator());
+    }
     final approved = _templates
         .where(
             (t) => (t['status'] ?? '').toString().toUpperCase() == 'APPROVED')
