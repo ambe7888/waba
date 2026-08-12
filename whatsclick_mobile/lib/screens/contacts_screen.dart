@@ -53,12 +53,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
     _loadContacts();
     _searchController.addListener(_applyFilters);
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
         _loadMoreContacts();
       }
     });
   }
-  
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -135,19 +136,25 @@ class _ContactsScreenState extends State<ContactsScreen> {
     setState(() {
       _filteredContacts = _contacts.where((contact) {
         return contact.name.toLowerCase().contains(query) ||
-               contact.phoneNumber.contains(query) ||
-               (contact.lastMessage?.toLowerCase().contains(query) ?? false);
+            contact.phoneNumber.contains(query) ||
+            (contact.lastMessage?.toLowerCase().contains(query) ?? false);
       }).toList();
     });
   }
 
   Widget _buildAvatar(Contact contact) {
     final initials = contact.name.trim().isNotEmpty
-        ? contact.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
+        ? contact.name
+            .trim()
+            .split(' ')
+            .map((e) => e.isNotEmpty ? e[0] : '')
+            .take(2)
+            .join()
+            .toUpperCase()
         : '?';
 
     return CircleAvatar(
-      backgroundColor: ThemeService.primaryColor.withOpacity(0.2),
+      backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.2),
       foregroundColor: ThemeService.primaryColor,
       radius: 24,
       child: Text(
@@ -181,12 +188,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.contacts_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.contacts_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Contacts',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -206,14 +217,17 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ),
           ),
-          if (_labelFilter != null || _labelDateFilter != null || _assignedFilter != null)
+          if (_labelFilter != null ||
+              _labelDateFilter != null ||
+              _assignedFilter != null)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: ThemeService.primaryColor.withOpacity(0.1),
+                color: ThemeService.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: ThemeService.primaryColor.withOpacity(0.2)),
+                border: Border.all(
+                    color: ThemeService.primaryColor.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
@@ -267,16 +281,22 @@ class _ContactsScreenState extends State<ContactsScreen> {
                         ? Center(child: Text('Aucun contact trouvé'))
                         : ListView.builder(
                             controller: _scrollController,
-                            itemCount: _filteredContacts.length + (_nextPage > 0 ? 1 : 0),
+                            itemCount: _filteredContacts.length +
+                                (_nextPage > 0 ? 1 : 0),
                             itemBuilder: (context, index) {
                               if (index == _filteredContacts.length) {
-                                return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+                                return const Center(
+                                    child: Padding(
+                                        padding: EdgeInsets.all(16),
+                                        child: CircularProgressIndicator()));
                               }
                               final contact = _filteredContacts[index];
                               return ListTile(
                                 leading: _buildAvatar(contact),
                                 title: Text(
-                                  contact.name.isNotEmpty ? contact.name : contact.phoneNumber,
+                                  contact.name.isNotEmpty
+                                      ? contact.name
+                                      : contact.phoneNumber,
                                   style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(contact.phoneNumber),
@@ -284,27 +304,37 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.flight_takeoff_rounded, color: ThemeService.primaryColor),
+                                      icon: Icon(Icons.flight_takeoff_rounded,
+                                          color: ThemeService.primaryColor),
                                       onPressed: () {
-                                        _openChat(contact, openTemplatePicker: true);
+                                        _openChat(contact,
+                                            openTemplatePicker: true);
                                       },
                                       tooltip: 'Envoyer un modèle',
                                     ),
                                     IconButton(
-                                      icon: Icon(Icons.message_rounded, color: ThemeService.primaryColor),
+                                      icon: Icon(Icons.message_rounded,
+                                          color: ThemeService.primaryColor),
                                       onPressed: () => _openChat(contact),
                                       tooltip: 'Envoyer un message',
                                     ),
                                     IconButton(
-                                      icon: Icon(Icons.phone_rounded, color: Colors.green),
+                                      icon: Icon(Icons.phone_rounded,
+                                          color: Colors.green),
                                       onPressed: () async {
-                                        final url = Uri.parse('tel:${contact.phoneNumber}');
-                                        final messenger = ScaffoldMessenger.of(context);
+                                        final url = Uri.parse(
+                                            'tel:${contact.phoneNumber}');
+                                        final messenger =
+                                            ScaffoldMessenger.of(context);
                                         if (await canLaunchUrl(url)) {
-                                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                                          await launchUrl(url,
+                                              mode: LaunchMode
+                                                  .externalApplication);
                                         } else if (mounted) {
                                           messenger.showSnackBar(
-                                            const SnackBar(content: Text('Impossible de lancer l\'appel.')),
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Impossible de lancer l\'appel.')),
                                           );
                                         }
                                       },

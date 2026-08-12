@@ -198,33 +198,33 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/contact/contacts-data?' + params.join('&'));
     try {
       final response = await http.get(url, headers: _getHeaders());
-      if (debug) debugPrint('fetchContacts status: ${response.statusCode}');
+      if (debug) debugPrint('fetchContacts status=${response.statusCode} body=${response.body}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         
         // Format Yantrana classique avec reaction
-        if (body.containsKey('reaction') && body['reaction'] == 1) {
+        if (body is Map && body.containsKey('reaction') && body['reaction'] == 1) {
           final contactsData = body['client_models']?['contacts'] ?? body['data']?['contacts'];
           final nextPageRaw = body['client_models']?['contactsPaginatePage'] ?? body['data']?['contactsPaginatePage'];
           final nextPage = _parseNextPage(nextPageRaw);
           List<Contact> list = [];
           if (contactsData is List) {
-            list = contactsData.map((c) => Contact.fromJson(c)).toList();
+            list = contactsData.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
           } else if (contactsData is Map) {
-            list = contactsData.values.map((c) => Contact.fromJson(c as Map<String, dynamic>)).toList();
+            list = contactsData.values.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
           }
           return {'contacts': list, 'nextPage': nextPage};
         } 
         // Format DataTables classique
-        else if (body.containsKey('data') && body['data'] is List) {
+        else if (body is Map && body.containsKey('data') && body['data'] is List) {
           final contactsData = body['data'] as List;
-          List<Contact> list = contactsData.map((c) => Contact.fromJson(c as Map<String, dynamic>)).toList();
+          List<Contact> list = contactsData.map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map))).toList();
           return {'contacts': list, 'nextPage': 0};
         }
       }
       return {'contacts': <Contact>[], 'nextPage': 0};
-    } catch (e) {
-      if (debug) debugPrint('Fetch Contacts Error: $e');
+    } catch (e, stack) {
+      if (debug) debugPrint('Fetch Contacts Error: $e\n$stack');
       return {'contacts': <Contact>[], 'nextPage': 0};
     }
   }
@@ -452,9 +452,9 @@ class ApiService {
         if (reaction == 1) {
           final logsData = body['client_models']?['whatsappMessageLogs'] ?? body['data']?['whatsappMessageLogs'];
           if (logsData is List) {
-            return logsData.map((m) => ChatMessage.fromJson(m)).toList();
+            return logsData.map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map))).toList();
           } else if (logsData is Map) {
-            return logsData.values.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>)).toList();
+            return logsData.values.map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map))).toList();
           }
         }
       } else {

@@ -59,10 +59,12 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
             .toLowerCase()
             .contains(_searchQuery.toLowerCase());
         final category = t['category'] ?? '';
-        final matchesCategory = _selectedCategory == 'ALL' || category == _selectedCategory;
+        final matchesCategory =
+            _selectedCategory == 'ALL' || category == _selectedCategory;
         // Tab 0 → Meta templates (have a 'status' from Meta API)
         // Tab 1 → Simple templates (no Meta status)
-        final isMeta = (t['status'] != null && t['status'].toString().isNotEmpty);
+        final isMeta =
+            (t['status'] != null && t['status'].toString().isNotEmpty);
         final matchesTab = _showMetaOnly ? isMeta : !isMeta;
         return matchesSearch && matchesCategory && matchesTab;
       }).toList();
@@ -102,7 +104,8 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
     final isDark = ThemeService().isDark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Modèles de messages', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Modèles de messages',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (_showMetaOnly)
             _isSyncing
@@ -112,7 +115,8 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
                         child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))),
                   )
                 : IconButton(
                     icon: const Icon(Icons.sync_rounded),
@@ -136,8 +140,10 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
               decoration: InputDecoration(
                 hintText: 'Rechercher un modèle...',
                 prefixIcon: const Icon(Icons.search_rounded),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               ),
               onChanged: (value) {
                 _searchQuery = value;
@@ -166,10 +172,13 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.message_rounded, size: 64, color: Colors.grey.withValues(alpha: 0.4)),
+                            Icon(Icons.message_rounded,
+                                size: 64,
+                                color: Colors.grey.withValues(alpha: 0.4)),
                             const SizedBox(height: 16),
                             Text('Aucun modèle trouvé',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                                style: TextStyle(
+                                    color: Colors.grey.shade500, fontSize: 16)),
                             const SizedBox(height: 20),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.add_rounded),
@@ -184,7 +193,8 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
                         child: ListView.builder(
                           padding: const EdgeInsets.all(12),
                           itemCount: _filteredTemplates.length,
-                          itemBuilder: (ctx, i) => _buildTemplateCard(isDark, _filteredTemplates[i]),
+                          itemBuilder: (ctx, i) =>
+                              _buildTemplateCard(isDark, _filteredTemplates[i]),
                         ),
                       ),
           ),
@@ -208,7 +218,10 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
 
     String bodyText = '';
     for (var comp in components) {
-      if (comp['type'] == 'BODY') { bodyText = comp['text'] ?? ''; break; }
+      if (comp['type'] == 'BODY') {
+        bodyText = comp['text'] ?? '';
+        break;
+      }
     }
 
     Color statusColor = Colors.grey;
@@ -223,11 +236,13 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
         leading: Container(
           width: 6,
           height: 40,
-          decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+              color: statusColor, borderRadius: BorderRadius.circular(4)),
         ),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
-          [if (category.isNotEmpty) category, if (language.isNotEmpty) language].join(' • '),
+          [if (category.isNotEmpty) category, if (language.isNotEmpty) language]
+              .join(' • '),
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         trailing: status.isNotEmpty
@@ -236,7 +251,11 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
                 decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.13),
                     borderRadius: BorderRadius.circular(20)),
-                child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11)),
+                child: Text(status,
+                    style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11)),
               )
             : null,
         children: [
@@ -245,7 +264,9 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Aperçu du corps :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Aperçu du corps :',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
@@ -255,7 +276,9 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    bodyText.isNotEmpty ? bodyText : 'Pas de texte dans le corps du modèle.',
+                    bodyText.isNotEmpty
+                        ? bodyText
+                        : 'Pas de texte dans le corps du modèle.',
                     style: const TextStyle(fontSize: 14),
                   ),
                 ),
@@ -276,7 +299,10 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen>
         selected: isSelected,
         onSelected: (selected) {
           if (selected) {
-            setState(() { _selectedCategory = code; _filterTemplates(); });
+            setState(() {
+              _selectedCategory = code;
+              _filterTemplates();
+            });
           }
         },
       ),
@@ -329,12 +355,14 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
     setState(() => _isSubmitting = true);
 
     final payload = {
-      'template_name': _nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
+      'template_name':
+          _nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
       'language_code': _selectedLanguage,
       'category': _selectedCategory,
       'template_type': 'header',
       'template_body': _bodyController.text.trim(),
-      if (_footerController.text.trim().isNotEmpty) 'template_footer': _footerController.text.trim(),
+      if (_footerController.text.trim().isNotEmpty)
+        'template_footer': _footerController.text.trim(),
       if (_headerController.text.trim().isNotEmpty) ...{
         'media_header_type': 'text',
         'template_header': _headerController.text.trim(),
@@ -346,7 +374,9 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
       setState(() => _isSubmitting = false);
       if (result != null && result['reaction'] == 1) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Modèle créé avec succès !'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Modèle créé avec succès !'),
+              backgroundColor: Colors.green),
         );
         Navigator.pop(context, true);
       } else {
@@ -365,7 +395,9 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 20, left: 16, right: 16,
+        top: 20,
+        left: 16,
+        right: 16,
       ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -381,22 +413,29 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.isMeta ? 'Nouveau Modèle Meta' : 'Nouveau Modèle Simple',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    widget.isMeta
+                        ? 'Nouveau Modèle Meta'
+                        : 'Nouveau Modèle Simple',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context)),
                 ],
               ),
               if (widget.isMeta)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: Colors.blue, size: 18),
+                      Icon(Icons.info_outline_rounded,
+                          color: Colors.blue, size: 18),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -410,21 +449,25 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
               const Divider(height: 24),
 
               // Nom
-              const Text('Nom du modèle', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Nom du modèle',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              const Text('Lettres minuscules, chiffres et underscores uniquement.',
+              const Text(
+                  'Lettres minuscules, chiffres et underscores uniquement.',
                   style: TextStyle(fontSize: 11, color: Colors.grey)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
                   hintText: 'ex: bienvenue_client',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Nom requis';
-                  if (!RegExp(r'^[a-z0-9_]+$').hasMatch(v.trim()))
+                  if (!RegExp(r'^[a-z0-9_]+$').hasMatch(v.trim())) {
                     return 'Lettres minuscules, chiffres et _ uniquement';
+                  }
                   return null;
                 },
               ),
@@ -437,17 +480,25 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Catégorie', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text('Catégorie',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedCategory,
+                          initialValue: _selectedCategory,
                           decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
-                          items: _categories.map((c) =>
-                            DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
-                          onChanged: (v) => setState(() => _selectedCategory = v!),
+                          items: _categories
+                              .map((c) => DropdownMenuItem(
+                                  value: c,
+                                  child: Text(c,
+                                      style: const TextStyle(fontSize: 13))))
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedCategory = v!),
                         ),
                       ],
                     ),
@@ -457,17 +508,25 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Langue', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text('Langue',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedLanguage,
+                          initialValue: _selectedLanguage,
                           decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
-                          items: _languages.map((l) =>
-                            DropdownMenuItem(value: l['code'], child: Text(l['label']!, style: const TextStyle(fontSize: 13)))).toList(),
-                          onChanged: (v) => setState(() => _selectedLanguage = v!),
+                          items: _languages
+                              .map((l) => DropdownMenuItem(
+                                  value: l['code'],
+                                  child: Text(l['label']!,
+                                      style: const TextStyle(fontSize: 13))))
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedLanguage = v!),
                         ),
                       ],
                     ),
@@ -477,42 +536,50 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
               const SizedBox(height: 16),
 
               // En-tête (optionnel)
-              const Text('En-tête (optionnel)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('En-tête (optionnel)',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _headerController,
                 decoration: InputDecoration(
                   hintText: 'Titre ou en-tête du message',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 16),
 
               // Corps
-              const Text('Corps du message *', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Corps du message *',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              const Text('Utilisez {{1}}, {{2}} pour les variables.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              const Text('Utilisez {{1}}, {{2}} pour les variables.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _bodyController,
                 maxLines: 5,
                 decoration: InputDecoration(
                   hintText: 'Bonjour {{1}}, votre commande est confirmée !',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   alignLabelWithHint: true,
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Corps requis' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Corps requis' : null,
               ),
               const SizedBox(height: 16),
 
               // Pied de page
-              const Text('Pied de page (optionnel)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Pied de page (optionnel)',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _footerController,
                 decoration: InputDecoration(
                   hintText: 'Ex: Ne pas répondre à ce message.',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -522,14 +589,18 @@ class _CreateTemplateSheetState extends State<CreateTemplateSheet> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: _isSubmitting ? null : _submit,
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          widget.isMeta ? 'Soumettre à Meta' : 'Créer le modèle',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          widget.isMeta
+                              ? 'Soumettre à Meta'
+                              : 'Créer le modèle',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
               ),

@@ -63,7 +63,8 @@ class _AccountScreenState extends State<AccountScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Déconnexion', style: TextStyle(color: Colors.white)),
+            child: const Text('Déconnexion',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -111,12 +112,16 @@ class _AccountScreenState extends State<AccountScreen> {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.person_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.person_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Compte',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -131,8 +136,9 @@ class _AccountScreenState extends State<AccountScreen> {
           Center(
             child: CircleAvatar(
               radius: 40,
-              backgroundColor: ThemeService.primaryColor.withOpacity(0.2),
-              child: Icon(Icons.business, size: 40, color: ThemeService.primaryColor),
+              backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.2),
+              child: Icon(Icons.business,
+                  size: 40, color: ThemeService.primaryColor),
             ),
           ),
           SizedBox(height: 16),
@@ -147,7 +153,9 @@ class _AccountScreenState extends State<AccountScreen> {
             Center(
               child: Text(
                 '+${_vendorInfo!['whatsapp_number']}',
-                style: TextStyle(fontSize: 16, color: isDark ? Colors.white70 : Colors.black54),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.white70 : Colors.black54),
               ),
             ),
           ],
@@ -165,81 +173,94 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.folder_shared_rounded, color: Colors.teal),
+                  leading:
+                      Icon(Icons.folder_shared_rounded, color: Colors.teal),
                   title: Text('Ressources partagées'),
                   trailing: Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ResourceListScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const ResourceListScreen()),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.support_agent_rounded, color: Colors.deepPurple),
+                  leading: Icon(Icons.support_agent_rounded,
+                      color: Colors.deepPurple),
                   title: Text('Assistance'),
                   trailing: Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SupportTicketsScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const SupportTicketsScreen()),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.flash_on_rounded, color: Colors.amber),
+                  leading:
+                      const Icon(Icons.flash_on_rounded, color: Colors.amber),
                   title: const Text('Réponses Rapides'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CannedRepliesScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const CannedRepliesScreen()),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.group_work_rounded, color: Colors.purple),
+                  leading: const Icon(Icons.group_work_rounded,
+                      color: Colors.purple),
                   title: const Text('Groupes de Contacts'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ContactGroupsScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const ContactGroupsScreen()),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.notifications_active_rounded, color: Colors.blue),
+                  leading: const Icon(Icons.notifications_active_rounded,
+                      color: Colors.blue),
                   title: const Text('Paramètres de Notifications'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => const NotificationSettingsScreen()),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: Colors.orange),
+                  leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
+                      color: Colors.orange),
                   title: Text(isDark ? 'Mode Clair' : 'Mode Sombre'),
                   trailing: Switch(
                     value: isDark,
                     onChanged: (value) {
                       ThemeService().toggleTheme();
                     },
-                    activeColor: ThemeService.primaryColor,
+                    activeThumbColor: ThemeService.primaryColor,
                   ),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.system_update_rounded, color: Colors.blueAccent),
+                  leading: Icon(Icons.system_update_rounded,
+                      color: Colors.blueAccent),
                   title: Text('Mise à jour de l\'application'),
                   subtitle: Text('Télécharger la version APK'),
                   trailing: Icon(Icons.chevron_right),
                   onTap: () async {
                     final url = Uri.parse('${baseUrl}downloads/whatsclick.apk');
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Impossible d\'ouvrir le lien')),
@@ -250,7 +271,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.logout, color: Colors.red),
-                  title: Text('Déconnexion', style: TextStyle(color: Colors.red)),
+                  title:
+                      Text('Déconnexion', style: TextStyle(color: Colors.red)),
                   onTap: _logout,
                 ),
               ],
@@ -273,43 +295,50 @@ class _AccountScreenState extends State<AccountScreen> {
           Card(
             child: Column(
               children: [
-                  ListTile(
-                    leading: const Icon(Icons.message_rounded, color: Colors.indigo),
-                    title: const Text('Modèles de messages (Templates)'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TemplatesAdminScreen()),
-                      );
-                    },
-                  ),
+                ListTile(
+                  leading:
+                      const Icon(Icons.message_rounded, color: Colors.indigo),
+                  title: const Text('Modèles de messages (Templates)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const TemplatesAdminScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading:
+                      const Icon(Icons.smart_toy_rounded, color: Colors.teal),
+                  title: const Text('Réponses Automatiques (Bot)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const BotRepliesScreen()),
+                    );
+                  },
+                ),
+                if (isAdmin) ...[
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.smart_toy_rounded, color: Colors.teal),
-                    title: const Text('Réponses Automatiques (Bot)'),
+                    leading: const Icon(Icons.water_drop_rounded,
+                        color: Colors.lightBlue),
+                    title: const Text('Campagnes Goutte à Goutte'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const BotRepliesScreen()),
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const DripCampaignsSettingsScreen()),
                       );
                     },
                   ),
-                  if (isAdmin) ...[
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.water_drop_rounded, color: Colors.lightBlue),
-                      title: const Text('Campagnes Goutte à Goutte'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const DripCampaignsSettingsScreen()),
-                        );
-                      },
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
+          ),
         ],
       ),
     );

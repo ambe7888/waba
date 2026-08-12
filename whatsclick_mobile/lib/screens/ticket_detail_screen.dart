@@ -27,16 +27,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   final _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<File> _selectedFiles = [];
+  final List<File> _selectedFiles = [];
 
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(allowMultiple: true);
       if (result != null) {
         setState(() {
-          _selectedFiles.addAll(
-            result.files.where((f) => f.path != null).map((f) => File(f.path!))
-          );
+          _selectedFiles.addAll(result.files
+              .where((f) => f.path != null)
+              .map((f) => File(f.path!)));
         });
       }
     } catch (e) {
@@ -152,7 +152,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             )
@@ -304,7 +304,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                               isMe,
                               attachment: reply['__data']?['attachment'],
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),
@@ -317,7 +317,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         color: isDark ? ThemeService.darkCard : Colors.white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             offset: const Offset(0, -2),
                             blurRadius: 5,
                           ),

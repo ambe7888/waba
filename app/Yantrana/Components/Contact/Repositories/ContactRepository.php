@@ -471,7 +471,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // -----------------------------------------
         // LATEST MESSAGE JOIN
         // -----------------------------------------
-        $query->joinSub(
+        $query->leftJoinSub(
             DB::table('whatsapp_message_logs')
                 ->where('vendors__id', $vendorIdForSubquery)
                 ->selectRaw('contacts__id, MAX(messaged_at) AS latest_message')
@@ -480,7 +480,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             'contacts._id',
             '=',
             'latest_messages.contacts__id'
-        )->orderByRaw('contacts.is_pinned DESC')->orderBy('latest_messages.latest_message', 'desc');
+        )->orderByRaw('contacts.is_pinned DESC, latest_messages.latest_message DESC, contacts._id DESC');
 
         // -----------------------------------------
         // UNREAD COUNT JOIN (LEFT)

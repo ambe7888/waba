@@ -17,14 +17,15 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final _searchController = TextEditingController();
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _nextPage = 0;
-  
+
   late final StreamSubscription<RemoteMessage> _fcmSubscription;
   Timer? _pollingTimer;
   Timer? _searchDebouncer;
@@ -35,8 +36,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   String _assignedFilter = 'all';
 
   // Notification badge counts
-  int _unreadNewCount = 0;       // nouveaux (unassigned)
-  int _unreadMyCount = 0;        // mes messages (assigned to me)
+  int _unreadNewCount = 0; // nouveaux (unassigned)
+  int _unreadMyCount = 0; // mes messages (assigned to me)
 
   // Animation
   late AnimationController _fadeController;
@@ -60,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     _loadContacts();
     _checkUpdate();
     _searchController.addListener(_onSearchChanged);
-    
 
     // Initialize FCM for push notifications
     FcmService().init().catchError((e) {
@@ -88,7 +88,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       _pollingTimer?.cancel();
       _pollingTimer = null;
     } else if (state == AppLifecycleState.resumed) {
@@ -104,6 +105,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       );
     }
   }
+
   Future<void> _checkUpdate() async {
     try {
       final updateInfo = await ApiService().checkForUpdate();
@@ -112,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
               children: [
                 Icon(Icons.system_update_rounded, color: Colors.teal),
@@ -131,7 +134,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                   const SizedBox(height: 12),
                   if (updateInfo['change_log'].toString().isNotEmpty) ...[
-                    const Text('Nouveautés :', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text('Nouveautés :',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(updateInfo['change_log']),
                   ],
@@ -156,7 +160,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text('Mettre à jour'),
               ),
@@ -191,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       if (data.isEmpty) return;
       final List<Contact> loaded = data['contacts'] ?? [];
       final next = _parseNextPage(data['nextPage']);
-      
+
       final labelsSet = <ContactLabel>{};
       for (final c in loaded) {
         labelsSet.addAll(c.labels);
@@ -207,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           };
           _contacts = merged.values.toList();
         }
-        
+
         _nextPage = next;
         _allUniqueLabels = _contacts.expand((c) => c.labels).toSet().toList();
         _isLoading = false;
@@ -277,8 +282,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         // Text search filter
         final matchesSearch = query.isEmpty ||
             contact.name.toLowerCase().contains(query) ||
-          contact.phoneNumber.contains(query) ||
-          (contact.lastMessage?.toLowerCase().contains(query) ?? false);
+            contact.phoneNumber.contains(query) ||
+            (contact.lastMessage?.toLowerCase().contains(query) ?? false);
 
         // Label filter
         final matchesLabel = _selectedLabelFilter == null ||
@@ -314,7 +319,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         return Color(int.parse(hex, radix: 16));
       } else if (colorStr.startsWith('rgb')) {
         final regex = RegExp(r'\d+');
-        final matches = regex.allMatches(colorStr).map((m) => int.parse(m.group(0)!)).toList();
+        final matches = regex
+            .allMatches(colorStr)
+            .map((m) => int.parse(m.group(0)!))
+            .toList();
         if (matches.length >= 3) {
           return Color.fromARGB(255, matches[0], matches[1], matches[2]);
         }
@@ -350,7 +358,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   Widget _buildAvatar(Contact contact) {
     final initials = contact.name.trim().isNotEmpty
-        ? contact.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
+        ? contact.name
+            .trim()
+            .split(' ')
+            .map((e) => e.isNotEmpty ? e[0] : '')
+            .take(2)
+            .join()
+            .toUpperCase()
         : 'C';
 
     // Generate a gradient based on the contact name hash
@@ -470,7 +484,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.3) : ThemeService.primaryColor,
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.3)
+                      : ThemeService.primaryColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -601,25 +617,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               decoration: BoxDecoration(
                 color: surfaceCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06)),
+                border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.06)),
               ),
               child: TextField(
                 controller: _searchController,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Rechercher un contact...',
-                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), fontSize: 14),
-                  prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), size: 20),
+                  hintStyle: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.31),
+                      fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.31),
+                      size: 20),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear_rounded, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.31), size: 18),
+                          icon: Icon(Icons.clear_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.31),
+                              size: 18),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 ),
               ),
             ),
@@ -645,7 +683,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           ),
 
           // Label Filter Bar
-          if (_allUniqueLabels.isNotEmpty || _contacts.any((c) => c.unreadCount > 0))
+          if (_allUniqueLabels.isNotEmpty ||
+              _contacts.any((c) => c.unreadCount > 0))
             Container(
               height: 40,
               margin: EdgeInsets.only(bottom: 8),
@@ -677,7 +716,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   // Dynamic label chips
                   ..._allUniqueLabels.map((label) {
                     final color = _parseColor(label.bgColor);
-                    final count = _contacts.where((c) => c.labels.any((l) => l.title == label.title)).length;
+                    final count = _contacts
+                        .where(
+                            (c) => c.labels.any((l) => l.title == label.title))
+                        .length;
                     return Padding(
                       padding: EdgeInsets.only(right: 8),
                       child: _buildFilterChip(
@@ -712,7 +754,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         SizedBox(height: 16),
                         Text(
                           'Chargement des conversations...',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.47), fontSize: 14),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.47),
+                              fontSize: 14),
                         ),
                       ],
                     ),
@@ -723,22 +770,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              _selectedLabelFilter != null ? Icons.filter_list_off_rounded : Icons.chat_bubble_outline_rounded,
+                              _selectedLabelFilter != null
+                                  ? Icons.filter_list_off_rounded
+                                  : Icons.chat_bubble_outline_rounded,
                               size: 56,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.16),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.16),
                             ),
                             SizedBox(height: 16),
                             Text(
                               _selectedLabelFilter != null
                                   ? 'Aucun contact avec cette étiquette'
                                   : 'Aucune conversation trouvée',
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.39), fontSize: 15),
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.39),
+                                  fontSize: 15),
                             ),
                             if (_selectedLabelFilter != null) ...[
                               SizedBox(height: 12),
                               TextButton(
                                 onPressed: () => _selectLabelFilter(null),
-                                child: Text('Voir tous les contacts', style: TextStyle(color: primaryColor)),
+                                child: Text('Voir tous les contacts',
+                                    style: TextStyle(color: primaryColor)),
                               ),
                             ],
                           ],
@@ -750,7 +808,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
                           padding: EdgeInsets.symmetric(horizontal: 12),
-                          itemCount: _filteredContacts.length + (_nextPage > 0 ? 1 : 0),
+                          itemCount: _filteredContacts.length +
+                              (_nextPage > 0 ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == _filteredContacts.length) {
                               return _buildLoadMoreButton(primaryColor);
@@ -785,10 +844,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(40) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Theme.of(context).colorScheme.onSurface.withOpacity(0.05)),
+          color: isSelected
+              ? color.withAlpha(40)
+              : (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B)
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.05)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+            color: isSelected
+                ? color
+                : Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.08),
             width: 1.5,
           ),
         ),
@@ -796,7 +867,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 14, color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.47)),
+              Icon(icon,
+                  size: 14,
+                  color: isSelected
+                      ? color
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.47)),
               SizedBox(width: 4),
             ],
             if (isSelected && icon == null)
@@ -812,7 +890,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.63),
+                color: isSelected
+                    ? color
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.63),
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -822,13 +905,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withAlpha(50) : Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
+                  color: isSelected
+                      ? color.withAlpha(50)
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.39),
+                    color: isSelected
+                        ? color
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.39),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -857,18 +950,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.of(context).push(
+            Navigator.of(context)
+                .push(
               MaterialPageRoute(
                 builder: (_) => ChatBoxScreen(contact: contact),
               ),
-            ).then((_) {
+            )
+                .then((_) {
               _loadContacts(silent: true);
             });
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: hasUnread ? primaryColor.withAlpha(12) : Colors.transparent,
+              color:
+                  hasUnread ? primaryColor.withAlpha(12) : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: hasUnread
                   ? Border.all(color: primaryColor.withAlpha(30))
@@ -890,7 +986,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                           decoration: BoxDecoration(
                             color: accentColor,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Color(0xFF0F172A), width: 2),
+                            border:
+                                Border.all(color: Color(0xFF0F172A), width: 2),
                           ),
                         ),
                       ),
@@ -908,7 +1005,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                             child: Text(
                               contact.name,
                               style: TextStyle(
-                                fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
+                                fontWeight: hasUnread
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
                                 fontSize: 15,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
@@ -919,9 +1018,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                             Text(
                               getRelativeTime(contact.lastMessageTime),
                               style: TextStyle(
-                                color: hasUnread ? accentColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.31),
+                                color: hasUnread
+                                    ? accentColor
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.31),
                                 fontSize: 11,
-                                fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
+                                fontWeight: hasUnread
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
                               ),
                             ),
                         ],
@@ -937,16 +1043,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                               style: TextStyle(
                                 fontSize: 13,
                                 color: hasUnread
-                                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.71)
-                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.39),
-                                fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.71)
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.39),
+                                fontWeight: hasUnread
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
                               ),
                             ),
                           ),
                           if (hasUnread)
                             Container(
                               margin: EdgeInsets.only(left: 8),
-                              padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
                                 color: accentColor,
                                 borderRadius: BorderRadius.circular(10),
@@ -993,7 +1108,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               child: SizedBox(
                 width: 28,
                 height: 28,
-                child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
+                child: CircularProgressIndicator(
+                    color: primaryColor, strokeWidth: 2.5),
               ),
             )
           : OutlinedButton(
@@ -1007,10 +1123,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               ),
               child: Text(
                 'Charger plus de conversations',
-                style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600, fontSize: 13),
+                style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13),
               ),
             ),
     );
   }
-
 }

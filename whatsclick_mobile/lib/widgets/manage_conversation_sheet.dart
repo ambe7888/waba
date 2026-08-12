@@ -41,7 +41,8 @@ class ManageConversationSheet extends StatefulWidget {
   }
 
   @override
-  State<ManageConversationSheet> createState() => _ManageConversationSheetState();
+  State<ManageConversationSheet> createState() =>
+      _ManageConversationSheetState();
 }
 
 class _ManageConversationSheetState extends State<ManageConversationSheet> {
@@ -62,8 +63,10 @@ class _ManageConversationSheetState extends State<ManageConversationSheet> {
     final isDark = ThemeService().isDark;
     final bgColor = isDark ? const Color(0xFF172136) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final mutedTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
+    final mutedTextColor =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0);
 
     return Container(
       decoration: BoxDecoration(
@@ -220,7 +223,8 @@ class _ManageConversationSheetState extends State<ManageConversationSheet> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                color:
+                    isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -262,9 +266,9 @@ class _ManageConversationSheetState extends State<ManageConversationSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.18),
+        color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
       ),
       child: Text(
         label,

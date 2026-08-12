@@ -14,7 +14,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
@@ -42,7 +43,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _slideAnim = Tween<Offset>(
       begin: Offset(0, 0.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+    ).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
 
     _animController.forward();
   }
@@ -82,11 +84,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _handleForgotPassword() async {
     final url = Uri.parse('${baseUrl}auth/forgot-password');
     try {
-      final success = await launchUrl(url, mode: LaunchMode.externalApplication);
+      final success =
+          await launchUrl(url, mode: LaunchMode.externalApplication);
       if (!success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Impossible d\'ouvrir le lien de réinitialisation.')),
+            const SnackBar(
+                content:
+                    Text('Impossible d\'ouvrir le lien de réinitialisation.')),
           );
         }
       }
@@ -313,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: onSurface.withOpacity(0.47),
+                          color: onSurface.withValues(alpha: 0.47),
                         ),
                       ),
                       SizedBox(height: 32),
@@ -325,16 +330,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           decoration: BoxDecoration(
                             color: Color(0xFFEF4444).withAlpha(20),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Color(0xFFEF4444).withAlpha(60)),
+                            border: Border.all(
+                                color: Color(0xFFEF4444).withAlpha(60)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 18),
+                              Icon(Icons.error_outline_rounded,
+                                  color: Color(0xFFEF4444), size: 18),
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _errorMessage!,
-                                  style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 13),
+                                  style: TextStyle(
+                                      color: Color(0xFFFCA5A5), fontSize: 13),
                                 ),
                               ),
                             ],
@@ -349,7 +357,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           decoration: BoxDecoration(
                             color: surfaceCard,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: onSurface.withOpacity(0.06)),
+                            border: Border.all(
+                                color: onSurface.withValues(alpha: 0.06)),
                           ),
                           child: TextField(
                             controller: _otpController,
@@ -359,12 +368,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             decoration: InputDecoration(
                               labelText: 'Code d\'authentification (2FA)',
                               counterText: '',
-                              labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                              prefixIcon: Icon(Icons.security, color: onSurface.withOpacity(0.31), size: 20),
+                              labelStyle: TextStyle(
+                                  color: onSurface.withValues(alpha: 0.39),
+                                  fontSize: 13),
+                              prefixIcon: Icon(Icons.security,
+                                  color: onSurface.withValues(alpha: 0.31),
+                                  size: 20),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 16),
                             ),
                           ),
                         ),
@@ -418,7 +432,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                                      Icon(Icons.check_circle_outline,
+                                          color: Colors.white, size: 18),
                                     ],
                                   ),
                           ),
@@ -435,7 +450,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           },
                           child: Text(
                             'Retour à la connexion',
-                            style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 13),
+                            style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13),
                           ),
                         ),
                       ] else ...[
@@ -448,21 +466,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 decoration: BoxDecoration(
                                   color: surfaceCard,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: onSurface.withOpacity(0.06)),
+                                  border: Border.all(
+                                      color: onSurface.withValues(alpha: 0.06)),
                                 ),
                                 child: TextField(
                                   controller: _emailController,
-                                  autofillHints: const [AutofillHints.username, AutofillHints.email],
+                                  autofillHints: const [
+                                    AutofillHints.username,
+                                    AutofillHints.email
+                                  ],
                                   keyboardType: TextInputType.emailAddress,
-                                  style: TextStyle(color: onSurface, fontSize: 14),
+                                  style:
+                                      TextStyle(color: onSurface, fontSize: 14),
                                   decoration: InputDecoration(
                                     labelText: 'Email ou nom d\'utilisateur',
-                                    labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                                    prefixIcon: Icon(Icons.email_outlined, color: onSurface.withOpacity(0.31), size: 20),
+                                    labelStyle: TextStyle(
+                                        color:
+                                            onSurface.withValues(alpha: 0.39),
+                                        fontSize: 13),
+                                    prefixIcon: Icon(Icons.email_outlined,
+                                        color:
+                                            onSurface.withValues(alpha: 0.31),
+                                        size: 20),
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 16),
                                   ),
                                 ),
                               ),
@@ -473,21 +503,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 decoration: BoxDecoration(
                                   color: surfaceCard,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: onSurface.withOpacity(0.06)),
+                                  border: Border.all(
+                                      color: onSurface.withValues(alpha: 0.06)),
                                 ),
                                 child: TextField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   autofillHints: const [AutofillHints.password],
-                                  style: TextStyle(color: onSurface, fontSize: 14),
+                                  style:
+                                      TextStyle(color: onSurface, fontSize: 14),
                                   decoration: InputDecoration(
                                     labelText: 'Mot de passe',
-                                    labelStyle: TextStyle(color: onSurface.withOpacity(0.39), fontSize: 13),
-                                    prefixIcon: Icon(Icons.lock_outline_rounded, color: onSurface.withOpacity(0.31), size: 20),
+                                    labelStyle: TextStyle(
+                                        color:
+                                            onSurface.withValues(alpha: 0.39),
+                                        fontSize: 13),
+                                    prefixIcon: Icon(Icons.lock_outline_rounded,
+                                        color:
+                                            onSurface.withValues(alpha: 0.31),
+                                        size: 20),
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                        color: onSurface.withOpacity(0.31),
+                                        _obscurePassword
+                                            ? Icons.visibility_outlined
+                                            : Icons.visibility_off_outlined,
+                                        color:
+                                            onSurface.withValues(alpha: 0.31),
                                         size: 20,
                                       ),
                                       onPressed: () {
@@ -499,7 +540,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 16),
                                   ),
                                 ),
                               ),
@@ -521,8 +563,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     value: _rememberMe,
                                     activeColor: primaryColor,
                                     checkColor: onSurface,
-                                    side: BorderSide(color: onSurface.withOpacity(0.24)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    side: BorderSide(
+                                        color:
+                                            onSurface.withValues(alpha: 0.24)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4)),
                                     onChanged: (value) {
                                       setState(() {
                                         _rememberMe = value ?? false;
@@ -533,7 +578,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 SizedBox(width: 8),
                                 Text(
                                   'Se souvenir',
-                                  style: TextStyle(fontSize: 13, color: onSurface.withOpacity(0.55)),
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: onSurface.withValues(alpha: 0.55)),
                                 ),
                               ],
                             ),
@@ -541,7 +588,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               onPressed: _handleForgotPassword,
                               child: Text(
                                 'Mot de passe oublié ?',
-                                style: TextStyle(color: accentColor, fontWeight: FontWeight.w600, fontSize: 12),
+                                style: TextStyle(
+                                    color: accentColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12),
                               ),
                             ),
                           ],
@@ -597,7 +647,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                      Icon(Icons.arrow_forward_rounded,
+                                          color: Colors.white, size: 18),
                                     ],
                                   ),
                           ),
@@ -607,7 +658,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       Text(
                         '© 2026 WhatsClick - ASAP Communication',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: onSurface.withOpacity(0.24), fontSize: 11),
+                        style: TextStyle(
+                            color: onSurface.withValues(alpha: 0.24),
+                            fontSize: 11),
                       ),
                     ],
                   ),

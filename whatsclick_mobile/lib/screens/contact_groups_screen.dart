@@ -74,8 +74,10 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor:
+              isDark ? ThemeService.darkCard : ThemeService.lightCard,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Créer un nouveau groupe',
             style: TextStyle(
@@ -90,7 +92,8 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             decoration: InputDecoration(
               hintText: 'Nom du groupe',
-              hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
+              hintStyle:
+                  TextStyle(color: isDark ? Colors.white30 : Colors.black38),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
@@ -99,9 +102,11 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: ThemeService.primaryColor, width: 2),
+                borderSide:
+                    BorderSide(color: ThemeService.primaryColor, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
           actions: [
@@ -109,7 +114,8 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: Text(
                 'Annuler',
-                style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                style:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               ),
             ),
             ElevatedButton(
@@ -120,9 +126,12 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: ThemeService.primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Créer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text('Créer',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -166,8 +175,10 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor:
+              isDark ? ThemeService.darkCard : ThemeService.lightCard,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Supprimer le groupe ?',
             style: TextStyle(
@@ -188,16 +199,20 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
               onPressed: () => Navigator.pop(context, false),
               child: Text(
                 'Annuler',
-                style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                style:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Supprimer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text('Supprimer',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -236,11 +251,13 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
     final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         title: const Text(
           'Groupes de Contacts',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -262,13 +279,17 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.04),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
                 ),
               ),
               child: TextField(
@@ -276,10 +297,14 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Rechercher un groupe...',
-                  hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: isDark ? Colors.white54 : Colors.black45),
+                  hintStyle: TextStyle(
+                      color: isDark ? Colors.white30 : Colors.black38,
+                      fontSize: 14),
+                  prefixIcon: Icon(Icons.search,
+                      color: isDark ? Colors.white54 : Colors.black45),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -293,7 +318,8 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_error!, style: const TextStyle(color: Colors.red)),
+                            Text(_error!,
+                                style: const TextStyle(color: Colors.red)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadGroups,
@@ -306,44 +332,63 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                         ? Center(
                             child: Text(
                               'Aucun groupe trouvé',
-                              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                              style: TextStyle(
+                                  color:
+                                      isDark ? Colors.white54 : Colors.black45),
                             ),
                           )
                         : RefreshIndicator(
                             onRefresh: _loadGroups,
                             child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _filteredGroups.length,
                               itemBuilder: (context, index) {
                                 final group = _filteredGroups[index];
                                 final title = group['title'] ?? 'Sans nom';
                                 final uid = group['_uid'] ?? '';
-                                final count = group['total_contacts'] ?? group['contacts_count'] ?? 0;
+                                final count = group['total_contacts'] ??
+                                    group['contacts_count'] ??
+                                    0;
 
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 12.0),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                                      color: isDark
+                                          ? ThemeService.darkCard
+                                          : ThemeService.lightCard,
                                       borderRadius: BorderRadius.circular(16),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: isDark ? Colors.black.withOpacity(0.15) : Colors.black.withOpacity(0.03),
+                                          color: isDark
+                                              ? Colors.black
+                                                  .withValues(alpha: 0.15)
+                                              : Colors.black
+                                                  .withValues(alpha: 0.03),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
                                       ],
                                       border: Border.all(
-                                        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
+                                        color: isDark
+                                            ? Colors.white
+                                                .withValues(alpha: 0.04)
+                                            : Colors.black
+                                                .withValues(alpha: 0.04),
                                       ),
                                     ),
                                     child: ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
                                       leading: Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: ThemeService.primaryColor.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: ThemeService.primaryColor
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: const Icon(
                                           Icons.group_work_rounded,
@@ -356,15 +401,20 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       subtitle: Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
+                                        padding:
+                                            const EdgeInsets.only(top: 4.0),
                                         child: Text(
                                           '$count contacts',
                                           style: TextStyle(
-                                            color: isDark ? Colors.white60 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white60
+                                                : Colors.black54,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -373,10 +423,17 @@ class _ContactGroupsScreenState extends State<ContactGroupsScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                            onPressed: () => _deleteGroup(group),
+                                            icon: const Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.redAccent,
+                                                size: 20),
+                                            onPressed: () =>
+                                                _deleteGroup(group),
                                           ),
-                                          Icon(Icons.chevron_right, color: isDark ? Colors.white30 : Colors.black38),
+                                          Icon(Icons.chevron_right,
+                                              color: isDark
+                                                  ? Colors.white30
+                                                  : Colors.black38),
                                         ],
                                       ),
                                       onTap: () {
@@ -478,7 +535,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         title: Text(
           widget.groupTitle,
@@ -498,13 +556,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.04),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
                 ),
               ),
               child: TextField(
@@ -512,10 +574,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Rechercher un contact dans ce groupe...',
-                  hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: isDark ? Colors.white54 : Colors.black45),
+                  hintStyle: TextStyle(
+                      color: isDark ? Colors.white30 : Colors.black38,
+                      fontSize: 14),
+                  prefixIcon: Icon(Icons.search,
+                      color: isDark ? Colors.white54 : Colors.black45),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -529,7 +595,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_error!, style: const TextStyle(color: Colors.red)),
+                            Text(_error!,
+                                style: const TextStyle(color: Colors.red)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadGroupContacts,
@@ -542,13 +609,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         ? Center(
                             child: Text(
                               'Aucun contact dans ce groupe',
-                              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                              style: TextStyle(
+                                  color:
+                                      isDark ? Colors.white54 : Colors.black45),
                             ),
                           )
                         : RefreshIndicator(
                             onRefresh: _loadGroupContacts,
                             child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _filteredContacts.length,
                               itemBuilder: (context, index) {
                                 final contact = _filteredContacts[index];
@@ -557,19 +627,31 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Card(
                                     elevation: 0,
-                                    color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                                    color: isDark
+                                        ? ThemeService.darkCard
+                                        : ThemeService.lightCard,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       side: BorderSide(
-                                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                        color: isDark
+                                            ? Colors.white
+                                                .withValues(alpha: 0.05)
+                                            : Colors.black
+                                                .withValues(alpha: 0.05),
                                       ),
                                     ),
                                     child: ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 4),
                                       leading: CircleAvatar(
-                                        backgroundColor: ThemeService.primaryColor.withOpacity(0.1),
+                                        backgroundColor: ThemeService
+                                            .primaryColor
+                                            .withValues(alpha: 0.1),
                                         child: Text(
-                                          contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                                          contact.name.isNotEmpty
+                                              ? contact.name[0].toUpperCase()
+                                              : '?',
                                           style: const TextStyle(
                                             color: ThemeService.primaryColor,
                                             fontWeight: FontWeight.bold,
@@ -580,25 +662,31 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                                         contact.name,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       subtitle: Text(
                                         contact.phoneNumber,
                                         style: TextStyle(
-                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
                                         ),
                                       ),
                                       trailing: Icon(
                                         Icons.chat_bubble_outline_rounded,
-                                        color: ThemeService.primaryColor.withOpacity(0.8),
+                                        color: ThemeService.primaryColor
+                                            .withValues(alpha: 0.8),
                                         size: 20,
                                       ),
                                       onTap: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => ChatBoxScreen(contact: contact),
+                                            builder: (context) =>
+                                                ChatBoxScreen(contact: contact),
                                           ),
                                         );
                                       },

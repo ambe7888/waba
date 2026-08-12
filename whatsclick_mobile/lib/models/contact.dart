@@ -70,7 +70,7 @@ class Contact {
 
     final labelsList = json['labels'] as List?;
     final parsedLabels = labelsList != null
-        ? labelsList.map((l) => ContactLabel.fromJson(l as Map<String, dynamic>)).toList()
+        ? labelsList.map((l) => ContactLabel.fromJson(Map<String, dynamic>.from(l as Map))).toList()
         : <ContactLabel>[];
 
     return Contact(

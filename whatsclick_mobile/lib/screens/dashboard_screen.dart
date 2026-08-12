@@ -24,7 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedAgentId;
   List<dynamic> _agents = [];
   List<String?> _selectedLabelUids = [null, null, null];
-  bool? _botActive;                   // optimistic bot switch state
+  bool? _botActive; // optimistic bot switch state
   int _roleId = 3;
   String _firstName = '';
 
@@ -42,7 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       _roleId = await ApiService().getUserRoleId();
-      
+
       String? startStr;
       String? endStr;
       if (_selectedDateRange != null) {
@@ -105,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
             _firstName = name;
           }
-          
+
           _isLoading = false;
         });
       }
@@ -131,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildFilterBar() {
     final isDark = ThemeService().isDark;
     final isAdmin = _roleId == 2;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -144,34 +144,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: InkWell(
                   onTap: _selectDateRange,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                      color: isDark
+                          ? ThemeService.darkCard
+                          : ThemeService.lightCard,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: _selectedDateRange != null 
-                            ? ThemeService.primaryColor 
-                            : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                        color: _selectedDateRange != null
+                            ? ThemeService.primaryColor
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.05)),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.calendar_today_rounded, 
-                          color: _selectedDateRange != null ? ThemeService.primaryColor : Colors.grey,
+                          Icons.calendar_today_rounded,
+                          color: _selectedDateRange != null
+                              ? ThemeService.primaryColor
+                              : Colors.grey,
                           size: 16,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _selectedDateRange == null 
-                                ? 'Filtrer par date' 
+                            _selectedDateRange == null
+                                ? 'Filtrer par date'
                                 : '${_selectedDateRange!.start.toIso8601String().substring(0, 10)} à ${_selectedDateRange!.end.toIso8601String().substring(0, 10)}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: _selectedDateRange != null 
-                                  ? ThemeService.primaryColor 
+                              color: _selectedDateRange != null
+                                  ? ThemeService.primaryColor
                                   : (isDark ? Colors.white70 : Colors.black87),
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -187,7 +194,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                             child: const Padding(
                               padding: EdgeInsets.only(left: 4.0),
-                              child: Icon(Icons.close, size: 14, color: Colors.grey),
+                              child: Icon(Icons.close,
+                                  size: 14, color: Colors.grey),
                             ),
                           ),
                       ],
@@ -202,12 +210,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                      color: isDark
+                          ? ThemeService.darkCard
+                          : ThemeService.lightCard,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: _selectedAgentId != null 
-                            ? ThemeService.primaryColor 
-                            : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                        color: _selectedAgentId != null
+                            ? ThemeService.primaryColor
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.05)),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -215,9 +227,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: _selectedAgentId,
                         hint: Text(
                           'Par agent',
-                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.white70 : Colors.black87),
                         ),
-                        dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                        dropdownColor: isDark
+                            ? ThemeService.darkCard
+                            : ThemeService.lightCard,
                         isExpanded: true,
                         icon: const Icon(Icons.arrow_drop_down, size: 20),
                         items: [
@@ -225,26 +241,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             value: null,
                             child: Text(
                               'Tous les agents',
-                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color:
+                                      isDark ? Colors.white70 : Colors.black87),
                             ),
                           ),
                           DropdownMenuItem<String>(
                             value: 'unassigned',
                             child: Text(
                               'Non assignés',
-                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color:
+                                      isDark ? Colors.white70 : Colors.black87),
                             ),
                           ),
                           ..._agents.map((agent) {
-                            final name = '${agent['first_name'] ?? ''} ${agent['last_name'] ?? ''}'.trim();
+                            final name =
+                                '${agent['first_name'] ?? ''} ${agent['last_name'] ?? ''}'
+                                    .trim();
                             return DropdownMenuItem<String>(
                               value: agent['_id']?.toString(),
                               child: Text(
-                                name.isNotEmpty ? name : (agent['email'] ?? 'Agent'),
-                                style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                                name.isNotEmpty
+                                    ? name
+                                    : (agent['email'] ?? 'Agent'),
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black87),
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (val) {
                           setState(() {
@@ -294,13 +324,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
           ),
         ),
         child: Padding(
@@ -310,7 +344,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.label_outline_rounded, color: ThemeService.primaryColor, size: 22),
+                  Icon(Icons.label_outline_rounded,
+                      color: ThemeService.primaryColor, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     'Statistiques des Étiquettes',
@@ -323,10 +358,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // 3 lines for label stats
               ...List.generate(3, (index) {
-                final currentSelectedUid = _selectedLabelUids[index] ?? labelStats[0]['label_uid'];
+                final currentSelectedUid =
+                    _selectedLabelUids[index] ?? labelStats[0]['label_uid'];
                 final selectedLabel = labelStats.firstWhere(
                   (l) => l['label_uid'] == currentSelectedUid,
                   orElse: () => labelStats[0],
@@ -344,22 +380,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                           decoration: BoxDecoration(
-                            color: labelBgColor.withOpacity(0.15),
+                            color: labelBgColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: labelBgColor.withOpacity(0.4)),
+                            border: Border.all(
+                                color: labelBgColor.withValues(alpha: 0.4)),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               isExpanded: true,
                               value: currentSelectedUid,
-                              dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-                              icon: Icon(Icons.arrow_drop_down, size: 16, color: labelBgColor),
+                              dropdownColor: isDark
+                                  ? ThemeService.darkCard
+                                  : ThemeService.lightCard,
+                              icon: Icon(Icons.arrow_drop_down,
+                                  size: 16, color: labelBgColor),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: labelBgColor,
                               ),
-                              items: labelStats.map<DropdownMenuItem<String>>((l) {
+                              items:
+                                  labelStats.map<DropdownMenuItem<String>>((l) {
                                 return DropdownMenuItem<String>(
                                   value: l['label_uid'],
                                   child: Text(
@@ -370,7 +411,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               }).toList(),
                               onChanged: (val) {
                                 // Create new list reference to force Flutter rebuild
-                                final newUids = List<String?>.from(_selectedLabelUids);
+                                final newUids =
+                                    List<String?>.from(_selectedLabelUids);
                                 newUids[index] = val;
                                 setState(() {
                                   _selectedLabelUids = newUids;
@@ -386,13 +428,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isCustomDateActive) ...[
-                            _buildPeriodCountColumn('Période', selectedLabel['count_total'] ?? 0, selectedLabelUid, 'custom'),
+                            _buildPeriodCountColumn(
+                                'Période',
+                                selectedLabel['count_total'] ?? 0,
+                                selectedLabelUid,
+                                'custom'),
                           ] else ...[
-                            _buildPeriodCountColumn('Auj.', selectedLabel['count_today'] ?? 0, selectedLabelUid, 'today'),
+                            _buildPeriodCountColumn(
+                                'Auj.',
+                                selectedLabel['count_today'] ?? 0,
+                                selectedLabelUid,
+                                'today'),
                             const SizedBox(width: 4),
-                            _buildPeriodCountColumn('Hier', selectedLabel['count_yesterday'] ?? 0, selectedLabelUid, 'yesterday'),
+                            _buildPeriodCountColumn(
+                                'Hier',
+                                selectedLabel['count_yesterday'] ?? 0,
+                                selectedLabelUid,
+                                'yesterday'),
                             const SizedBox(width: 4),
-                            _buildPeriodCountColumn('Av.-hier', selectedLabel['count_day_before'] ?? 0, selectedLabelUid, 'day_before'),
+                            _buildPeriodCountColumn(
+                                'Av.-hier',
+                                selectedLabel['count_day_before'] ?? 0,
+                                selectedLabelUid,
+                                'day_before'),
                           ],
                         ],
                       ),
@@ -407,10 +465,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildPeriodCountColumn(String periodName, dynamic count, String labelUid, String dateFilter) {
+  Widget _buildPeriodCountColumn(
+      String periodName, dynamic count, String labelUid, String dateFilter) {
     final isDark = ThemeService().isDark;
     final int cnt = int.tryParse(count.toString()) ?? 0;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -437,11 +496,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 4),
         IconButton(
-          icon: Icon(Icons.remove_red_eye_outlined, size: 18, color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
+          icon: Icon(Icons.remove_red_eye_outlined,
+              size: 18,
+              color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
           tooltip: 'Voir les contacts',
           padding: const EdgeInsets.all(4),
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          onPressed: cnt > 0 ? () => _viewLabeledContacts(labelUid, dateFilter) : null,
+          onPressed:
+              cnt > 0 ? () => _viewLabeledContacts(labelUid, dateFilter) : null,
         ),
       ],
     );
@@ -454,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       startStr = _selectedDateRange!.start.toIso8601String().substring(0, 10);
       endStr = _selectedDateRange!.end.toIso8601String().substring(0, 10);
     }
-    
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => LabelContactsScreen(
@@ -467,7 +529,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     final isDark = ThemeService().isDark;
     return Container(
       decoration: BoxDecoration(
@@ -475,13 +538,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -494,7 +561,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 26),
@@ -532,12 +599,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isExpired = subInfo['is_expired'] ?? false;
     final title = subInfo['title'] ?? 'Plan Gratuit';
     final endsAt = subInfo['ends_at'];
-    
+
     // Gradient and colors
-    final List<Color> gradientColors = isFree 
-        ? [ThemeService.primaryColor.withOpacity(0.8), ThemeService.primaryColor]
-        : [const Color(0xFFE5B94E), const Color(0xFFC79227)]; // Premium gold gradient
-    
+    final List<Color> gradientColors = isFree
+        ? [
+            ThemeService.primaryColor.withValues(alpha: 0.8),
+            ThemeService.primaryColor
+          ]
+        : [
+            const Color(0xFFE5B94E),
+            const Color(0xFFC79227)
+          ]; // Premium gold gradient
+
     final iconColor = Colors.white;
 
     return Container(
@@ -552,7 +625,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withOpacity(0.3),
+            color: gradientColors.last.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -563,14 +636,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isFree ? Icons.star_border_rounded : Icons.workspace_premium_rounded, 
-              color: iconColor, 
-              size: 28
-            ),
+                isFree
+                    ? Icons.star_border_rounded
+                    : Icons.workspace_premium_rounded,
+                color: iconColor,
+                size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -582,7 +656,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 Text(
@@ -597,11 +671,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
-                      isExpired ? 'Expiré le ${endsAt.toString().substring(0, 10)}' : 'Expire le ${endsAt.toString().substring(0, 10)}',
+                      isExpired
+                          ? 'Expiré le ${endsAt.toString().substring(0, 10)}'
+                          : 'Expire le ${endsAt.toString().substring(0, 10)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isExpired ? const Color(0xFFFFCCCC) : Colors.white.withOpacity(0.9),
+                        color: isExpired
+                            ? const Color(0xFFFFCCCC)
+                            : Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ),
@@ -617,7 +695,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         title: Row(
           children: [
@@ -633,7 +712,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 10),
             const Text(
               'WhatsClick',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -664,7 +746,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -683,29 +766,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: (_roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor).withOpacity(0.15),
+                                      color: (_roleId == 2
+                                              ? const Color(0xFF6C63FF)
+                                              : ThemeService.primaryColor)
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: (_roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor).withOpacity(0.3),
+                                        color: (_roleId == 2
+                                                ? const Color(0xFF6C63FF)
+                                                : ThemeService.primaryColor)
+                                            .withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          _roleId == 2 ? Icons.admin_panel_settings_rounded : Icons.support_agent_rounded,
+                                          _roleId == 2
+                                              ? Icons
+                                                  .admin_panel_settings_rounded
+                                              : Icons.support_agent_rounded,
                                           size: 12,
-                                          color: _roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor,
+                                          color: _roleId == 2
+                                              ? const Color(0xFF6C63FF)
+                                              : ThemeService.primaryColor,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          _roleId == 2 ? 'Administrateur' : 'Agent',
+                                          _roleId == 2
+                                              ? 'Administrateur'
+                                              : 'Agent',
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: _roleId == 2 ? const Color(0xFF6C63FF) : ThemeService.primaryColor,
+                                            color: _roleId == 2
+                                                ? const Color(0xFF6C63FF)
+                                                : ThemeService.primaryColor,
                                           ),
                                         ),
                                       ],
@@ -714,13 +813,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   const SizedBox(width: 10),
                                   Text(
                                     '${DateTime.now().day} ${[
-                                      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-                                      'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+                                      'Jan',
+                                      'Fév',
+                                      'Mar',
+                                      'Avr',
+                                      'Mai',
+                                      'Juin',
+                                      'Juil',
+                                      'Août',
+                                      'Sep',
+                                      'Oct',
+                                      'Nov',
+                                      'Déc'
                                     ][DateTime.now().month - 1]} ${DateTime.now().year}',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
-                                      color: isDark ? Colors.white60 : Colors.black54,
+                                      color: isDark
+                                          ? Colors.white60
+                                          : Colors.black54,
                                     ),
                                   ),
                                 ],
@@ -729,47 +840,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: (isDark ? ThemeService.darkCard : ThemeService.lightCard).withOpacity(0.5),
+                                  color: (isDark
+                                          ? ThemeService.darkCard
+                                          : ThemeService.lightCard)
+                                      .withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.black.withValues(alpha: 0.05),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
                                       Icons.info_outline,
-                                      color: isDark ? Colors.white70 : Colors.black54,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
                                       size: 20,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'Compte : ${_stats?['vendorInfo']?['title'] ?? ''}',
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
-                                              color: isDark ? Colors.white70 : Colors.black87,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87,
                                             ),
                                           ),
-                                          if (_stats?['ai_credits']?['is_enabled'] == true) ...[
+                                          if (_stats?['ai_credits']
+                                                  ?['is_enabled'] ==
+                                              true) ...[
                                             const SizedBox(height: 4),
                                             Text(
                                               'Crédits IA : ${_stats?['ai_credits']?['display_credits'] ?? '0'}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w500,
-                                                color: isDark ? Colors.white60 : Colors.black54,
+                                                color: isDark
+                                                    ? Colors.white60
+                                                    : Colors.black54,
                                               ),
                                             ),
                                           ],
                                         ],
                                       ),
                                     ),
-                                     if (_roleId == 2) ...[
+                                    if (_roleId == 2) ...[
                                       const SizedBox(width: 8),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -779,33 +904,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: isDark ? Colors.white70 : Colors.black87,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87,
                                             ),
                                           ),
                                           const SizedBox(width: 4),
                                           Switch(
-                                            value: _botActive ?? (_stats?['ai_credits']?['bot_active'] ?? false),
-                                            activeColor: ThemeService.primaryColor,
+                                            value: _botActive ??
+                                                (_stats?['ai_credits']
+                                                        ?['bot_active'] ??
+                                                    false),
+                                            activeThumbColor:
+                                                ThemeService.primaryColor,
                                             onChanged: (value) async {
                                               // Optimistic update: toggle immediately
-                                              setState(() => _botActive = value);
-                                              final success = await ApiService().toggleBotReply();
+                                              setState(
+                                                  () => _botActive = value);
+                                              final success = await ApiService()
+                                                  .toggleBotReply();
                                               if (success) {
                                                 if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
                                                     SnackBar(
-                                                      content: Text(value ? 'IA Activée' : 'IA Désactivée'),
-                                                      backgroundColor: value ? Colors.green : Colors.orange,
-                                                      duration: const Duration(seconds: 2),
+                                                      content: Text(value
+                                                          ? 'IA Activée'
+                                                          : 'IA Désactivée'),
+                                                      backgroundColor: value
+                                                          ? Colors.green
+                                                          : Colors.orange,
+                                                      duration: const Duration(
+                                                          seconds: 2),
                                                     ),
                                                   );
                                                 }
                                               } else {
                                                 // Revert if API failed
-                                                setState(() => _botActive = !value);
+                                                setState(
+                                                    () => _botActive = !value);
                                                 if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text('Échec de la modification du statut du Bot')),
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            'Échec de la modification du statut du Bot')),
                                                   );
                                                 }
                                               }
@@ -827,7 +970,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (_roleId == 2)
                         SliverToBoxAdapter(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: _buildSubscriptionCard(),
                           ),
                         ),
@@ -845,14 +989,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.9,
                           children: [
-                            _buildStatCard('Contacts', _stats?['totalContacts']?.toString() ?? '0', Icons.people, Colors.blue),
-                            _buildStatCard('Campagnes', _stats?['totalCampaigns']?.toString() ?? '0', Icons.campaign, Colors.orange),
-                            _buildStatCard('Modèles', _stats?['totalTemplates']?.toString() ?? '0', Icons.file_copy, Colors.purple),
-                            _buildStatCard('Msgs en attente', _stats?['messagesInQueue']?.toString() ?? '0', Icons.pending, Colors.amber),
-                            _buildStatCard('Msgs envoyés', _stats?['totalMessagesProcessed']?.toString() ?? '0', Icons.send, Colors.green),
-                            _buildStatCard('Actifs (24h)', _stats?['activeContacts24hCount']?.toString() ?? '0', Icons.timer, Colors.red),
-                            _buildStatCard('Messages non lus', _stats?['unreadMessagesCount']?.toString() ?? '0', Icons.mark_chat_unread, Colors.redAccent),
-                            _buildStatCard('Reçus aujourd\'hui', _stats?['messagesReceivedTodayCount']?.toString() ?? '0', Icons.chat_bubble_outline, Colors.teal),
+                            _buildStatCard(
+                                'Contacts',
+                                _stats?['totalContacts']?.toString() ?? '0',
+                                Icons.people,
+                                Colors.blue),
+                            _buildStatCard(
+                                'Campagnes',
+                                _stats?['totalCampaigns']?.toString() ?? '0',
+                                Icons.campaign,
+                                Colors.orange),
+                            _buildStatCard(
+                                'Modèles',
+                                _stats?['totalTemplates']?.toString() ?? '0',
+                                Icons.file_copy,
+                                Colors.purple),
+                            _buildStatCard(
+                                'Msgs en attente',
+                                _stats?['messagesInQueue']?.toString() ?? '0',
+                                Icons.pending,
+                                Colors.amber),
+                            _buildStatCard(
+                                'Msgs envoyés',
+                                _stats?['totalMessagesProcessed']?.toString() ??
+                                    '0',
+                                Icons.send,
+                                Colors.green),
+                            _buildStatCard(
+                                'Actifs (24h)',
+                                _stats?['activeContacts24hCount']?.toString() ??
+                                    '0',
+                                Icons.timer,
+                                Colors.red),
+                            _buildStatCard(
+                                'Messages non lus',
+                                _stats?['unreadMessagesCount']?.toString() ??
+                                    '0',
+                                Icons.mark_chat_unread,
+                                Colors.redAccent),
+                            _buildStatCard(
+                                'Reçus aujourd\'hui',
+                                _stats?['messagesReceivedTodayCount']
+                                        ?.toString() ??
+                                    '0',
+                                Icons.chat_bubble_outline,
+                                Colors.teal),
                           ],
                         ),
                       ),
@@ -872,12 +1053,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final barGroups = <BarChartGroupData>[];
     double maxVal = 10;
-    
+
     for (int i = 0; i < rawHistory.length; i++) {
       final item = rawHistory[i];
-      final incoming = double.tryParse(item['incoming']?.toString() ?? '0') ?? 0;
-      final outgoing = double.tryParse(item['outgoing']?.toString() ?? '0') ?? 0;
-      
+      final incoming =
+          double.tryParse(item['incoming']?.toString() ?? '0') ?? 0;
+      final outgoing =
+          double.tryParse(item['outgoing']?.toString() ?? '0') ?? 0;
+
       if (incoming > maxVal) maxVal = incoming;
       if (outgoing > maxVal) maxVal = outgoing;
 
@@ -908,7 +1091,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -930,7 +1116,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Colors.blue,
               ),
               const SizedBox(width: 4),
-              Text('Reçus', style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
+              Text('Reçus',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white60 : Colors.black54)),
               const SizedBox(width: 8),
               Container(
                 width: 10,
@@ -938,7 +1127,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Colors.green,
               ),
               const SizedBox(width: 4),
-              Text('Envoyés', style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
+              Text('Envoyés',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white60 : Colors.black54)),
             ],
           ),
           const SizedBox(height: 24),
@@ -988,8 +1180,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                   ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
                 gridData: FlGridData(
                   show: true,

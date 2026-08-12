@@ -47,19 +47,27 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
   Color _getStatusColor(int status) {
     switch (status) {
-      case 1: return Colors.green; // Ouvert / Actif
-      case 2: return Colors.orange; // En attente
-      case 3: return Colors.grey; // Fermé
-      default: return Colors.blue;
+      case 1:
+        return Colors.green; // Ouvert / Actif
+      case 2:
+        return Colors.orange; // En attente
+      case 3:
+        return Colors.grey; // Fermé
+      default:
+        return Colors.blue;
     }
   }
 
   String _getStatusText(int status) {
     switch (status) {
-      case 1: return 'Ouvert';
-      case 2: return 'En attente';
-      case 3: return 'Fermé';
-      default: return 'Inconnu';
+      case 1:
+        return 'Ouvert';
+      case 2:
+        return 'En attente';
+      case 3:
+        return 'Fermé';
+      default:
+        return 'Inconnu';
     }
   }
 
@@ -71,7 +79,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -86,13 +95,16 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Nouveau Ticket', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('Nouveau Ticket',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 16),
                   TextField(
                     controller: subjectController,
                     decoration: InputDecoration(
                       labelText: 'Sujet',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   SizedBox(height: 16),
@@ -101,7 +113,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                     maxLines: 4,
                     decoration: InputDecoration(
                       labelText: 'Description',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   SizedBox(height: 24),
@@ -110,7 +123,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                     height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: isSubmitting
                           ? null
@@ -120,21 +134,30 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                               if (subject.isEmpty || desc.isEmpty) return;
 
                               setModalState(() => isSubmitting = true);
-                              final success = await ApiService().createSupportTicket(subject, desc);
-                              
+                              final success = await ApiService()
+                                  .createSupportTicket(subject, desc);
+
                               if (mounted) {
                                 Navigator.pop(context);
                                 if (success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ticket créé avec succès')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('Ticket créé avec succès')));
                                   _fetchTickets();
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur lors de la création')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Erreur lors de la création')));
                                 }
                               }
                             },
                       child: isSubmitting
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Créer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          : Text('Créer',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   SizedBox(height: 24),
@@ -161,12 +184,16 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.support_agent_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.support_agent_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Assistance',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -200,7 +227,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                         itemBuilder: (context, index) {
                           final ticket = _tickets[index];
                           final status = ticket['status'] ?? 1;
-                          
+
                           return Card(
                             margin: EdgeInsets.only(bottom: 12),
                             child: ListTile(
@@ -222,11 +249,16 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                   Row(
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: _getStatusColor(status).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: _getStatusColor(status).withOpacity(0.5)),
+                                          color: _getStatusColor(status)
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                              color: _getStatusColor(status)
+                                                  .withValues(alpha: 0.5)),
                                         ),
                                         child: Text(
                                           _getStatusText(status),
@@ -242,7 +274,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                         'UID: ${ticket['_uid']}',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.54) : Colors.black54,
+                                          color: isDark
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.54)
+                                              : Colors.black54,
                                         ),
                                       ),
                                     ],
@@ -255,10 +292,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => TicketDetailScreen(
                                       ticketUid: ticket['_uid'],
-                                      subject: ticket['subject'] ?? 'Sans sujet',
+                                      subject:
+                                          ticket['subject'] ?? 'Sans sujet',
                                     ),
                                   ),
-                                ).then((_) => _fetchTickets()); // Refresh when coming back
+                                ).then((_) =>
+                                    _fetchTickets()); // Refresh when coming back
                               },
                             ),
                           );
@@ -267,8 +306,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                     ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateTicketDialog,
-        child: Icon(Icons.add),
         tooltip: 'Nouveau ticket',
+        child: Icon(Icons.add),
       ),
     );
   }

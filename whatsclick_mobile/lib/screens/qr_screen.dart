@@ -43,7 +43,9 @@ class _QrScreenState extends State<QrScreen> {
       if (mounted) {
         setState(() {
           _phoneNumber = normalizedPhone.isEmpty ? null : normalizedPhone;
-          _error = normalizedPhone.isEmpty ? 'Numéro WhatsApp non configuré pour ce compte.' : null;
+          _error = normalizedPhone.isEmpty
+              ? 'Numéro WhatsApp non configuré pour ce compte.'
+              : null;
           _isLoading = false;
         });
       }
@@ -60,7 +62,7 @@ class _QrScreenState extends State<QrScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -71,12 +73,16 @@ class _QrScreenState extends State<QrScreen> {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.qr_code_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.qr_code_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Code QR',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -91,7 +97,8 @@ class _QrScreenState extends State<QrScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error ?? 'Numéro WhatsApp non configuré', style: TextStyle(color: Colors.red)),
+                      Text(_error ?? 'Numéro WhatsApp non configuré',
+                          style: TextStyle(color: Colors.red)),
                       SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _fetchPhoneNumber,
@@ -131,7 +138,9 @@ class _QrScreenState extends State<QrScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1),
+                                color: isDark
+                                    ? Colors.black.withValues(alpha: 0.3)
+                                    : Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 20,
                                 offset: Offset(0, 10),
                               ),

@@ -6,13 +6,15 @@ class DripCampaignsSettingsScreen extends StatefulWidget {
   const DripCampaignsSettingsScreen({super.key});
 
   @override
-  State<DripCampaignsSettingsScreen> createState() => _DripCampaignsSettingsScreenState();
+  State<DripCampaignsSettingsScreen> createState() =>
+      _DripCampaignsSettingsScreenState();
 }
 
-class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScreen> {
+class _DripCampaignsSettingsScreenState
+    extends State<DripCampaignsSettingsScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _campaigns = [];
-  Set<String> _togglingUids = {};
+  final Set<String> _togglingUids = {};
 
   @override
   void initState() {
@@ -48,7 +50,8 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la modification du statut')),
+          const SnackBar(
+              content: Text('Erreur lors de la modification du statut')),
         );
       }
       setState(() {
@@ -61,7 +64,8 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         title: const Text('Campagnes Goutte à Goutte'),
         backgroundColor: Colors.transparent,
@@ -74,7 +78,9 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: ThemeService.primaryColor))
+          ? const Center(
+              child:
+                  CircularProgressIndicator(color: ThemeService.primaryColor))
           : _campaigns.isEmpty
               ? Center(
                   child: Padding(
@@ -82,7 +88,9 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.water_drop_outlined, size: 64, color: isDark ? Colors.white30 : Colors.black26),
+                        Icon(Icons.water_drop_outlined,
+                            size: 64,
+                            color: isDark ? Colors.white30 : Colors.black26),
                         const SizedBox(height: 16),
                         Text(
                           'Aucune campagne goutte à goutte trouvée.',
@@ -112,14 +120,18 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
                     final campaign = _campaigns[index];
                     final uid = campaign['_uid'];
                     final title = campaign['title'] ?? 'Sans titre';
-                    final status = campaign['status'] ?? 2; // 1 = active, 2 = inactive
+                    final status =
+                        campaign['status'] ?? 2; // 1 = active, 2 = inactive
                     final isActive = status == 1;
                     final isToggling = _togglingUids.contains(uid);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      color: isDark
+                          ? ThemeService.darkCard
+                          : ThemeService.lightCard,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
@@ -127,7 +139,8 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: (isActive ? Colors.green : Colors.grey).withOpacity(0.15),
+                                color: (isActive ? Colors.green : Colors.grey)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
@@ -153,7 +166,9 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
-                                      color: isActive ? Colors.green : Colors.redAccent,
+                                      color: isActive
+                                          ? Colors.green
+                                          : Colors.redAccent,
                                     ),
                                   ),
                                 ],
@@ -163,12 +178,14 @@ class _DripCampaignsSettingsScreenState extends State<DripCampaignsSettingsScree
                               const SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: ThemeService.primaryColor),
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: ThemeService.primaryColor),
                               )
                             else
                               Switch(
                                 value: isActive,
-                                activeColor: ThemeService.primaryColor,
+                                activeThumbColor: ThemeService.primaryColor,
                                 onChanged: (val) => _toggleStatus(uid, status),
                               ),
                           ],

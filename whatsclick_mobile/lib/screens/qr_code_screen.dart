@@ -27,12 +27,16 @@ class QRCodeScreen extends StatelessWidget {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.qr_code_2_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.qr_code_2_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
               'Mon Code QR',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5),
             ),
           ],
         ),
@@ -56,7 +60,7 @@ class QRCodeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),

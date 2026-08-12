@@ -101,10 +101,14 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
 
   void _showFormDialog({dynamic reply}) {
     final isEdit = reply != null;
-    final nameController = TextEditingController(text: isEdit ? reply['name'] : '');
-    final triggerController = TextEditingController(text: isEdit ? reply['reply_trigger'] : '');
-    final replyController = TextEditingController(text: isEdit ? reply['reply_text'] : '');
-    String selectedTriggerType = isEdit ? (reply['trigger_type'] ?? 'is') : 'is';
+    final nameController =
+        TextEditingController(text: isEdit ? reply['name'] : '');
+    final triggerController =
+        TextEditingController(text: isEdit ? reply['reply_trigger'] : '');
+    final replyController =
+        TextEditingController(text: isEdit ? reply['reply_text'] : '');
+    String selectedTriggerType =
+        isEdit ? (reply['trigger_type'] ?? 'is') : 'is';
 
     showModalBottomSheet(
       context: context,
@@ -116,7 +120,8 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
           return Container(
             decoration: BoxDecoration(
               color: isDark ? ThemeService.darkCard : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -133,8 +138,11 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isEdit ? 'Modifier la réponse auto' : 'Créer une réponse auto',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        isEdit
+                            ? 'Modifier la réponse auto'
+                            : 'Créer une réponse auto',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -145,12 +153,14 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Nom de la règle'),
+                    decoration:
+                        const InputDecoration(labelText: 'Nom de la règle'),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedTriggerType,
-                    decoration: const InputDecoration(labelText: 'Type de déclencheur'),
+                    initialValue: selectedTriggerType,
+                    decoration:
+                        const InputDecoration(labelText: 'Type de déclencheur'),
                     items: _triggerTypes.entries.map((e) {
                       return DropdownMenuItem<String>(
                         value: e.key,
@@ -191,9 +201,14 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                       final trigger = triggerController.text.trim();
                       final text = replyController.text.trim();
 
-                      if (name.isEmpty || text.isEmpty || (selectedTriggerType != 'welcome' && trigger.isEmpty)) {
+                      if (name.isEmpty ||
+                          text.isEmpty ||
+                          (selectedTriggerType != 'welcome' &&
+                              trigger.isEmpty)) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
+                          const SnackBar(
+                              content: Text(
+                                  'Veuillez remplir tous les champs obligatoires')),
                         );
                         return;
                       }
@@ -207,14 +222,16 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                           uid: reply['_uid'],
                           name: name,
                           triggerType: selectedTriggerType,
-                          replyTrigger: selectedTriggerType == 'welcome' ? null : trigger,
+                          replyTrigger:
+                              selectedTriggerType == 'welcome' ? null : trigger,
                           replyText: text,
                         );
                       } else {
                         res = await ApiService().createBotReply(
                           name: name,
                           triggerType: selectedTriggerType,
-                          replyTrigger: selectedTriggerType == 'welcome' ? null : trigger,
+                          replyTrigger:
+                              selectedTriggerType == 'welcome' ? null : trigger,
                           replyText: text,
                         );
                       }
@@ -225,7 +242,9 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                       } else {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(res?['message'] ?? 'Erreur lors de l\'enregistrement')),
+                            SnackBar(
+                                content: Text(res?['message'] ??
+                                    'Erreur lors de l\'enregistrement')),
                           );
                         }
                       }
@@ -234,9 +253,11 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                       backgroundColor: ThemeService.primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text('Enregistrer',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -285,30 +306,38 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                       itemBuilder: (context, index) {
                         final reply = _replies[index];
                         final String triggerType = reply['trigger_type'] ?? '';
-                        final triggerTitle = _triggerTypes[triggerType]?['title'] ?? triggerType;
-                        final isActive = reply['status'] == 1 || reply['status'] == null || reply['status'] == '1';
+                        final triggerTitle =
+                            _triggerTypes[triggerType]?['title'] ?? triggerType;
+                        final isActive = reply['status'] == 1 ||
+                            reply['status'] == null ||
+                            reply['status'] == '1';
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         reply['name'] ?? 'Sans nom',
-                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     Switch(
                                       value: isActive,
-                                      activeColor: ThemeService.primaryColor,
+                                      activeThumbColor:
+                                          ThemeService.primaryColor,
                                       onChanged: (val) => _toggleStatus(reply),
                                     ),
                                   ],
@@ -317,9 +346,11 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: ThemeService.primaryColor.withOpacity(0.1),
+                                        color: ThemeService.primaryColor
+                                            .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -331,7 +362,8 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                                         ),
                                       ),
                                     ),
-                                    if (triggerType != 'welcome' && reply['reply_trigger'] != null) ...[
+                                    if (triggerType != 'welcome' &&
+                                        reply['reply_trigger'] != null) ...[
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -354,7 +386,9 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: isDark ? Colors.white70 : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black87,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -362,11 +396,16 @@ class _BotRepliesScreenState extends State<BotRepliesScreen> {
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blue),
-                                      onPressed: () => _showFormDialog(reply: reply),
+                                      icon: const Icon(Icons.edit_outlined,
+                                          size: 20, color: Colors.blue),
+                                      onPressed: () =>
+                                          _showFormDialog(reply: reply),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                                      icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 20,
+                                          color: Colors.red),
                                       onPressed: () => _deleteReply(reply),
                                     ),
                                   ],

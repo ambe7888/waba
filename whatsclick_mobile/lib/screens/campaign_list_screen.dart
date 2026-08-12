@@ -33,44 +33,76 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   }
 
   Future<void> _fetchCampaigns() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final data = await ApiService().fetchCampaigns();
-      if (mounted) setState(() { _campaigns = data; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _campaigns = data;
+          _isLoading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = 'Erreur de chargement des campagnes'; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = 'Erreur de chargement des campagnes';
+          _isLoading = false;
+        });
     }
   }
 
   // ── Status helpers ──────────────────────────────────────────────────────────
   Color _statusColor(String? s) {
     switch ((s ?? '').toLowerCase()) {
-      case 'executed': return Colors.green;
-      case 'processing': return Colors.orange;
-      case 'scheduled': case 'upcoming': return Colors.blue;
-      case 'aborted': case 'failed': return Colors.red;
-      default: return Colors.grey;
+      case 'executed':
+        return Colors.green;
+      case 'processing':
+        return Colors.orange;
+      case 'scheduled':
+      case 'upcoming':
+        return Colors.blue;
+      case 'aborted':
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _statusIcon(String? s) {
     switch ((s ?? '').toLowerCase()) {
-      case 'executed': return Icons.check_circle_rounded;
-      case 'processing': return Icons.sync_rounded;
-      case 'scheduled': case 'upcoming': return Icons.schedule_rounded;
-      case 'aborted': case 'failed': return Icons.cancel_rounded;
-      default: return Icons.help_outline_rounded;
+      case 'executed':
+        return Icons.check_circle_rounded;
+      case 'processing':
+        return Icons.sync_rounded;
+      case 'scheduled':
+      case 'upcoming':
+        return Icons.schedule_rounded;
+      case 'aborted':
+      case 'failed':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.help_outline_rounded;
     }
   }
 
   String _statusLabel(String? s) {
     switch ((s ?? '').toLowerCase()) {
-      case 'executed': return 'Exécutée';
-      case 'processing': return 'En cours';
-      case 'scheduled': case 'upcoming': return 'Planifiée';
-      case 'aborted': return 'Annulée';
-      case 'failed': return 'Échouée';
-      default: return s ?? 'Inconnu';
+      case 'executed':
+        return 'Exécutée';
+      case 'processing':
+        return 'En cours';
+      case 'scheduled':
+      case 'upcoming':
+        return 'Planifiée';
+      case 'aborted':
+        return 'Annulée';
+      case 'failed':
+        return 'Échouée';
+      default:
+        return s ?? 'Inconnu';
     }
   }
 
@@ -81,14 +113,17 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const CreateCampaignWizardSheet(),
-    ).then((created) { if (created == true) _fetchCampaigns(); });
+    ).then((created) {
+      if (created == true) _fetchCampaigns();
+    });
   }
 
   // ── Dashboard ───────────────────────────────────────────────────────────────
   void _openDashboard(Map<String, dynamic> campaign) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => CampaignDashboardScreen(campaign: campaign)),
+      MaterialPageRoute(
+          builder: (_) => CampaignDashboardScreen(campaign: campaign)),
     );
   }
 
@@ -110,10 +145,12 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                 color: ThemeService.primaryColor.withAlpha(30),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.campaign_rounded, color: ThemeService.primaryColor, size: 20),
+              child: Icon(Icons.campaign_rounded,
+                  color: ThemeService.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Campagnes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const Text('Campagnes',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           ],
         ),
         actions: [
@@ -132,7 +169,9 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             )
           : null,
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: ThemeService.primaryColor))
+          ? Center(
+              child:
+                  CircularProgressIndicator(color: ThemeService.primaryColor))
           : _error != null
               ? _buildError(onSurface)
               : _campaigns.isEmpty
@@ -146,50 +185,58 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                           bottom: _isAdmin ? 90 : 12, // space for FAB
                         ),
                         itemCount: _campaigns.length,
-                        itemBuilder: (_, i) => _buildCard(_campaigns[i], surfaceCard, onSurface),
+                        itemBuilder: (_, i) =>
+                            _buildCard(_campaigns[i], surfaceCard, onSurface),
                       ),
                     ),
     );
   }
 
   Widget _buildError(Color onSurface) => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.error_outline_rounded, size: 48, color: onSurface.withOpacity(0.3)),
-        const SizedBox(height: 12),
-        Text(_error!, style: TextStyle(color: onSurface.withOpacity(0.5))),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _fetchCampaigns,
-          style: ElevatedButton.styleFrom(backgroundColor: ThemeService.primaryColor),
-          child: const Text('Réessayer', style: TextStyle(color: Colors.white)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline_rounded,
+                size: 48, color: onSurface.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            Text(_error!,
+                style: TextStyle(color: onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchCampaigns,
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: ThemeService.primaryColor),
+              child: const Text('Réessayer',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   Widget _buildEmpty(Color onSurface) => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.campaign_outlined, size: 64, color: onSurface.withOpacity(0.2)),
-        const SizedBox(height: 16),
-        Text('Aucune campagne trouvée',
-            style: TextStyle(fontSize: 16, color: onSurface.withOpacity(0.4))),
-        if (_isAdmin) ...[
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Créer une campagne'),
-            onPressed: _showCreateWizard,
-          ),
-        ],
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.campaign_outlined,
+                size: 64, color: onSurface.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text('Aucune campagne trouvée',
+                style: TextStyle(
+                    fontSize: 16, color: onSurface.withValues(alpha: 0.4))),
+            if (_isAdmin) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Créer une campagne'),
+                onPressed: _showCreateWizard,
+              ),
+            ],
+          ],
+        ),
+      );
 
-  Widget _buildCard(Map<String, dynamic> c, Color surfaceCard, Color onSurface) {
+  Widget _buildCard(
+      Map<String, dynamic> c, Color surfaceCard, Color onSurface) {
     final title = c['title'] ?? c['campaign_name'] ?? 'Sans titre';
     final status = c['status']?.toString();
     final scheduledAt = c['scheduled_at']?.toString();
@@ -201,7 +248,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
       decoration: BoxDecoration(
         color: surfaceCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: onSurface.withOpacity(0.06)),
+        border: Border.all(color: onSurface.withValues(alpha: 0.06)),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -217,7 +264,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         ),
         title: Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: onSurface),
+          style: TextStyle(
+              fontWeight: FontWeight.w600, fontSize: 14, color: onSurface),
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Column(
@@ -226,22 +274,28 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             if (scheduledAt != null && scheduledAt.isNotEmpty) ...[
               const SizedBox(height: 3),
               Row(children: [
-                Icon(Icons.schedule_rounded, size: 12, color: onSurface.withOpacity(0.4)),
+                Icon(Icons.schedule_rounded,
+                    size: 12, color: onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 4),
                 Text(
-                  scheduledAt.length > 16 ? scheduledAt.substring(0, 16) : scheduledAt,
-                  style: TextStyle(fontSize: 11, color: onSurface.withOpacity(0.4)),
+                  scheduledAt.length > 16
+                      ? scheduledAt.substring(0, 16)
+                      : scheduledAt,
+                  style: TextStyle(
+                      fontSize: 11, color: onSurface.withValues(alpha: 0.4)),
                 ),
               ]),
             ],
             if (total != null && total.toString().isNotEmpty) ...[
               const SizedBox(height: 2),
               Row(children: [
-                Icon(Icons.people_outline_rounded, size: 12, color: onSurface.withOpacity(0.4)),
+                Icon(Icons.people_outline_rounded,
+                    size: 12, color: onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 4),
                 Text(
                   '$total destinataires',
-                  style: TextStyle(fontSize: 11, color: onSurface.withOpacity(0.4)),
+                  style: TextStyle(
+                      fontSize: 11, color: onSurface.withValues(alpha: 0.4)),
                 ),
               ]),
             ],
@@ -259,12 +313,16 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               ),
               child: Text(
                 _statusLabel(status),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor),
               ),
             ),
             if (_isAdmin) ...[
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right_rounded, size: 18, color: onSurface.withOpacity(0.3)),
+              Icon(Icons.chevron_right_rounded,
+                  size: 18, color: onSurface.withValues(alpha: 0.3)),
             ],
           ],
         ),
@@ -272,7 +330,6 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign Dashboard Screen
@@ -282,7 +339,8 @@ class CampaignDashboardScreen extends StatefulWidget {
   const CampaignDashboardScreen({super.key, required this.campaign});
 
   @override
-  State<CampaignDashboardScreen> createState() => _CampaignDashboardScreenState();
+  State<CampaignDashboardScreen> createState() =>
+      _CampaignDashboardScreenState();
 }
 
 class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
@@ -297,21 +355,31 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
 
   Future<void> _loadStats() async {
     final uid = widget.campaign['_uid'] ?? widget.campaign['uid'] ?? '';
-    if (uid.isEmpty) { setState(() => _isLoading = false); return; }
+    if (uid.isEmpty) {
+      setState(() => _isLoading = false);
+      return;
+    }
     setState(() => _isLoading = true);
     final data = await ApiService().fetchCampaignDashboard(uid);
-    if (mounted) setState(() { _stats = data; _isLoading = false; });
+    if (mounted)
+      setState(() {
+        _stats = data;
+        _isLoading = false;
+      });
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.campaign['title'] ?? widget.campaign['campaign_name'] ?? 'Campagne';
+    final title = widget.campaign['title'] ??
+        widget.campaign['campaign_name'] ??
+        'Campagne';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _loadStats),
+          IconButton(
+              icon: const Icon(Icons.refresh_rounded), onPressed: _loadStats),
         ],
       ),
       body: _isLoading
@@ -332,7 +400,8 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
     final expired = s['totalExpired'] ?? s['expired'] ?? 0;
 
     final total = (sent as num).toDouble();
-    double rate(dynamic val) => total > 0 ? ((val as num).toDouble() / total).clamp(0.0, 1.0) : 0.0;
+    double rate(dynamic val) =>
+        total > 0 ? ((val as num).toDouble() / total).clamp(0.0, 1.0) : 0.0;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -347,17 +416,21 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
           childAspectRatio: 1.1,
           children: [
             _statCard('Envoyés', sent, Icons.send_rounded, Colors.blue),
-            _statCard('Délivrés', delivered, Icons.done_all_rounded, Colors.green),
+            _statCard(
+                'Délivrés', delivered, Icons.done_all_rounded, Colors.green),
             _statCard('Lus', read, Icons.visibility_rounded, Colors.purple),
-            _statCard('Échoués', failed, Icons.error_outline_rounded, Colors.red),
-            _statCard('En attente', pending, Icons.hourglass_top_rounded, Colors.orange),
+            _statCard(
+                'Échoués', failed, Icons.error_outline_rounded, Colors.red),
+            _statCard('En attente', pending, Icons.hourglass_top_rounded,
+                Colors.orange),
             _statCard('Expirés', expired, Icons.timer_off_rounded, Colors.grey),
           ],
         ),
         const SizedBox(height: 20),
 
         // Progress bars
-        const Text('Taux de performance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        const Text('Taux de performance',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         const SizedBox(height: 12),
         _progressRow('Taux de livraison', rate(delivered), Colors.green),
         _progressRow('Taux de lecture', rate(read), Colors.purple),
@@ -392,9 +465,12 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
           const SizedBox(height: 6),
           Text(
             value.toString(),
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: color),
           ),
-          Text(label, style: const TextStyle(fontSize: 10), textAlign: TextAlign.center),
+          Text(label,
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center),
         ],
       ),
     );
@@ -411,7 +487,8 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
             children: [
               Text(label, style: const TextStyle(fontSize: 13)),
               Text('${(value * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: color, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 6),
@@ -436,16 +513,18 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
         children: [
           Icon(icon, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
-          Text('$label : ', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text('$label : ',
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            child: Text(value,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ],
       ),
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Create Campaign Wizard (admin only)
@@ -454,7 +533,8 @@ class CreateCampaignWizardSheet extends StatefulWidget {
   const CreateCampaignWizardSheet({super.key});
 
   @override
-  State<CreateCampaignWizardSheet> createState() => _CreateCampaignWizardSheetState();
+  State<CreateCampaignWizardSheet> createState() =>
+      _CreateCampaignWizardSheetState();
 }
 
 class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
@@ -483,7 +563,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   // Step 2: Contacts
   List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _filteredContacts = [];
-  List<String> _selectedContactUids = [];
+  final List<String> _selectedContactUids = [];
   bool _loadingContacts = true;
   final _contactsSearchController = TextEditingController();
 
@@ -510,23 +590,37 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   void dispose() {
     _titleController.dispose();
     _contactsSearchController.dispose();
-    for (var c in _varControllers) c.dispose();
+    for (var c in _varControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _loadAudiences() async {
     final audiences = await ApiService().fetchAudiences();
-    if (mounted) setState(() { _audiences = audiences; _loadingAudiences = false; });
+    if (mounted)
+      setState(() {
+        _audiences = audiences;
+        _loadingAudiences = false;
+      });
   }
 
   Future<void> _loadGroups() async {
     final groups = await ApiService().fetchContactGroups();
-    if (mounted) setState(() { _groups = groups; _loadingGroups = false; });
+    if (mounted)
+      setState(() {
+        _groups = groups;
+        _loadingGroups = false;
+      });
   }
 
   Future<void> _loadLabels() async {
     final labels = await ApiService().fetchAllLabels();
-    if (mounted) setState(() { _labels = labels; _loadingLabels = false; });
+    if (mounted)
+      setState(() {
+        _labels = labels;
+        _loadingLabels = false;
+      });
   }
 
   Future<void> _loadContacts() async {
@@ -553,19 +647,33 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   Future<void> _loadTemplates() async {
     final tpls = await ApiService().fetchTemplates();
-    if (mounted) setState(() { _templates = tpls; _loadingTemplates = false; });
+    if (mounted)
+      setState(() {
+        _templates = tpls;
+        _loadingTemplates = false;
+      });
   }
 
   void _onTemplateSelected(String uid) {
     final tpl = _templates.firstWhere((t) => (t['_uid'] ?? t['uid']) == uid,
         orElse: () => {});
-    final body = tpl['__data']?['template']?['components']
-        ?.firstWhere((c) => c['type'] == 'BODY', orElse: () => {})['text'] ?? '';
-    final vars = RegExp(r'\{\{(\d+)\}\}').allMatches(body.toString()).map((m) => m.group(1)!).toSet().toList()..sort();
-    for (var c in _varControllers) c.dispose();
+    final body = tpl['__data']?['template']?['components']?.firstWhere(
+            (c) => c['type'] == 'BODY',
+            orElse: () => {})['text'] ??
+        '';
+    final vars = RegExp(r'\{\{(\d+)\}\}')
+        .allMatches(body.toString())
+        .map((m) => m.group(1)!)
+        .toSet()
+        .toList()
+      ..sort();
+    for (var c in _varControllers) {
+      c.dispose();
+    }
     setState(() {
       _selectedTemplateUid = uid;
-      _varControllers = List.generate(vars.length, (_) => TextEditingController());
+      _varControllers =
+          List.generate(vars.length, (_) => TextEditingController());
     });
   }
 
@@ -596,7 +704,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
       final success = result != null && result['reaction'] == 1;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Campagne créée !'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Campagne créée !'), backgroundColor: Colors.green),
         );
         Navigator.pop(context, true);
       } else {
@@ -615,7 +724,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 20, left: 16, right: 16,
+        top: 20,
+        left: 16,
+        right: 16,
       ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -630,27 +741,40 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  ['1. Informations', '2. Audience cible', '3. Modèle & Variables'][_step],
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  [
+                    '1. Informations',
+                    '2. Audience cible',
+                    '3. Modèle & Variables'
+                  ][_step],
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context)),
               ],
             ),
             // Step indicator
             Row(
-              children: List.generate(3, (i) => Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: i <= _step ? ThemeService.primaryColor : Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              )),
+              children: List.generate(
+                  3,
+                  (i) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 3, vertical: 8),
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: i <= _step
+                                ? ThemeService.primaryColor
+                                : Colors.grey.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      )),
             ),
             const Divider(height: 12),
-            Expanded(child: [_buildStep1(), _buildStep2(), _buildStep3()][_step]),
+            Expanded(
+                child: [_buildStep1(), _buildStep2(), _buildStep3()][_step]),
             const SizedBox(height: 12),
             // Navigation buttons
             Row(
@@ -669,37 +793,51 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ThemeService.primaryColor,
                       minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
-                    onPressed: _isSubmitting ? null : () {
-                      if (_step < 2) {
-                        if (_step == 0 && _titleController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Veuillez saisir un titre.')));
-                          return;
-                        }
-                        if (_step == 1) {
-                          if (_audienceType == 'audiences' && _selectedAudienceUid == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sélectionnez une audience.')));
-                            return;
-                          }
-                          if (_audienceType == 'contacts' && _selectedContactUids.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sélectionnez au moins un contact.')));
-                            return;
-                          }
-                        }
-                        setState(() => _step++);
-                      } else {
-                        _submit();
-                      }
-                    },
+                    onPressed: _isSubmitting
+                        ? null
+                        : () {
+                            if (_step < 2) {
+                              if (_step == 0 &&
+                                  _titleController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Veuillez saisir un titre.')));
+                                return;
+                              }
+                              if (_step == 1) {
+                                if (_audienceType == 'audiences' &&
+                                    _selectedAudienceUid == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Sélectionnez une audience.')));
+                                  return;
+                                }
+                                if (_audienceType == 'contacts' &&
+                                    _selectedContactUids.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Sélectionnez au moins un contact.')));
+                                  return;
+                                }
+                              }
+                              setState(() => _step++);
+                            } else {
+                              _submit();
+                            }
+                          },
                     child: _isSubmitting
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
                             _step < 2 ? 'Suivant →' : 'Lancer la campagne',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),
@@ -715,7 +853,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   // ── Step 1: Title + Schedule ────────────────────────────────────────────────
   Widget _buildStep1() {
     return ListView(children: [
-      const Text('Titre de la campagne *', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Text('Titre de la campagne *',
+          style: TextStyle(fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       TextField(
         controller: _titleController,
@@ -725,7 +864,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
         ),
       ),
       const SizedBox(height: 20),
-      const Text('Date de planification (optionnel)', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Text('Date de planification (optionnel)',
+          style: TextStyle(fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       InkWell(
         onTap: () async {
@@ -737,9 +877,11 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
             lastDate: now.add(const Duration(days: 365)),
           );
           if (date != null && mounted) {
-            final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+            final time = await showTimePicker(
+                context: context, initialTime: TimeOfDay.now());
             if (time != null && mounted) {
-              setState(() => _scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+              setState(() => _scheduledAt = DateTime(
+                  date.year, date.month, date.day, time.hour, time.minute));
             }
           }
         },
@@ -751,13 +893,15 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.calendar_today_rounded, size: 18, color: Colors.grey),
+              const Icon(Icons.calendar_today_rounded,
+                  size: 18, color: Colors.grey),
               const SizedBox(width: 12),
               Text(
                 _scheduledAt == null
                     ? 'Envoyer immédiatement'
                     : '${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(color: _scheduledAt == null ? Colors.grey : null),
+                style:
+                    TextStyle(color: _scheduledAt == null ? Colors.grey : null),
               ),
             ],
           ),
@@ -786,7 +930,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: _audienceType == 'audiences' ? ThemeService.primaryColor : Colors.transparent,
+                      color: _audienceType == 'audiences'
+                          ? ThemeService.primaryColor
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -794,7 +940,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                         'Audiences',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _audienceType == 'audiences' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                          color: _audienceType == 'audiences'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black54),
                         ),
                       ),
                     ),
@@ -807,7 +955,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: _audienceType == 'contacts' ? ThemeService.primaryColor : Colors.transparent,
+                      color: _audienceType == 'contacts'
+                          ? ThemeService.primaryColor
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -815,7 +965,9 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                         'Contacts',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _audienceType == 'contacts' ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                          color: _audienceType == 'contacts'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black54),
                         ),
                       ),
                     ),
@@ -837,7 +989,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   }
 
   Widget _buildAudiencesList() {
-    if (_loadingAudiences) return const Center(child: CircularProgressIndicator());
+    if (_loadingAudiences)
+      return const Center(child: CircularProgressIndicator());
     return Column(
       children: [
         // Create Audience Button
@@ -847,16 +1000,19 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
               minimumSize: const Size(double.infinity, 45),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: _showCreateAudienceDialog,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
-            label: const Text('Créer une nouvelle Audience', style: TextStyle(color: Colors.white)),
+            label: const Text('Créer une nouvelle Audience',
+                style: TextStyle(color: Colors.white)),
           ),
         ),
         Expanded(
           child: _audiences.isEmpty
-              ? const Center(child: Text('Aucune audience de campagne trouvée.'))
+              ? const Center(
+                  child: Text('Aucune audience de campagne trouvée.'))
               : ListView.builder(
                   itemCount: _audiences.length,
                   itemBuilder: (_, i) {
@@ -873,11 +1029,14 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                           _selectedAudienceUid = val;
                         });
                       },
-                      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: contactsText.isNotEmpty ? Text(contactsText) : null,
+                      title: Text(title,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle:
+                          contactsText.isNotEmpty ? Text(contactsText) : null,
                       secondary: CircleAvatar(
                         backgroundColor: Colors.teal.withValues(alpha: 0.15),
-                        child: const Icon(Icons.people_alt_rounded, color: Colors.teal, size: 20),
+                        child: const Icon(Icons.people_alt_rounded,
+                            color: Colors.teal, size: 20),
                       ),
                     );
                   },
@@ -888,7 +1047,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
   }
 
   Widget _buildContactsList() {
-    if (_loadingContacts) return const Center(child: CircularProgressIndicator());
+    if (_loadingContacts)
+      return const Center(child: CircularProgressIndicator());
     if (_contacts.isEmpty) {
       return const Center(child: Text('Aucun contact trouvé.'));
     }
@@ -901,7 +1061,8 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
             decoration: InputDecoration(
               hintText: 'Rechercher un contact...',
               prefixIcon: const Icon(Icons.search_rounded),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             ),
           ),
@@ -919,15 +1080,21 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                 value: selected,
                 onChanged: (val) {
                   setState(() {
-                    if (val == true) _selectedContactUids.add(uid);
-                    else _selectedContactUids.remove(uid);
+                    if (val == true) {
+                      _selectedContactUids.add(uid);
+                    } else {
+                      _selectedContactUids.remove(uid);
+                    }
                   });
                 },
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(waId),
                 secondary: CircleAvatar(
-                  backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.15),
-                  child: Icon(Icons.person_rounded, color: ThemeService.primaryColor, size: 20),
+                  backgroundColor:
+                      ThemeService.primaryColor.withValues(alpha: 0.15),
+                  child: Icon(Icons.person_rounded,
+                      color: ThemeService.primaryColor, size: 20),
                 ),
               );
             },
@@ -939,33 +1106,46 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
 
   // ── Step 3: Template + Variables ────────────────────────────────────────────
   Widget _buildStep3() {
-    if (_loadingTemplates) return const Center(child: CircularProgressIndicator());
-    final approved = _templates.where((t) =>
-      (t['status'] ?? '').toString().toUpperCase() == 'APPROVED').toList();
+    if (_loadingTemplates)
+      return const Center(child: CircularProgressIndicator());
+    final approved = _templates
+        .where(
+            (t) => (t['status'] ?? '').toString().toUpperCase() == 'APPROVED')
+        .toList();
 
     return ListView(children: [
-      const Text('Choisir un modèle *', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Text('Choisir un modèle *',
+          style: TextStyle(fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       if (approved.isEmpty)
-        const Text('Aucun modèle approuvé disponible.', style: TextStyle(color: Colors.red))
+        const Text('Aucun modèle approuvé disponible.',
+            style: TextStyle(color: Colors.red))
       else
         ...approved.map((t) {
           final uid = (t['_uid'] ?? t['uid'] ?? '').toString();
           final name = t['template_name'] ?? t['name'] ?? 'Modèle';
           final selected = _selectedTemplateUid == uid;
           return Card(
-            color: selected ? ThemeService.primaryColor.withValues(alpha: 0.1) : null,
+            color: selected
+                ? ThemeService.primaryColor.withValues(alpha: 0.1)
+                : null,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: selected ? ThemeService.primaryColor : Colors.transparent,
+                color:
+                    selected ? ThemeService.primaryColor : Colors.transparent,
                 width: 2,
               ),
             ),
             child: ListTile(
-              title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text((t['category'] ?? '') + '  •  ' + (t['language'] ?? '')),
-              trailing: selected ? Icon(Icons.check_circle_rounded, color: ThemeService.primaryColor) : null,
+              title: Text(name,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle:
+                  Text((t['category'] ?? '') + '  •  ' + (t['language'] ?? '')),
+              trailing: selected
+                  ? Icon(Icons.check_circle_rounded,
+                      color: ThemeService.primaryColor)
+                  : null,
               onTap: () => _onTemplateSelected(uid),
             ),
           );
@@ -974,18 +1154,22 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 8),
-        const Text('Variables du modèle', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Variables du modèle',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        ...List.generate(_varControllers.length, (i) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: TextField(
-            controller: _varControllers[i],
-            decoration: InputDecoration(
-              labelText: 'Variable {{${i + 1}}}',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        )),
+        ...List.generate(
+            _varControllers.length,
+            (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _varControllers[i],
+                    decoration: InputDecoration(
+                      labelText: 'Variable {{${i + 1}}}',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                )),
       ],
     ]);
   }
@@ -996,7 +1180,7 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
     List<String> selectedL = [];
     List<String> selectedC = [];
     String contactsSearch = '';
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1014,11 +1198,14 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
           return Container(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
-              top: 20, left: 16, right: 16,
+              top: 20,
+              left: 16,
+              right: 16,
             ),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             height: MediaQuery.of(context).size.height * 0.8,
             child: Column(
@@ -1027,8 +1214,12 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Nouvelle Audience', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    const Text('Nouvelle Audience',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1036,14 +1227,16 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                   controller: titleCtrl,
                   decoration: InputDecoration(
                     labelText: 'Nom de l\'audience *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: ListView(
                     children: [
-                      const Text('Groupes de contacts', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('Groupes de contacts',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       ..._groups.map((g) {
                         final uid = (g['_uid'] ?? g['uid'] ?? '').toString();
@@ -1054,15 +1247,19 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                           title: Text(name),
                           onChanged: (val) {
                             setModalState(() {
-                              if (val == true) selectedG.add(uid);
-                              else selectedG.remove(uid);
+                              if (val == true) {
+                                selectedG.add(uid);
+                              } else {
+                                selectedG.remove(uid);
+                              }
                             });
                           },
                         );
                       }),
                       const SizedBox(height: 16),
                       // Labels section
-                      const Text('Étiquettes', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('Étiquettes',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       if (_loadingLabels)
                         const Padding(
@@ -1070,22 +1267,27 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                           child: CircularProgressIndicator(),
                         )
                       else if (_labels.isEmpty)
-                        const Text('Aucune étiquette disponible', style: TextStyle(color: Colors.grey))
+                        const Text('Aucune étiquette disponible',
+                            style: TextStyle(color: Colors.grey))
                       else
                         ..._labels.map((l) {
                           final uid = (l['_uid'] ?? l['uid'] ?? '').toString();
                           final name = l['title'] ?? l['label_title'] ?? '';
-                          final colorHex = (l['bg_color'] ?? l['color'] ?? '#25D366').replaceAll('#', '');
+                          final colorHex =
+                              (l['bg_color'] ?? l['color'] ?? '#25D366')
+                                  .replaceAll('#', '');
                           Color labelColor = Colors.teal;
                           try {
-                            labelColor = Color(int.parse('FF$colorHex', radix: 16));
+                            labelColor =
+                                Color(int.parse('FF$colorHex', radix: 16));
                           } catch (_) {}
                           final has = selectedL.contains(uid);
                           return CheckboxListTile(
                             value: has,
                             title: Text(name),
                             secondary: Container(
-                              width: 16, height: 16,
+                              width: 16,
+                              height: 16,
                               decoration: BoxDecoration(
                                 color: labelColor,
                                 shape: BoxShape.circle,
@@ -1093,21 +1295,27 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                             ),
                             onChanged: (val) {
                               setModalState(() {
-                                if (val == true) selectedL.add(uid);
-                                else selectedL.remove(uid);
+                                if (val == true) {
+                                  selectedL.add(uid);
+                                } else {
+                                  selectedL.remove(uid);
+                                }
                               });
                             },
                           );
                         }),
                       const SizedBox(height: 16),
-                      const Text('Contacts individuels', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('Contacts individuels',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         decoration: InputDecoration(
                           hintText: 'Rechercher un contact...',
                           prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                         ),
                         onChanged: (val) {
                           setModalState(() {
@@ -1127,8 +1335,11 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                           subtitle: Text(waId),
                           onChanged: (val) {
                             setModalState(() {
-                              if (val == true) selectedC.add(uid);
-                              else selectedC.remove(uid);
+                              if (val == true) {
+                                selectedC.add(uid);
+                              } else {
+                                selectedC.remove(uid);
+                              }
                             });
                           },
                         );
@@ -1141,12 +1352,15 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ThemeService.primaryColor,
                     minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () async {
                     if (titleCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Veuillez saisir un nom d\'audience')),
+                        const SnackBar(
+                            content:
+                                Text('Veuillez saisir un nom d\'audience')),
                       );
                       return;
                     }
@@ -1158,18 +1372,24 @@ class _CreateCampaignWizardSheetState extends State<CreateCampaignWizardSheet> {
                     );
                     if (res != null && res['reaction'] == 1) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Audience créée avec succès !'), backgroundColor: Colors.green),
+                        const SnackBar(
+                            content: Text('Audience créée avec succès !'),
+                            backgroundColor: Colors.green),
                       );
                       Navigator.pop(context);
                       _loadAudiences();
                     } else {
-                      final msg = res?['message'] ?? 'Erreur lors de la création de l\'audience';
+                      final msg = res?['message'] ??
+                          'Erreur lors de la création de l\'audience';
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                        SnackBar(
+                            content: Text(msg), backgroundColor: Colors.red),
                       );
                     }
                   },
-                  child: const Text('Enregistrer l\'Audience', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('Enregistrer l\'Audience',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 16),
               ],

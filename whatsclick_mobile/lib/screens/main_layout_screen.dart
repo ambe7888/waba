@@ -26,7 +26,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   @override
   void initState() {
     super.initState();
-    _notificationTapSubscription = FcmService.onNotificationTap.listen((contactUid) {
+    _notificationTapSubscription =
+        FcmService.onNotificationTap.listen((contactUid) {
       if (mounted) {
         _handleNotificationTap(contactUid);
       }
@@ -108,7 +109,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       animation: ThemeService(),
       builder: (context, _) {
         final isDark = ThemeService().isDark;
-        
+
         return Scaffold(
           body: IndexedStack(
             index: _currentIndex,
@@ -118,7 +119,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: Offset(0, -5),
                 ),
@@ -133,9 +136,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 });
               },
               type: BottomNavigationBarType.fixed,
-              backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightCard,
+              backgroundColor:
+                  isDark ? ThemeService.darkSurface : ThemeService.lightCard,
               selectedItemColor: ThemeService.primaryColor,
-              unselectedItemColor: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5) : Color(0xFF64748B),
+              unselectedItemColor: isDark
+                  ? Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5)
+                  : Color(0xFF64748B),
               selectedLabelStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,

@@ -6,10 +6,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   bool _dndEnabled = false;
   bool _soundEnabled = true;
   String _filterType = 'all'; // 'all' or 'new_chats'
@@ -44,9 +46,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Notifications',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -55,12 +59,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         children: [
           Card(
             color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Ne pas déranger (Silencieux)', style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Désactiver temporairement les notifications push.'),
+                  title: const Text('Ne pas déranger (Silencieux)',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text(
+                      'Désactiver temporairement les notifications push.'),
                   value: _dndEnabled,
                   onChanged: (value) async {
                     setState(() {
@@ -68,12 +75,14 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     });
                     await _saveSetting('notifications_dnd', value);
                   },
-                  activeColor: const Color(0xFF2DD4BF),
+                  activeThumbColor: const Color(0xFF2DD4BF),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: const Text('Sonnerie active', style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Émettre un signal sonore pour chaque alerte.'),
+                  title: const Text('Sonnerie active',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text(
+                      'Émettre un signal sonore pour chaque alerte.'),
                   value: _soundEnabled,
                   onChanged: (value) async {
                     setState(() {
@@ -81,17 +90,19 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     });
                     await _saveSetting('notifications_sound', value);
                   },
-                  activeColor: const Color(0xFF2DD4BF),
+                  activeThumbColor: const Color(0xFF2DD4BF),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  title: const Text('Filtre des notifications', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: const Text('Filtre des notifications',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(_filterType == 'all'
                       ? 'Tous les nouveaux messages'
                       : 'Uniquement les nouvelles conversations'),
                   trailing: DropdownButton<String>(
                     value: _filterType,
-                    dropdownColor: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                    dropdownColor:
+                        isDark ? ThemeService.darkCard : ThemeService.lightCard,
                     items: const [
                       DropdownMenuItem(
                         value: 'all',

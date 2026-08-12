@@ -47,30 +47,39 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
 
   String _periodLabel() {
     switch (widget.dateFilter) {
-      case 'today': return "Aujourd'hui";
-      case 'yesterday': return 'Hier';
-      case 'day_before': return 'Avant-hier';
+      case 'today':
+        return "Aujourd'hui";
+      case 'yesterday':
+        return 'Hier';
+      case 'day_before':
+        return 'Avant-hier';
       case 'custom':
         if (widget.startDate != null && widget.endDate != null) {
           return '${widget.startDate} → ${widget.endDate}';
         }
         return 'Période personnalisée';
-      default: return 'Toutes périodes';
+      default:
+        return 'Toutes périodes';
     }
   }
 
   Future<void> _loadContacts() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final prefs = await _getPrefs();
       final token = prefs['token'] ?? '';
       final List<String> params = ['label_date_filter=${widget.dateFilter}'];
-      if (widget.startDate != null) params.add('start_date=${widget.startDate}');
+      if (widget.startDate != null)
+        params.add('start_date=${widget.startDate}');
       if (widget.endDate != null) params.add('end_date=${widget.endDate}');
-      final url = Uri.parse('${baseApiUrl}vendor/contact/by-label/${widget.labelUid}?${params.join('&')}');
-      
+      final url = Uri.parse(
+          '${baseApiUrl}vendor/contact/by-label/${widget.labelUid}?${params.join('&')}');
+
       if (debug) debugPrint('LabelContactsScreen URL: $url');
-      
+
       final response = await http.get(url, headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -93,10 +102,18 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
           return;
         }
       }
-      if (mounted) setState(() { _error = 'Aucun contact trouvé'; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = 'Aucun contact trouvé';
+          _isLoading = false;
+        });
     } catch (e) {
       if (debug) debugPrint('LabelContactsScreen error: $e');
-      if (mounted) setState(() { _error = 'Erreur de chargement'; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = 'Erreur de chargement';
+          _isLoading = false;
+        });
     }
   }
 
@@ -122,13 +139,17 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
     final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor:
+          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Contacts étiquetés', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text(_periodLabel(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400)),
+            const Text('Contacts étiquetés',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(_periodLabel(),
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w400)),
           ],
         ),
         backgroundColor: Colors.transparent,
@@ -143,17 +164,25 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
               decoration: BoxDecoration(
                 color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.06)),
+                border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.06)),
               ),
               child: TextField(
                 controller: _searchController,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Rechercher...',
-                  hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: isDark ? Colors.white38 : Colors.black38, size: 20),
+                  hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                      fontSize: 13),
+                  prefixIcon: Icon(Icons.search,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                      size: 20),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
               ),
             ),
@@ -165,14 +194,18 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: ThemeService.primaryColor.withOpacity(0.12),
+                      color: ThemeService.primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${_filteredContacts.length} contact${_filteredContacts.length > 1 ? 's' : ''}',
-                      style: const TextStyle(fontSize: 12, color: ThemeService.primaryColor, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: ThemeService.primaryColor,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -187,11 +220,20 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.people_outline, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                            Icon(Icons.people_outline,
+                                size: 48,
+                                color:
+                                    isDark ? Colors.white24 : Colors.black26),
                             const SizedBox(height: 12),
-                            Text(_error!, style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                            Text(_error!,
+                                style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black45)),
                             const SizedBox(height: 16),
-                            ElevatedButton(onPressed: _loadContacts, child: const Text('Réessayer')),
+                            ElevatedButton(
+                                onPressed: _loadContacts,
+                                child: const Text('Réessayer')),
                           ],
                         ),
                       )
@@ -200,9 +242,17 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.people_outline, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                                Icon(Icons.people_outline,
+                                    size: 48,
+                                    color: isDark
+                                        ? Colors.white24
+                                        : Colors.black26),
                                 const SizedBox(height: 12),
-                                Text('Aucun contact', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                                Text('Aucun contact',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white54
+                                            : Colors.black45)),
                               ],
                             ),
                           )
@@ -213,14 +263,20 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
                               itemCount: _filteredContacts.length,
                               itemBuilder: (context, i) {
                                 final c = _filteredContacts[i];
-                                final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
+                                final name =
+                                    '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'
+                                        .trim();
                                 final phone = c['wa_id'] ?? c['phone'] ?? '';
-                                final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+                                final initial = name.isNotEmpty
+                                    ? name[0].toUpperCase()
+                                    : '?';
 
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
                                   child: Material(
-                                    color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+                                    color: isDark
+                                        ? ThemeService.darkCard
+                                        : ThemeService.lightCard,
                                     borderRadius: BorderRadius.circular(12),
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(12),
@@ -230,22 +286,49 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
                                           name: name.isEmpty ? phone : name,
                                           phoneNumber: phone,
                                         );
-                                        Navigator.push(context, MaterialPageRoute(
-                                          builder: (_) => ChatBoxScreen(contact: contact),
-                                        ));
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ChatBoxScreen(
+                                                  contact: contact),
+                                            ));
                                       },
                                       child: ListTile(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 6),
                                         leading: CircleAvatar(
-                                          backgroundColor: ThemeService.primaryColor.withOpacity(0.12),
-                                          child: Text(initial, style: const TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+                                          backgroundColor: ThemeService
+                                              .primaryColor
+                                              .withValues(alpha: 0.12),
+                                          child: Text(initial,
+                                              style: const TextStyle(
+                                                  color:
+                                                      ThemeService.primaryColor,
+                                                  fontWeight: FontWeight.bold)),
                                         ),
                                         title: Text(
                                           name.isEmpty ? phone : name,
-                                          style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                              fontSize: 14),
                                         ),
-                                        subtitle: phone.isNotEmpty ? Text(phone, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)) : null,
-                                        trailing: Icon(Icons.chat_bubble_outline_rounded, color: ThemeService.primaryColor.withOpacity(0.7), size: 18),
+                                        subtitle: phone.isNotEmpty
+                                            ? Text(phone,
+                                                style: TextStyle(
+                                                    color: isDark
+                                                        ? Colors.white54
+                                                        : Colors.black54,
+                                                    fontSize: 12))
+                                            : null,
+                                        trailing: Icon(
+                                            Icons.chat_bubble_outline_rounded,
+                                            color: ThemeService.primaryColor
+                                                .withValues(alpha: 0.7),
+                                            size: 18),
                                       ),
                                     ),
                                   ),
