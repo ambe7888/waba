@@ -74,18 +74,18 @@ class Contact {
         : <ContactLabel>[];
 
     return Contact(
-      uid: json['uid'] ?? json['_uid'] ?? '',
-      name: json['full_name'] ?? json['name'] ?? json['first_name'] ?? json['wa_name'] ?? json['wa_id'] ?? 'Inconnu',
-      phoneNumber: json['phone_number'] ?? json['wa_id'] ?? json['phoneNumber'] ?? '',
-      avatar: json['avatar'] ?? json['avatar_url'],
-      unreadCount: json['unread_messages_count'] ?? json['unread_count'] ?? json['unreadCount'] ?? 0,
-      lastMessage: lastMsg,
-      lastMessageTime: lastMsgTime,
+      uid: json['uid']?.toString() ?? json['_uid']?.toString() ?? '',
+      name: json['full_name']?.toString() ?? json['name']?.toString() ?? json['first_name']?.toString() ?? json['wa_name']?.toString() ?? json['wa_id']?.toString() ?? 'Inconnu',
+      phoneNumber: json['phone_number']?.toString() ?? json['wa_id']?.toString() ?? json['phoneNumber']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? json['avatar_url']?.toString(),
+      unreadCount: int.tryParse(json['unread_messages_count']?.toString() ?? json['unread_count']?.toString() ?? json['unreadCount']?.toString() ?? '') ?? 0,
+      lastMessage: lastMsg?.toString(),
+      lastMessageTime: lastMsgTime?.toString(),
       labels: parsedLabels,
-      lastMessageStatus: lastMsgStatus,
-      isAiBotActive: json['is_ai_bot_active'] ?? json['is_bot_active'] ?? true,
-      status: json['status'] ?? 'Open',
-      assignedUserName: json['assigned_user_name'] ?? json['assigned_to']?['name'],
+      lastMessageStatus: lastMsgStatus?.toString(),
+      isAiBotActive: json['is_ai_bot_active'] ?? json['is_bot_active'] ?? (json['disable_ai_bot'] == 0),
+      status: json['status']?.toString() ?? 'Open',
+      assignedUserName: json['assigned_user_name']?.toString() ?? json['assigned_to']?['name']?.toString(),
     );
   }
 

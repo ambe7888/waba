@@ -81,14 +81,14 @@ class ChatMessage {
     }
 
     return ChatMessage(
-      uid: json['uid'] ?? json['_uid'] ?? '',
+      uid: json['uid']?.toString() ?? json['_uid']?.toString() ?? '',
       body: resolvedBody,
       isIncoming: incoming,
-      timestamp: json['created_at'] ?? json['timestamp'] ?? '',
+      timestamp: json['created_at']?.toString() ?? json['timestamp']?.toString() ?? '',
       type: resolvedType,
       mediaUrl: resolvedMediaUrl,
       isSystemMessage: system,
-      status: json['status'] ?? 'initialize',
+      status: json['status']?.toString() ?? 'initialize',
       referral: resolvedReferral,
     );
   }
