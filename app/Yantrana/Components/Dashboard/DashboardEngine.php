@@ -382,6 +382,15 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 'total_credits' => $totalCredits,
                 'display_credits' => $displayCredits,
             ],
+            'current_subscription' => (function() use ($vendorId) {
+                $planDetails = vendorPlanDetails('contacts', 0, $vendorId);
+                return [
+                    'title' => $planDetails->plan_title ?? 'Free',
+                    'ends_at' => $planDetails->ends_at,
+                    'is_expired' => $planDetails->is_expired,
+                    'is_free' => $planDetails->plan_type == 'free'
+                ];
+            })(),
         ]);
     }
 

@@ -523,6 +523,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildSubscriptionCard() {
+    final isDark = ThemeService().isDark;
+    final subInfo = _stats?['current_subscription'];
+    if (subInfo == null) return const SizedBox.shrink();
+
+    final isFree = subInfo['is_free'] ?? true;
+    final isExpired = subInfo['is_expired'] ?? false;
+    final title = subInfo['title'] ?? 'Plan Gratuit';
+    final endsAt = subInfo['ends_at'];
+    
+    // Gradient and colors
+    final List<Color> gradientColors = isFree 
+        ? [ThemeService.primaryColor.withOpacity(0.8), ThemeService.primaryColor]
+        : [const Color(0xFFE5B94E), const Color(0xFFC79227)]; // Premium gold gradient
+    
+    final iconColor = Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isFree ? Icons.star_border_rounded : Icons.workspace_premium_rounded, 
+              color: iconColor, 
+              size: 28
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isExpired ? 'Abonnement expiré' : 'Abonnement actif',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                if (endsAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      isExpired ? 'Expiré le ${endsAt.toString().substring(0, 10)}' : 'Expire le ${endsAt.toString().substring(0, 10)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isExpired ? const Color(0xFFFFCCCC) : Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
@@ -734,6 +824,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       SliverToBoxAdapter(
                         child: _buildFilterBar(),
                       ),
+                      if (_roleId == 2)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: _buildSubscriptionCard(),
+                          ),
+                        ),
                       SliverToBoxAdapter(
                         child: _buildLabelStatsCard(),
                       ),

@@ -759,6 +759,49 @@ Route::group([
             \App\Yantrana\Components\InfoMaterial\Controllers\InfoMaterialController::class,
             'apiDownload',
         ])->name('app_api.vendor.info_materials.download');
+        
+        // Mobile App API routes for Reminders
+        Route::post('/{contactUid}/reminder/store', [
+            \App\Yantrana\Components\Contact\Controllers\ContactReminderController::class,
+            'storeReminder',
+        ])->name('app_api.vendor.contact.reminder.store');
+
+        Route::post('/{contactUid}/reminder/cancel', [
+            \App\Yantrana\Components\Contact\Controllers\ContactReminderController::class,
+            'cancelReminder',
+        ])->name('app_api.vendor.contact.reminder.cancel');
+
+        // Mobile App API routes for Drip Campaigns
+        Route::get('/drip-campaigns', function() {
+            $vendorId = getVendorId();
+            $campaigns = class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign') 
+                ? \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', $vendorId)
+                ->withCount('steps')
+                ->withCount('subscribers')
+                ->withCount(['subscribers as active_subscribers_count' => function ($query) {
+                    $query->where('status', 1);
+                }])
+                ->orderBy('_id', 'desc')
+                ->get() : [];
+            return response()->json(['reaction' => 1, 'data' => ['campaigns' => $campaigns]]);
+        })->name('app_api.vendor.drip_campaigns.list');
+
+        Route::post('/drip-campaigns/{campaignUid}/toggle-status', function($campaignUid) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            $vendorId = getVendorId();
+            $campaign = \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('_uid', $campaignUid)
+                ->where('vendors__id', $vendorId)
+                ->first();
+            if (!$campaign) {
+                return response()->json(['reaction' => 2, 'message' => 'Campaign not found']);
+            }
+            $campaign->status = $campaign->status == 1 ? 0 : 1;
+            $campaign->save();
+            return response()->json(['reaction' => 1, 'message' => 'Status updated successfully', 'data' => ['status' => $campaign->status]]);
+        })->name('app_api.vendor.drip_campaigns.toggle_status');
+
     });
 
     // logout

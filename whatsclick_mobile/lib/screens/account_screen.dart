@@ -12,6 +12,7 @@ import 'notification_settings_screen.dart';
 import 'contact_groups_screen.dart';
 import 'templates_admin_screen.dart';
 import 'bot_replies_screen.dart';
+import 'drip_campaigns_settings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -293,6 +294,19 @@ class _AccountScreenState extends State<AccountScreen> {
                       );
                     },
                   ),
+                  if (isAdmin) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.water_drop_rounded, color: Colors.lightBlue),
+                      title: const Text('Campagnes Goutte à Goutte'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const DripCampaignsSettingsScreen()),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -26,6 +26,10 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _notesController = TextEditingController();
+  
+  DateTime? _reminderDate;
+  final _reminderNoteController = TextEditingController();
+  bool _isSavingReminder = false;
 
   bool _enableAiBot = false;
   bool _enableReplyBot = false;
@@ -379,8 +383,53 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     } catch (_) {
       _showDrawerNotice('Échec de la création de l\'étiquette');
       setState(() {
-        _isSavingLabels = false;
-      });
+  }
+
+  Future<void> _saveReminder() async {
+    if (_reminderDate == null) {
+      _showDrawerNotice('Veuillez sélectionner une date pour le rappel.');
+      return;
+    }
+    setState(() {
+      _isSavingReminder = true;
+    });
+    
+    final success = await ApiService().storeReminder(
+      widget.contact.uid, 
+      _reminderNoteController.text, 
+      _reminderDate!.toIso8601String()
+    );
+    
+    setState(() {
+      _isSavingReminder = false;
+    });
+    
+    if (success) {
+      _showDrawerNotice('Rappel ajouté avec succès.');
+    } else {
+      _showDrawerNotice('Erreur lors de l\'ajout du rappel.');
+    }
+  }
+
+  Future<void> _cancelReminder() async {
+    setState(() {
+      _isSavingReminder = true;
+    });
+    
+    final success = await ApiService().cancelReminder(widget.contact.uid);
+    
+    setState(() {
+      _isSavingReminder = false;
+      if (success) {
+        _reminderDate = null;
+        _reminderNoteController.text = '';
+      }
+    });
+    
+    if (success) {
+      _showDrawerNotice('Rappel annulé.');
+    } else {
+      _showDrawerNotice('Erreur lors de l\'annulation.');
     }
   }
 
@@ -896,6 +945,107 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                               )
                             : Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
+
+                      // Rappel (Reminder) Section
+                      _buildSectionHeader('Rappels', Icons.alarm_add_rounded),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: onSurface.withOpacity(0.02),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: onSurface.withOpacity(0.08)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Date et Heure', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: onSurface.withOpacity(0.7))),
+                            SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: _reminderDate ?? DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(Duration(days: 365)),
+                                );
+                                if (date != null) {
+                                  final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                  );
+                                  if (time != null) {
+                                    setState(() {
+                                      _reminderDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                                    });
+                                  }
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: onSurface.withOpacity(0.15)),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today_rounded, size: 16, color: _primaryColor),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      _reminderDate != null 
+                                          ? '${_reminderDate!.toString().substring(0,16)}' 
+                                          : 'Sélectionner une date',
+                                      style: TextStyle(fontSize: 14, color: _reminderDate != null ? onSurface : onSurface.withOpacity(0.5)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            TextFormField(
+                              controller: _reminderNoteController,
+                              maxLines: 2,
+                              style: TextStyle(color: onSurface, fontSize: 14),
+                              decoration: _inputDecoration('Note pour le rappel (optionnel)'),
+                            ),
+                            SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isSavingReminder ? null : _saveReminder,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _primaryColor,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: EdgeInsets.symmetric(vertical: 12),
+                                      elevation: 0,
+                                    ),
+                                    child: _isSavingReminder
+                                        ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                        : Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w700)),
+                                  ),
+                                ),
+                                if (_reminderDate != null) ...[
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: _isSavingReminder ? null : _cancelReminder,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: EdgeInsets.symmetric(vertical: 12),
+                                      ),
+                                      child: Text('Annuler', style: TextStyle(fontWeight: FontWeight.w700)),
+                                    ),
+                                  ),
+                                ]
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
 
                       // Notes Section
                       _buildSectionHeader('Notes internes', Icons.note_alt_outlined),

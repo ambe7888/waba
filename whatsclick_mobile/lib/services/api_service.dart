@@ -198,10 +198,12 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/contact/contacts-data?' + params.join('&'));
     try {
       final response = await http.get(url, headers: _getHeaders());
+      if (debug) debugPrint('fetchContacts status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        final reaction = body['reaction'];
-        if (reaction == 1) {
+        
+        // Format Yantrana classique avec reaction
+        if (body.containsKey('reaction') && body['reaction'] == 1) {
           final contactsData = body['client_models']?['contacts'] ?? body['data']?['contacts'];
           final nextPageRaw = body['client_models']?['contactsPaginatePage'] ?? body['data']?['contactsPaginatePage'];
           final nextPage = _parseNextPage(nextPageRaw);
@@ -212,6 +214,12 @@ class ApiService {
             list = contactsData.values.map((c) => Contact.fromJson(c as Map<String, dynamic>)).toList();
           }
           return {'contacts': list, 'nextPage': nextPage};
+        } 
+        // Format DataTables classique
+        else if (body.containsKey('data') && body['data'] is List) {
+          final contactsData = body['data'] as List;
+          List<Contact> list = contactsData.map((c) => Contact.fromJson(c as Map<String, dynamic>)).toList();
+          return {'contacts': list, 'nextPage': 0};
         }
       }
       return {'contacts': <Contact>[], 'nextPage': 0};
@@ -911,10 +919,15 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/campaign-list');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (debug) debugPrint('fetchCampaigns status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
+        if (debug) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
+        
+        // 1. Standard API response (reaction == 1)
         if (body['reaction'] == 1) {
           final raw = body['data']?['campaignList'];
+          if (debug) debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
           if (raw is Map && raw['data'] is List) {
             return List<Map<String, dynamic>>.from(raw['data']);
           }
@@ -922,6 +935,18 @@ class ApiService {
             return List<Map<String, dynamic>>.from(raw);
           }
         }
+        
+        // 2. Datatable direct response
+        if (body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+        
+        // 3. Simple list response
+        if (body is List) {
+          return List<Map<String, dynamic>>.from(body);
+        }
+      } else {
+        if (debug) debugPrint('fetchCampaigns error body: ${response.body}');
       }
       return [];
     } catch (e) {
@@ -1537,6 +1562,79 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Update Bot Reply Error: $e');
       return null;
+    }
+  }
+
+  /// Store Reminder
+  Future<bool> storeReminder(String contactUid, String note, String date) async {
+    final url = Uri.parse('${baseApiUrl}$contactUid/reminder/store');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'note': note,
+          'reminder_date': date,
+        }),
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Store Reminder Error: $e');
+      return false;
+    }
+  }
+
+  /// Cancel Reminder
+  Future<bool> cancelReminder(String contactUid) async {
+    final url = Uri.parse('${baseApiUrl}$contactUid/reminder/cancel');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Cancel Reminder Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch Drip Campaigns
+  Future<List<Map<String, dynamic>>> fetchDripCampaigns() async {
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] != null && body['data']['campaigns'] != null) {
+          return List<Map<String, dynamic>>.from(body['data']['campaigns']);
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Drip Campaigns Error: $e');
+      return [];
+    }
+  }
+
+  /// Toggle Drip Campaign Status
+  Future<bool> toggleDripCampaign(String campaignUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/toggle-status');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Toggle Drip Campaign Error: $e');
+      return false;
     }
   }
 }
