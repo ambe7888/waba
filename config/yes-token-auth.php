@@ -14,7 +14,7 @@ return [
     'expiration' => 60 * 60 * 3 * 50, // 3 hours
     'refresh_after_for_mobile_app' => 24 * 60 * 60 * 7, // 5 mins
     'expiration_for_mobile_app' => 24 * 60 * 60 * 10, // 3 hours
-    'verify_user_agent' => true, // whatever to cross check user agent
+    'verify_user_agent' => false, // whatever to cross check user agent
     'verify_ip_address' => false, // whatever to cross check ip address
     'token_registry' => [
         'enabled' => false,
