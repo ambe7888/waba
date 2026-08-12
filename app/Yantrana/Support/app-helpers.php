@@ -112,10 +112,14 @@ if (! function_exists('getUserAuthInfo')) {
                 $vendorStatus = $user->vendor->status ?? null;
                 if ($user->user_roles__id == 3) {
                     $vendorUser = VendorUserModel::where('users__id', $user->_id)->first();
-                    $vendorId = $vendorUser->vendors__id;
-                    $vendor = VendorModel::where('_id', $vendorId)->first();
-                    $vendorUid = $vendor->_uid;
-                    $vendorStatus = $vendor->status;
+                    if ($vendorUser) {
+                        $vendorId = $vendorUser->vendors__id;
+                        $vendor = VendorModel::where('_id', $vendorId)->first();
+                        if ($vendor) {
+                            $vendorUid = $vendor->_uid;
+                            $vendorStatus = $vendor->status;
+                        }
+                    }
                 }
                 return [
                     'authorized' => true,
