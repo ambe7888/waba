@@ -385,15 +385,31 @@ Route::group([
             'deleteLabelProcess',
         ])->name('app_api.vendor.chat.label.delete.write');
 
-        // E-commerce products
+        // E-commerce products & orders
         Route::get('/ecommerce/products', [
             \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
             'getProducts',
         ])->name('app_api.vendor.ecommerce.products');
+        Route::post('/ecommerce/products/add', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'addProduct',
+        ])->name('app_api.vendor.ecommerce.products.add');
         Route::post('/ecommerce/send-product', [
             \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
             'sendProductMessage',
         ])->name('app_api.vendor.ecommerce.send_product');
+        Route::post('/ecommerce/orders/create-manual', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'createManualOrder',
+        ])->name('app_api.vendor.ecommerce.orders.create_manual');
+        Route::get('/ecommerce/orders/contact/{contactUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'getContactOrders',
+        ])->name('app_api.vendor.ecommerce.contact_orders');
+        Route::post('/ecommerce/orders/update-status/{orderUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'updateOrderStatus',
+        ])->name('app_api.vendor.ecommerce.orders.update_status');
 
         // Canned replies
         Route::get('/canned-replies', [

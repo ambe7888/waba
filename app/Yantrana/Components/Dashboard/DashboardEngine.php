@@ -388,7 +388,13 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     'title' => $planDetails->plan_title ?? 'Free',
                     'ends_at' => $planDetails->ends_at,
                     'is_expired' => $planDetails->is_expired,
-                    'is_free' => $planDetails->plan_type == 'free'
+                    'is_free' => $planDetails->plan_type == 'free',
+                    'features' => [
+                        'manage_orders' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? true),
+                        'ai_bot' => (bool) (vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'] ?? true),
+                        'campaigns' => (bool) (vendorPlanDetails('campaigns', 1, $vendorId)['is_limit_available'] ?? true),
+                        'canned_replies' => (bool) (vendorPlanDetails('bot_replies', 1, $vendorId)['is_limit_available'] ?? true),
+                    ]
                 ];
             })(),
         ]);

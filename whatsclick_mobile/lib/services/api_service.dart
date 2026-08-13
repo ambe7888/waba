@@ -1170,6 +1170,101 @@ class ApiService {
     }
   }
 
+  /// Create a manual order for a contact
+  Future<Map<String, dynamic>> createManualOrder({
+    required String contactId,
+    required List<Map<String, dynamic>> items,
+    double additionalFee = 0.0,
+    String additionalFeeLabel = 'Frais de livraison',
+    String deliveryAddress = '',
+    String deliveryDate = '',
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/create-manual');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contact_id': contactId,
+              'items': items,
+              'additional_fee': additionalFee,
+              'additional_fee_label': additionalFeeLabel,
+              'delivery_address': deliveryAddress,
+              'delivery_date': deliveryDate,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return {
+          'success': body['reaction'] == 1,
+          'message': body['data']?['message'] ?? body['message'] ?? 'Commande créée.',
+          'order': body['data']?['order'],
+        };
+      }
+      final body = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': body['data']?['message'] ?? body['message'] ?? 'Erreur lors de la création.',
+      };
+    } catch (e) {
+      if (debug) debugPrint('Create Manual Order Error: $e');
+      return {
+        'success': false,
+        'message': 'Erreur réseau: $e',
+      };
+    }
+  }
+
+  /// Fetch orders for a contact
+  Future<List<Map<String, dynamic>>> fetchContactOrders(String contactUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/contact/$contactUid');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final orders = body['data']?['orders'] as List?;
+          if (orders != null) {
+            return List<Map<String, dynamic>>.from(orders);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Contact Orders Error: $e');
+      return [];
+    }
+  }
+
+  /// Update order status
+  Future<bool> updateOrderStatus(String orderUid, String status) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/update-status/$orderUid');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'status': status}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Update Order Status Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch all canned replies
   Future<List<Map<String, dynamic>>> fetchCannedReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies');

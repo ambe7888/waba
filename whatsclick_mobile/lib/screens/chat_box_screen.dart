@@ -13,6 +13,8 @@ import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
 import 'contact_info_drawer.dart';
+import 'order_creation_sheet.dart';
+import 'canned_replies_screen.dart';
 
 class ChatBoxScreen extends StatefulWidget {
   final Contact contact;
@@ -1147,12 +1149,31 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       () => _pickAndSendMedia('video')),
                   _buildAttachmentItem(Icons.shopping_bag_rounded, 'Produit',
                       const Color(0xFF10B981), _showProductPicker),
+                  _buildAttachmentItem(Icons.receipt_long_rounded, 'Commande',
+                      const Color(0xFF3B82F6), _showOrderCreation),
                 ],
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _showOrderCreation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => OrderCreationSheet(
+        contactUid: widget.contact.uid,
+        contactName: widget.contact.name.isNotEmpty
+            ? widget.contact.name
+            : widget.contact.waId,
+        onOrderCreated: () {
+          _loadMessages(silent: true);
+        },
+      ),
     );
   }
 
@@ -1453,7 +1474,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             ),
 
           // Canned Replies Row (Notes rapides)
-          if (_showEmojiRow && _cannedReplies.isNotEmpty)
+          if (_showEmojiRow)
             Container(
               height: 48,
               decoration: BoxDecoration(
@@ -1465,52 +1486,90 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                             .onSurface
                             .withValues(alpha: 0.04))),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ListView(
                 scrollDirection: Axis.horizontal,
-                itemCount: _cannedReplies.length,
-                itemBuilder: (context, index) {
-                  final reply = _cannedReplies[index];
-                  final shortcut = reply['shortcut']?.toString() ?? 'Note';
-                  final messageText = reply['message']?.toString() ?? '';
-                  
-                  return GestureDetector(
-                    onTap: () {
-                      final text = _messageController.text;
-                      final selection = _messageController.selection;
-                      final newText = text.replaceRange(
-                        selection.start >= 0 ? selection.start : text.length,
-                        selection.end >= 0 ? selection.end : text.length,
-                        messageText,
+                children: [
+                  // Button to add a new Quick Note directly
+                  GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CannedRepliesScreen(),
+                        ),
                       );
-                      _messageController.text = newText;
-                      _messageController.selection = TextSelection.collapsed(
-                        offset: (selection.start >= 0
-                                ? selection.start
-                                : text.length) +
-                            messageText.length,
-                      );
+                      _loadCannedReplies();
                     },
                     child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          color: const Color(0xFF2DD4BF).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF2DD4BF)),
                         ),
-                        child: Center(
-                          child: Text(shortcut,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.primary)),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_rounded, size: 16, color: Color(0xFF2DD4BF)),
+                            SizedBox(width: 4),
+                            Text('+ Note',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2DD4BF))),
+                          ],
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                  ..._cannedReplies.map((reply) {
+                    final shortcut = reply['shortcut']?.toString() ?? 'Note';
+                    final messageText = reply['message']?.toString() ?? '';
+
+                    return GestureDetector(
+                      onTap: () {
+                        final text = _messageController.text;
+                        final selection = _messageController.selection;
+                        final newText = text.replaceRange(
+                          selection.start >= 0 ? selection.start : text.length,
+                          selection.end >= 0 ? selection.end : text.length,
+                          messageText,
+                        );
+                        _messageController.text = newText;
+                        _messageController.selection = TextSelection.collapsed(
+                          offset: (selection.start >= 0
+                                  ? selection.start
+                                  : text.length) +
+                              messageText.length,
+                        );
+                      },
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: Text(shortcut,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.primary)),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
 

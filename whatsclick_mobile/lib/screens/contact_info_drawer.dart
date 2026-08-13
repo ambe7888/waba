@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/contact.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'order_creation_sheet.dart';
 
 class ContactInfoDrawer extends StatefulWidget {
   final Contact contact;
@@ -46,6 +47,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   final Set<String> _selectedGroupUids = {};
   bool _isSavingGroups = false;
 
+  List<Map<String, dynamic>> _contactOrders = [];
+  bool _isLoadingOrders = true;
+
   // Design constants
   static const _primaryColor = Color(0xFF198754);
   static const _accentColor = Color(0xFF2DD4BF);
@@ -82,6 +86,17 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       _selectedLabelIds.add(label.id);
     }
     _loadContactData();
+    _loadContactOrders();
+  }
+
+  Future<void> _loadContactOrders() async {
+    final orders = await ApiService().fetchContactOrders(widget.contact.uid);
+    if (mounted) {
+      setState(() {
+        _contactOrders = orders;
+        _isLoadingOrders = false;
+      });
+    }
   }
 
   Future<void> _loadContactData() async {
@@ -1045,6 +1060,127 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                 style: TextStyle(
                                     fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
+
+                      // Commandes / Orders Section
+                      _buildSectionHeader('Commandes du client', Icons.shopping_bag_rounded),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: onSurface.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (ctx) => OrderCreationSheet(
+                                      contactUid: widget.contact.uid,
+                                      contactName: widget.contact.name.isNotEmpty
+                                          ? widget.contact.name
+                                          : widget.contact.waId,
+                                      onOrderCreated: () {
+                                        _loadContactOrders();
+                                      },
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                                label: const Text('Créer une commande',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2DD4BF),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                            if (_isLoadingOrders)
+                              const Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              )
+                            else if (_contactOrders.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                child: Text(
+                                  'Aucune commande enregistrée pour ce client.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: onSurface.withValues(alpha: 0.5),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              )
+                            else
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _contactOrders.length,
+                                separatorBuilder: (_, __) => Divider(
+                                  color: onSurface.withValues(alpha: 0.08),
+                                ),
+                                itemBuilder: (ctx, index) {
+                                  final order = _contactOrders[index];
+                                  final details = order['order_details'] ?? {};
+                                  final totalPrice = details['total_price'] ?? order['total_amount'] ?? 0;
+                                  final status = order['status'] ?? 'pending';
+                                  final dateStr = order['created_at']?.toString().substring(0, 10) ?? '';
+
+                                  Color statusColor = Colors.orange;
+                                  if (status == 'validated' || status == 'completed') {
+                                    statusColor = Colors.green;
+                                  } else if (status == 'cancelled') {
+                                    statusColor = Colors.red;
+                                  }
+
+                                  return ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      'Ref: #${order['_uid'].toString().substring(0, 8)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: onSurface,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      'Date: $dateStr • ${totalPrice} CFA',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: onSurface.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        status.toString().toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: statusColor,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
 
                       // Rappel (Reminder) Section
                       _buildSectionHeader('Rappels', Icons.alarm_add_rounded),
