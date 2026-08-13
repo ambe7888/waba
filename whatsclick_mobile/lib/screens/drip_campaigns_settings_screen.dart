@@ -121,6 +121,7 @@ class _DripCampaignsSettingsScreenState
                     final campaign = _campaigns[index];
                     final uid = campaign['_uid'];
                     final title = campaign['title'] ?? 'Sans titre';
+                    final status = campaign['status'];
                     final isActive = status == 1 || status == '1' || status == true || status == 'active';
                     final isToggling = _togglingUids.contains(uid);
 
