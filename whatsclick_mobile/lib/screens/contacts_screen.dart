@@ -120,13 +120,19 @@ class _ContactsScreenState extends State<ContactsScreen> {
           };
           _contacts = merged.values.toList();
           _nextPage = result['nextPage'] as int? ?? 0;
+          if (newContacts.isEmpty) {
+            _nextPage = 0; // Stop loading if no more data is returned
+          }
           _applyFilters();
           _isLoadingMore = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoadingMore = false);
+        setState(() {
+          _isLoadingMore = false;
+          _nextPage = 0; // Stop looping if error occurs
+        });
       }
     }
   }

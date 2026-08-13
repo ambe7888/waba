@@ -1311,7 +1311,7 @@ class ApiService {
 
   /// Fetch campaign audiences
   Future<List<Map<String, dynamic>>> fetchAudiences() async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data');
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data?length=-1&draw=1');
     try {
       final response = await http
           .get(url, headers: _getHeaders())

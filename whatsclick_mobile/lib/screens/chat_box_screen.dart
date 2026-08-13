@@ -43,25 +43,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   // Emoji Row State
   bool _showEmojiRow = false;
-  final List<String> _quickEmojis = [
-    '😀',
-    '😂',
-    '😍',
-    '👍',
-    '🙏',
-    '❤️',
-    '🎉',
-    '🔥',
-    '👏',
-    '😢',
-    '🤔',
-    '😎',
-    '🌟',
-    '🙌',
-    '💡',
-    '🚀',
-    '💯'
-  ];
 
   // Recording State
   bool _isRecording = false;
@@ -1471,8 +1452,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               ),
             ),
 
-          // Emoji Row
-          if (_showEmojiRow)
+          // Canned Replies Row (Notes rapides)
+          if (_showEmojiRow && _cannedReplies.isNotEmpty)
             Container(
               height: 48,
               decoration: BoxDecoration(
@@ -1487,8 +1468,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: _quickEmojis.length,
+                itemCount: _cannedReplies.length,
                 itemBuilder: (context, index) {
+                  final reply = _cannedReplies[index];
+                  final shortcut = reply['shortcut']?.toString() ?? 'Note';
+                  final messageText = reply['message']?.toString() ?? '';
+                  
                   return GestureDetector(
                     onTap: () {
                       final text = _messageController.text;
@@ -1496,21 +1481,33 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       final newText = text.replaceRange(
                         selection.start >= 0 ? selection.start : text.length,
                         selection.end >= 0 ? selection.end : text.length,
-                        _quickEmojis[index],
+                        messageText,
                       );
                       _messageController.text = newText;
                       _messageController.selection = TextSelection.collapsed(
                         offset: (selection.start >= 0
                                 ? selection.start
                                 : text.length) +
-                            _quickEmojis[index].length,
+                            messageText.length,
                       );
                     },
                     child: Padding(
                       padding:
                           EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      child: Text(_quickEmojis[index],
-                          style: TextStyle(fontSize: 24)),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Text(shortcut,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary)),
+                        ),
+                      ),
                     ),
                   );
                 },

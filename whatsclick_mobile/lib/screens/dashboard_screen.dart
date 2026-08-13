@@ -678,6 +678,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             : Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
+                  )
+                else if (isFree)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      'Durée illimitée',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -963,7 +975,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       SliverToBoxAdapter(
                         child: _buildFilterBar(),
                       ),
-                      if (_roleId == 2)
+                      if (_stats?['current_subscription'] != null)
                         SliverToBoxAdapter(
                           child: Padding(
                             padding:
@@ -980,7 +992,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         sliver: SliverGrid.count(
-                          crossAxisCount: 2,
+                          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.9,

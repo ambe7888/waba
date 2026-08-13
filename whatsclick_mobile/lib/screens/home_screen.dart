@@ -70,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen>
     _fcmSubscription = FcmService().onMessage.listen((message) {
       if (mounted) {
         _loadContacts(silent: true);
+        _refreshBadgeCounts();
       }
     });
 
@@ -207,11 +208,17 @@ class _HomeScreenState extends State<HomeScreen>
           _contacts = loaded;
           _nextPage = next;
         } else {
-          final Map<String, Contact> merged = {
-            for (final existing in _contacts) existing.uid: existing,
+          // If silent (refreshing page 1), we want the `loaded` contacts to be at the top in their exact order.
+          // Then we append any existing contacts that aren't in the `loaded` list.
+          final Map<String, Contact> newOrder = {
             for (final fresh in loaded) fresh.uid: fresh,
           };
-          _contacts = merged.values.toList();
+          for (final existing in _contacts) {
+            if (!newOrder.containsKey(existing.uid)) {
+              newOrder[existing.uid] = existing;
+            }
+          }
+          _contacts = newOrder.values.toList();
           if (!silent) _nextPage = next;
         }
 
@@ -242,31 +249,43 @@ class _HomeScreenState extends State<HomeScreen>
       _isLoadingMore = true;
     });
 
-    final result = await ApiService().fetchContacts(
-      page: _nextPage,
-      assigned: _assignedFilter == 'all' ? null : _assignedFilter,
-      search: _searchController.text,
-    );
-    final List<Contact> loaded = result['contacts'] as List<Contact>;
-    final int next = _parseNextPage(result['nextPage']);
+    try {
+      final result = await ApiService().fetchContacts(
+        page: _nextPage,
+        assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+        search: _searchController.text,
+      );
+      final List<Contact> loaded = result['contacts'] as List<Contact>;
+      final int next = _parseNextPage(result['nextPage']);
 
-    // Update unique labels
-    final Set<ContactLabel> labelsSet = Set.from(_allUniqueLabels);
-    for (var c in loaded) {
-      labelsSet.addAll(c.labels);
+      // Update unique labels
+      final Set<ContactLabel> labelsSet = Set.from(_allUniqueLabels);
+      for (var c in loaded) {
+        labelsSet.addAll(c.labels);
+      }
+
+      setState(() {
+        final Map<String, Contact> merged = {
+          for (final existing in _contacts) existing.uid: existing,
+          for (final fresh in loaded) fresh.uid: fresh,
+        };
+        _contacts = merged.values.toList();
+        _nextPage = next;
+        if (loaded.isEmpty) {
+          _nextPage = 0;
+        }
+        _allUniqueLabels = labelsSet.toList();
+        _isLoadingMore = false;
+      });
+      _applyFilters();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+          _nextPage = 0; // Stop looping if error occurs
+        });
+      }
     }
-
-    setState(() {
-      final Map<String, Contact> merged = {
-        for (final existing in _contacts) existing.uid: existing,
-        for (final fresh in loaded) fresh.uid: fresh,
-      };
-      _contacts = merged.values.toList();
-      _nextPage = next;
-      _allUniqueLabels = labelsSet.toList();
-      _isLoadingMore = false;
-    });
-    _applyFilters();
   }
 
   void _onSearchChanged() {
