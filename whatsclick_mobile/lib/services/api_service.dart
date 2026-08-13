@@ -1486,6 +1486,35 @@ class ApiService {
     }
   }
 
+  /// Unassign groups from contact
+  Future<bool> unassignGroupsFromContact(
+      List<String> contactUids, List<String> groupUids) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/unassign-groups');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'contacts_uid': contactUids,
+              'groups_uid': groupUids,
+              'selected_contacts': contactUids,
+              'selected_groups': groupUids,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Unassign Groups Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch contacts belonging to a specific group
   Future<List<Contact>> fetchGroupContacts(String groupUid) async {
     final url = Uri.parse(
@@ -1734,7 +1763,7 @@ class ApiService {
   /// Store Reminder
   Future<bool> storeReminder(
       String contactUid, String note, String date) async {
-    final url = Uri.parse('$baseApiUrl$contactUid/reminder/store');
+    final url = Uri.parse('${baseApiUrl}vendor/$contactUid/reminder/store');
     try {
       final response = await http
           .post(
@@ -1759,7 +1788,7 @@ class ApiService {
 
   /// Cancel Reminder
   Future<bool> cancelReminder(String contactUid) async {
-    final url = Uri.parse('$baseApiUrl$contactUid/reminder/cancel');
+    final url = Uri.parse('${baseApiUrl}vendor/$contactUid/reminder/cancel');
     try {
       final response = await http
           .post(url, headers: _getHeaders())

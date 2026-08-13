@@ -203,17 +203,18 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       setState(() {
-        if (reset || _nextPage == 0) {
+        if (reset || (!silent && _nextPage == 0)) {
           _contacts = loaded;
+          _nextPage = next;
         } else {
           final Map<String, Contact> merged = {
             for (final existing in _contacts) existing.uid: existing,
             for (final fresh in loaded) fresh.uid: fresh,
           };
           _contacts = merged.values.toList();
+          if (!silent) _nextPage = next;
         }
 
-        _nextPage = next;
         _allUniqueLabels = _contacts.expand((c) => c.labels).toSet().toList();
         _isLoading = false;
       });
@@ -292,6 +293,22 @@ class _HomeScreenState extends State<HomeScreen>
 
         return matchesSearch && matchesLabel;
       }).toList();
+
+      // Sort by last message time descending
+      _filteredContacts.sort((a, b) {
+        if (a.lastMessageTime == null && b.lastMessageTime == null) return 0;
+        if (a.lastMessageTime == null) return 1;
+        if (b.lastMessageTime == null) return -1;
+        
+        final dateA = DateTime.tryParse(a.lastMessageTime!);
+        final dateB = DateTime.tryParse(b.lastMessageTime!);
+        
+        if (dateA == null && dateB == null) return 0;
+        if (dateA == null) return 1;
+        if (dateB == null) return -1;
+        
+        return dateB.compareTo(dateA);
+      });
     });
   }
 
@@ -671,11 +688,11 @@ class _HomeScreenState extends State<HomeScreen>
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _buildSegmentButton('All', 'all'),
+                _buildSegmentButton('Tout', 'all'),
                 const SizedBox(width: 8),
-                _buildSegmentButton('Mine', 'to-me'),
+                _buildSegmentButton('Moi', 'to-me'),
                 const SizedBox(width: 8),
-                _buildSegmentButton('Unassigned', 'unassigned'),
+                _buildSegmentButton('Non assigné', 'unassigned'),
               ],
             ),
           ),

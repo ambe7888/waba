@@ -109,7 +109,9 @@ return [
                     'audio/ogg',
                     'video/mp4',
                     'audio/webm',
-                    'video/webm'
+                    'video/webm',
+                    'audio/x-m4a',
+                    'audio/m4a'
                 ],
                 'allowedFileExtensions' => ['aac', 'm4a', 'mp4', 'mp3', 'mpga', 'amr', 'ogg', 'oga', 'webm'],
             ],

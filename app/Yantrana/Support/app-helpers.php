@@ -81,6 +81,9 @@ if (! function_exists('translateWhatsAppError')) {
         if (str_contains($rawError, 'Message undeliverable')) {
             return '(#131026) Message non livrable : Le numéro destinataire ne peut pas recevoir ce message.';
         }
+        if (str_contains($rawError, 'Message type is currently not supported') || str_contains($rawError, 'unsupported')) {
+            return '(#131051) Type de message non pris en charge par l\'API WhatsApp (ex: sondage, appel, code d\'authentification).';
+        }
         if (str_contains($rawError, 'Re-engagement message') || str_contains($rawError, '24 hour')) {
             return '(#131047) Fenêtre de 24h expirée. Envoyez un modèle de message (Template).';
         }

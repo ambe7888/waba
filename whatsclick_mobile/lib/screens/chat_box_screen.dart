@@ -538,7 +538,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.flash_off,
+                        Icon(Icons.smart_toy_outlined,
                             size: 56,
                             color: Theme.of(context)
                                 .colorScheme
@@ -581,7 +581,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.flash_on_rounded,
+                            Icon(Icons.smart_toy_rounded,
                                 color: _accentColor, size: 22),
                             SizedBox(width: 8),
                             Text(
@@ -644,31 +644,34 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                     fontSize: 12),
                               ),
                               onTap: () async {
-                                final localContext = context;
-                                Navigator.pop(localContext);
+                                final currentContext = context;
+                                Navigator.pop(currentContext); // Close BottomSheet
+                                
                                 showDialog(
-                                  context: localContext,
+                                  context: context,
                                   barrierDismissible: false,
-                                  builder: (context) => Center(
+                                  builder: (_) => Center(
                                       child: CircularProgressIndicator(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary)),
+                                          color: Theme.of(context).colorScheme.primary)),
                                 );
-                                final success = await ApiService()
-                                    .sendQuickReply(
-                                        widget.contact.uid, reply['_id']);
-                                if (!localContext.mounted) return;
-                                Navigator.pop(localContext);
-                                if (success) {
-                                  _showChatNotice(
-                                      'Réponse rapide du bot déclenchée',
-                                      targetContext: localContext);
-                                  _startAggressivePolling();
-                                } else {
-                                  _showChatNotice(
-                                      'Erreur lors du déclenchement du bot',
-                                      targetContext: localContext);
+                                
+                                bool success = false;
+                                try {
+                                  success = await ApiService().sendQuickReply(
+                                      widget.contact.uid, reply['_id']);
+                                } finally {
+                                  if (mounted) {
+                                    Navigator.pop(context); // Close dialog
+                                  }
+                                }
+
+                                if (mounted) {
+                                  if (success) {
+                                    _showChatNotice('Réponse auto du bot déclenchée');
+                                    _startAggressivePolling();
+                                  } else {
+                                    _showChatNotice('Erreur lors du déclenchement du bot');
+                                  }
                                 }
                               },
                             );
@@ -1327,9 +1330,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         widget.contact.uid,
         type,
         uploadedFileName,
-        caption: type == 'image'
-            ? 'Image envoyée'
-            : (type == 'video' ? 'Vidéo envoyée' : originalFilename),
+        caption: '',
         originalFilename: originalFilename,
       );
 
@@ -1547,7 +1548,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     final reply = _filteredCannedReplies[index];
                     return ListTile(
                       dense: true,
-                      leading: const Icon(Icons.flash_on_rounded,
+                      leading: const Icon(Icons.smart_toy_rounded,
                           color: Color(0xFFF59E0B), size: 18),
                       title: Text(
                         reply['shortcut'] ?? '',
@@ -2248,7 +2249,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.flash_on_rounded,
+                                    icon: Icon(Icons.smart_toy_rounded,
                                         color: Color(0xFFF59E0B), size: 20),
                                     tooltip: 'Réponses rapides',
                                     onPressed: _showQuickRepliesSheet,

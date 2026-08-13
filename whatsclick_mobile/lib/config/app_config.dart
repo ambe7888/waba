@@ -10,8 +10,8 @@ const bool debug = true;
 const String version = '1.0.4';
 
 // Polling configuration
-const int pollingIntervalSeconds = 5;
-const int aggressivePollingIntervalMs = 600;
+const int pollingIntervalSeconds = 3;
+const int aggressivePollingIntervalMs = 800;
 const int aggressivePollingMaxCount = 8;
 
 const Map configItems = {

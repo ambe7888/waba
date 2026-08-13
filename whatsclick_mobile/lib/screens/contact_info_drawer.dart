@@ -541,10 +541,25 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
     if (updated == true) {
       setState(() => _isSavingGroups = true);
-      final success = await ApiService().assignGroupsToContact(
-        [widget.contact.uid],
-        tempSelectedGroups.toList(),
-      );
+      
+      final toAdd = tempSelectedGroups.difference(Set<String>.from(_selectedGroupUids)).toList();
+      final toRemove = Set<String>.from(_selectedGroupUids).difference(tempSelectedGroups).toList();
+      
+      bool success = true;
+      if (toAdd.isNotEmpty) {
+        final addRes = await ApiService().assignGroupsToContact(
+          [widget.contact.uid],
+          toAdd,
+        );
+        success = success && addRes;
+      }
+      if (toRemove.isNotEmpty) {
+        final remRes = await ApiService().unassignGroupsFromContact(
+          [widget.contact.uid],
+          toRemove,
+        );
+        success = success && remRes;
+      }
 
       if (success) {
         setState(() {
