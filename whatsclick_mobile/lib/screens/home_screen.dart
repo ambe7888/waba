@@ -194,7 +194,10 @@ class _HomeScreenState extends State<HomeScreen>
         search: _searchController.text,
       );
       final data = result;
-      if (data.isEmpty) return;
+      if (data.isEmpty) {
+        if (mounted) setState(() { _isLoading = false; _isLoadingMore = false; });
+        return;
+      }
       final List<Contact> loaded = data['contacts'] ?? [];
       final next = _parseNextPage(data['nextPage']);
 

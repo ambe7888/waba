@@ -1473,8 +1473,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               ),
             ),
 
-          // Canned Replies Row (Notes rapides)
-          if (_showEmojiRow)
+          // Canned Replies Row (Notes rapides) - always visible
+          if (_cannedReplies.isNotEmpty || true)
             Container(
               height: 48,
               decoration: BoxDecoration(
