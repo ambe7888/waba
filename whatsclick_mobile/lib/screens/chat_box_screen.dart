@@ -110,9 +110,57 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   Future<void> _loadCannedReplies() async {
     final list = await ApiService().fetchCannedReplies();
+    final quickBots = await ApiService().fetchQuickReplies(widget.contact.uid);
+    final botManagement = await ApiService().fetchBotReplies();
+
+    final List<Map<String, dynamic>> combined = [];
+
+    // 1. Add active bot quick replies (e.g. shipping, return, etc.)
+    if (quickBots.isNotEmpty) {
+      for (final bot in quickBots) {
+        final botName = (bot['name'] ?? bot['trigger'] ?? bot['title'] ?? 'Bot').toString();
+        combined.add({
+          'is_bot': true,
+          'bot_id': bot['_id'] ?? bot['id'] ?? bot['_uid'],
+          'shortcut': '/${botName.replaceAll(' ', '_')}',
+          'name': botName,
+          'message': bot['reply_text'] ?? bot['message_body'] ?? bot['message'] ?? '',
+        });
+      }
+    }
+
+    // 2. Add bot management replies if any
+    if (botManagement != null && botManagement['bot_replies'] is List) {
+      for (final bot in (botManagement['bot_replies'] as List)) {
+        final botId = bot['_id'] ?? bot['id'] ?? bot['_uid'];
+        final botName = (bot['name'] ?? bot['name_or_trigger'] ?? bot['trigger'] ?? bot['title'] ?? '').toString();
+        final botMsg = (bot['reply_text'] ?? bot['reply'] ?? bot['message'] ?? '').toString();
+        if (botId != null && botName.isNotEmpty && !combined.any((c) => c['bot_id'] == botId)) {
+          combined.add({
+            'is_bot': true,
+            'bot_id': botId,
+            'shortcut': '/${botName.replaceAll(' ', '_')}',
+            'name': botName,
+            'message': botMsg,
+          });
+        }
+      }
+    }
+
+    // 3. Add canned replies / notes
+    for (final cr in list) {
+      final sc = cr['shortcut']?.toString() ?? 'Note';
+      combined.add({
+        'is_bot': false,
+        'shortcut': sc.startsWith('/') ? sc : '/$sc',
+        'name': sc,
+        'message': cr['message'] ?? '',
+      });
+    }
+
     if (mounted) {
       setState(() {
-        _cannedReplies = list;
+        _cannedReplies = combined;
       });
     }
   }
@@ -123,8 +171,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       final query = text.substring(1).toLowerCase();
       final filtered = _cannedReplies.where((reply) {
         final shortcut = reply['shortcut']?.toString().toLowerCase() ?? '';
+        final name = reply['name']?.toString().toLowerCase() ?? '';
         final msg = reply['message']?.toString().toLowerCase() ?? '';
-        return shortcut.contains(query) || msg.contains(query);
+        return shortcut.contains(query) || name.contains(query) || msg.contains(query);
       }).toList();
 
       setState(() {
@@ -1122,10 +1171,13 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 24),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.1,
                 children: [
                   _buildAttachmentItem(
                       Icons.headset_rounded,
@@ -1473,105 +1525,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               ),
             ),
 
-          // Canned Replies Row (Notes rapides) - always visible
-          if (_cannedReplies.isNotEmpty || true)
-            Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                    top: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.04))),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  // Button to add a new Quick Note directly
-                  GestureDetector(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CannedRepliesScreen(),
-                        ),
-                      );
-                      _loadCannedReplies();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2DD4BF).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF2DD4BF)),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add_rounded, size: 16, color: Color(0xFF2DD4BF)),
-                            SizedBox(width: 4),
-                            Text('+ Note',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2DD4BF))),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  ..._cannedReplies.map((reply) {
-                    final shortcut = reply['shortcut']?.toString() ?? 'Note';
-                    final messageText = reply['message']?.toString() ?? '';
 
-                    return GestureDetector(
-                      onTap: () {
-                        final text = _messageController.text;
-                        final selection = _messageController.selection;
-                        final newText = text.replaceRange(
-                          selection.start >= 0 ? selection.start : text.length,
-                          selection.end >= 0 ? selection.end : text.length,
-                          messageText,
-                        );
-                        _messageController.text = newText;
-                        _messageController.selection = TextSelection.collapsed(
-                          offset: (selection.start >= 0
-                                  ? selection.start
-                                  : text.length) +
-                              messageText.length,
-                        );
-                      },
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Center(
-                            child: Text(shortcut,
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.primary)),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
 
           // Canned Replies Suggestions Overlay
           if (_showCannedSuggestions)
@@ -1602,31 +1556,53 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   itemCount: _filteredCannedReplies.length,
                   itemBuilder: (context, index) {
                     final reply = _filteredCannedReplies[index];
+                    final isBot = reply['is_bot'] == true;
+                    final titleText = reply['shortcut'] ?? reply['name'] ?? '';
+                    final messageText = reply['message'] ?? '';
+
                     return ListTile(
                       dense: true,
-                      leading: const Icon(Icons.smart_toy_rounded,
-                          color: Color(0xFFF59E0B), size: 18),
+                      leading: Icon(
+                        isBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
+                        color: isBot ? const Color(0xFF2DD4BF) : const Color(0xFFF59E0B),
+                        size: 18,
+                      ),
                       title: Text(
-                        reply['shortcut'] ?? '',
+                        titleText,
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       subtitle: Text(
-                        reply['message'] ?? '',
+                        messageText.isNotEmpty ? messageText : (reply['name'] ?? ''),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12),
                       ),
-                      onTap: () {
-                        setState(() {
-                          _messageController.text = reply['message'] ?? '';
-                          _messageController.selection =
-                              TextSelection.fromPosition(
-                            TextPosition(
-                                offset: _messageController.text.length),
-                          );
-                          _showCannedSuggestions = false;
-                        });
+                      onTap: () async {
+                        final botId = reply['bot_id'];
+                        final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
+
+                        if (isBot && botIdInt > 0) {
+                          setState(() {
+                            _messageController.clear();
+                            _showCannedSuggestions = false;
+                          });
+                          _showChatNotice('Envoi de la réponse auto...');
+                          final sent = await ApiService().sendQuickReply(widget.contact.uid, botIdInt);
+                          if (sent) {
+                            _loadMessages(silent: true);
+                          } else {
+                            _showChatNotice('Erreur lors de l\'envoi de la réponse auto');
+                          }
+                        } else {
+                          setState(() {
+                            _messageController.text = messageText.isNotEmpty ? messageText : titleText;
+                            _messageController.selection = TextSelection.fromPosition(
+                              TextPosition(offset: _messageController.text.length),
+                            );
+                            _showCannedSuggestions = false;
+                          });
+                        }
                       },
                     );
                   },

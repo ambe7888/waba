@@ -383,12 +383,33 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 'display_credits' => $displayCredits,
             ],
             'current_subscription' => (function() use ($vendorId) {
-                $planDetails = vendorPlanDetails('contacts', 0, $vendorId);
+                $sub = getVendorCurrentActiveSubscription($vendorId);
+                $title = 'Plan Gratuit';
+                $endsAt = null;
+                $isExpired = false;
+                $isFree = true;
+
+                if (!empty($sub)) {
+                    $title = $sub->plan_title ?? $sub->title ?? 'Plan Vendeur';
+                    $endsAt = $sub->expiry_at ?? $sub->ends_at ?? null;
+                    $isFree = false;
+                    if ($endsAt) {
+                        try {
+                            $isExpired = \Carbon\Carbon::parse($endsAt)->isPast();
+                        } catch (\Exception $e) {}
+                    }
+                } else {
+                    $freePlan = getFreePlan();
+                    if (!empty($freePlan) && isset($freePlan['title'])) {
+                        $title = $freePlan['title'];
+                    }
+                }
+
                 return [
-                    'title' => $planDetails->plan_title ?? 'Free',
-                    'ends_at' => $planDetails->ends_at,
-                    'is_expired' => $planDetails->is_expired,
-                    'is_free' => $planDetails->plan_type == 'free',
+                    'title' => $title,
+                    'ends_at' => $endsAt ? (is_string($endsAt) ? $endsAt : $endsAt->toIso8601String()) : null,
+                    'is_expired' => $isExpired,
+                    'is_free' => $isFree,
                     'features' => [
                         'manage_orders' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? true),
                         'ai_bot' => (bool) (vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'] ?? true),

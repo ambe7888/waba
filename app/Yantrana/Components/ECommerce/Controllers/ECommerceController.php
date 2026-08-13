@@ -564,30 +564,30 @@ class ECommerceController extends BaseController
         if ($request->filled('items') && is_array($request->items)) {
             foreach ($request->items as $itemData) {
                 $pId = $itemData['product_id'] ?? null;
-                if (!$pId) continue;
-
-                $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
-                    ->where(function($q) use ($pId) {
-                        $q->where('_id', $pId)
-                          ->orWhere('_uid', $pId);
-                    })->first();
-
-                if ($product) {
-                    $qty = max(1, intval($itemData['quantity'] ?? 1));
-                    $unitPrice = isset($itemData['custom_price']) && $itemData['custom_price'] !== '' 
-                        ? floatval($itemData['custom_price']) 
-                        : floatval($product->price);
-
-                    $itemSubtotal = $qty * $unitPrice;
-                    $itemsTotal += $itemSubtotal;
-
-                    $items[] = [
-                        'name' => $product->name,
-                        'quantity' => $qty,
-                        'price' => $unitPrice,
-                        'currency' => 'CFA'
-                    ];
+                $product = null;
+                if ($pId) {
+                    $product = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+                        ->where(function($q) use ($pId) {
+                            $q->where('_id', $pId)
+                              ->orWhere('_uid', $pId);
+                        })->first();
                 }
+
+                $name = $product ? $product->name : ($itemData['name'] ?? 'Produit');
+                $qty = max(1, intval($itemData['quantity'] ?? 1));
+                $unitPrice = isset($itemData['custom_price']) && $itemData['custom_price'] !== '' 
+                    ? floatval($itemData['custom_price']) 
+                    : floatval($product ? $product->price : 0);
+
+                $itemSubtotal = $qty * $unitPrice;
+                $itemsTotal += $itemSubtotal;
+
+                $items[] = [
+                    'name' => $name,
+                    'quantity' => $qty,
+                    'price' => $unitPrice,
+                    'currency' => 'CFA'
+                ];
             }
         }
 

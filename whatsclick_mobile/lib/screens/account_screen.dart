@@ -197,19 +197,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     );
                   },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading:
-                      const Icon(Icons.flash_on_rounded, color: Colors.amber),
-                  title: const Text('Réponses Rapides'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const CannedRepliesScreen()),
-                    );
-                  },
-                ),
+
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.group_work_rounded,

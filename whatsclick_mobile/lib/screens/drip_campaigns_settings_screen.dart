@@ -33,7 +33,7 @@ class _DripCampaignsSettingsScreenState
     }
   }
 
-  Future<void> _toggleStatus(String uid, int currentStatus) async {
+  Future<void> _toggleStatus(String uid, dynamic currentStatus) async {
     setState(() {
       _togglingUids.add(uid);
     });
@@ -45,7 +45,8 @@ class _DripCampaignsSettingsScreenState
         setState(() {
           final index = _campaigns.indexWhere((c) => c['_uid'] == uid);
           if (index != -1) {
-            _campaigns[index]['status'] = currentStatus == 1 ? 2 : 1;
+            final isCurrentlyActive = currentStatus == 1 || currentStatus == '1' || currentStatus == true;
+            _campaigns[index]['status'] = isCurrentlyActive ? 2 : 1;
           }
         });
       } else {
@@ -120,9 +121,7 @@ class _DripCampaignsSettingsScreenState
                     final campaign = _campaigns[index];
                     final uid = campaign['_uid'];
                     final title = campaign['title'] ?? 'Sans titre';
-                    final status =
-                        campaign['status'] ?? 2; // 1 = active, 2 = inactive
-                    final isActive = status == 1;
+                    final isActive = status == 1 || status == '1' || status == true || status == 'active';
                     final isToggling = _togglingUids.contains(uid);
 
                     return Card(

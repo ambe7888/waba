@@ -432,6 +432,9 @@ Route::group([
                 return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
             }
             $groups = \App\Yantrana\Components\Contact\Models\ContactGroupModel::where('vendors__id', $vendorId)
+                ->where(function($q) {
+                    $q->where('status', 1)->orWhereNull('status')->orWhere('status', '!=', 5);
+                })
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($g) {
@@ -813,9 +816,9 @@ Route::group([
             if (!$campaign) {
                 return response()->json(['reaction' => 2, 'message' => 'Campaign not found']);
             }
-            $campaign->status = $campaign->status == 1 ? 0 : 1;
+            $campaign->status = ($campaign->status == 1 || $campaign->status === '1') ? 2 : 1;
             $campaign->save();
-            return response()->json(['reaction' => 1, 'message' => 'Status updated successfully', 'data' => ['status' => $campaign->status]]);
+            return response()->json(['reaction' => 1, 'message' => 'Statut mis à jour avec succès', 'data' => ['status' => $campaign->status]]);
         })->name('app_api.vendor.drip_campaigns.toggle_status');
 
     });
