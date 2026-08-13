@@ -1169,7 +1169,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         contactUid: widget.contact.uid,
         contactName: widget.contact.name.isNotEmpty
             ? widget.contact.name
-            : widget.contact.waId,
+            : widget.contact.phoneNumber,
         onOrderCreated: () {
           _loadMessages(silent: true);
         },

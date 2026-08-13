@@ -241,7 +241,7 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
               // Product Picker Dropdown
               if (!_useCustomProduct && _catalogProducts.isNotEmpty) ...[
                 DropdownButtonFormField<Map<String, dynamic>>(
-                  value: _selectedProduct,
+                  initialValue: _selectedProduct,
                   decoration: InputDecoration(
                     labelText: 'Sélectionner un produit',
                     prefixIcon: const Icon(Icons.inventory_2_rounded),

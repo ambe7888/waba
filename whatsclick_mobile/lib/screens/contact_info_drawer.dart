@@ -1085,7 +1085,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                       contactUid: widget.contact.uid,
                                       contactName: widget.contact.name.isNotEmpty
                                           ? widget.contact.name
-                                          : widget.contact.waId,
+                                          : widget.contact.phoneNumber,
                                       onOrderCreated: () {
                                         _loadContactOrders();
                                       },
