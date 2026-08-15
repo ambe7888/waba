@@ -179,9 +179,7 @@ class HomeController extends BaseController
                 ->setPunchoutBackground(true);
         }
 
-        // Create generic label
-        $label = Label::create(__tr(''))->setTextColor(new Color(255, 0, 0));
-        $result = $writer->write($qrCode, $logoObj, $label);
+        $result = $writer->write($qrCode, $logoObj);
 
         return response($result->getString(), 200, [
             'Content-Type' => $result->getMimeType(),
