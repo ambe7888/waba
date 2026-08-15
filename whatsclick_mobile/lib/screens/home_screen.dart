@@ -69,6 +69,29 @@ class _HomeScreenState extends State<HomeScreen>
 
     _fcmSubscription = FcmService().onMessage.listen((message) {
       if (mounted) {
+        // Optimistic instant update
+        final data = message.data;
+        final contactUid = data['contact_uid'] ?? data['contactUid'];
+        if (contactUid != null) {
+          final title = message.notification?.title ?? data['title'];
+          final body = message.notification?.body ?? data['body'];
+          
+          setState(() {
+            final idx = _contacts.indexWhere((c) => c.uid == contactUid);
+            if (idx != -1) {
+              final existing = _contacts[idx];
+              final updated = existing.copyWith(
+                lastMessage: body ?? existing.lastMessage,
+                lastMessageTime: DateTime.now().toUtc().toIso8601String(),
+                unreadCount: existing.unreadCount + 1,
+              );
+              _contacts.removeAt(idx);
+              _contacts.insert(0, updated);
+            }
+          });
+          _applyFilters();
+        }
+
         _loadContacts(silent: true);
         _refreshBadgeCounts();
       }
@@ -986,16 +1009,30 @@ class _HomeScreenState extends State<HomeScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.of(context)
-                .push(
+          onTap: () async {
+            final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ChatBoxScreen(contact: contact),
               ),
-            )
-                .then((_) {
-              _loadContacts(silent: true);
-            });
+            );
+            
+            if (result != null && result is String) {
+              setState(() {
+                final idx = _contacts.indexWhere((c) => c.uid == contact.uid);
+                if (idx != -1) {
+                  final existing = _contacts[idx];
+                  final updated = existing.copyWith(
+                    lastMessage: result,
+                    lastMessageTime: DateTime.now().toUtc().toIso8601String(),
+                  );
+                  _contacts.removeAt(idx);
+                  _contacts.insert(0, updated);
+                }
+              });
+              _applyFilters();
+            }
+            
+            _loadContacts(silent: true);
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),

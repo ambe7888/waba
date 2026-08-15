@@ -151,10 +151,12 @@ class _LoginScreenState extends State<LoginScreen>
         );
       }
     } else {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Identifiants incorrects ou erreur serveur.';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = res['message'] ?? 'Identifiants incorrects ou erreur réseau.';
+        });
+      }
     }
   }
 

@@ -126,11 +126,24 @@ class ApiService {
             return {'success': true, 'two_factor': false};
           }
         }
+        // Return the actual API error message if available
+        return {
+          'success': false, 
+          'two_factor': false, 
+          'message': body['message'] ?? 'Erreur lors de la connexion'
+        };
+      } else if (response.statusCode == 422) {
+        final body = jsonDecode(response.body);
+        return {
+          'success': false, 
+          'two_factor': false, 
+          'message': body['message'] ?? 'Identifiants incorrects.'
+        };
       }
-      return {'success': false, 'two_factor': false};
+      return {'success': false, 'two_factor': false, 'message': 'Erreur serveur (${response.statusCode})'};
     } catch (e) {
       if (debug) debugPrint('Login Error: $e');
-      return {'success': false, 'two_factor': false};
+      return {'success': false, 'two_factor': false, 'message': 'Erreur réseau: $e'};
     }
   }
 
@@ -194,8 +207,9 @@ class ApiService {
     final List<String> params = ['page=$page'];
     if (search != null && search.isNotEmpty) params.add('search=$search');
     if (selectedLabel != null) params.add('selected_labels=$selectedLabel');
-    if (labelDateFilter != null)
+    if (labelDateFilter != null) {
       params.add('label_date_filter=$labelDateFilter');
+    }
     if (startDate != null) params.add('start_date=$startDate');
     if (endDate != null) params.add('end_date=$endDate');
     if (assigned != null) params.add('assigned=$assigned');
@@ -204,9 +218,10 @@ class ApiService {
         '${baseApiUrl}vendor/contact/contacts-data?${params.join('&')}');
     try {
       final response = await http.get(url, headers: _getHeaders());
-      if (debug)
+      if (debug) {
         debugPrint(
             'fetchContacts status=${response.statusCode} body=${response.body}');
+      }
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
 
@@ -441,8 +456,9 @@ class ApiService {
 
           final finalLength = await fileToUpload.length();
           if (finalLength > 10485760) {
-            if (debug)
+            if (debug) {
               debugPrint('File too large even after compression: $finalLength');
+            }
             return false;
           }
           request.files.add(await http.MultipartFile.fromPath(
@@ -455,9 +471,10 @@ class ApiService {
           final data = jsonDecode(response.body);
           return data['reaction'] == 1;
         } else {
-          if (debug)
+          if (debug) {
             debugPrint(
                 'Upload failed: ${response.statusCode} - ${response.body}');
+          }
         }
         return false;
       } else {
@@ -505,9 +522,10 @@ class ApiService {
           }
         }
       } else {
-        if (debug)
+        if (debug) {
           debugPrint(
               'Fetch Messages API Error: ${response.statusCode} ${response.body}');
+        }
       }
       return null;
     } catch (e) {
@@ -535,9 +553,10 @@ class ApiService {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug)
+      if (debug) {
         debugPrint(
             'Send Message API Error: ${response.statusCode} ${response.body}');
+      }
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Message Error: $e');
@@ -632,8 +651,9 @@ class ApiService {
       if (email != null) bodyMap['email'] = email;
       if (customFields != null) bodyMap['custom_input_fields'] = customFields;
       if (enableAiBot != null) bodyMap['enable_ai_bot'] = enableAiBot ? 1 : 0;
-      if (enableReplyBot != null)
+      if (enableReplyBot != null) {
         bodyMap['enable_reply_bot'] = enableReplyBot ? 1 : 0;
+      }
 
       final response = await http.post(
         url,
@@ -921,9 +941,10 @@ class ApiService {
         } else {
           mimeType = 'application/pdf';
         }
-        if (debug)
+        if (debug) {
           debugPrint(
               'Upload Temp Media: MIME fallback -> $mimeType (mediaType=$mediaType, path=${file.path})');
+        }
       }
 
       final typeParts = mimeType.split('/');
@@ -951,14 +972,16 @@ class ApiService {
             body['message'] ??
             'Erreur serveur (reaction != 1)';
         lastUploadError = msg is String ? msg : msg.toString();
-        if (debug)
+        if (debug) {
           debugPrint('Upload Temp Media Server Error: $lastUploadError');
+        }
       } else {
         lastUploadError = 'HTTP ${response.statusCode}';
       }
-      if (debug)
+      if (debug) {
         debugPrint(
             'Upload Temp Media API Error: status=${response.statusCode}');
+      }
       return null;
     } catch (e) {
       lastUploadError = e.toString();
@@ -993,9 +1016,10 @@ class ApiService {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug)
+      if (debug) {
         debugPrint(
             'Send Media Message API Error: ${response.statusCode} ${response.body}');
+      }
       return false;
     } catch (e) {
       if (debug) debugPrint('Send Media Message Error: $e');
@@ -1018,8 +1042,9 @@ class ApiService {
         // 1. Standard API response (reaction == 1)
         if (body['reaction'] == 1) {
           final raw = body['data']?['campaignList'];
-          if (debug)
+          if (debug) {
             debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
+          }
           if (raw is Map && raw['data'] is List) {
             return List<Map<String, dynamic>>.from(raw['data']);
           }
@@ -1346,8 +1371,9 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (debug)
+      if (debug) {
         debugPrint('fetchContactGroups status: ${response.statusCode}');
+      }
       // Log FULL body to diagnose production issue
       if (debug) debugPrint('fetchContactGroups FULL body: ${response.body}');
       if (response.statusCode == 200) {
@@ -1364,9 +1390,10 @@ class ApiService {
               data?['contactGroups']?['data'] ??
               data?['contactGroups'] ??
               data?['data'];
-          if (debug)
+          if (debug) {
             debugPrint(
                 'fetchContactGroups resolved list type: ${list?.runtimeType}, length: ${list is List ? (list).length : "N/A"}');
+          }
           if (list is List) {
             return List<Map<String, dynamic>>.from(list);
           }
@@ -1374,9 +1401,10 @@ class ApiService {
           if (data is Map) {
             for (final val in data.values) {
               if (val is List && val.isNotEmpty) {
-                if (debug)
+                if (debug) {
                   debugPrint(
                       'fetchContactGroups found list in data values: length ${val.length}');
+                }
                 try {
                   return List<Map<String, dynamic>>.from(val);
                 } catch (_) {}
@@ -1384,9 +1412,10 @@ class ApiService {
               if (val is Map) {
                 for (final innerVal in val.values) {
                   if (innerVal is List && innerVal.isNotEmpty) {
-                    if (debug)
+                    if (debug) {
                       debugPrint(
                           'fetchContactGroups found nested list: length ${innerVal.length}');
+                    }
                     try {
                       return List<Map<String, dynamic>>.from(innerVal);
                     } catch (_) {}

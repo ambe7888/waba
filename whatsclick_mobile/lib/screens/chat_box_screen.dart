@@ -1619,6 +1619,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   PreferredSizeWidget _buildAppBar(bool isWindowActive) {
     return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          Navigator.pop(context, _messages.isNotEmpty ? _messages.first.body : null);
+        },
+      ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       title: _isSearching
@@ -2153,23 +2159,43 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   children: [
-                    _buildShortcutPill('/shipping', () {
-                      _messageController.text = '/shipping ';
-                      _messageController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _messageController.text.length),
-                      );
-                    }, isDark),
-                    const SizedBox(width: 6),
-                    _buildShortcutPill('/returns', () {
-                      _messageController.text = '/returns ';
-                      _messageController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _messageController.text.length),
-                      );
-                    }, isDark),
-                    const SizedBox(width: 6),
-                    _buildShortcutPill(
-                        '📄 Template', _showTemplatesSheet, isDark,
-                        isHighlight: true),
+            // Dynamic shortcuts from bot quick replies loaded in _cannedReplies
+            ..._cannedReplies
+                .where((r) => r['is_bot'] == true)
+                .take(3)
+                .map((r) {
+              final shortcut = r['shortcut']?.toString() ?? '';
+              final name = r['name']?.toString() ?? shortcut;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildShortcutPill(name, () {
+                    final msg = r['message']?.toString() ?? '';
+                    final botId = r['bot_id'];
+                    final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
+                    if (botIdInt > 0) {
+                      ApiService().sendQuickReply(widget.contact.uid, botIdInt).then((sent) {
+                        if (sent) {
+                          _showChatNotice('Réponse auto envoyée : $name');
+                          _loadMessages(silent: true);
+                        }
+                      });
+                    } else {
+                      setState(() {
+                        _messageController.text = msg.isNotEmpty ? msg : shortcut;
+                        _messageController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _messageController.text.length),
+                        );
+                      });
+                    }
+                  }, isDark, isHighlight: false),
+                  const SizedBox(width: 6),
+                ],
+              );
+            }).toList(),
+            _buildShortcutPill(
+                '📄 Template', _showTemplatesSheet, isDark,
+                isHighlight: true),
                   ],
                 ),
               ),

@@ -91,4 +91,34 @@ class Contact {
 
   /// Get unique set of label titles from this contact
   Set<String> get labelTitles => labels.map((l) => l.title).toSet();
+
+  Contact copyWith({
+    String? uid,
+    String? name,
+    String? phoneNumber,
+    String? avatar,
+    int? unreadCount,
+    String? lastMessage,
+    String? lastMessageTime,
+    List<ContactLabel>? labels,
+    String? lastMessageStatus,
+    bool? isAiBotActive,
+    String? status,
+    String? assignedUserName,
+  }) {
+    return Contact(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      avatar: avatar ?? this.avatar,
+      unreadCount: unreadCount ?? this.unreadCount,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      labels: labels ?? this.labels,
+      lastMessageStatus: lastMessageStatus ?? this.lastMessageStatus,
+      isAiBotActive: isAiBotActive ?? this.isAiBotActive,
+      status: status ?? this.status,
+      assignedUserName: assignedUserName ?? this.assignedUserName,
+    );
+  }
 }

@@ -1153,7 +1153,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      'Date: $dateStr • ${totalPrice} CFA',
+                                      'Date: $dateStr • $totalPrice CFA',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: onSurface.withValues(alpha: 0.6),
