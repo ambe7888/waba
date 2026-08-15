@@ -133,6 +133,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Abonnement (Preview) ───────────────────────────────────────
+          if (_stats?['vendorUserData']?['current_subscription'] != null)
+            Builder(builder: (_) {
+              final sub = _stats!['vendorUserData']['current_subscription'] as Map<String, dynamic>;
+              final planTitle = sub['title']?.toString() ?? 'Plan';
+              final endsAt = sub['ends_at']?.toString();
+              final isExpired = sub['is_expired'] == true;
+              final isFree = sub['is_free'] == true;
+
+              String endsLabel = '';
+              if (endsAt != null) {
+                try {
+                  final d = DateTime.parse(endsAt).toLocal();
+                  endsLabel = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+                } catch (_) {}
+              }
+
+              final Color statusColor = isExpired
+                  ? const Color(0xFFEF4444)
+                  : isFree
+                      ? Colors.orange
+                      : ThemeService.primaryColor;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusColor.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.workspace_premium_rounded,
+                          color: statusColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Abonnement: $planTitle',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B)),
+                          ),
+                          const SizedBox(height: 2),
+                          if (endsLabel.isNotEmpty)
+                            Text(
+                              isExpired
+                                  ? 'Expiré le $endsLabel'
+                                  : 'Expire le $endsLabel',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: isExpired
+                                      ? const Color(0xFFEF4444)
+                                      : (isDark
+                                          ? Colors.white54
+                                          : Colors.black54)),
+                            )
+                          else
+                            Text(
+                              'Pas de date de fin',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white54 : Colors.black54),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           Row(
             children: [
               // Date Range Picker Button

@@ -1437,18 +1437,24 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
     final isWindowActive = _is24hWindowActive();
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? Theme.of(context).scaffoldBackgroundColor
-          : _chatBgLight,
-      endDrawerEnableOpenDragGesture: false,
-      endDrawer: ContactInfoDrawer(
-        contact: widget.contact,
-        onUpdate: () {
-          _loadMessages(silent: true);
-        },
-      ),
-      appBar: _buildAppBar(isWindowActive),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) return;
+        Navigator.pop(context, _messages.isNotEmpty ? _messages.first.body : null);
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : _chatBgLight,
+        endDrawerEnableOpenDragGesture: false,
+        endDrawer: ContactInfoDrawer(
+          contact: widget.contact,
+          onUpdate: () {
+            _loadMessages(silent: true);
+          },
+        ),
+        appBar: _buildAppBar(isWindowActive),
       body: Column(
         children: [
           // Chat Messages
@@ -1614,7 +1620,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           _buildInputBar(),
         ],
       ),
-    );
+    ); // Close Scaffold
+    ); // Close PopScope
   }
 
   PreferredSizeWidget _buildAppBar(bool isWindowActive) {

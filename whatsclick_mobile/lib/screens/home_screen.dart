@@ -20,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
   bool _isLoading = true;
@@ -61,6 +62,12 @@ class _HomeScreenState extends State<HomeScreen>
     _loadContacts();
     _checkUpdate();
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreContacts();
+      }
+    });
 
     // Initialize FCM for push notifications
     FcmService().init().catchError((e) {
@@ -194,6 +201,18 @@ class _HomeScreenState extends State<HomeScreen>
         );
       }
     } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    _fcmSubscription.cancel();
+    _pollingTimer?.cancel();
+    _searchDebouncer?.cancel();
+    _fadeController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadContacts({bool silent = false, bool reset = false}) async {
@@ -867,6 +886,8 @@ class _HomeScreenState extends State<HomeScreen>
                         color: primaryColor,
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           itemCount: _filteredContacts.length +
                               (_nextPage > 0 ? 1 : 0),
