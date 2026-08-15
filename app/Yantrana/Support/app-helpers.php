@@ -1871,7 +1871,7 @@ if (! function_exists('cleanDisplayPhoneNumber')) {
      */
     function cleanDisplayPhoneNumber($phoneNumber)
     {
-        $result = $phoneNumber ? preg_replace('/\D/', '', $phoneNumber) : null;
+        $result = $phoneNumber ? preg_replace('/[^0-9]/', '', (string)$phoneNumber) : null;
         if ($result) {
             return ltrim($result, '0');
         }

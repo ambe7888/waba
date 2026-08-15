@@ -773,19 +773,24 @@ $groupDescription = $groupUid ? $currentGroup->description : '';
     };
     window.onImportProcessUpdate = function(responseData, callbackParams) {
         if((responseData.reaction == 1) || (responseData === true)) {
-            if(_.get(responseData, 'data.progressCount') === 0) {
+            if(responseData !== true && _.get(responseData, 'data.progressCount') === 0) {
                 appFuncs.modelSuccessCallback(responseData, callbackParams);
+                setTimeout(function() { window.location.reload(); }, 1200);
             } else if(_.get(responseData, 'data.progressCount') || (responseData === true))  {
                 __DataRequest.post('{{ route('vendor.contact.write.import') }}', {
                     'document_name': 'existing'
                 }, function(responseData) {
                      _.delay(function() {
                          window.onImportProcessUpdate(responseData, callbackParams);
-                    },30);
+                    }, 50);
                 });
             } else {
                 appFuncs.modelSuccessCallback(responseData, callbackParams);
             }
+        } else {
+            var errorMsg = _.get(responseData, 'message', '{{ __tr("Une erreur est survenue lors de l\'importation.") }}');
+            showDangerNotification(errorMsg);
+            setTimeout(function() { window.location.reload(); }, 2000);
         }
     };
     var existingImportRequestExist = {{ getVendorSettings('contacts_import_process_data') ? 1 : 0 }};

@@ -1067,13 +1067,20 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
         $documentName = $request->get('document_name');
         $totalRows = 0;
         if ($existingContactImportRequest) {
-            sleep(1); // wait for a while
-            if ($documentName !== 'existing') {
-                deleteTempUploadedFile($documentName);
-                return $this->engineFailedResponse([], __tr('Existing import contacts request already in progress, please wait until it is completed OR abort it.'));
+            // Auto abort stale imports older than 5 minutes
+            $updatedAt = isset($existingContactImportRequest['updated_at']) ? \Carbon\Carbon::parse($existingContactImportRequest['updated_at']) : (isset($existingContactImportRequest['started_at']) ? \Carbon\Carbon::parse($existingContactImportRequest['started_at']) : null);
+            if ($updatedAt && $updatedAt->diffInMinutes(now()) >= 5) {
+                $this->processAbortImportContacts();
+                $existingContactImportRequest = null;
+            } else {
+                sleep(1); // wait for a while
+                if ($documentName !== 'existing') {
+                    deleteTempUploadedFile($documentName);
+                    return $this->engineFailedResponse([], __tr('Existing import contacts request already in progress, please wait until it is completed OR abort it.'));
+                }
+                $documentName = $existingContactImportRequest['document_name'] ?? null;
+                $totalRows = $existingContactImportRequest['total_rows'] ?? 0;
             }
-            $documentName = $existingContactImportRequest['document_name'] ?? null;
-            $totalRows = $existingContactImportRequest['total_rows'] ?? 0;
         }
         $vendorId = getVendorId();
         $vendorPlanDetails = vendorPlanDetails(null, null, $vendorId);
