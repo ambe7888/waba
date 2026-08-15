@@ -394,8 +394,8 @@ $currentAppTheme ='';
             <h4 class="font-weight-700 text-dark mb-3" style="font-size: 1.1rem; color: #1e293b;">{{ $whatsappPhoneNumber['verified_name'] }}</h4>
             @endif
 
-            <div class="lw-qr-image-wrapper mb-3">
-                <img class="lw-qr-image" src="{{ route('vendor.whatsapp_qr', [
+            <div class="lw-qr-image-wrapper mb-3 text-center">
+                <img class="lw-qr-image" style="max-width: 220px; width: 100%; height: auto; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px; background: #fff;" src="{{ route('vendor.whatsapp_qr', [
                     'vendorUid' => getVendorUid(),
                     'phoneNumber' => cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']),
                 ]) }}" alt="QR Code">
@@ -410,7 +410,7 @@ $currentAppTheme ='';
 
             <!-- URL for QR Image -->
             <div class="form-group text-left mb-3">
-                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('URL for QR Image:') }}</label>
+                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('URL de l\'image QR :') }}</label>
                 <div class="input-group lw-qr-input-group">
                     <input type="text" class="form-control" readonly id="lwWhatsAppQRImage{{ $loop->index }}" value="{{ route('vendor.whatsapp_qr', [
                         'vendorUid' => getVendorUid(),
@@ -418,7 +418,7 @@ $currentAppTheme ='';
                     ]) }}">
                     <div class="input-group-append">
                         <button class="btn lw-qr-btn-copy" type="button" onclick="lwCopyToClipboard('lwWhatsAppQRImage{{ $loop->index }}')">
-                            <i class="far fa-copy mr-1"></i> {{ __tr('Copy') }}
+                            <i class="far fa-copy mr-1"></i> {{ __tr('Copie') }}
                         </button>
                     </div>
                 </div>
@@ -426,20 +426,21 @@ $currentAppTheme ='';
 
             <!-- WhatsApp URL -->
             <div class="form-group text-left mb-0">
-                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('WhatsApp URL:') }}</label>
-                <div class="input-group lw-qr-input-group">
+                <label class="form-label font-weight-700 text-dark small mb-1" style="font-size: 0.83rem;">{{ __tr('URL WhatsApp :') }}</label>
+                <div class="input-group lw-qr-input-group mb-2">
                     <input type="text" class="form-control" readonly id="lwWhatsAppUrl{{ $loop->index }}"
                         value="https://wa.me/{{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}">
                     <div class="input-group-append">
                         <button class="btn lw-qr-btn-copy" type="button" onclick="lwCopyToClipboard('lwWhatsAppUrl{{ $loop->index }}')">
-                            <i class="far fa-copy mr-1"></i> {{ __tr('Copy') }}
+                            <i class="far fa-copy mr-1"></i> {{ __tr('Copie') }}
                         </button>
-                        <a class="btn lw-qr-btn-wa" target="_blank"
-                            href="https://api.whatsapp.com/send?phone={{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}">
-                            <i class="fab fa-whatsapp mr-1.5" style="font-size: 1.1rem;"></i> {{ __tr('WhatsApp Now') }}
-                        </a>
                     </div>
                 </div>
+                <a class="btn lw-qr-btn-wa w-100 justify-content-center py-2.5 mt-2" target="_blank"
+                    style="border-radius: 10px;"
+                    href="https://api.whatsapp.com/send?phone={{ cleanDisplayPhoneNumber($whatsappPhoneNumber['display_phone_number']) }}">
+                    <i class="fab fa-whatsapp mr-2" style="font-size: 1.1rem;"></i> {{ __tr('WhatsApp maintenant') }}
+                </a>
             </div>
         </div>
         @endforeach

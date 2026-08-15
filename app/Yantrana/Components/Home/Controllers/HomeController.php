@@ -153,10 +153,11 @@ class HomeController extends BaseController
     public function generateWhatsAppQR($vendorUid = null, $phoneNumber = null)
     {
         if(!$vendorUid or !$phoneNumber) {
-            return null;
+            abort(404);
         }
-        $this->generateUrlQR("https://wa.me/{$phoneNumber}", true);
+        return $this->generateUrlQR("https://wa.me/{$phoneNumber}", true);
     }
+
     public function generateUrlQR($upiAddress, $logo = null)
     {
         $writer = new PngWriter();
@@ -169,26 +170,24 @@ class HomeController extends BaseController
             ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin)
             ->setForegroundColor(new Color(0, 0, 0))
             ->setBackgroundColor(new Color(255, 255, 255));
-        if($logo) {
+        
+        $logoObj = null;
+        if($logo && file_exists(public_path('imgs/Digital_Glyph_Green.png'))) {
             // Create generic logo
-            $logo = Logo::create(public_path('imgs/Digital_Glyph_Green.png'))
-            ->setResizeToWidth(50)
-            ->setPunchoutBackground(true)
-            ;
+            $logoObj = Logo::create(public_path('imgs/Digital_Glyph_Green.png'))
+                ->setResizeToWidth(50)
+                ->setPunchoutBackground(true);
         }
 
         // Create generic label
         $label = Label::create(__tr(''))->setTextColor(new Color(255, 0, 0));
-        $result = $writer->write($qrCode, $logo, $label);
-        // Validate the result
-        // $writer->validateResult($result, 'Life is too short to be generating QR codes');
-        // Directly output the QR code
-        header('Content-Type: '.$result->getMimeType());
-        echo $result->getString();
-        // Save it to a file
-        // $result->saveToFile(__DIR__.'/qrcode.png');
-        // return $result->getDataUri();
-        // Generate a data URI to include image data inline (i.e. inside an <img> tag)
+        $result = $writer->write($qrCode, $logoObj, $label);
+
+        return response($result->getString(), 200, [
+            'Content-Type' => $result->getMimeType(),
+            'Cache-Control' => 'max-age=86400, public',
+        ]);
+    }    // Generate a data URI to include image data inline (i.e. inside an <img> tag)
         // return '<img src="'. $result->getDataUri() .'" alt="WhatsApp QR Code">';
     }
 
