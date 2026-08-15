@@ -303,6 +303,8 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),
             'totalTemplates' => $this->whatsAppTemplateRepository->countIt($vendorWhereClause),
             'totalBotReplies' => $this->botReplyRepository->fetchBotReplyCountForDashboard($vendorId),
+            'totalBotFlows' => $this->botFlowRepository->countIt($vendorWhereClause),
+            'totalDripCampaigns' => class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign') ? \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', $vendorId)->count() : 0,
             'messagesInQueue' => $this->whatsAppMessageQueueRepository->countIt([
                 'status' => 1,
                 'vendors__id' => $vendorId
@@ -372,6 +374,35 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             })(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'messageHistory' => $messageHistory,
+            'campaign_stats' => (function() use ($vendorId) {
+                $vendorCampaigns = \App\Yantrana\Components\Campaign\Models\CampaignModel::where('vendors__id', $vendorId)->withCount(['queuePendingMessages', 'queueProcessingMessages', 'messageLog'])->get();
+                $cCompleted = 0; $cProcessing = 0; $cScheduled = 0; $cArchived = 0;
+                foreach($vendorCampaigns as $c) {
+                    if ($c->status == 6) { $cArchived++; continue; }
+                    if ($c->queue_pending_messages_count || $c->queue_processing_messages_count) {
+                        if ($c->message_log_count) { $cProcessing++; } else { $cScheduled++; }
+                    } else {
+                        if ($c->message_log_count) { $cCompleted++; }
+                    }
+                }
+                return [
+                    'completed' => $cCompleted,
+                    'processing' => $cProcessing,
+                    'scheduled' => $cScheduled,
+                    'archived' => $cArchived,
+                ];
+            })(),
+            'template_stats' => [
+                'approved' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'APPROVED')->count(),
+                'pending' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'PENDING')->count(),
+                'rejected' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'REJECTED')->count(),
+                'marketing' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('category', 'MARKETING')->count(),
+                'utility' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('category', 'UTILITY')->count(),
+            ],
+            'order_stats' => \Schema::hasTable('orders') ? [
+                'pending' => \DB::table('orders')->where('vendors__id', $vendorId)->where('status', 'pending')->count(),
+                'completed' => \DB::table('orders')->where('vendors__id', $vendorId)->where('status', 'completed')->count(),
+            ] : [],
             'label_date_stats' => $labelStats,
             'agents' => $agents,
             'ai_credits' => [
@@ -415,6 +446,14 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                         'ai_bot' => (bool) (vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'] ?? true),
                         'campaigns' => (bool) (vendorPlanDetails('campaigns', 1, $vendorId)['is_limit_available'] ?? true),
                         'canned_replies' => (bool) (vendorPlanDetails('bot_replies', 1, $vendorId)['is_limit_available'] ?? true),
+                    ],
+                    'limits' => [
+                        'contacts' => vendorPlanDetails('contacts', 0, $vendorId)->plan_feature_limit ?? 0,
+                        'campaigns' => vendorPlanDetails('campaigns', 0, $vendorId)->plan_feature_limit ?? 0,
+                        'bot_replies' => vendorPlanDetails('bot_replies', 0, $vendorId)->plan_feature_limit ?? 0,
+                        'system_users' => vendorPlanDetails('system_users', 0, $vendorId)->plan_feature_limit ?? 0,
+                        'drip_campaigns' => vendorPlanDetails('drip_campaigns', 0, $vendorId)->plan_feature_limit ?? 0,
+                        'bot_flows' => vendorPlanDetails('bot_flows', 0, $vendorId)->plan_feature_limit ?? 0,
                     ]
                 ];
             })(),
