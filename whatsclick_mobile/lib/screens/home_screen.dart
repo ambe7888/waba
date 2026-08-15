@@ -203,17 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _scrollController.dispose();
-    _fcmSubscription.cancel();
-    _pollingTimer?.cancel();
-    _searchDebouncer?.cancel();
-    _fadeController.dispose();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
+
 
   Future<void> _loadContacts({bool silent = false, bool reset = false}) async {
     if (_isLoadingMore && !reset) return;
@@ -626,6 +616,7 @@ class _HomeScreenState extends State<HomeScreen>
     _pollingTimer?.cancel();
     _searchDebouncer?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     _fadeController.dispose();
     super.dispose();
   }

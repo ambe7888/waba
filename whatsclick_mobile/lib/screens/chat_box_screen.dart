@@ -1620,7 +1620,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           _buildInputBar(),
         ],
       ),
-    ); // Close Scaffold
+    ), // Close Scaffold
     ); // Close PopScope
   }
 
