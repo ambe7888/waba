@@ -185,9 +185,9 @@ class HomeController extends BaseController
             'Content-Type' => $result->getMimeType(),
             'Cache-Control' => 'max-age=86400, public',
         ]);
-    }    // Generate a data URI to include image data inline (i.e. inside an <img> tag)
-        // return '<img src="'. $result->getDataUri() .'" alt="WhatsApp QR Code">';
     }
+    // Generate a data URI to include image data inline (i.e. inside an <img> tag)
+    // return '<img src="'. $result->getDataUri() .'" alt="WhatsApp QR Code">';
 
     public function generateUpiPaymentUrl(BaseRequest $request)
     {
