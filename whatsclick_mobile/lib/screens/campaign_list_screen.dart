@@ -136,6 +136,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     final surfaceCard = Theme.of(context).colorScheme.surface;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

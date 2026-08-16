@@ -93,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? ThemeService.darkSurface : const Color(0xFFF8FAFC),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Row(
           children: [

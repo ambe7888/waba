@@ -230,37 +230,45 @@ class _LoginScreenState extends State<LoginScreen>
                 opacity: _fadeAnim,
                 child: SlideTransition(
                   position: _slideAnim,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header
-                      Text(
-                        'Connexion',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.grey.shade300)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'ou',
-                              style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600),
+                  child: AutofillGroup(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // App Logo
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: primaryColor.withValues(alpha: 0.1),
                             ),
+                            child: Icon(Icons.chat_bubble_rounded, size: 48, color: primaryColor),
                           ),
-                          Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.grey.shade300)),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'WhatsClick',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: primaryColor,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        // Header
+                        Text(
+                          'Connexion',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
 
                       if (_errorMessage != null)
                         Container(
@@ -299,6 +307,7 @@ class _LoginScreenState extends State<LoginScreen>
                         TextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
                           decoration: InputDecoration(
                             hintText: 'Entrez votre e-mail ou identifiant',
                             prefixIcon: const Icon(Icons.email_outlined),
@@ -329,6 +338,7 @@ class _LoginScreenState extends State<LoginScreen>
                         TextField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          autofillHints: const [AutofillHints.password],
                           decoration: InputDecoration(
                             hintText: 'Entrez votre mot de passe',
                             prefixIcon: const Icon(Icons.lock_outline),
@@ -479,8 +489,24 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 32),
                       
-                      // Register Link
-                      if (!_show2FAInput)
+                      if (!_show2FAInput) ...[
+                        // Divider
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.grey.shade300)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'ou',
+                                style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.grey.shade300)),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Register Link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -507,6 +533,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ],
                         ),
+                      ],
                     ],
                   ),
                 ),

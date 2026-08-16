@@ -116,6 +116,7 @@ class _AccountScreenState extends State<AccountScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Row(
           children: [

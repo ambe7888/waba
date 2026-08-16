@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 
@@ -189,8 +191,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               Expanded(
-                child: Stepper(
-                  type: StepperType.horizontal,
+                child: AutofillGroup(
+                  child: Stepper(
+                    type: StepperType.horizontal,
                   currentStep: _currentStep,
                   onStepContinue: _nextStep,
                   onStepCancel: _cancelStep,
@@ -207,6 +210,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       padding: const EdgeInsets.only(top: 32.0),
                       child: Row(
                         children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _isLoading ? null : details.onStepCancel,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDark ? Colors.white70 : Colors.grey.shade700,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(_currentStep == 0 ? 'Annuler' : 'Retour'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : details.onStepContinue,
@@ -225,20 +242,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                     )
                                   : Text(_currentStep == 2 ? 'S\'inscrire' : 'Continuer'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isLoading ? null : details.onStepCancel,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: isDark ? Colors.white70 : Colors.grey.shade700,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(_currentStep == 0 ? 'Annuler' : 'Retour'),
                             ),
                           ),
                         ],
@@ -278,13 +281,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(_mobileController, 'Mobile (ex: 33600000000)', Icons.phone_outlined, isDark, keyboardType: TextInputType.phone),
+                          _buildTextField(_mobileController, 'Mobile (indicatif pays sans + ni 0, ex: 33600000000)', Icons.phone_outlined, isDark, keyboardType: TextInputType.phone, autofillHints: const [AutofillHints.telephoneNumber]),
                           const SizedBox(height: 16),
-                          _buildTextField(_emailController, 'Email', Icons.email_outlined, isDark, keyboardType: TextInputType.emailAddress),
+                          _buildTextField(_emailController, 'Email', Icons.email_outlined, isDark, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.email]),
                           const SizedBox(height: 16),
-                          _buildTextField(_passwordController, 'Mot de passe', Icons.lock_outline, isDark, isPassword: true),
+                          _buildTextField(_passwordController, 'Mot de passe', Icons.lock_outline, isDark, isPassword: true, autofillHints: const [AutofillHints.newPassword]),
                           const SizedBox(height: 16),
-                          _buildTextField(_confirmPasswordController, 'Confirmer Mot de passe', Icons.lock_outline, isDark, isPassword: true),
+                          _buildTextField(_confirmPasswordController, 'Confirmer Mot de passe', Icons.lock_outline, isDark, isPassword: true, autofillHints: const [AutofillHints.newPassword]),
                         ],
                       ),
                     ),
@@ -310,7 +313,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _agreeTerms = val ?? false;
                                 });
                               },
-                              title: const Text('J\'accepte les conditions d\'utilisation et la politique de confidentialité.', style: TextStyle(fontSize: 14)),
+                              title: RichText(
+                                text: TextSpan(
+                                  style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black),
+                                  children: [
+                                    const TextSpan(text: 'J\'accepte les '),
+                                    TextSpan(
+                                      text: 'conditions d\'utilisation',
+                                      style: TextStyle(color: primaryColor, decoration: TextDecoration.underline),
+                                      recognizer: TapGestureRecognizer()..onTap = () {
+                                        launchUrl(Uri.parse('https://whats-click.com/terms-and-conditions'));
+                                      },
+                                    ),
+                                    const TextSpan(text: ' et la '),
+                                    TextSpan(
+                                      text: 'politique de confidentialité',
+                                      style: TextStyle(color: primaryColor, decoration: TextDecoration.underline),
+                                      recognizer: TapGestureRecognizer()..onTap = () {
+                                        launchUrl(Uri.parse('https://whats-click.com/privacy-policy'));
+                                      },
+                                    ),
+                                    const TextSpan(text: '.'),
+                                  ],
+                                ),
+                              ),
                               activeColor: primaryColor,
                               contentPadding: EdgeInsets.zero,
                               controlAffinity: ListTileControlAffinity.leading,
@@ -329,11 +355,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool isDark, {bool isPassword = false, TextInputType? keyboardType}) {
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool isDark, {bool isPassword = false, TextInputType? keyboardType, Iterable<String>? autofillHints}) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
+      autofillHints: autofillHints,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon),

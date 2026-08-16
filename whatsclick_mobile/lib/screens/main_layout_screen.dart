@@ -111,9 +111,19 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         final isDark = ThemeService().isDark;
 
         return Scaffold(
-          body: IndexedStack(
-            index: _currentIndex,
-            children: _screens,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8F9FA),
+          body: Container(
+            decoration: BoxDecoration(
+              image: const DecorationImage(
+                image: AssetImage('assets/images/whatsapp_bg.png'),
+                fit: BoxFit.cover,
+                opacity: 0.15,
+              ),
+            ),
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
