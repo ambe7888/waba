@@ -89,7 +89,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       MaterialPageRoute(
         builder: (_) => SendTemplateScreen(
           contactUid: widget.contact.uid,
-          contactName: widget.contact.fullName,
+          contactName: widget.contact.name,
         ),
       ),
     );

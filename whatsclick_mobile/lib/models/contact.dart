@@ -29,6 +29,7 @@ class ContactLabel {
 class Contact {
   final String uid;
   final String name;
+  String get fullName => name;
   final String phoneNumber;
   final String? avatar;
   final int unreadCount;
