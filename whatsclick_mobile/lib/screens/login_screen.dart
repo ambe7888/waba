@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen>
           image: const DecorationImage(
             image: AssetImage('assets/images/whatsapp_bg.png'),
             fit: BoxFit.cover,
-            opacity: 0.15,
+            opacity: 0.25,
           ),
         ),
         child: SafeArea(
@@ -237,24 +237,10 @@ class _LoginScreenState extends State<LoginScreen>
                       children: [
                         // App Logo
                         Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: primaryColor.withValues(alpha: 0.1),
-                            ),
-                            child: Icon(Icons.chat_bubble_rounded, size: 48, color: primaryColor),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'WhatsClick',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            color: primaryColor,
-                            letterSpacing: 1.2,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 90,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -539,6 +525,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

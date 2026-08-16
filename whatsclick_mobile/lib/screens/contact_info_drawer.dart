@@ -7,8 +7,18 @@ import 'order_creation_sheet.dart';
 class ContactInfoDrawer extends StatefulWidget {
   final Contact contact;
   final VoidCallback? onUpdate;
+  final String? userName;
+  final VoidCallback? onBlockedStatusChanged;
+  final Function(Map<String, dynamic>)? onEditOrder;
 
-  const ContactInfoDrawer({super.key, required this.contact, this.onUpdate});
+  const ContactInfoDrawer({
+    super.key, 
+    required this.contact, 
+    this.onUpdate,
+    this.userName,
+    this.onBlockedStatusChanged,
+    this.onEditOrder,
+  });
 
   @override
   State<ContactInfoDrawer> createState() => _ContactInfoDrawerState();
@@ -97,6 +107,73 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
         _isLoadingOrders = false;
       });
     }
+  }
+
+  Future<void> _fetchOrders() async {
+    final orders = await ApiService().fetchContactOrders(widget.contact.uid);
+    if (!mounted) return;
+    setState(() {
+      _contactOrders = orders;
+      _isLoadingOrders = false;
+    });
+  }
+
+  void _showOrderStatusDialog(Map<String, dynamic> order) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Changer le statut', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatusOption(order, 'pending', 'En attente'),
+              _buildStatusOption(order, 'validated', 'Validé'),
+              _buildStatusOption(order, 'completed', 'Terminé'),
+              _buildStatusOption(order, 'cancelled', 'Annulé'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusOption(Map<String, dynamic> order, String value, String label) {
+    return ListTile(
+      title: Text(label),
+      onTap: () async {
+        Navigator.pop(context);
+        final success = await ApiService().updateOrderStatus(order['_uid'], value);
+        if (success) {
+          _fetchOrders();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Statut mis à jour.')));
+        }
+      },
+    );
+  }
+
+  void _confirmDeleteOrder(Map<String, dynamic> order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la commande ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await ApiService().deleteOrder(order['_uid']);
+              if (success) {
+                _fetchOrders();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Commande supprimée.')));
+              }
+            },
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadContactData() async {
@@ -315,6 +392,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
           : 'Erreur de modification du statut de blocage.');
       if (success && widget.onUpdate != null) {
         widget.onUpdate!();
+      }
+      if (success && widget.onBlockedStatusChanged != null) {
+        widget.onBlockedStatusChanged!();
       }
     }
   }
@@ -1061,6 +1141,277 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                     fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
 
+                      // Labels Section
+                      _buildSectionHeader(
+                        'Étiquettes',
+                        Icons.label_outline_rounded,
+                        trailing: InkWell(
+                          onTap: _showCreateLabelDialog,
+                          borderRadius: BorderRadius.circular(4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: _accentColor, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Créer',
+                                  style: TextStyle(
+                                    color: _primaryColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _isSavingLabels
+                          ? Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(
+                                    color: _primaryColor, strokeWidth: 2),
+                              ),
+                            )
+                          : _allLabels.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 8),
+                                  child: Text(
+                                    'Aucune étiquette disponible. Cliquez sur "Créer" pour en ajouter une.',
+                                    style: TextStyle(
+                                        color: onSurface.withValues(alpha: 0.5),
+                                        fontSize: 12),
+                                  ),
+                                )
+                              : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _allLabels.map((label) {
+                                    final labelId = int.tryParse(
+                                            label['_id']?.toString() ??
+                                                label['id']?.toString() ??
+                                                '0') ??
+                                        0;
+                                    final title = label['title'] ?? '';
+                                    final isSelected =
+                                        _selectedLabelIds.contains(labelId);
+                                    final labelColor =
+                                        _parseColor(label['bg_color']) ??
+                                            Color(0xFF64748B);
+
+                                    return FilterChip(
+                                      label: Text(
+                                        title,
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? Colors.white
+                                              : onSurface.withValues(
+                                                  alpha: 0.7),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      selected: isSelected,
+                                      selectedColor: labelColor.withAlpha(120),
+                                      checkmarkColor: Colors.white,
+                                      backgroundColor: cardColor,
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? labelColor
+                                            : onSurface.withValues(alpha: 0.15),
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      onSelected: (selected) {
+                                        _toggleLabel(labelId, selected);
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                         // Rappel (Reminder) Section
+                      _buildSectionHeader('Rappels', Icons.alarm_add_rounded),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: onSurface.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: onSurface.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.calendar_month_rounded,
+                                color: _reminderDate != null ? _primaryColor : onSurface.withValues(alpha: 0.4),
+                              ),
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: _reminderDate ?? DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(Duration(days: 365)),
+                                );
+                                if (date != null) {
+                                  final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                  );
+                                  if (time != null) {
+                                    setState(() {
+                                      _reminderDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                                    });
+                                  }
+                                }
+                              },
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _reminderNoteController,
+                                style: TextStyle(color: onSurface, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: _reminderDate != null
+                                      ? _reminderDate!.toString().substring(0, 16)
+                                      : 'Saisir un rappel...',
+                                  hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4), fontSize: 13),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            _isSavingReminder
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.send_rounded, color: Color(0xFF2DD4BF)),
+                                    onPressed: _saveReminder,
+                                  ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
+
+                      // Notes Section
+                      _buildSectionHeader(
+                          'Notes internes', Icons.note_alt_outlined),
+                      TextFormField(
+                        controller: _notesController,
+                        maxLines: 4,
+                        style: TextStyle(color: onSurface, fontSize: 14),
+                        decoration: _inputDecoration('Saisir une note...'),
+                      ),
+                      SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _isSavingNotes ? null : _saveNotes,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                        ),
+                        child: _isSavingNotes
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text('Mettre à jour les notes',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 14)),
+                      ),
+
+                      // Groupes Section
+                      _buildSectionHeader(
+                        'Groupes de Contacts',
+                        Icons.group_work_rounded,
+                        trailing: InkWell(
+                          onTap: _showManageGroupsDialog,
+                          borderRadius: BorderRadius.circular(4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit, color: _accentColor, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Gérer',
+                                  style: TextStyle(
+                                    color: _primaryColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _isSavingGroups
+                          ? Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(
+                                    color: _primaryColor, strokeWidth: 2),
+                              ),
+                            )
+                          : _selectedGroupUids.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 8),
+                                  child: Text(
+                                    'Ce contact n\'appartient à aucun groupe.',
+                                    style: TextStyle(
+                                        color: onSurface.withValues(alpha: 0.5),
+                                        fontSize: 12),
+                                  ),
+                                )
+                              : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _allGroups
+                                      .where((g) => _selectedGroupUids
+                                          .contains(g['_uid'] ?? ''))
+                                      .map((group) {
+                                    final title = group['title'] ?? 'Groupe';
+
+                                    return Chip(
+                                      label: Text(
+                                        title,
+                                        style: TextStyle(
+                                          color:
+                                              onSurface.withValues(alpha: 0.8),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor:
+                                          _primaryColor.withValues(alpha: 0.1),
+                                      side: BorderSide(
+                                        color: _primaryColor.withValues(
+                                            alpha: 0.2),
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+
                       // Commandes / Orders Section
                       _buildSectionHeader('Commandes du client', Icons.shopping_bag_rounded),
                       Container(
@@ -1174,364 +1525,30 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                         ),
                                       ),
                                     ),
+                                    trailing: PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                                      onSelected: (value) {
+                                        if (value == 'status') {
+                                          _showOrderStatusDialog(order);
+                                        } else if (value == 'edit') {
+                                          Navigator.pop(context); // Close Drawer
+                                          widget.onEditOrder?.call(order);
+                                        } else if (value == 'delete') {
+                                          _confirmDeleteOrder(order);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(value: 'status', child: Text('Changer le statut', style: TextStyle(fontSize: 13))),
+                                        const PopupMenuItem(value: 'edit', child: Text('Modifier', style: TextStyle(fontSize: 13))),
+                                        const PopupMenuItem(value: 'delete', child: Text('Supprimer', style: TextStyle(fontSize: 13, color: Colors.red))),
+                                      ],
+                                    ),
                                   );
                                 },
                               ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
-
-                      // Rappel (Reminder) Section
-                      _buildSectionHeader('Rappels', Icons.alarm_add_rounded),
-                      Container(
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: onSurface.withValues(alpha: 0.02),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: onSurface.withValues(alpha: 0.08)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Date et Heure',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: onSurface.withValues(alpha: 0.7))),
-                            SizedBox(height: 8),
-                            InkWell(
-                              onTap: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: _reminderDate ?? DateTime.now(),
-                                  firstDate: DateTime.now(),
-                                  lastDate:
-                                      DateTime.now().add(Duration(days: 365)),
-                                );
-                                if (date != null) {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: TimeOfDay.now(),
-                                  );
-                                  if (time != null) {
-                                    setState(() {
-                                      _reminderDate = DateTime(
-                                          date.year,
-                                          date.month,
-                                          date.day,
-                                          time.hour,
-                                          time.minute);
-                                    });
-                                  }
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 12),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: onSurface.withValues(alpha: 0.15)),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.calendar_today_rounded,
-                                        size: 16, color: _primaryColor),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      _reminderDate != null
-                                          ? _reminderDate!
-                                              .toString()
-                                              .substring(0, 16)
-                                          : 'Sélectionner une date',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: _reminderDate != null
-                                              ? onSurface
-                                              : onSurface.withValues(
-                                                  alpha: 0.5)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 12),
-                            TextFormField(
-                              controller: _reminderNoteController,
-                              maxLines: 2,
-                              style: TextStyle(color: onSurface, fontSize: 14),
-                              decoration: _inputDecoration(
-                                  'Note pour le rappel (optionnel)'),
-                            ),
-                            SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: _isSavingReminder
-                                        ? null
-                                        : _saveReminder,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _primaryColor,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 12),
-                                      elevation: 0,
-                                    ),
-                                    child: _isSavingReminder
-                                        ? SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2))
-                                        : Text('Enregistrer',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w700)),
-                                  ),
-                                ),
-                                if (_reminderDate != null) ...[
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _isSavingReminder
-                                          ? null
-                                          : _cancelReminder,
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.red,
-                                        side: BorderSide(
-                                            color: Colors.red
-                                                .withValues(alpha: 0.5)),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10)),
-                                        padding:
-                                            EdgeInsets.symmetric(vertical: 12),
-                                      ),
-                                      child: Text('Annuler',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700)),
-                                    ),
-                                  ),
-                                ]
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 24),
-
-                      // Notes Section
-                      _buildSectionHeader(
-                          'Notes internes', Icons.note_alt_outlined),
-                      TextFormField(
-                        controller: _notesController,
-                        maxLines: 4,
-                        style: TextStyle(color: onSurface, fontSize: 14),
-                        decoration: _inputDecoration('Saisir une note...'),
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _isSavingNotes ? null : _saveNotes,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                        ),
-                        child: _isSavingNotes
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : Text('Mettre à jour les notes',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w700, fontSize: 14)),
-                      ),
-
-                      // Labels Section
-                      _buildSectionHeader(
-                        'Étiquettes',
-                        Icons.label_outline_rounded,
-                        trailing: InkWell(
-                          onTap: _showCreateLabelDialog,
-                          borderRadius: BorderRadius.circular(4),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, color: _accentColor, size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Créer',
-                                  style: TextStyle(
-                                    color: _primaryColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      _isSavingLabels
-                          ? Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(
-                                    color: _primaryColor, strokeWidth: 2),
-                              ),
-                            )
-                          : _allLabels.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 8),
-                                  child: Text(
-                                    'Aucune étiquette disponible. Cliquez sur "Créer" pour en ajouter une.',
-                                    style: TextStyle(
-                                        color: onSurface.withValues(alpha: 0.5),
-                                        fontSize: 12),
-                                  ),
-                                )
-                              : Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: _allLabels.map((label) {
-                                    final labelId = int.tryParse(
-                                            label['_id']?.toString() ??
-                                                label['id']?.toString() ??
-                                                '0') ??
-                                        0;
-                                    final title = label['title'] ?? '';
-                                    final isSelected =
-                                        _selectedLabelIds.contains(labelId);
-                                    final labelColor =
-                                        _parseColor(label['bg_color']) ??
-                                            Color(0xFF64748B);
-
-                                    return FilterChip(
-                                      label: Text(
-                                        title,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.white
-                                              : onSurface.withValues(
-                                                  alpha: 0.7),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      selected: isSelected,
-                                      selectedColor: labelColor.withAlpha(120),
-                                      checkmarkColor: Colors.white,
-                                      backgroundColor: cardColor,
-                                      side: BorderSide(
-                                        color: isSelected
-                                            ? labelColor
-                                            : onSurface.withValues(alpha: 0.15),
-                                        width: 1,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      onSelected: (selected) {
-                                        _toggleLabel(labelId, selected);
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-
-                      // Groupes Section
-                      _buildSectionHeader(
-                        'Groupes de Contacts',
-                        Icons.group_work_rounded,
-                        trailing: InkWell(
-                          onTap: _showManageGroupsDialog,
-                          borderRadius: BorderRadius.circular(4),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.edit, color: _accentColor, size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Gérer',
-                                  style: TextStyle(
-                                    color: _primaryColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      _isSavingGroups
-                          ? Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(
-                                    color: _primaryColor, strokeWidth: 2),
-                              ),
-                            )
-                          : _selectedGroupUids.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 8),
-                                  child: Text(
-                                    'Ce contact n\'appartient à aucun groupe.',
-                                    style: TextStyle(
-                                        color: onSurface.withValues(alpha: 0.5),
-                                        fontSize: 12),
-                                  ),
-                                )
-                              : Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: _allGroups
-                                      .where((g) => _selectedGroupUids
-                                          .contains(g['_uid'] ?? ''))
-                                      .map((group) {
-                                    final title = group['title'] ?? 'Groupe';
-
-                                    return Chip(
-                                      label: Text(
-                                        title,
-                                        style: TextStyle(
-                                          color:
-                                              onSurface.withValues(alpha: 0.8),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      backgroundColor:
-                                          _primaryColor.withValues(alpha: 0.1),
-                                      side: BorderSide(
-                                        color: _primaryColor.withValues(
-                                            alpha: 0.2),
-                                        width: 1,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
 
                       // Block Contact
                       SizedBox(height: 24),

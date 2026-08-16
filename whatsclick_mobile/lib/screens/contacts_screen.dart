@@ -4,6 +4,7 @@ import '../models/contact.dart';
 import 'chat_box_screen.dart';
 import '../services/theme_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'add_contact_sheet.dart';
 
 class ContactsScreen extends StatefulWidget {
   final String? initialLabelFilter;
@@ -182,6 +183,103 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
+  void _showAddContactSheet({Contact? contact}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddContactSheet(
+        contactToEdit: contact,
+        onSuccess: () {
+          _contacts.clear();
+          _nextPage = 1;
+          _loadContacts();
+        },
+      ),
+    );
+  }
+
+  void _showContactOptions(Contact contact) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.dashboard_customize_rounded, color: ThemeService.primaryColor),
+                title: Text('Envoyer un modèle'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openChat(contact, openTemplatePicker: true);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.phone_rounded, color: Colors.green),
+                title: Text('Appeler'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final url = Uri.parse('tel:${contact.phoneNumber}');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.edit_rounded, color: Colors.blue),
+                title: Text('Modifier'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddContactSheet(contact: contact);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_rounded, color: Colors.red),
+                title: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteContact(contact);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteContact(Contact contact) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer le contact'),
+        content: Text('Êtes-vous sûr de vouloir supprimer ce contact ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              bool success = await ApiService().deleteContact(contact.uid);
+              if (success) {
+                _contacts.removeWhere((c) => c.uid == contact.uid);
+                _applyFilters();
+              }
+              setState(() => _isLoading = false);
+            },
+            child: Text('Supprimer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,12 +314,40 @@ class _ContactsScreenState extends State<ContactsScreen> {
         children: [
           Padding(
             padding: EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Rechercher un contact...',
-                prefixIcon: Icon(Icons.search),
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher un contact...',
+                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12),
+                InkWell(
+                  onTap: () => _showAddContactSheet(),
+                  child: Container(
+                    padding: EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF10B981), // WhatsApp like green
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.add, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           ),
           if (_labelFilter != null ||
@@ -307,47 +433,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                   style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(contact.phoneNumber),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(Icons.flight_takeoff_rounded,
-                                          color: ThemeService.primaryColor),
-                                      onPressed: () {
-                                        _openChat(contact,
-                                            openTemplatePicker: true);
-                                      },
-                                      tooltip: 'Envoyer un modèle',
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.message_rounded,
-                                          color: ThemeService.primaryColor),
-                                      onPressed: () => _openChat(contact),
-                                      tooltip: 'Envoyer un message',
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.phone_rounded,
-                                          color: Colors.green),
-                                      onPressed: () async {
-                                        final url = Uri.parse(
-                                            'tel:${contact.phoneNumber}');
-                                        final messenger =
-                                            ScaffoldMessenger.of(context);
-                                        if (await canLaunchUrl(url)) {
-                                          await launchUrl(url,
-                                              mode: LaunchMode
-                                                  .externalApplication);
-                                        } else if (mounted) {
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Impossible de lancer l\'appel.')),
-                                          );
-                                        }
-                                      },
-                                      tooltip: 'Appeler',
-                                    ),
-                                  ],
+                                trailing: IconButton(
+                                  icon: Icon(Icons.more_vert, color: Colors.grey),
+                                  onPressed: () => _showContactOptions(contact),
                                 ),
                                 onTap: () => _openChat(contact),
                               );

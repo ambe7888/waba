@@ -290,14 +290,20 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->get();
         }
 
-        $vendorUserData = \App\Yantrana\Components\Auth\Models\AuthModel::where('vendors__id', $vendorId)->first() ?: auth()->user();
+        $vendorUserData = auth()->user();
+        
+        $vendorUserPermissions = [];
+        if (!isVendorAdmin(getVendorId())) {
+            $vendorUserPermissions = getUserAuthInfo('permissions') ?: [];
+        }
 
         return array_merge([
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
             'vendorId' => $vendorId,
             'activeTeamMembers' => $this->userRepository->countVendorsActiveUsers($vendorWhereClause),
-            'vendorUserData' => $vendorUserData,
+            'vendorUserData' => clone $vendorUserData,
+            'vendorUserPermissions' => $vendorUserPermissions,
             'totalContacts' => $this->contactRepository->totalContactsCountForVendor($vendorId),
             'totalGroups' => $this->contactGroupRepository->countIt($vendorWhereClause),
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),

@@ -35,7 +35,7 @@
                             <select name="vendors__id" id="vendors__id" class="form-control">
                                 <option value="">{{ __tr('Tous les Vendeurs (Global)') }}</option>
                                 @foreach($vendors as $vendor)
-                                    <option value="{{ $vendor->id }}">{{ $vendor->title }}</option>
+                                    <option value="{{ $vendor->_id }}">{{ $vendor->title }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -103,7 +103,7 @@
                                         </td>
                                         <td>
                                             @if($notif->vendors__id)
-                                                <span class="badge badge-secondary">Vendeur #{{ $notif->vendors__id }}</span>
+                                                <span class="badge badge-secondary">{{ $notif->vendor->title ?? ('Vendeur #' . $notif->vendors__id) }}</span>
                                             @else
                                                 <span class="badge badge-primary">Global</span>
                                             @endif

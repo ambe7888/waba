@@ -6,12 +6,14 @@ class OrderCreationSheet extends StatefulWidget {
   final String contactUid;
   final String contactName;
   final VoidCallback? onOrderCreated;
+  final Map<String, dynamic>? initialOrder;
 
   const OrderCreationSheet({
     super.key,
     required this.contactUid,
     required this.contactName,
     this.onOrderCreated,
+    this.initialOrder,
   });
 
   @override
@@ -39,6 +41,21 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
   void initState() {
     super.initState();
     _loadCatalog();
+    if (widget.initialOrder != null) {
+      final order = widget.initialOrder!;
+      final details = order['order_details'] ?? {};
+      final items = details['items'] as List?;
+      if (items != null && items.isNotEmpty) {
+        final item = items[0];
+        _customNameController.text = item['name'] ?? '';
+        _priceController.text = item['custom_price']?.toString() ?? item['price']?.toString() ?? '';
+        _quantityController.text = item['quantity']?.toString() ?? '1';
+        _useCustomProduct = true;
+      }
+      _feeController.text = details['additional_fee']?.toString() ?? '0';
+      _addressController.text = details['delivery_address'] ?? '';
+      _dateController.text = details['delivery_date'] ?? '';
+    }
   }
 
   @override
@@ -117,10 +134,15 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
     setState(() => _isSubmitting = false);
 
     if (result['success'] == true) {
+      if (widget.initialOrder != null) {
+        // Since there is no edit endpoint, we delete the old one
+        await ApiService().deleteOrder(widget.initialOrder!['_uid']);
+      }
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🛍️ Commande enregistrée pour ${widget.contactName} !'),
+          content: Text(widget.initialOrder != null ? '🛍️ Commande modifiée !' : '🛍️ Commande enregistrée pour ${widget.contactName} !'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -206,34 +228,64 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
 
               // Catalog vs Custom Toggle
               if (!_isLoadingProducts && _catalogProducts.isNotEmpty) ...[
-                Row(
-                  children: [
-                    ChoiceChip(
-                      label: const Text('Depuis le catalogue'),
-                      selected: !_useCustomProduct,
-                      selectedColor: primaryColor.withValues(alpha: 0.2),
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _useCustomProduct = false;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    ChoiceChip(
-                      label: const Text('Produit personnalisé'),
-                      selected: _useCustomProduct,
-                      selectedColor: primaryColor.withValues(alpha: 0.2),
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _useCustomProduct = true;
-                          });
-                        }
-                      },
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _useCustomProduct = false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !_useCustomProduct ? primaryColor : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: !_useCustomProduct
+                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Catalogue',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: !_useCustomProduct ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _useCustomProduct = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _useCustomProduct ? primaryColor : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: _useCustomProduct
+                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Personnalisé',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _useCustomProduct ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -247,10 +299,34 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
                     prefixIcon: const Icon(Icons.inventory_2_rounded),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  isExpanded: true,
                   items: _catalogProducts.map((p) {
+                    final img = p['image_url'];
                     return DropdownMenuItem<Map<String, dynamic>>(
                       value: p,
-                      child: Text('${p['name']} (${p['price']} CFA)'),
+                      child: Row(
+                        children: [
+                          if (img != null && img.toString().isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(img, width: 30, height: 30, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.image, size: 30, color: Colors.grey)),
+                            ),
+                            const SizedBox(width: 10),
+                          ],
+                          Expanded(
+                            child: Text(
+                              p['name'] ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
+                          Text(
+                            '${double.tryParse(p['price']?.toString() ?? '0')?.toStringAsFixed(0) ?? 0} CFA',
+                            style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 13),
+                          ),
+                        ],
+                      ),
                     );
                   }).toList(),
                   onChanged: (val) {

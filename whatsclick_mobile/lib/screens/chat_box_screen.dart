@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
@@ -15,6 +16,7 @@ import '../config/app_config.dart';
 import 'contact_info_drawer.dart';
 import 'order_creation_sheet.dart';
 import 'canned_replies_screen.dart';
+import 'send_template_screen.dart';
 
 class ChatBoxScreen extends StatefulWidget {
   final Contact contact;
@@ -721,374 +723,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  // Template selection Bottom Sheet
-  void _showTemplatesSheet() async {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          maxChildSize: 0.9,
-          minChildSize: 0.4,
-          builder: (_, controller) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: ApiService().fetchTemplates(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                        child: CircularProgressIndicator(
-                            color: Theme.of(context).colorScheme.primary));
-                  }
-                  if (snapshot.hasError ||
-                      !snapshot.hasData ||
-                      snapshot.data!.isEmpty) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.description_outlined,
-                            size: 56,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.16)),
-                        SizedBox(height: 16),
-                        Text(
-                          'Aucun modèle approuvé trouvé.',
-                          style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.39),
-                              fontSize: 15),
-                        ),
-                        SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Fermer',
-                              style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
-                        ),
-                      ],
-                    );
-                  }
-
-                  final templates = snapshot.data!;
-                  return Column(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.06))),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.near_me_rounded,
-                                color: _accentColor, size: 22),
-                            SizedBox(width: 8),
-                            Text(
-                              'Modèles Meta',
-                              style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface),
-                            ),
-                            Spacer(),
-                            IconButton(
-                              icon: Icon(Icons.close_rounded,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.47)),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          controller: controller,
-                          itemCount: templates.length,
-                          itemBuilder: (context, index) {
-                            final template = templates[index];
-                            final String bodyText =
-                                _getTemplateBodyText(template);
-                            final String category =
-                                template['category'] ?? 'utility';
-
-                            return ListTile(
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      template['template_name'] ??
-                                          'Nom du modèle',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                          fontSize: 14),
-                                    ),
-                                  ),
-                                  _buildCategoryBadge(category),
-                                ],
-                              ),
-                              subtitle: Text(
-                                bodyText.isNotEmpty
-                                    ? bodyText
-                                    : 'Pas de texte d\'aperçu',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.31),
-                                    fontSize: 12),
-                              ),
-                              trailing: Text(
-                                (template['language'] ?? 'FR').toUpperCase(),
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: _accentColor,
-                                    fontSize: 11),
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _handleSendTemplate(template);
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryBadge(String category) {
-    Color bgColor;
-    Color textColor;
-    String label = category.toUpperCase();
-
-    switch (category.toLowerCase()) {
-      case 'marketing':
-        bgColor = Color(0xFFEF4444).withAlpha(30);
-        textColor = Color(0xFFFCA5A5);
-        break;
-      case 'utility':
-      case 'utilitaire':
-        bgColor = Color(0xFF3B82F6).withAlpha(30);
-        textColor = Color(0xFF93C5FD);
-        break;
-      case 'authentication':
-      case 'authentification':
-        bgColor = Color(0xFF8B5CF6).withAlpha(30);
-        textColor = Color(0xFFC4B5FD);
-        break;
-      default:
-        bgColor =
-            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06);
-        textColor =
-            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.59);
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            color: textColor, fontSize: 9, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-
-  String _getTemplateBodyText(Map<String, dynamic> template) {
-    try {
-      final Map<String, dynamic> data = template['__data'] ?? {};
-      final Map<String, dynamic> temp = data['template'] ?? {};
-      final List components = temp['components'] ?? [];
-      final bodyComponent =
-          components.firstWhere((c) => c['type'] == 'BODY', orElse: () => null);
-      return bodyComponent?['text'] ?? '';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  List<String> _getTemplateVariables(String bodyText) {
-    final regExp = RegExp(r'\{\{(\d+)\}\}');
-    final matches = regExp.allMatches(bodyText);
-    return matches.map((m) => m.group(0)!).toSet().toList();
-  }
-
-  void _handleSendTemplate(Map<String, dynamic> template) {
-    final String uid = template['_uid'];
-    final String name = template['template_name'];
-    final String bodyText = _getTemplateBodyText(template);
-    final variables = _getTemplateVariables(bodyText);
-
-    if (variables.isEmpty) {
-      _sendTemplateMessage(uid, {});
-    } else {
-      _showTemplateVariablesDialog(uid, name, variables, bodyText);
-    }
-  }
-
-  void _showTemplateVariablesDialog(String templateUid, String templateName,
-      List<String> variables, String bodyText) {
-    final controllers = <String, TextEditingController>{};
-    for (var v in variables) {
-      controllers[v] = TextEditingController();
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            'Variables pour $templateName',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.onSurface),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'Aperçu :\n$bodyText',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.39)),
-                  ),
-                ),
-                SizedBox(height: 16),
-                ...variables.map((v) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0),
-                    child: TextField(
-                      controller: controllers[v],
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Valeur pour $v',
-                        labelStyle: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.39),
-                            fontSize: 13),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.12)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.12)),
-                        ),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler',
-                  style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.39))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                final Map<String, String> values = {};
-                for (var v in variables) {
-                  final index = v.replaceAll('{{', '').replaceAll('}}', '');
-                  values['field_$index'] = controllers[v]!.text;
-                }
-                _sendTemplateMessage(templateUid, values);
-              },
-              child: Text('Envoyer',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _sendTemplateMessage(
-      String templateUid, Map<String, dynamic> variables) async {
+  Future<void> _sendTemplate(String templateUid, List<String> variables) async {
     final localContext = context;
     showDialog(
-      context: localContext,
+      context: context,
       barrierDismissible: false,
-      builder: (context) => Center(
+      builder: (_) => Center(
           child: CircularProgressIndicator(
               color: Theme.of(context).colorScheme.primary)),
     );
@@ -1212,7 +852,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  void _showOrderCreation() {
+  void _showOrderCreation({dynamic initialOrder}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1222,6 +862,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         contactName: widget.contact.name.isNotEmpty
             ? widget.contact.name
             : widget.contact.phoneNumber,
+        initialOrder: initialOrder,
         onOrderCreated: () {
           _loadMessages(silent: true);
         },
@@ -1453,11 +1094,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           onUpdate: () {
             _loadMessages(silent: true);
           },
+          onBlockedStatusChanged: () {
+            setState(() {});
+          },
+          onEditOrder: (order) {
+            _showOrderCreation(initialOrder: order);
+          },
         ),
         appBar: _buildAppBar(isWindowActive),
-      body: Column(
-        children: [
-          // Chat Messages
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: const AssetImage('assets/images/whatsapp_bg.png'),
+            fit: BoxFit.cover,
+            opacity: Theme.of(context).brightness == Brightness.dark ? 0.25 : 0.4,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Chat Messages
           Expanded(
             child: _isLoading
                 ? Center(
@@ -1498,42 +1153,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                       ),
           ),
 
-          // 24h Window Warning
-          if (!isWindowActive && _messages.isNotEmpty)
-            GestureDetector(
-              onTap: _showTemplatesSheet,
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Color(0xFFE5E7EB),
-                  border: Border(top: BorderSide(color: Color(0xFFCBD5E1))),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline_rounded,
-                        color: Colors.black54, size: 18),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Fenêtre 24h expirée. Envoyez un modèle Meta.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward_ios_rounded,
-                        size: 12, color: Colors.black45),
-                  ],
-                ),
-              ),
-            ),
-
-
-
-          // Canned Replies Suggestions Overlay
+          // (Old 24h Window Warning removed, moved to bottom banner)          // Canned Replies Suggestions Overlay
           if (_showCannedSuggestions)
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
@@ -1593,13 +1213,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                             _messageController.clear();
                             _showCannedSuggestions = false;
                           });
-                          _showChatNotice('Envoi de la réponse auto...');
-                          final sent = await ApiService().sendQuickReply(widget.contact.uid, botIdInt);
-                          if (sent) {
-                            _loadMessages(silent: true);
-                          } else {
-                            _showChatNotice('Erreur lors de l\'envoi de la réponse auto');
-                          }
+                          _confirmBotReply(titleText, messageText, botIdInt);
                         } else {
                           setState(() {
                             _messageController.text = messageText.isNotEmpty ? messageText : titleText;
@@ -1616,10 +1230,32 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               ),
             ),
 
-          // Input Bar
-          _buildInputBar(),
+          // MAIN INPUT BAR
+          if (widget.contact.isBlocked)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEE2E2),
+                border: Border(top: BorderSide(color: Color(0xFFFCA5A5))),
+              ),
+              child: const Text(
+                'Ce contact est bloqué.\nVous ne pouvez plus envoyer de messages.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            )
+          else if (!isWindowActive)
+            _build24hWindowClosedBanner()
+          else
+            _buildInputBar(),
         ],
       ),
+      ), // Close Container
     ), // Close Scaffold
     ); // Close PopScope
   }
@@ -1655,8 +1291,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 });
               },
             )
-          : Row(
-              children: [
+          : Builder(
+              builder: (context) => InkWell(
+                onTap: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
                 // Avatar
                 Container(
                   width: 38,
@@ -1695,10 +1339,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                             child: Text(
                               widget.contact.name,
                               style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700),
+                                  fontSize: 15, fontWeight: FontWeight.w700, decoration: widget.contact.isBlocked ? TextDecoration.lineThrough : null),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (widget.contact.isBlocked) ...[
+                            SizedBox(width: 4),
+                            Icon(Icons.block_rounded, color: Colors.red, size: 14),
+                          ],
                           SizedBox(width: 6),
                           Container(
                             width: 8,
@@ -1715,55 +1363,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                           ),
                         ],
                       ),
-                      Row(
-                        children: [
                           Text(
                             widget.contact.phoneNumber,
                             style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.39)),
+                                    .withValues(alpha: 0.6)),
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(width: 6),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: isWindowActive
-                                  ? Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withAlpha(40)
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isWindowActive ? '24h ●' : '24h ○',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: isWindowActive
-                                    ? _accentColor
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.31),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
                         ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                      ), // Closes Column
+                    ), // Closes Expanded
+                  ], // Closes Row's children
+                ), // Closes Row
+              ), // Closes Padding
+            ), // Closes InkWell
+          ), // Closes Builder
       actions: [
         if (_isSearching)
           IconButton(
@@ -1778,9 +1396,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           )
         else ...[
           IconButton(
-            icon: Icon(Icons.send_rounded, size: 20),
-            tooltip: 'Modèles Meta',
-            onPressed: _showTemplatesSheet,
+            icon: Icon(Icons.call_rounded, size: 20),
+            tooltip: 'Appeler',
+            onPressed: () {
+              launchUrl(Uri.parse('tel:${widget.contact.phoneNumber}'));
+            },
           ),
         ],
         Builder(
@@ -1886,24 +1506,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final isOutgoing = !message.isIncoming;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
-    // Web version colors: outgoing = #e1ffc7 (light mode) / teal (dark), incoming = white / dark card
-    final outgoingColor = isDark ? primaryColor : const Color(0xFFE1FFC7);
-    final incomingColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final outgoingColor = isDark ? primaryColor : const Color(0xFFB9E5C9);
+    final incomingColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE9EDEE);
     final bubbleColor = isOutgoing ? outgoingColor : incomingColor;
-    final textColor = isOutgoing
-        ? (isDark ? Colors.white : const Color(0xFF1A3C34))
-        : Theme.of(context).colorScheme.onSurface;
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
     final msgType = message.type ?? 'text';
 
     return Align(
       alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        padding: const EdgeInsets.all(10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.78,
-        ),
-        decoration: BoxDecoration(
+      child: GestureDetector(
+        onLongPressStart: (details) {
+          _showMessageActionsPopup(context, message, details.globalPosition);
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 3),
+          padding: const EdgeInsets.all(10),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.78,
+          ),
+          decoration: BoxDecoration(
           color: bubbleColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
@@ -2002,9 +1623,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   _buildStatusIcon(message.status),
                 ],
               ],
-            ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -2030,12 +1651,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       child: GestureDetector(
         onTap: () => launchUrl(Uri.parse(message.mediaUrl!),
             mode: LaunchMode.externalApplication),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.network(
-            message.mediaUrl!,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, progress) {
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 250,
+            maxHeight: 250,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              message.mediaUrl!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
               return Container(
                 height: 150,
@@ -2061,6 +1687,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               );
             },
           ),
+        ),
         ),
       ),
     );
@@ -2139,6 +1766,75 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  Widget _build24hWindowClosedBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        left: 16, 
+        right: 16, 
+        top: 16, 
+        bottom: MediaQuery.of(context).padding.bottom > 0 
+            ? MediaQuery.of(context).padding.bottom + 8 
+            : 16
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'La fenêtre de service de 24 heures est fermée.',
+            style: TextStyle(
+              fontSize: 14, 
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pour reprendre la conversation, vous devez envoyer un modèle de message.',
+            style: TextStyle(
+              fontSize: 12, 
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _showTemplatesSheet,
+              icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white, size: 20),
+              label: const Text(
+                'Envoyer un modèle',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00A884), // WhatsApp-like green
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -2181,12 +1877,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     final botId = r['bot_id'];
                     final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
                     if (botIdInt > 0) {
-                      ApiService().sendQuickReply(widget.contact.uid, botIdInt).then((sent) {
-                        if (sent) {
-                          _showChatNotice('Réponse auto envoyée : $name');
-                          _loadMessages(silent: true);
-                        }
-                      });
+                      _confirmBotReply(name, msg, botIdInt);
                     } else {
                       setState(() {
                         _messageController.text = msg.isNotEmpty ? msg : shortcut;
@@ -2199,9 +1890,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   const SizedBox(width: 6),
                 ],
               );
-            }).toList(),
+            }),
             _buildShortcutPill(
-                '📄 Template', _showTemplatesSheet, isDark,
+                '📄 Envoyer un modèle', _showTemplatesSheet, isDark,
                 isHighlight: true),
                   ],
                 ),
@@ -2345,8 +2036,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(Icons.send_rounded,
-                              color: Colors.white, size: 20),
+                          child: Icon(Icons.arrow_upward_rounded,
+                              color: Colors.white, size: 22),
                         ),
                       ),
                     ],
@@ -2510,6 +2201,225 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ),
     );
   }
+
+  void _showMessageActionsPopup(BuildContext context, ChatMessage message, Offset tapPosition) {
+    final screenSize = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Calculate position
+    double top = tapPosition.dy;
+    double left = tapPosition.dx;
+    const double menuWidth = 220;
+    const double menuHeight = 250; 
+
+    if (top + menuHeight > screenSize.height) {
+      top = top - menuHeight - 20;
+    }
+    if (left + menuWidth > screenSize.width) {
+      left = screenSize.width - menuWidth - 20;
+    }
+    if (top < 0) top = 20;
+    if (left < 0) left = 20;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+      builder: (context) {
+        return Stack(
+          children: [
+            Positioned(
+              top: top,
+              left: left,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: menuWidth,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2D3748) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Emojis Row
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: ['❤️', '👍', '😂', '😮', '😢', '🙏']
+                              .map((emoji) => GestureDetector(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      _buildPopupMenuItem(
+                        icon: Icons.copy_rounded,
+                        text: 'Copier',
+                        isDark: isDark,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Clipboard.setData(ClipboardData(text: message.body));
+                          _showChatNotice('Message copié');
+                        },
+                      ),
+                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      _buildPopupMenuItem(
+                        icon: Icons.reply_rounded,
+                        text: 'Répondre',
+                        isDark: isDark,
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                             _messageController.text = '> ${message.body.replaceAll('\n', '\n> ')}\n\n';
+                          });
+                        },
+                      ),
+                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      _buildPopupMenuItem(
+                        icon: Icons.info_outline_rounded,
+                        text: 'Infos',
+                        isDark: isDark,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showMessageInfo(message);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPopupMenuItem({
+    required IconData icon,
+    required String text,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: isDark ? Colors.white70 : Colors.black87),
+            const SizedBox(width: 12),
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMessageInfo(ChatMessage message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Infos du message', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow(Icons.person_outline, 'Agent', message.vendorName ?? 'Inconnu'),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.access_time_rounded, 'Envoyé le', message.createdAt ?? 'Inconnu'),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                  message.isIncoming ? Icons.call_received_rounded : Icons.check_circle_outline_rounded, 
+                  'Statut', 
+                  message.status.toUpperCase()),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fermer', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _confirmBotReply(String name, String msg, int botIdInt) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmer l\'envoi'),
+        content: Text('Voulez-vous envoyer la réponse auto "$name" ?\n\n$msg'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showChatNotice('Envoi de la réponse auto...');
+              ApiService().sendQuickReply(widget.contact.uid, botIdInt).then((sent) {
+                if (mounted) {
+                  if (sent) {
+                    _showChatNotice('Réponse auto envoyée : $name');
+                    _loadMessages(silent: true);
+                  } else {
+                    _showChatNotice('Erreur lors de l\'envoi de la réponse auto');
+                  }
+                }
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Envoyer'),
+          ),
+        ],
+      ),
+    );
+  }
+
 }
 
 // Custom Voice note component
@@ -2871,64 +2781,98 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     ),
                   )
                 else
-                  ListView.builder(
+                  GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     controller: widget.scrollController,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.72,
+                    ),
                     itemCount: _products.length,
                     itemBuilder: (context, index) {
                       final product = _products[index];
                       final String? imageUrl = product['image_url'];
-                      final double price = double.tryParse(
-                              product['price']?.toString() ?? '0') ??
-                          0;
+                      final double price = double.tryParse(product['price']?.toString() ?? '0') ?? 0;
 
-                      return ListTile(
-                        leading: Container(
-                          width: 48,
-                          height: 48,
+                      return GestureDetector(
+                        onTap: _isSending ? null : () => _confirmAndSendProduct(product),
+                        child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.black12,
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
                           ),
-                          child: (imageUrl != null && imageUrl.isNotEmpty)
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, err, stack) =>
-                                        const Icon(Icons.shopping_cart,
-                                            color: Colors.grey),
-                                  ),
-                                )
-                              : const Icon(Icons.shopping_cart,
-                                  color: Colors.grey),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Image
+                              Expanded(
+                                child: Container(
+                                  width: double.infinity,
+                                  color: Colors.black12,
+                                  child: (imageUrl != null && imageUrl.isNotEmpty)
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, err, stack) => const Icon(Icons.shopping_cart, color: Colors.grey, size: 40),
+                                        )
+                                      : const Icon(Icons.shopping_cart, color: Colors.grey, size: 40),
+                                ),
+                              ),
+                              // Info
+                              Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product['name'] ?? 'Produit sans nom',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${price.toStringAsFixed(0)} CFA',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF10B981),
+                                          fontSize: 14),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 32,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF2DD4BF),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onPressed: _isSending ? null : () => _confirmAndSendProduct(product),
+                                        child: const Text('Envoyer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        title: Text(
-                          product['name'] ?? 'Produit sans nom',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          '${price.toStringAsFixed(0)} CFA',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF10B981),
-                              fontSize: 13),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.send_rounded,
-                              color: Color(0xFF2DD4BF)),
-                          onPressed: _isSending
-                              ? null
-                              : () => _confirmAndSendProduct(product),
-                        ),
-                        onTap: _isSending
-                            ? null
-                            : () => _confirmAndSendProduct(product),
                       );
                     },
                   ),
@@ -2944,4 +2888,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       ),
     );
   }
+
+}
+
 }

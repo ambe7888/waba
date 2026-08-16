@@ -7,9 +7,7 @@ import 'support_tickets_screen.dart';
 import 'resource_list_screen.dart';
 import 'login_screen.dart';
 import 'qr_code_screen.dart';
-import 'canned_replies_screen.dart';
 import 'notification_settings_screen.dart';
-import 'contact_groups_screen.dart';
 import 'templates_admin_screen.dart';
 import 'bot_replies_screen.dart';
 import 'drip_campaigns_settings_screen.dart';
@@ -26,19 +24,32 @@ class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? _vendorInfo;
   Map<String, dynamic>? _stats;
   int _roleId = 3; // default: agent
+  bool _canManageBot = false;
+  bool _canManageTemplates = false;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadRoleAndPermissions();
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    // Load role first from cache (instant)
-    _roleId = await ApiService().getUserRoleId();
-    if (mounted) setState(() {});
+  Future<void> _loadRoleAndPermissions() async {
+    final roleId = await ApiService().getUserRoleId();
+    final canManageBot = await ApiService().hasPermission('manage_bot_replies');
+    final canManageTemplates = await ApiService().hasPermission('manage_templates');
+    
+    if (mounted) {
+      setState(() {
+        _roleId = roleId;
+        _canManageBot = canManageBot;
+        _canManageTemplates = canManageTemplates;
+      });
+    }
+  }
 
+  Future<void> _loadData() async {
     // Then fetch vendor info for display
     final stats = await ApiService().fetchDashboardStats();
     if (mounted && stats != null) {
@@ -172,14 +183,6 @@ class _AccountScreenState extends State<AccountScreen> {
                       Text(
                         _vendorInfo?['title'] ?? 'Mon Entreprise',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        userName.trim().isEmpty ? 'Utilisateur' : userName.trim(),
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white70 : Colors.black87),
                       ),
                       if (userEmail.isNotEmpty) ...[
                         const SizedBox(height: 2),
@@ -331,73 +334,36 @@ class _AccountScreenState extends State<AccountScreen> {
             );
           }),
 
-          // ── Actions ─────────────────────────────────────────────────────
-          Card(
+          // ── Général ────────────────────────────────────────────────
+          _buildSectionTitle('Général'),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.person_outline_rounded, color: Colors.blueAccent),
-                  title: const Text('Mon Compte'),
-                  trailing: const Icon(Icons.chevron_right),
+                _buildSettingsTile(
+                  icon: Icons.person_outline_rounded,
+                  title: 'Mon Profil',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                           builder: (_) => ProfileScreen(userData: _stats?['vendorUserData'])),
                     );
                   },
+                  isDark: isDark,
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.qr_code, color: Colors.blue),
-                  title: const Text('Mon Code QR'),
-                  trailing: const Icon(Icons.chevron_right),
+                _buildSettingsTile(
+                  icon: Icons.qr_code,
+                  title: 'Code QR',
                   onTap: _showQrCode,
+                  isDark: isDark,
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading:
-                      const Icon(Icons.folder_shared_rounded, color: Colors.teal),
-                  title: const Text('Ressources partagées'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const ResourceListScreen()),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.support_agent_rounded,
-                      color: Colors.deepPurple),
-                  title: const Text('Assistance'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const SupportTicketsScreen()),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.group_work_rounded,
-                      color: Colors.purple),
-                  title: const Text('Groupes de Contacts'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const ContactGroupsScreen()),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.notifications_active_rounded,
-                      color: Colors.blue),
-                  title: const Text('Paramètres de Notifications'),
-                  trailing: const Icon(Icons.chevron_right),
+                _buildSettingsTile(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Notifications',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -405,13 +371,14 @@ class _AccountScreenState extends State<AccountScreen> {
                               const NotificationSettingsScreen()),
                     );
                   },
+                  isDark: isDark,
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                      isDark ? Icons.light_mode : Icons.dark_mode,
-                      color: Colors.orange),
-                  title: Text(isDark ? 'Mode Clair' : 'Mode Sombre'),
+                _buildSettingsTile(
+                  icon: isDark ? Icons.light_mode : Icons.dark_mode,
+                  title: isDark ? 'Mode Clair' : 'Mode Sombre',
+                  onTap: () {
+                    ThemeService().toggleTheme();
+                  },
                   trailing: Switch(
                     value: isDark,
                     onChanged: (value) {
@@ -419,103 +386,195 @@ class _AccountScreenState extends State<AccountScreen> {
                     },
                     activeThumbColor: ThemeService.primaryColor,
                   ),
+                  isDark: isDark,
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.system_update_rounded,
-                      color: Colors.blueAccent),
-                  title: const Text('Mise à jour de l\'application'),
-                  subtitle: const Text('Télécharger la version APK'),
-                  trailing: const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+
+          // ── Aide ────────────────────────────────────────────────
+          _buildSectionTitle('Aide'),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                _buildSettingsTile(
+                  icon: Icons.folder_open_rounded,
+                  title: 'Ressources',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const ResourceListScreen()),
+                    );
+                  },
+                  isDark: isDark,
+                ),
+                _buildSettingsTile(
+                  icon: Icons.support_agent_rounded,
+                  title: 'Assistance',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const SupportTicketsScreen()),
+                    );
+                  },
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ),
+
+          // ── Outils ────────────────────────────────────────────────
+          if (isAdmin || _canManageBot || _canManageTemplates) ...[
+            _buildSectionTitle('Outils'),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  if (isAdmin || _canManageBot)
+                    _buildSettingsTile(
+                      icon: Icons.smart_toy_rounded,
+                      title: 'Réponses Automatiques',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const BotRepliesScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin || _canManageTemplates)
+                    _buildSettingsTile(
+                      icon: Icons.message_rounded,
+                      title: 'Modèles de messages',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const TemplatesAdminScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin)
+                    _buildSettingsTile(
+                      icon: Icons.water_drop_rounded,
+                      title: 'Campagnes Goutte à Goutte',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const DripCampaignsSettingsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                ],
+              ),
+            ),
+          ],
+
+          // ── Application ────────────────────────────────────────────────
+          _buildSectionTitle('Application'),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                _buildSettingsTile(
+                  icon: Icons.system_update_rounded,
+                  title: 'Mise à jour',
                   onTap: () async {
-                    final url =
-                        Uri.parse('${baseUrl}downloads/whatsclick.apk');
+                    final url = Uri.parse('${baseUrl}downloads/whatsclick.apk');
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
                     } else {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Impossible d\'ouvrir le lien')),
+                        const SnackBar(content: Text('Impossible d\'ouvrir le lien')),
                       );
                     }
                   },
+                  isDark: isDark,
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text('Déconnexion',
-                      style: TextStyle(color: Colors.red)),
+                _buildSettingsTile(
+                  icon: Icons.logout,
+                  title: 'Déconnexion',
+                  iconColor: Colors.red,
                   onTap: _logout,
+                  isDark: isDark,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.0),
-            child: Text(
-              'Fonctionnalités & Paramètres',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-                letterSpacing: 0.5,
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, top: 24, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? trailing,
+    required VoidCallback onTap,
+    Color iconColor = Colors.grey,
+    bool isDark = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1))),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade200),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ]
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.message_rounded,
-                      color: Colors.indigo),
-                  title:
-                      const Text('Modèles de messages (Templates)'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) =>
-                              const TemplatesAdminScreen()),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.smart_toy_rounded,
-                      color: Colors.teal),
-                  title: const Text('Réponses Automatiques (Bot)'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const BotRepliesScreen()),
-                    );
-                  },
-                ),
-                if (isAdmin) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.water_drop_rounded,
-                        color: Colors.lightBlue),
-                    title: const Text('Campagnes Goutte à Goutte'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const DripCampaignsSettingsScreen()),
-                      );
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+            trailing ?? const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+          ],
+        ),
       ),
     );
   }

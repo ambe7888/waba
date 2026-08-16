@@ -8,10 +8,12 @@ import '../services/theme_service.dart';
 import '../models/contact.dart';
 import 'chat_box_screen.dart';
 import 'login_screen.dart';
+import 'notifications_screen.dart';
 import '../config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(int)? onUnreadCountChanged;
+  const HomeScreen({super.key, this.onUnreadCountChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -32,9 +34,13 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _searchDebouncer;
 
   // Label filter state
-  String? _selectedLabelFilter;
+  final List<String> _selectedLabelFilters = [];
   List<ContactLabel> _allUniqueLabels = [];
   String _assignedFilter = 'all';
+  
+  // Date filter state
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
 
   // Notification badge counts
   int _unreadNewCount = 0; // nouveaux (unassigned)
@@ -222,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: 1,
-        assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
         search: _searchController.text,
       );
       final data = result;
@@ -287,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: _nextPage,
-        assigned: _assignedFilter == 'all' ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
         search: _searchController.text,
       );
       final List<Contact> loaded = result['contacts'] as List<Contact>;
@@ -341,11 +347,34 @@ class _HomeScreenState extends State<HomeScreen>
             (contact.lastMessage?.toLowerCase().contains(query) ?? false);
 
         // Label filter
-        final matchesLabel = _selectedLabelFilter == null ||
-            (_selectedLabelFilter == '__unread' && contact.unreadCount > 0) ||
-            contact.labels.any((l) => l.title == _selectedLabelFilter);
+        final matchesLabel = _selectedLabelFilters.isEmpty ||
+            (_selectedLabelFilters.contains('__unread') && contact.unreadCount > 0) ||
+            contact.labels.any((l) => _selectedLabelFilters.contains(l.title));
 
-        return matchesSearch && matchesLabel;
+        // Date filter
+        bool matchesDate = true;
+        if (_filterStartDate != null || _filterEndDate != null) {
+          if (contact.lastMessageTime != null) {
+            final msgDate = DateTime.tryParse(contact.lastMessageTime!)?.toLocal();
+            if (msgDate != null) {
+              final msgDay = DateTime(msgDate.year, msgDate.month, msgDate.day);
+              if (_filterStartDate != null) {
+                final startDay = DateTime(_filterStartDate!.year, _filterStartDate!.month, _filterStartDate!.day);
+                if (msgDay.isBefore(startDay)) matchesDate = false;
+              }
+              if (_filterEndDate != null) {
+                final endDay = DateTime(_filterEndDate!.year, _filterEndDate!.month, _filterEndDate!.day, 23, 59, 59);
+                if (msgDay.isAfter(endDay)) matchesDate = false;
+              }
+            } else {
+              matchesDate = false;
+            }
+          } else {
+            matchesDate = false;
+          }
+        }
+
+        return matchesSearch && matchesLabel && matchesDate;
       }).toList();
 
       // Sort by last message time descending
@@ -366,11 +395,264 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  void _selectLabelFilter(String? label) {
-    setState(() {
-      _selectedLabelFilter = _selectedLabelFilter == label ? null : label;
-    });
-    _applyFilters();
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final surfaceCard = Theme.of(context).scaffoldBackgroundColor;
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: BoxDecoration(
+                color: surfaceCard,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Filtrer les conversations',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Scrollable Content
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(16.0),
+                      children: [
+                        // Date Range
+                        const Text(
+                          'Période',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final date = await showDatePicker(
+                                    context: context,
+                                    initialDate: _filterStartDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2100),
+                                  );
+                                  if (date != null) {
+                                    setModalState(() => _filterStartDate = date);
+                                    setState(() {});
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today_rounded, size: 16),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _filterStartDate != null 
+                                              ? "${_filterStartDate!.day.toString().padLeft(2,'0')}/${_filterStartDate!.month.toString().padLeft(2,'0')}/${_filterStartDate!.year}"
+                                              : "Date début",
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (_filterStartDate != null)
+                                        InkWell(
+                                          onTap: () {
+                                            setModalState(() => _filterStartDate = null);
+                                            setState(() {});
+                                          },
+                                          child: const Icon(Icons.close, size: 16),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final date = await showDatePicker(
+                                    context: context,
+                                    initialDate: _filterEndDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2100),
+                                  );
+                                  if (date != null) {
+                                    setModalState(() => _filterEndDate = date);
+                                    setState(() {});
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today_rounded, size: 16),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _filterEndDate != null 
+                                              ? "${_filterEndDate!.day.toString().padLeft(2,'0')}/${_filterEndDate!.month.toString().padLeft(2,'0')}/${_filterEndDate!.year}"
+                                              : "Date fin",
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (_filterEndDate != null)
+                                        InkWell(
+                                          onTap: () {
+                                            setModalState(() => _filterEndDate = null);
+                                            setState(() {});
+                                          },
+                                          child: const Icon(Icons.close, size: 16),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Tags List
+                        const Text(
+                          'Étiquettes',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilterChip(
+                              label: const Text('Toutes les étiquettes'),
+                              selected: _selectedLabelFilters.isEmpty || (_selectedLabelFilters.length == 1 && _selectedLabelFilters.contains('__unread')),
+                              selectedColor: ThemeService.primaryColor.withValues(alpha: 0.2),
+                              labelStyle: TextStyle(
+                                color: (_selectedLabelFilters.isEmpty || (_selectedLabelFilters.length == 1 && _selectedLabelFilters.contains('__unread')))
+                                    ? ThemeService.primaryColor
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                  });
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                            ..._allUniqueLabels.map((label) {
+                              final isSelected = _selectedLabelFilters.contains(label.title);
+                              final color = _parseColor(label.bgColor);
+                              return FilterChip(
+                                label: Text(label.title),
+                                selected: isSelected,
+                                selectedColor: color.withValues(alpha: 0.2),
+                                labelStyle: TextStyle(
+                                  color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                                ),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedLabelFilters.add(label.title);
+                                      if (_assignedFilter == 'unread') {
+                                        _assignedFilter = 'all';
+                                      }
+                                    } else {
+                                      _selectedLabelFilters.remove(label.title);
+                                    }
+                                  });
+                                  setModalState(() {});
+                                },
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Bottom Actions
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                _filterStartDate = null;
+                                _filterEndDate = null;
+                              });
+                              setModalState(() {});
+                              _applyFilters();
+                              Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Réinitialiser'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _applyFilters();
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ThemeService.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Appliquer'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   int get _totalUnreadCount =>
@@ -408,19 +690,24 @@ class _HomeScreenState extends State<HomeScreen>
     if (timestamp == null || timestamp.isEmpty) return '';
     try {
       final parsedDate = DateTime.parse(timestamp).toLocal();
-      final difference = DateTime.now().difference(parsedDate);
-
-      if (difference.inSeconds < 60) {
-        return "à l'instant";
-      } else if (difference.inMinutes < 60) {
-        return "${difference.inMinutes}min";
-      } else if (difference.inHours < 24) {
-        return "${difference.inHours}h";
-      } else if (difference.inDays < 7) {
-        return "${difference.inDays}j";
+      final now = DateTime.now();
+      
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final msgDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+      
+      if (msgDate == today) {
+        return "${parsedDate.hour.toString().padLeft(2, '0')}:${parsedDate.minute.toString().padLeft(2, '0')}";
+      } else if (msgDate == yesterday) {
+        return "Hier";
       } else {
-        final weeks = (difference.inDays / 7).floor();
-        return "${weeks}sem";
+        final difference = today.difference(msgDate).inDays;
+        if (difference < 7) {
+          const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+          return days[parsedDate.weekday - 1];
+        } else {
+          return "${parsedDate.day.toString().padLeft(2, '0')}/${parsedDate.month.toString().padLeft(2, '0')}/${parsedDate.year.toString().substring(2)}";
+        }
       }
     } catch (e) {
       return '';
@@ -438,27 +725,25 @@ class _HomeScreenState extends State<HomeScreen>
             .toUpperCase()
         : 'C';
 
-    // Generate a gradient based on the contact name hash
+    // Generate a color based on the contact name hash
     final hash = contact.name.hashCode;
-    final gradientColors = [
-      HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.6, 0.45).toColor(),
-      HSLColor.fromAHSL(1, ((hash + 40) % 360).toDouble(), 0.5, 0.55).toColor(),
-    ];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Colored text and border
+    final color = HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.8, 0.45).toColor();
+    // White background in light mode, dark surface in dark mode
+    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
 
     return Container(
       width: 52,
       height: 52,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        shape: BoxShape.circle,
+        color: bgColor,
+        border: Border.all(color: color, width: 1.2),
       ),
       child: contact.avatar != null && contact.avatar!.isNotEmpty
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+          ? ClipOval(
               child: Image.network(
                 contact.avatar!,
                 width: 52,
@@ -468,7 +753,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Text(
                     initials,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: color,
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                     ),
@@ -480,7 +765,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: Text(
                 initials,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: color,
                   fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
@@ -493,6 +778,13 @@ class _HomeScreenState extends State<HomeScreen>
     if (_assignedFilter == filter) return;
     setState(() {
       _assignedFilter = filter;
+      if (filter == 'unread') {
+        if (!_selectedLabelFilters.contains('__unread')) {
+           _selectedLabelFilters.add('__unread');
+        }
+      } else {
+        _selectedLabelFilters.remove('__unread');
+      }
     });
     _loadContacts(reset: true);
   }
@@ -578,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildLabelChip(ContactLabel label, {bool compact = false}) {
     final bgColor = _parseColor(label.bgColor);
-    final textColor = _parseColor(label.textColor);
+    final textColor = _parseColor(label.textColor).withValues(alpha: 1.0);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -586,15 +878,16 @@ class _HomeScreenState extends State<HomeScreen>
         vertical: compact ? 2 : 3,
       ),
       decoration: BoxDecoration(
-        color: bgColor.withAlpha(40),
+        color: bgColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: bgColor.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Text(
         label.title,
         style: TextStyle(
           color: textColor,
-          fontSize: compact ? 9 : 10,
-          fontWeight: FontWeight.w600,
+          fontSize: compact ? 10 : 11,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -627,6 +920,9 @@ class _HomeScreenState extends State<HomeScreen>
     const accentColor = Color(0xFF2DD4BF);
     final surfaceCard = Theme.of(context).colorScheme.surface;
     final totalUnread = _totalUnreadCount;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onUnreadCountChanged?.call(totalUnread);
+    });
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -675,67 +971,129 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh_rounded, size: 22),
-            onPressed: _loadContacts,
+            icon: const Icon(Icons.notifications_none_rounded, size: 24),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
         ],
       ),
       body: Column(
         children: [
-          // Search Bar with glassmorphism effect
+          // Search Bar with filter button
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: surfaceCard,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.06)),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Rechercher un contact...',
-                  hintStyle: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.31),
-                      fontSize: 14),
-                  prefixIcon: Icon(Icons.search_rounded,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.31),
-                      size: 20),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(Icons.clear_rounded,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: surfaceCard,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.12),
+                          width: 1),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher un contact...',
+                        hintStyle: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.31),
+                            fontSize: 14),
+                        prefixIcon: Icon(Icons.search_rounded,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.31),
+                            size: 20),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear_rounded,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.31),
+                                    size: 18),
+                                onPressed: () => _searchController.clear(),
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: _showFilterBottomSheet,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: surfaceCard,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.31),
-                              size: 18),
-                          onPressed: () => _searchController.clear(),
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                                  .withValues(alpha: 0.12),
+                              width: 1),
+                        ),
+                        child: Icon(
+                          Icons.filter_list_rounded,
+                          size: 22,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      if (_selectedLabelFilters.where((l) => l != '__unread').isNotEmpty || _filterStartDate != null || _filterEndDate != null)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                _filterStartDate = null;
+                                _filterEndDate = null;
+                              });
+                              _applyFilters();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close_rounded, size: 10, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
 
-          // Segmented filter pills (WhatsMine Agent design)
+          // Segmented filter pills
           Container(
             height: 34,
             margin: const EdgeInsets.only(bottom: 8),
@@ -743,7 +1101,9 @@ class _HomeScreenState extends State<HomeScreen>
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _buildSegmentButton('Tout', 'all'),
+                _buildSegmentButton('Tous', 'all'),
+                const SizedBox(width: 8),
+                _buildSegmentButton('Non lu', 'unread'),
                 const SizedBox(width: 8),
                 _buildSegmentButton('Moi', 'to-me'),
                 const SizedBox(width: 8),
@@ -751,59 +1111,6 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-
-          // Label Filter Bar
-          if (_allUniqueLabels.isNotEmpty ||
-              _contacts.any((c) => c.unreadCount > 0))
-            Container(
-              height: 40,
-              margin: EdgeInsets.only(bottom: 8),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  // "Tous" chip
-                  _buildFilterChip(
-                    label: 'Tous',
-                    isSelected: _selectedLabelFilter == null,
-                    color: primaryColor,
-                    onTap: () => _selectLabelFilter(null),
-                    count: _contacts.length,
-                  ),
-                  SizedBox(width: 8),
-                  // "Non lus" chip
-                  if (_contacts.any((c) => c.unreadCount > 0))
-                    _buildFilterChip(
-                      label: 'Non lus',
-                      isSelected: _selectedLabelFilter == '__unread',
-                      color: Color(0xFFF59E0B),
-                      onTap: () => _selectLabelFilter('__unread'),
-                      count: _contacts.where((c) => c.unreadCount > 0).length,
-                      icon: Icons.mark_email_unread_rounded,
-                    ),
-                  if (_contacts.any((c) => c.unreadCount > 0))
-                    SizedBox(width: 8),
-                  // Dynamic label chips
-                  ..._allUniqueLabels.map((label) {
-                    final color = _parseColor(label.bgColor);
-                    final count = _contacts
-                        .where(
-                            (c) => c.labels.any((l) => l.title == label.title))
-                        .length;
-                    return Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: _buildFilterChip(
-                        label: label.title,
-                        isSelected: _selectedLabelFilter == label.title,
-                        color: color,
-                        onTap: () => _selectLabelFilter(label.title),
-                        count: count,
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
 
           // Contact List
           Expanded(
@@ -840,7 +1147,7 @@ class _HomeScreenState extends State<HomeScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              _selectedLabelFilter != null
+                              _selectedLabelFilters.isNotEmpty
                                   ? Icons.filter_list_off_rounded
                                   : Icons.chat_bubble_outline_rounded,
                               size: 56,
@@ -851,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             SizedBox(height: 16),
                             Text(
-                              _selectedLabelFilter != null
+                              _selectedLabelFilters.isNotEmpty
                                   ? 'Aucun contact avec cette étiquette'
                                   : 'Aucune conversation trouvée',
                               style: TextStyle(
@@ -861,10 +1168,15 @@ class _HomeScreenState extends State<HomeScreen>
                                       .withValues(alpha: 0.39),
                                   fontSize: 15),
                             ),
-                            if (_selectedLabelFilter != null) ...[
+                            if (_selectedLabelFilters.isNotEmpty) ...[
                               SizedBox(height: 12),
                               TextButton(
-                                onPressed: () => _selectLabelFilter(null),
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedLabelFilters.clear();
+                                    _applyFilters();
+                                  });
+                                },
                                 child: Text('Voir tous les contacts',
                                     style: TextStyle(color: primaryColor)),
                               ),

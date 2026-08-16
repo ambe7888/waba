@@ -142,7 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildDropdownField(String label, String value, List<String> items, ValueChanged<String?> onChanged, bool isDark) {
     return DropdownButtonFormField<String>(
-      value: items.contains(value) ? value : (items.isNotEmpty ? items.first : null),
+      initialValue: items.contains(value) ? value : (items.isNotEmpty ? items.first : null),
       dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
       decoration: InputDecoration(

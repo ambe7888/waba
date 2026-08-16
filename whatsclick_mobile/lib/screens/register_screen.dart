@@ -160,7 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           image: const DecorationImage(
             image: AssetImage('assets/images/whatsapp_bg.png'),
             fit: BoxFit.cover,
-            opacity: 0.15,
+            opacity: 0.25,
           ),
         ),
         child: SafeArea(
@@ -348,8 +348,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
         ),
       ),
     );

@@ -423,6 +423,11 @@ Route::group([
             'updateOrderStatus',
         ])->name('app_api.vendor.ecommerce.orders.update_status');
 
+        Route::post('/ecommerce/orders/delete/{orderUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'processOrderDelete',
+        ])->name('app_api.vendor.ecommerce.orders.delete');
+
         // Canned replies
         Route::get('/canned-replies', [
             \App\Yantrana\Components\WhatsAppService\Controllers\CannedReplyController::class,
@@ -780,6 +785,18 @@ Route::group([
             CampaignController::class,
             'campaignStatusView',
         ])->name('app_api.vendor.campaign.read.dashboard_status');
+
+        // Campaign queue log list view (for messages tab)
+        Route::get('/whatsapp/campaign/queue/{campaignUid}/{logStatus?}', [
+            CampaignController::class,
+            'campaignQueueLogListView',
+        ])->name('app_api.vendor.campaign.read.queue_log');
+
+        // Campaign executed log list view (for messages tab)
+        Route::get('/whatsapp/campaign/executed/{campaignUid}/{logStatus?}', [
+            CampaignController::class,
+            'campaignExecutedLogListView',
+        ])->name('app_api.vendor.campaign.read.executed_log');
 
         // Info materials api list & download
         Route::get('/info-materials', [

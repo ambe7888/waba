@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'create_drip_campaign_screen.dart';
 
 class DripCampaignsSettingsScreen extends StatefulWidget {
   const DripCampaignsSettingsScreen({super.key});
@@ -101,15 +102,22 @@ class _DripCampaignsSettingsScreenState
                             color: isDark ? Colors.white60 : Colors.black54,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Vous devez les créer depuis la version Web.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.white38 : Colors.black38,
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ThemeService.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                        ),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('Créer une campagne', style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const CreateDripCampaignScreen()),
+                            );
+                          },
+                        )
                       ],
                     ),
                   ),
@@ -194,6 +202,15 @@ class _DripCampaignsSettingsScreenState
                     );
                   },
                 ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: ThemeService.primaryColor,
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CreateDripCampaignScreen()),
+          );
+        },
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+      ),
     );
   }
 }

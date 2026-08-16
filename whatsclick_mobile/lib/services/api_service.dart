@@ -72,6 +72,26 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_role_id');
+    await prefs.remove('user_permissions');
+  }
+
+  /// Helper pour vérifier une permission spécifique
+  Future<bool> hasPermission(String permissionKey) async {
+    final roleId = await getUserRoleId();
+    if (roleId == 2) return true; // L'Admin a tout
+    final prefs = await SharedPreferences.getInstance();
+    final permissionsStr = prefs.getString('user_permissions');
+    if (permissionsStr != null && permissionsStr.isNotEmpty) {
+      try {
+        final permissions = jsonDecode(permissionsStr) as Map<String, dynamic>;
+        if (permissions.containsKey(permissionKey)) {
+          return permissions[permissionKey] == 'allow' || permissions[permissionKey] == true;
+        }
+      } catch (e) {
+        debugPrint('Erreur lors de la lecture des permissions : $e');
+      }
+    }
+    return false;
   }
 
   Map<String, String> _getHeaders({bool requireAuth = true}) {
@@ -319,8 +339,16 @@ class ApiService {
           final data = body['data'];
           if (data is Map<String, dynamic>) {
             if (data['vendorDashboardData'] is Map<String, dynamic>) {
-              return Map<String, dynamic>.from(
-                  data['vendorDashboardData'] as Map);
+              final dashboardData = Map<String, dynamic>.from(data['vendorDashboardData'] as Map);
+              
+              // Sauvegarder les permissions si présentes
+              if (dashboardData['vendorUserPermissions'] != null) {
+                final prefs = await SharedPreferences.getInstance();
+                final permissions = jsonEncode(dashboardData['vendorUserPermissions']);
+                await prefs.setString('user_permissions', permissions);
+              }
+
+              return dashboardData;
             }
             return data;
           }
@@ -1320,6 +1348,24 @@ class ApiService {
     }
   }
 
+  /// Delete an order
+  Future<bool> deleteOrder(String orderUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/delete/$orderUid');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['success'] ?? body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Order Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch all canned replies
   Future<List<Map<String, dynamic>>> fetchCannedReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies');
@@ -1611,6 +1657,71 @@ class ApiService {
     }
   }
 
+  /// Create a new contact
+  Future<bool> createContact(Map<String, dynamic> data) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/add-process');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1; // 1 means success usually
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Create Contact Error: $e');
+      return false;
+    }
+  }
+
+  /// Update an existing contact
+  Future<bool> updateContact(Map<String, dynamic> data) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/update-process');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Update Contact Error: $e');
+      return false;
+    }
+  }
+
+  /// Delete a contact
+  Future<bool> deleteContact(String contactUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/$contactUid/delete-process');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Contact Error: $e');
+      return false;
+    }
+  }
+
   /// Assign groups to contact
   Future<bool> assignGroupsToContact(
       List<String> contactUids, List<String> groupUids) async {
@@ -1763,6 +1874,29 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Fetch Campaign Dashboard Error: $e');
       return null;
+    }
+  }
+
+  /// Fetch Campaign Contacts (Messages log)
+  Future<List<Map<String, dynamic>>> fetchCampaignContacts(
+      String campaignUid, {String logType = 'queue'}) async {
+    // logType should be 'queue' or 'executed'
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/campaign/$logType/$campaignUid/all?length=-1&draw=1');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 25));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['data'] != null && body['data'] is List) {
+           return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Campaign Contacts Error: $e');
+      return [];
     }
   }
 
@@ -1924,8 +2058,10 @@ class ApiService {
             url,
             headers: _getHeaders(),
             body: jsonEncode({
-              'note': note,
-              'reminder_date': date,
+              'preset_time': 'custom',
+              'custom_datetime': date,
+              'action_type': 'notification',
+              'title_note': note,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -2002,7 +2138,7 @@ class ApiService {
   Future<Map<String, dynamic>> fetchNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final vendorUid = prefs.getString('vendor_uid') ?? '';
-    final url = Uri.parse('${baseApiUrl}$vendorUid/notifications');
+    final url = Uri.parse('$baseApiUrl$vendorUid/notifications');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
@@ -2028,7 +2164,7 @@ class ApiService {
   Future<bool> markNotificationsAsRead() async {
     final prefs = await SharedPreferences.getInstance();
     final vendorUid = prefs.getString('vendor_uid') ?? '';
-    final url = Uri.parse('${baseApiUrl}$vendorUid/notifications/mark-read');
+    final url = Uri.parse('$baseApiUrl$vendorUid/notifications/mark-read');
     try {
       final response = await http
           .post(url, headers: _getHeaders())

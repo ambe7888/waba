@@ -27,7 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _unreadNotificationsCount = 0;
 
   // Filter for template category
-  String _selectedTemplateCategory = 'TOUS';
+  final String _selectedTemplateCategory = 'TOUS';
 
   @override
   void initState() {
@@ -91,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
+    final isAdmin = _roleId == 2;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -121,6 +122,15 @@ class _DashboardScreenState extends State<DashboardScreen>
         elevation: 0,
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? Colors.amber : const Color(0xFF4B5563),
+            ),
+            onPressed: () {
+              ThemeService().toggleTheme();
+            },
+          ),
           IconButton(
             icon: Stack(
               clipBehavior: Clip.none,
@@ -253,60 +263,61 @@ class _DashboardScreenState extends State<DashboardScreen>
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: [
                             // 1. Carte Abonnement (WAPI Style)
-                            _buildWapiSubscriptionCard(isDark),
-                      const SizedBox(height: 16),
+                            if (isAdmin) _buildWapiSubscriptionCard(isDark),
+                            if (isAdmin) const SizedBox(height: 16),
 
-                      // 2. Carte WhatsApp API
-                      _buildWabaCard(isDark),
-                      const SizedBox(height: 24),
+                            // 2. Carte WhatsApp API
+                            _buildWabaCard(isDark),
+                            const SizedBox(height: 24),
 
-                      // 3. Onglets : Général à gauche, Abonnement à droite
-                      Container(
-                        height: 44,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.black.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          indicator: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            color: ThemeService.primaryColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: ThemeService.primaryColor.withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                            // 3. Onglets : Général à gauche, Abonnement à droite
+                            if (isAdmin)
+                              Container(
+                                height: 44,
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.black.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: TabBar(
+                                  controller: _tabController,
+                                  indicator: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
+                                    color: ThemeService.primaryColor,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: ThemeService.primaryColor.withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  labelColor: Colors.white,
+                                  unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+                                  labelStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                  dividerColor: Colors.transparent,
+                                  onTap: (i) => setState(() => _currentTabIndex = i),
+                                  tabs: const [
+                                    Tab(text: 'Général'),
+                                    Tab(text: 'Abonnement'),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          labelColor: Colors.white,
-                          unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
-                          labelStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          dividerColor: Colors.transparent,
-                          onTap: (i) => setState(() => _currentTabIndex = i),
-                          tabs: const [
-                            Tab(text: 'Général'),
-                            Tab(text: 'Abonnement'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                            if (isAdmin) const SizedBox(height: 16),
 
-                      // Tab Content
-                      _currentTabIndex == 0
-                          ? _buildGeneralTab(isDark)
-                          : _buildSubscriptionTab(isDark),
+                            // Tab Content
+                            (!isAdmin || _currentTabIndex == 0)
+                                ? _buildGeneralTab(isDark)
+                                : _buildSubscriptionTab(isDark),
 
                       const SizedBox(height: 28),
 
@@ -904,22 +915,40 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
+        Row(
           children: [
-            _buildUsageCard('Contacts', '$cContacts / ${getLimit("contacts")}', Icons.contacts_rounded, const Color(0xFF6C63FF), isDark),
-            _buildUsageCard('Campagnes', '$cCampaigns / ${getLimit("campaigns")}', Icons.campaign_rounded, Colors.pinkAccent, isDark),
-            _buildUsageCard('Rép. du Bot', '$cBotReplies / ${getLimit("bot_replies")}', Icons.smart_toy_rounded, Colors.green, isDark),
-            _buildUsageCard('Drip Camp.', '$cDrip / ${getLimit("drip_campaigns")}', Icons.water_drop_rounded, Colors.teal, isDark),
-            _buildUsageCard('Flux du Bot', '$cBotFlows / ${getLimit("bot_flows")}', Icons.account_tree_rounded, Colors.purple, isDark),
-            _buildUsageCard('Agents', '$cAgents / ${getLimit("system_users")}', Icons.support_agent_rounded, Colors.blue, isDark),
+            Expanded(
+              child: _buildStatCard('Contacts', Icons.contacts_rounded, const Color(0xFF6C63FF), '$cContacts / ${getLimit("contacts")}', isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard('Campagnes', Icons.campaign_rounded, Colors.pinkAccent, '$cCampaigns / ${getLimit("campaigns")}', isDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('Rép. du Bot', Icons.smart_toy_rounded, Colors.green, '$cBotReplies / ${getLimit("bot_replies")}', isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard('Drip Camp.', Icons.water_drop_rounded, Colors.teal, '$cDrip / ${getLimit("drip_campaigns")}', isDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard('Flux du Bot', Icons.account_tree_rounded, Colors.purple, '$cBotFlows / ${getLimit("bot_flows")}', isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard('Agents', Icons.support_agent_rounded, Colors.blue, '$cAgents / ${getLimit("system_users")}', isDark),
+            ),
           ],
         ),
       ],
@@ -1044,50 +1073,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           Text(
             title,
             style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUsageCard(String label, String value, IconData icon, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

@@ -71,7 +71,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           image: const DecorationImage(
             image: AssetImage('assets/images/whatsapp_bg.png'),
             fit: BoxFit.cover,
-            opacity: 0.15, // Subtle background
+            opacity: 0.25, // Subtle background
           ),
         ),
         child: SafeArea(

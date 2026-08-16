@@ -21,10 +21,14 @@ envweb
 auth.json
 cred.txt
 storage/firebase/firebase-service-account.json
+whatsclick-*.json
+*.json.secret
 
 # Logs
 laravel.log
 *.log
+analyze.txt
+build_log.txt
 
 # Outils locaux / IDE
 /.vscode/

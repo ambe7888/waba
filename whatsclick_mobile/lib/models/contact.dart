@@ -39,6 +39,7 @@ class Contact {
   final bool? isAiBotActive;
   final String? status;
   final String? assignedUserName;
+  final bool isBlocked;
 
   Contact({
     required this.uid,
@@ -53,6 +54,7 @@ class Contact {
     this.isAiBotActive = true,
     this.status = 'Open',
     this.assignedUserName,
+    this.isBlocked = false,
   });
 
   factory Contact.fromJson(Map<String, dynamic> json) {
@@ -86,6 +88,7 @@ class Contact {
       isAiBotActive: json['is_ai_bot_active'] ?? json['is_bot_active'] ?? (json['disable_ai_bot'] == 0),
       status: json['status']?.toString() ?? 'Open',
       assignedUserName: json['assigned_user_name']?.toString() ?? json['assigned_to']?['name']?.toString(),
+      isBlocked: json['wa_blocked_at'] != null,
     );
   }
 
@@ -105,6 +108,7 @@ class Contact {
     bool? isAiBotActive,
     String? status,
     String? assignedUserName,
+    bool? isBlocked,
   }) {
     return Contact(
       uid: uid ?? this.uid,
@@ -119,6 +123,7 @@ class Contact {
       isAiBotActive: isAiBotActive ?? this.isAiBotActive,
       status: status ?? this.status,
       assignedUserName: assignedUserName ?? this.assignedUserName,
+      isBlocked: isBlocked ?? this.isBlocked,
     );
   }
 }

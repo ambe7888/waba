@@ -1721,7 +1721,7 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
             }
         }
         if (!empty($contactGroupsToUpdate)) {
-            $this->groupContactRepository->bunchInsertOrUpdate($contactGroupsToUpdate, '_uid');
+            \App\Yantrana\Components\Contact\Models\GroupContactModel::insert($contactGroupsToUpdate);
             return $this->engineSuccessResponse([
                 'reloadDatatableId' => '#lwContactList',
                 'modalId' => '#lwAssignGroups',

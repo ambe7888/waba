@@ -22,10 +22,27 @@ class MainLayoutScreen extends StatefulWidget {
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _currentIndex = 0; // Default to Dashboard
   StreamSubscription<String>? _notificationTapSubscription;
+  int _unreadConversations = 0;
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _screens = [
+      const DashboardScreen(),
+      HomeScreen(
+        onUnreadCountChanged: (count) {
+          if (mounted && _unreadConversations != count) {
+            setState(() {
+              _unreadConversations = count;
+            });
+          }
+        },
+      ),
+      const ContactsScreen(),
+      const CampaignListScreen(),
+      const AccountScreen(),
+    ];
     _notificationTapSubscription =
         FcmService.onNotificationTap.listen((contactUid) {
       if (mounted) {
@@ -94,15 +111,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
   }
 
-  // List of screens for the bottom navigation bar
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const HomeScreen(), // Discussions
-    const ContactsScreen(),
-    const CampaignListScreen(),
-    const AccountScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -117,7 +125,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               image: const DecorationImage(
                 image: AssetImage('assets/images/whatsapp_bg.png'),
                 fit: BoxFit.cover,
-                opacity: 0.15,
+                opacity: 0.25,
               ),
             ),
             child: IndexedStack(
@@ -127,6 +135,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
+              color: isDark ? ThemeService.darkSurface : ThemeService.lightCard,
               boxShadow: [
                 BoxShadow(
                   color: isDark
@@ -137,61 +146,131 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 ),
               ],
             ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index) {
-                HapticFeedback.lightImpact();
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              type: BottomNavigationBarType.fixed,
-              backgroundColor:
-                  isDark ? ThemeService.darkSurface : ThemeService.lightCard,
-              selectedItemColor: ThemeService.primaryColor,
-              unselectedItemColor: isDark
-                  ? Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5)
-                  : Color(0xFF64748B),
-              selectedLabelStyle: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
+            child: SafeArea(
+              child: SizedBox(
+                height: 65,
+                child: Stack(
+                  children: [
+                    // Sliding indicator
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      top: 0,
+                      left: _currentIndex * (MediaQuery.of(context).size.width / 5),
+                      width: MediaQuery.of(context).size.width / 5,
+                      height: 3,
+                      child: Center(
+                        child: Container(
+                          width: 40,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: ThemeService.primaryColor,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(3),
+                              bottomRight: Radius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Icons
+                    Row(
+                      children: List.generate(5, (index) {
+                        final isSelected = _currentIndex == index;
+                        final color = isSelected
+                            ? ThemeService.primaryColor
+                            : (isDark
+                                ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                : const Color(0xFF64748B));
+
+                        IconData iconData;
+                        String label;
+                        switch (index) {
+                          case 0:
+                            iconData = isSelected ? Icons.grid_view_rounded : Icons.grid_view_rounded;
+                            label = 'Tableau';
+                            break;
+                          case 1:
+                            iconData = isSelected ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded;
+                            label = 'Discussions';
+                            break;
+                          case 2:
+                            iconData = isSelected ? Icons.contact_page_rounded : Icons.contact_page_outlined;
+                            label = 'Contacts';
+                            break;
+                          case 3:
+                            iconData = isSelected ? Icons.campaign_rounded : Icons.campaign_outlined;
+                            label = 'Campagnes';
+                            break;
+                          case 4:
+                            iconData = isSelected ? Icons.settings_rounded : Icons.settings_outlined;
+                            label = 'Compte';
+                            break;
+                          default:
+                            iconData = Icons.help_outline;
+                            label = '';
+                        }
+
+                        return Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() => _currentIndex = index);
+                            },
+                            child: SizedBox(
+                              height: 65,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Icon(iconData, color: color, size: 24),
+                                        if (index == 1 && _unreadConversations > 0)
+                                          Positioned(
+                                            right: -4,
+                                            top: -4,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: ThemeService.primaryColor,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                _unreadConversations > 99 ? '99+' : '$_unreadConversations',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: color,
+                                        fontSize: 10,
+                                        fontFamily: 'Inter',
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ),
-              unselectedLabelStyle: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 11,
-              ),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard_outlined),
-                  activeIcon: Icon(Icons.dashboard_rounded),
-                  label: 'Tableau',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.chat_bubble_outline_rounded),
-                  activeIcon: Icon(Icons.chat_bubble_rounded),
-                  label: 'Discussions',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people_outline_rounded),
-                  activeIcon: Icon(Icons.people_rounded),
-                  label: 'Contacts',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.campaign_outlined),
-                  activeIcon: Icon(Icons.campaign_rounded),
-                  label: 'Campagnes',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline_rounded),
-                  activeIcon: Icon(Icons.person_rounded),
-                  label: 'Compte',
-                ),
-              ],
             ),
           ),
         );
