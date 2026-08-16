@@ -29,6 +29,13 @@ laravel.log
 *.log
 analyze.txt
 build_log.txt
+debug_build.txt
+final_build.txt
+final_build_success.txt
+final_release.txt
+release_build.txt
+analyze_res.txt
+.kotlin/
 
 # Outils locaux / IDE
 /.vscode/
