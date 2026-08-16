@@ -20,7 +20,7 @@ class MainLayoutScreen extends StatefulWidget {
 }
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
-  int _currentIndex = 1; // Default to Discussions (Chats)
+  int _currentIndex = 0; // Default to Dashboard
   StreamSubscription<String>? _notificationTapSubscription;
 
   @override

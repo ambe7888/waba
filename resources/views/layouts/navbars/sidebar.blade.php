@@ -199,6 +199,12 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         <i class="fa fa-store"></i> {{ __tr('Vendors') }}
                     </a>
                 </li>
+
+                <li class="nav-item {{ markAsActiveLink('central.notifications.index') }}">
+                    <a class="nav-link" href="{{ route('central.notifications.index') }}">
+                        <i class="fa fa-bell text-warning"></i> {{ __tr('Notifications Mobiles') }}
+                    </a>
+                </li>
                 
                 <li class="nav-item">
                     <a class="nav-link" href="#saasMenu" data-toggle="collapse" role="button"

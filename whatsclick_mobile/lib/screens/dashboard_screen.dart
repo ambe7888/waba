@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'label_contacts_screen.dart';
+import 'manage_subscription_screen.dart';
+import 'manage_waba_screen.dart';
+import 'notifications_screen.dart';
+import 'account_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -11,23 +15,36 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   Map<String, dynamic>? _stats;
   String? _error;
-
-  DateTimeRange? _selectedDateRange;
-  String? _selectedAgentId;
-  List<dynamic> _agents = [];
-  List<String?> _selectedLabelUids = [null, null, null];
-  bool? _botActive; // optimistic bot switch state
   int _roleId = 3;
   String _firstName = '';
+  late TabController _tabController;
+  int _currentTabIndex = 0;
+  int _unreadNotificationsCount = 0;
+
+  // Filter for template category
+  String _selectedTemplateCategory = 'TOUS';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _currentTabIndex = _tabController.index);
+      }
+    });
     _fetchDashboardStats();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDashboardStats() async {
@@ -35,768 +52,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _isLoading = true;
       _error = null;
     });
-
     try {
       _roleId = await ApiService().getUserRoleId();
-
-      String? startStr;
-      String? endStr;
-      if (_selectedDateRange != null) {
-        startStr = _selectedDateRange!.start.toIso8601String().substring(0, 10);
-        endStr = _selectedDateRange!.end.toIso8601String().substring(0, 10);
-      }
-
-      final data = await ApiService().fetchDashboardStats(
-        startDate: startStr,
-        endDate: endStr,
-        agentId: _selectedAgentId,
-      );
+      final data = await ApiService().fetchDashboardStats();
+      final notifData = await ApiService().fetchNotifications();
+      
       if (mounted) {
         setState(() {
           _stats = data;
-          // Preserve agents list between refreshes so admin always sees agents
-          final newAgents = data?['agents'] as List? ?? [];
-          if (newAgents.isNotEmpty) {
-            _agents = newAgents;
-          }
-          // Initialise single label selection
-          final List<dynamic> labelStats = data?['label_date_stats'] ?? [];
-          if (labelStats.isNotEmpty) {
-            for (int i = 0; i < 3; i++) {
-              if (_selectedLabelUids[i] == null) {
-                // Pre-select different labels if available
-                if (i < labelStats.length) {
-                  _selectedLabelUids[i] = labelStats[i]['label_uid'];
-                } else {
-                  _selectedLabelUids[i] = labelStats[0]['label_uid'];
-                }
-              }
-            }
-          }
-          // Sync bot active state
-          _botActive = data?['ai_credits']?['bot_active'] as bool? ?? false;
-
+          _unreadNotificationsCount = notifData['unreadCount'] ?? 0;
           final vendorUserData = data?['vendorUserData'];
           if (vendorUserData != null) {
-            // getUserAuthInfo('profile') returns the profile object directly
-            // which has: first_name, last_name, full_name, email
-            String name = '';
-            // Try direct profile keys first
-            name = vendorUserData['first_name']?.toString() ?? '';
-            if (name.isEmpty) {
-              name = vendorUserData['full_name']?.toString() ?? '';
-            }
-            // Try nested profile key (in case full auth info is returned)
+            String name = vendorUserData['first_name']?.toString() ?? '';
+            if (name.isEmpty) name = vendorUserData['full_name']?.toString() ?? '';
             if (name.isEmpty && vendorUserData['profile'] != null) {
               name = vendorUserData['profile']['first_name']?.toString() ?? '';
-              if (name.isEmpty) {
-                name = vendorUserData['profile']['full_name']?.toString() ?? '';
-              }
+              if (name.isEmpty) name = vendorUserData['profile']['full_name']?.toString() ?? '';
             }
-            // Last resort: email
             if (name.isEmpty) {
               name = vendorUserData['email']?.toString() ?? '';
-              // Use only the part before @
               if (name.contains('@')) name = name.split('@').first;
             }
             _firstName = name;
           }
-
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Erreur de chargement des statistiques';
+          _error = 'Erreur lors du chargement du tableau de bord';
           _isLoading = false;
         });
       }
     }
   }
 
-  Color _parseColor(String? colorHex) {
-    if (colorHex == null || colorHex.isEmpty) return Colors.grey;
-    String hex = colorHex.replaceAll('#', '');
-    if (hex.length == 6) {
-      hex = 'FF$hex';
-    }
-    return Color(int.parse(hex, radix: 16));
-  }
-
-  Widget _buildFilterBar() {
-    final isDark = ThemeService().isDark;
-    final isAdmin = _roleId == 2;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Abonnement (Preview) ───────────────────────────────────────
-          if (_stats?['vendorUserData']?['current_subscription'] != null)
-            Builder(builder: (_) {
-              final sub = _stats!['vendorUserData']['current_subscription'] as Map<String, dynamic>;
-              final planTitle = sub['title']?.toString() ?? 'Plan';
-              final endsAt = sub['ends_at']?.toString();
-              final isExpired = sub['is_expired'] == true;
-              final isFree = sub['is_free'] == true;
-
-              String endsLabel = '';
-              if (endsAt != null) {
-                try {
-                  final d = DateTime.parse(endsAt).toLocal();
-                  endsLabel = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-                } catch (_) {}
-              }
-
-              final Color statusColor = isExpired
-                  ? const Color(0xFFEF4444)
-                  : isFree
-                      ? Colors.orange
-                      : ThemeService.primaryColor;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: statusColor.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.workspace_premium_rounded,
-                          color: statusColor, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Abonnement: $planTitle',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1E293B)),
-                          ),
-                          const SizedBox(height: 2),
-                          if (endsLabel.isNotEmpty)
-                            Text(
-                              isExpired
-                                  ? 'Expiré le $endsLabel'
-                                  : 'Expire le $endsLabel',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: isExpired
-                                      ? const Color(0xFFEF4444)
-                                      : (isDark
-                                          ? Colors.white54
-                                          : Colors.black54)),
-                            )
-                          else
-                            Text(
-                              'Pas de date de fin',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.white54 : Colors.black54),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          Row(
-            children: [
-              // Date Range Picker Button
-              Expanded(
-                child: InkWell(
-                  onTap: _selectDateRange,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? ThemeService.darkCard
-                          : ThemeService.lightCard,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: _selectedDateRange != null
-                            ? ThemeService.primaryColor
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : Colors.black.withValues(alpha: 0.05)),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          color: _selectedDateRange != null
-                              ? ThemeService.primaryColor
-                              : Colors.grey,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _selectedDateRange == null
-                                ? 'Filtrer par date'
-                                : '${_selectedDateRange!.start.toIso8601String().substring(0, 10)} à ${_selectedDateRange!.end.toIso8601String().substring(0, 10)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _selectedDateRange != null
-                                  ? ThemeService.primaryColor
-                                  : (isDark ? Colors.white70 : Colors.black87),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_selectedDateRange != null)
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedDateRange = null;
-                              });
-                              _fetchDashboardStats();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 4.0),
-                              child: Icon(Icons.close,
-                                  size: 14, color: Colors.grey),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (isAdmin && _agents.isNotEmpty) ...[
-                const SizedBox(width: 10),
-                // Agent Dropdown Filter
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? ThemeService.darkCard
-                          : ThemeService.lightCard,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: _selectedAgentId != null
-                            ? ThemeService.primaryColor
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : Colors.black.withValues(alpha: 0.05)),
-                      ),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedAgentId,
-                        hint: Text(
-                          'Par agent',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? Colors.white70 : Colors.black87),
-                        ),
-                        dropdownColor: isDark
-                            ? ThemeService.darkCard
-                            : ThemeService.lightCard,
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down, size: 20),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: null,
-                            child: Text(
-                              'Tous les agents',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black87),
-                            ),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'unassigned',
-                            child: Text(
-                              'Non assignés',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black87),
-                            ),
-                          ),
-                          ..._agents.map((agent) {
-                            final name =
-                                '${agent['first_name'] ?? ''} ${agent['last_name'] ?? ''}'
-                                    .trim();
-                            return DropdownMenuItem<String>(
-                              value: agent['_id']?.toString(),
-                              child: Text(
-                                name.isNotEmpty
-                                    ? name
-                                    : (agent['email'] ?? 'Agent'),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.black87),
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedAgentId = val;
-                          });
-                          _fetchDashboardStats();
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _selectDateRange() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-      initialDateRange: _selectedDateRange,
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDateRange = picked;
-      });
-      _fetchDashboardStats();
-    }
-  }
-
-  Widget _buildLabelStatsCard() {
-    final isDark = ThemeService().isDark;
-    final List<dynamic> labelStats = _stats?['label_date_stats'] ?? [];
-    if (labelStats.isEmpty) return const SizedBox.shrink();
-
-    final isCustomDateActive = _selectedDateRange != null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.label_outline_rounded,
-                      color: ThemeService.primaryColor, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Statistiques des Étiquettes',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 3 lines for label stats
-              ...List.generate(3, (index) {
-                final currentSelectedUid =
-                    _selectedLabelUids[index] ?? labelStats[0]['label_uid'];
-                final selectedLabel = labelStats.firstWhere(
-                  (l) => l['label_uid'] == currentSelectedUid,
-                  orElse: () => labelStats[0],
-                );
-                final selectedLabelUid = selectedLabel['label_uid'] as String;
-                final labelColorHex = selectedLabel['label_color'] ?? '#808080';
-                final labelBgColor = _parseColor(labelColorHex);
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    children: [
-                      // Label Picker Dropdown
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          decoration: BoxDecoration(
-                            color: labelBgColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: labelBgColor.withValues(alpha: 0.4)),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: currentSelectedUid,
-                              dropdownColor: isDark
-                                  ? ThemeService.darkCard
-                                  : ThemeService.lightCard,
-                              icon: Icon(Icons.arrow_drop_down,
-                                  size: 16, color: labelBgColor),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: labelBgColor,
-                              ),
-                              items:
-                                  labelStats.map<DropdownMenuItem<String>>((l) {
-                                return DropdownMenuItem<String>(
-                                  value: l['label_uid'],
-                                  child: Text(
-                                    l['label_title'] ?? 'Sans nom',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                // Create new list reference to force Flutter rebuild
-                                final newUids =
-                                    List<String?>.from(_selectedLabelUids);
-                                newUids[index] = val;
-                                setState(() {
-                                  _selectedLabelUids = newUids;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Period count columns
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isCustomDateActive) ...[
-                            _buildPeriodCountColumn(
-                                'Période',
-                                selectedLabel['count_total'] ?? 0,
-                                selectedLabelUid,
-                                'custom'),
-                          ] else ...[
-                            _buildPeriodCountColumn(
-                                'Auj.',
-                                selectedLabel['count_today'] ?? 0,
-                                selectedLabelUid,
-                                'today'),
-                            const SizedBox(width: 4),
-                            _buildPeriodCountColumn(
-                                'Hier',
-                                selectedLabel['count_yesterday'] ?? 0,
-                                selectedLabelUid,
-                                'yesterday'),
-                            const SizedBox(width: 4),
-                            _buildPeriodCountColumn(
-                                'Av.-hier',
-                                selectedLabel['count_day_before'] ?? 0,
-                                selectedLabelUid,
-                                'day_before'),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPeriodCountColumn(
-      String periodName, dynamic count, String labelUid, String dateFilter) {
-    final isDark = ThemeService().isDark;
-    final int cnt = int.tryParse(count.toString()) ?? 0;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              periodName,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white60 : Colors.black54,
-              ),
-            ),
-            Text(
-              cnt.toString(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: Icon(Icons.remove_red_eye_outlined,
-              size: 18,
-              color: cnt > 0 ? ThemeService.primaryColor : Colors.grey),
-          tooltip: 'Voir les contacts',
-          padding: const EdgeInsets.all(4),
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          onPressed:
-              cnt > 0 ? () => _viewLabeledContacts(labelUid, dateFilter) : null,
-        ),
-      ],
-    );
-  }
-
-  void _viewLabeledContacts(String labelUid, String dateFilter) {
-    String? startStr;
-    String? endStr;
-    if (dateFilter == 'custom' && _selectedDateRange != null) {
-      startStr = _selectedDateRange!.start.toIso8601String().substring(0, 10);
-      endStr = _selectedDateRange!.end.toIso8601String().substring(0, 10);
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LabelContactsScreen(
-          labelUid: labelUid,
-          dateFilter: dateFilter,
-          startDate: startStr,
-          endDate: endStr,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-      String title, String value, IconData icon, Color color) {
-    final isDark = ThemeService().isDark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.2)
-                : Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 26),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubscriptionCard() {
-    final isDark = ThemeService().isDark;
-    final subInfo = _stats?['current_subscription'];
-    if (subInfo == null) return const SizedBox.shrink();
-
-    final isFree = subInfo['is_free'] ?? true;
-    final isExpired = subInfo['is_expired'] ?? false;
-    final title = subInfo['title'] ?? 'Plan Gratuit';
-    final endsAt = subInfo['ends_at'];
-
-    // Gradient and colors
-    final List<Color> gradientColors = isFree
-        ? [
-            ThemeService.primaryColor.withValues(alpha: 0.8),
-            ThemeService.primaryColor
-          ]
-        : [
-            const Color(0xFFE5B94E),
-            const Color(0xFFC79227)
-          ]; // Premium gold gradient
-
-    final iconColor = Colors.white;
-
-    return Container(
-      margin: const EdgeInsets.only(top: 16, bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradientColors.last.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-                isFree
-                    ? Icons.star_border_rounded
-                    : Icons.workspace_premium_rounded,
-                color: iconColor,
-                size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isExpired ? 'Abonnement expiré' : 'Abonnement actif',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                if (endsAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      isExpired
-                          ? 'Expiré le ${endsAt.toString().substring(0, 10)}'
-                          : 'Expire le ${endsAt.toString().substring(0, 10)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isExpired
-                            ? const Color(0xFFFFCCCC)
-                            : Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  )
-                else if (isFree)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      'Durée illimitée',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
+
     return Scaffold(
-      backgroundColor:
-          isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
+      backgroundColor: isDark ? ThemeService.darkSurface : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Row(
           children: [
@@ -804,8 +101,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               borderRadius: BorderRadius.circular(10),
               child: Image.asset(
                 'assets/icon/launcher_icon.png',
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 fit: BoxFit.cover,
               ),
             ),
@@ -813,493 +110,1090 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Text(
               'WhatsClick',
               style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5),
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: TextStyle(color: Colors.red)),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchDashboardStats,
-                        child: Text('Réessayer'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchDashboardStats,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _firstName.isNotEmpty
-                                    ? 'Bienvenue, $_firstName 👋'
-                                    : 'Bienvenue 👋',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: (_roleId == 2
-                                              ? const Color(0xFF6C63FF)
-                                              : ThemeService.primaryColor)
-                                          .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: (_roleId == 2
-                                                ? const Color(0xFF6C63FF)
-                                                : ThemeService.primaryColor)
-                                            .withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          _roleId == 2
-                                              ? Icons
-                                                  .admin_panel_settings_rounded
-                                              : Icons.support_agent_rounded,
-                                          size: 12,
-                                          color: _roleId == 2
-                                              ? const Color(0xFF6C63FF)
-                                              : ThemeService.primaryColor,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _roleId == 2
-                                              ? 'Administrateur'
-                                              : 'Agent',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: _roleId == 2
-                                                ? const Color(0xFF6C63FF)
-                                                : ThemeService.primaryColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '${DateTime.now().day} ${[
-                                      'Jan',
-                                      'Fév',
-                                      'Mar',
-                                      'Avr',
-                                      'Mai',
-                                      'Juin',
-                                      'Juil',
-                                      'Août',
-                                      'Sep',
-                                      'Oct',
-                                      'Nov',
-                                      'Déc'
-                                    ][DateTime.now().month - 1]} ${DateTime.now().year}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white60
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: (isDark
-                                          ? ThemeService.darkCard
-                                          : ThemeService.lightCard)
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withValues(alpha: 0.05)
-                                        : Colors.black.withValues(alpha: 0.05),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Compte : ${_stats?['vendorInfo']?['title'] ?? ''}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark
-                                                  ? Colors.white70
-                                                  : Colors.black87,
-                                            ),
-                                          ),
-                                          if (_stats?['ai_credits']
-                                                  ?['is_enabled'] ==
-                                              true) ...[
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Crédits IA : ${_stats?['ai_credits']?['display_credits'] ?? '0'}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: isDark
-                                                    ? Colors.white60
-                                                    : Colors.black54,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    if (_roleId == 2) ...[
-                                      const SizedBox(width: 8),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Bot IA',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark
-                                                  ? Colors.white70
-                                                  : Colors.black87,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Switch(
-                                            value: _botActive ??
-                                                (_stats?['ai_credits']
-                                                        ?['bot_active'] ??
-                                                    false),
-                                            activeThumbColor:
-                                                ThemeService.primaryColor,
-                                            onChanged: (value) async {
-                                              // Optimistic update: toggle immediately
-                                              setState(
-                                                  () => _botActive = value);
-                                              final success = await ApiService()
-                                                  .toggleBotReply();
-                                              if (success) {
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(value
-                                                          ? 'IA Activée'
-                                                          : 'IA Désactivée'),
-                                                      backgroundColor: value
-                                                          ? Colors.green
-                                                          : Colors.orange,
-                                                      duration: const Duration(
-                                                          seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              } else {
-                                                // Revert if API failed
-                                                setState(
-                                                    () => _botActive = !value);
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                        content: Text(
-                                                            'Échec de la modification du statut du Bot')),
-                                                  );
-                                                }
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: _buildFilterBar(),
-                      ),
-                      if (_stats?['current_subscription'] != null)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: _buildSubscriptionCard(),
-                          ),
-                        ),
-                      SliverToBoxAdapter(
-                        child: _buildLabelStatsCard(),
-                      ),
-                      SliverToBoxAdapter(
-                        child: _buildMessageHistoryChart(),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverGrid.count(
-                          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.9,
-                          children: [
-                            _buildStatCard(
-                                'Contacts',
-                                _stats?['totalContacts']?.toString() ?? '0',
-                                Icons.people,
-                                Colors.blue),
-                            _buildStatCard(
-                                'Campagnes',
-                                _stats?['totalCampaigns']?.toString() ?? '0',
-                                Icons.campaign,
-                                Colors.orange),
-                            _buildStatCard(
-                                'Modèles',
-                                _stats?['totalTemplates']?.toString() ?? '0',
-                                Icons.file_copy,
-                                Colors.purple),
-                            _buildStatCard(
-                                'Msgs en attente',
-                                _stats?['messagesInQueue']?.toString() ?? '0',
-                                Icons.pending,
-                                Colors.amber),
-                            _buildStatCard(
-                                'Msgs envoyés',
-                                _stats?['totalMessagesProcessed']?.toString() ??
-                                    '0',
-                                Icons.send,
-                                Colors.green),
-                            _buildStatCard(
-                                'Actifs (24h)',
-                                _stats?['activeContacts24hCount']?.toString() ??
-                                    '0',
-                                Icons.timer,
-                                Colors.red),
-                            _buildStatCard(
-                                'Messages non lus',
-                                _stats?['unreadMessagesCount']?.toString() ??
-                                    '0',
-                                Icons.mark_chat_unread,
-                                Colors.redAccent),
-                            _buildStatCard(
-                                'Reçus aujourd\'hui',
-                                _stats?['messagesReceivedTodayCount']
-                                        ?.toString() ??
-                                    '0',
-                                Icons.chat_bubble_outline,
-                                Colors.teal),
-                          ],
-                        ),
-                      ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 32),
-                      ),
-                    ],
-                  ),
-                ),
-    );
-  }
-
-  Widget _buildMessageHistoryChart() {
-    final isDark = ThemeService().isDark;
-    final List<dynamic> rawHistory = _stats?['messageHistory'] ?? [];
-    if (rawHistory.isEmpty) return const SizedBox.shrink();
-
-    final barGroups = <BarChartGroupData>[];
-    double maxVal = 10;
-
-    for (int i = 0; i < rawHistory.length; i++) {
-      final item = rawHistory[i];
-      final incoming =
-          double.tryParse(item['incoming']?.toString() ?? '0') ?? 0;
-      final outgoing =
-          double.tryParse(item['outgoing']?.toString() ?? '0') ?? 0;
-
-      if (incoming > maxVal) maxVal = incoming;
-      if (outgoing > maxVal) maxVal = outgoing;
-
-      barGroups.add(
-        BarChartGroupData(
-          x: i,
-          barRods: [
-            BarChartRodData(
-              toY: incoming,
-              color: Colors.blue,
-              width: 8,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            BarChartRodData(
-              toY: outgoing,
-              color: Colors.green,
-              width: 8,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Historique des messages (7j)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        actions: [
+          IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
                   color: isDark ? Colors.white : Colors.black87,
                 ),
-              ),
-              const Spacer(),
-              Container(
-                width: 10,
-                height: 10,
-                color: Colors.blue,
-              ),
-              const SizedBox(width: 4),
-              Text('Reçus',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : Colors.black54)),
-              const SizedBox(width: 8),
-              Container(
-                width: 10,
-                height: 10,
-                color: Colors.green,
-              ),
-              const SizedBox(width: 4),
-              Text('Envoyés',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : Colors.black54)),
-            ],
+                if (_unreadNotificationsCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _unreadNotificationsCount > 9 ? '9+' : _unreadNotificationsCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+              // Refresh on return
+              _fetchDashboardStats();
+            },
           ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: maxVal * 1.2,
-                barTouchData: BarTouchData(enabled: true),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (double value, TitleMeta meta) {
-                        final idx = value.toInt();
-                        if (idx >= 0 && idx < rawHistory.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              rawHistory[idx]['label']?.toString() ?? '',
-                              style: TextStyle(
-                                color: isDark ? Colors.white60 : Colors.black54,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (double value, TitleMeta meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: TextStyle(
-                            color: isDark ? Colors.white60 : Colors.black54,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ProfileScreen(userData: _stats?['vendorUserData'])),
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(right: 16, left: 4),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [ThemeService.primaryColor, const Color(0xFF10B981)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: isDark ? Colors.white10 : Colors.black12,
-                    strokeWidth: 1,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: ThemeService.primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
+              width: 38,
+              height: 38,
+              child: Center(
+                child: Text(
+                  _firstName.isNotEmpty ? _firstName[0].toUpperCase() : 'W',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                barGroups: barGroups,
               ),
             ),
           ),
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchDashboardStats,
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Fixed Header greeting
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bonjour${_firstName.isNotEmpty ? ', $_firstName' : ''} 👋',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Aperçu de vos performances marketing WhatsApp',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white54 : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _fetchDashboardStats,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            // 1. Carte Abonnement (WAPI Style)
+                            _buildWapiSubscriptionCard(isDark),
+                      const SizedBox(height: 16),
+
+                      // 2. Carte WhatsApp API
+                      _buildWabaCard(isDark),
+                      const SizedBox(height: 24),
+
+                      // 3. Onglets : Général à gauche, Abonnement à droite
+                      Container(
+                        height: 44,
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          indicator: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: ThemeService.primaryColor,
+                            boxShadow: [
+                              BoxShadow(
+                                color: ThemeService.primaryColor.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+                          labelStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          dividerColor: Colors.transparent,
+                          onTap: (i) => setState(() => _currentTabIndex = i),
+                          tabs: const [
+                            Tab(text: 'Général'),
+                            Tab(text: 'Abonnement'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Tab Content
+                      _currentTabIndex == 0
+                          ? _buildGeneralTab(isDark)
+                          : _buildSubscriptionTab(isDark),
+
+                      const SizedBox(height: 28),
+
+                      // 4. Section Statistiques des Campagnes (Hors onglets)
+                      _buildCampaignStatsSection(isDark),
+                      const SizedBox(height: 24),
+
+                      // 5. Section Statistiques des Modèles / Templates (Hors onglets)
+                      _buildTemplateStatsSection(isDark),
+                      const SizedBox(height: 24),
+
+                      // 6. Section Statistiques des Ventes (Hors onglets)
+                      _buildOrderStatsSection(isDark),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // ── 1. Carte Abonnement Style WAPI (Bordures Sombre + Jours Restants) ─────
+  Widget _buildWapiSubscriptionCard(bool isDark) {
+    final sub = _stats?['current_subscription'] ?? _stats?['vendorUserData']?['current_subscription'];
+    final isExpired = sub?['is_expired'] == true;
+    final isFree = sub?['is_free'] == true;
+    
+    String planTitle = sub?['title']?.toString() ?? 'Aucun abonnement';
+    if (isFree || planTitle.toLowerCase().contains('gratuit')) {
+      planTitle = 'Aucun abonnement';
+    } else if (isExpired) {
+      planTitle = 'Abonnement expiré';
+    }
+
+    final billingCycle = sub?['billing_cycle']?.toString() ?? 'Mensuel';
+    final endsAt = sub?['ends_at']?.toString() ?? '';
+    final remainingDays = (sub?['remaining_days'] as num?)?.toInt() ?? 0;
+    final totalDays = (sub?['total_days'] as num?)?.toInt() ?? 30;
+    final progress = (sub?['progress'] as num?)?.toDouble() ?? (totalDays > 0 ? (remainingDays / totalDays) : 1.0);
+    
+    final rawPrice = sub?['price']?.toString() ?? '0';
+    String price = '0 CFA';
+    if (rawPrice != '0' && !isFree) {
+      try {
+        final val = double.parse(rawPrice).toInt();
+        final str = val.toString();
+        String result = '';
+        for (int i = 0; i < str.length; i++) {
+          if (i > 0 && (str.length - i) % 3 == 0) {
+            result += ' ';
+          }
+          result += str[i];
+        }
+        price = '$result CFA';
+      } catch (_) {
+        price = '$rawPrice CFA';
+      }
+    }
+
+    String formattedNextPayment = 'Date non spécifiée';
+    String rawDate = '';
+    if (endsAt.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(endsAt);
+        rawDate = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+        formattedNextPayment = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      } catch (_) {
+        formattedNextPayment = endsAt;
+        rawDate = endsAt;
+      }
+    }
+
+    final String cycleLabel = billingCycle.toLowerCase().contains('annuel') ? '/année' : '/mois';
+    final String billedLabel = isFree ? 'Aucun accès' : (billingCycle.toLowerCase().contains('annuel') ? 'Paiement annuel' : 'Paiement mensuel');
+
+    // Status Colors
+    final Color statusColor = isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
+    final String statusText = isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
+
+    // Progress Bar Color based on remaining days
+    Color progressColor = const Color(0xFF10B981); // Green
+    if (remainingDays <= 5 && !isFree) {
+      progressColor = const Color(0xFFDC2626); // Red
+    } else if (remainingDays <= 15 && !isFree) {
+      progressColor = const Color(0xFFF59E0B); // Yellow/Orange
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Icon, Title, Status
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Orange Crown Icon
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFF97316), width: 1.5),
+                ),
+                child: const Center(
+                  child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFF97316), size: 28),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            planTitle,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : const Color(0xFF111827),
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: statusColor, width: 1.2),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isFree 
+                        ? 'AUCUN ABONNEMENT ACTIF' 
+                        : (isExpired ? 'ABONNEMENT EXPIRÉ DEPUIS: $rawDate' : 'PROCHAIN RENOUV.: $rawDate ($remainingDays JOURS)'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFF97316),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+          const SizedBox(height: 16),
+
+          // Row 2: Price & Billing Details
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Price
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    price == '0' ? 'Gratuit' : price,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                      height: 1,
+                    ),
+                  ),
+                  if (price != '0') ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      ' $cycleLabel',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              // Bullet Points
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.circle, size: 5, color: isDark ? Colors.white70 : const Color(0xFF4B5563)),
+                      const SizedBox(width: 6),
+                      Text(
+                        billedLabel,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : const Color(0xFF374151),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  if (!isFree)
+                  Row(
+                    children: [
+                      Icon(Icons.circle, size: 5, color: isDark ? Colors.white70 : const Color(0xFF4B5563)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Relance activée',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : const Color(0xFF374151),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          if (!isFree) ...[
+            const SizedBox(height: 16),
+            Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+            const SizedBox(height: 16),
+
+            // Row 3: Progress Bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Renouvellement dans',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : const Color(0xFF111827),
+                  ),
+                ),
+                Text(
+                  '$remainingDays jours',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 10,
+                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 24),
+
+          // Action Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ManageSubscriptionScreen(
+                    subscriptionData: sub != null
+                        ? Map<String, dynamic>.from(sub as Map)
+                        : {},
+                    statsData: _stats ?? {},
+                  ),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981), // Solid WAPI Green
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(
+                isFree ? 'Choisir un abonnement' : 'Gérer mon abonnement',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 2. Carte WhatsApp API ────────────────────────────────────────────────
+  Widget _buildWabaCard(bool isDark) {
+    final wabaSetup = _stats?['whatsapp_setup'] as Map?;
+    final vendorInfo = _stats?['vendorInfo'] as Map?;
+
+    final phone = wabaSetup?['phone_number']?.toString().isNotEmpty == true
+        ? wabaSetup!['phone_number'].toString()
+        : vendorInfo?['whatsapp_phone_number']?.toString() ?? '';
+    
+    final phoneId = wabaSetup?['phone_number_id']?.toString() ?? vendorInfo?['whatsapp_phone_number_id']?.toString() ?? '';
+    final wabaId = wabaSetup?['waba_id']?.toString() ?? vendorInfo?['whatsapp_waba_id']?.toString() ?? '';
+
+    final isConnected = wabaSetup?['is_connected'] == true || phone.isNotEmpty;
+
+    // Status Colors
+    final Color statusColor = isConnected ? const Color(0xFF10B981) : const Color(0xFFDC2626);
+    final String statusText = isConnected ? 'Connecté' : 'Déconnecté';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Icon, Title, Status
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Green Icon Box
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                ),
+                child: const Center(
+                  child: Icon(Icons.security_rounded, color: Color(0xFF10B981), size: 26),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'WhatsApp API',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : const Color(0xFF111827),
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: statusColor, width: 1.2),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isConnected ? 'VOTRE NUMÉRO WHATSAPP EST SÉCURISÉ' : 'VEUILLEZ CONNECTER VOTRE API WHATSAPP',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isConnected ? const Color(0xFF10B981) : const Color(0xFFDC2626),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+          const SizedBox(height: 12),
+
+          // Details section
+          if (isConnected) ...[
+            _buildApiDetailRow('Numéro de Tél', '+$phone', isDark),
+            const SizedBox(height: 8),
+            _buildApiDetailRow('ID du Numéro', phoneId, isDark),
+            const SizedBox(height: 8),
+            _buildApiDetailRow('WABA ID', wabaId, isDark),
+            const SizedBox(height: 16),
+            Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+            const SizedBox(height: 16),
+          ],
+
+          // Action Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ManageWabaScreen(
+                    wabaData: Map<String, dynamic>.from(wabaSetup ?? vendorInfo ?? {}),
+                  ),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isConnected ? const Color(0xFF10B981) : const Color(0xFFF97316),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Gérer WhatsApp API',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApiDetailRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+          ),
+        ),
+        Text(
+          value.isNotEmpty ? value : 'N/A',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF111827),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 3A. Onglet Général ───────────────────────────────────────────────────
+  Widget _buildGeneralTab(bool isDark) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Contacts Totaux',
+                Icons.contacts_rounded,
+                const Color(0xFF6C63FF),
+                _stats?['totalContacts']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Messages Envoyés',
+                Icons.send_rounded,
+                Colors.green,
+                _stats?['totalMessagesProcessed']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Reçus aujourd\'hui',
+                Icons.chat_bubble_outline_rounded,
+                Colors.teal,
+                _stats?['messagesReceivedTodayCount']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Messages Non Lus',
+                Icons.mark_chat_unread_rounded,
+                Colors.redAccent,
+                _stats?['unreadMessagesCount']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Contacts Actifs (24h)',
+                Icons.timer_rounded,
+                Colors.orange,
+                _stats?['activeContacts24hCount']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Agents Actifs',
+                Icons.support_agent_rounded,
+                Colors.blue,
+                _stats?['agents']?.length?.toString() ?? _stats?['activeTeamMembers']?.toString() ?? '0',
+                isDark,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── 3B. Onglet Abonnement ────────────────────────────────────────────────
+  Widget _buildSubscriptionTab(bool isDark) {
+    final sub = _stats?['current_subscription'] ?? _stats?['vendorUserData']?['current_subscription'];
+    final limits = sub?['limits'] as Map? ?? {};
+    
+    // Usage counts
+    final cContacts = _stats?['totalContacts']?.toString() ?? '0';
+    final cCampaigns = _stats?['totalCampaigns']?.toString() ?? '0';
+    final cBotReplies = _stats?['totalBotReplies']?.toString() ?? '0';
+    final cDrip = _stats?['totalDripCampaigns']?.toString() ?? '0';
+    final cBotFlows = _stats?['totalBotFlows']?.toString() ?? '0';
+    final cAgents = _stats?['agents']?.length?.toString() ?? _stats?['activeTeamMembers']?.toString() ?? '0';
+
+    // Limits
+    String getLimit(String key) {
+      final lim = limits[key];
+      if (lim == null) return '0';
+      if (lim == -1) return '∞';
+      return lim.toString();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.1,
+          children: [
+            _buildUsageCard('Contacts', '$cContacts / ${getLimit("contacts")}', Icons.contacts_rounded, const Color(0xFF6C63FF), isDark),
+            _buildUsageCard('Campagnes', '$cCampaigns / ${getLimit("campaigns")}', Icons.campaign_rounded, Colors.pinkAccent, isDark),
+            _buildUsageCard('Rép. du Bot', '$cBotReplies / ${getLimit("bot_replies")}', Icons.smart_toy_rounded, Colors.green, isDark),
+            _buildUsageCard('Drip Camp.', '$cDrip / ${getLimit("drip_campaigns")}', Icons.water_drop_rounded, Colors.teal, isDark),
+            _buildUsageCard('Flux du Bot', '$cBotFlows / ${getLimit("bot_flows")}', Icons.account_tree_rounded, Colors.purple, isDark),
+            _buildUsageCard('Agents', '$cAgents / ${getLimit("system_users")}', Icons.support_agent_rounded, Colors.blue, isDark),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── 4. Section Statistiques des Campagnes ───────────────────────────────
+  Widget _buildCampaignStatsSection(bool isDark) {
+    final cStats = _stats?['campaign_stats'] as Map? ?? {};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Statistiques des Campagnes', Icons.campaign_rounded, Colors.pinkAccent, isDark),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              _buildScrollableCard('Campagnes', _stats?['totalCampaigns']?.toString() ?? '0', Icons.campaign_rounded, Colors.pinkAccent, isDark),
+              _buildScrollableCard('Terminé', cStats['completed']?.toString() ?? '0', Icons.check_circle_rounded, Colors.green, isDark),
+              _buildScrollableCard('En cours', cStats['processing']?.toString() ?? '0', Icons.sync_rounded, Colors.blue, isDark),
+              _buildScrollableCard('Programmé', cStats['scheduled']?.toString() ?? '0', Icons.schedule_rounded, Colors.orange, isDark),
+              _buildScrollableCard('Archivés', cStats['archived']?.toString() ?? '0', Icons.archive_rounded, Colors.grey, isDark),
+              _buildScrollableCard('Msg Envoyés', _stats?['totalMessagesProcessed']?.toString() ?? '0', Icons.send_rounded, Colors.teal, isDark),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 5. Section Statistiques des Modèles (Templates) ──────────────────────
+  Widget _buildTemplateStatsSection(bool isDark) {
+    final tStats = _stats?['template_stats'] as Map? ?? {};
+    final approved = tStats['approved']?.toString() ?? '0';
+    final rejected = tStats['rejected']?.toString() ?? '0';
+    final pending = tStats['pending']?.toString() ?? '0';
+    final utilityCount = tStats['utility']?.toString() ?? '0';
+    final marketingCount = tStats['marketing']?.toString() ?? '0';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Statistiques des Modèles', Icons.grid_view_rounded, Colors.purple, isDark),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              _buildScrollableCard('Modèles', _stats?['totalTemplates']?.toString() ?? '0', Icons.file_copy_rounded, Colors.purple, isDark),
+              _buildScrollableCard('Marketing', marketingCount, Icons.mark_email_read_rounded, Colors.pinkAccent, isDark),
+              _buildScrollableCard('Utilitaire', utilityCount, Icons.build_rounded, Colors.teal, isDark),
+              _buildScrollableCard('Approuvé', approved, Icons.check_circle_rounded, Colors.green, isDark),
+              _buildScrollableCard('En attente', pending, Icons.hourglass_top_rounded, Colors.amber, isDark),
+              _buildScrollableCard('Rejeté', rejected, Icons.cancel_rounded, Colors.red, isDark),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Helper UI Elements ───────────────────────────────────────────────────
+  Widget _buildSectionHeader(String title, IconData icon, Color color, bool isDark) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String title, IconData icon, Color color, String value, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageCard(String label, String value, IconData icon, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(String label, bool enabled, bool isDark, {bool isLast = false}) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                enabled ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                color: enabled ? Colors.green : Colors.grey,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScrollableCard(String title, String value, IconData icon, Color color, bool isDark) {
+    return Container(
+      width: 120,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 6. Section Statistiques des Ventes ───────────────────────────────
+  Widget _buildOrderStatsSection(bool isDark) {
+    final oStats = _stats?['order_stats'] as Map? ?? {};
+    if (oStats.isEmpty) return const SizedBox.shrink(); // E-commerce non activé / pas dispo
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Statistiques des Ventes', Icons.shopping_cart_rounded, Colors.indigo, isDark),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              _buildScrollableCard('Commandes', _stats?['ordersCount']?.toString() ?? '0', Icons.shopping_cart_rounded, Colors.indigo, isDark),
+              _buildScrollableCard('Aujourd\'hui', _stats?['ordersTodayCount']?.toString() ?? '0', Icons.today_rounded, Colors.blue, isDark),
+              _buildScrollableCard('En attente', oStats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, Colors.amber, isDark),
+              _buildScrollableCard('Finalisé', oStats['completed']?.toString() ?? '0', Icons.check_circle_rounded, Colors.green, isDark),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

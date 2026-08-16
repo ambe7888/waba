@@ -373,6 +373,13 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 return $today > 0 ? 100 : 0;
             })(),
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
+            'whatsapp_setup' => [
+                'is_connected' => isWhatsAppBusinessAccountReady($vendorId),
+                'phone_number' => getVendorSettings('current_phone_number_number', null, null, $vendorId),
+                'phone_number_id' => getVendorSettings('current_phone_number_id', null, null, $vendorId),
+                'waba_id' => getVendorSettings('whatsapp_business_account_id', null, null, $vendorId),
+                'app_id' => getVendorSettings('facebook_app_id', null, null, $vendorId),
+            ],
             'messageHistory' => $messageHistory,
             'campaign_stats' => (function() use ($vendorId) {
                 $vendorCampaigns = \App\Yantrana\Components\Campaign\Models\CampaignModel::where('vendors__id', $vendorId)->withCount(['queuePendingMessages', 'queueProcessingMessages', 'messageLog'])->get();
@@ -419,15 +426,39 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 $endsAt = null;
                 $isExpired = false;
                 $isFree = true;
+                $remainingDays = 0;
+                $totalDays = 30;
+                $progress = 1.0;
+                $price = 0;
+                $billingCycle = 'Mensuel';
 
                 if (!empty($sub)) {
-                    $title = $sub->plan_title ?? $sub->title ?? 'Plan Vendeur';
+                    $planId = $sub->plan_id ?? $sub->type ?? null;
+                    $title = getPaidPlans("{$planId}.title");
+                    if (empty($title)) {
+                        $title = $sub->plan_title ?? $sub->title ?? 'Plan Vendeur';
+                    }
                     $endsAt = $sub->expiry_at ?? $sub->ends_at ?? null;
                     $isFree = false;
+
                     if ($endsAt) {
                         try {
-                            $isExpired = \Carbon\Carbon::parse($endsAt)->isPast();
+                            $parsedEndsAt = \Carbon\Carbon::parse($endsAt);
+                            $isExpired = $parsedEndsAt->isPast();
+                            $remainingDays = max(0, \Carbon\Carbon::now()->diffInDays($parsedEndsAt, false));
+                            if (isset($sub->created_at)) {
+                                $totalDays = max(1, \Carbon\Carbon::parse($sub->created_at)->diffInDays($parsedEndsAt));
+                            }
+                            $progress = min(1.0, max(0.0, $remainingDays / max(1, $totalDays)));
                         } catch (\Exception $e) {}
+                    }
+                    
+                    $planCharges = getPaidPlans("{$planId}.charges");
+                    if (!empty($planCharges)) {
+                        $firstCharge = current($planCharges);
+                        $price = $firstCharge['charge'] ?? 0;
+                        reset($planCharges);
+                        $billingCycle = key($planCharges) == 'monthly' ? 'Mensuel' : 'Annuel';
                     }
                 } else {
                     $freePlan = getFreePlan();
@@ -441,6 +472,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     'ends_at' => $endsAt ? (is_string($endsAt) ? $endsAt : $endsAt->toIso8601String()) : null,
                     'is_expired' => $isExpired,
                     'is_free' => $isFree,
+                    'remaining_days' => $remainingDays,
+                    'total_days' => $totalDays,
+                    'progress' => $progress,
+                    'price' => $price,
+                    'billing_cycle' => $billingCycle,
                     'features' => [
                         'manage_orders' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? true),
                         'ai_bot' => (bool) (vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'] ?? true),

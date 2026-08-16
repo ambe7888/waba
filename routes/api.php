@@ -15,6 +15,7 @@ use App\Yantrana\Components\{
 };
 use App\Yantrana\Components\BotReply\Controllers\BotReplyController;
 use App\Yantrana\Components\Campaign\Controllers\CampaignController;
+use App\Http\Controllers\Api\VendorNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,17 @@ Route::group([
     'middleware' => 'api.vendor.authenticate',
     'prefix' => '{vendorUid}/',
 ], function () {
+    // Vendor Notifications
+    Route::get('/notifications', [
+        VendorNotificationController::class,
+        'getNotifications',
+    ])->name('api.vendor.notifications.list');
+    
+    Route::post('/notifications/mark-read', [
+        VendorNotificationController::class,
+        'markAsRead',
+    ])->name('api.vendor.notifications.mark_read');
+
     Route::post('/contact/send-message', [
         WhatsAppServiceController::class,
         'apiSendChatMessage',

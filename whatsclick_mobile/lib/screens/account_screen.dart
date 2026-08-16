@@ -13,6 +13,7 @@ import 'contact_groups_screen.dart';
 import 'templates_admin_screen.dart';
 import 'bot_replies_screen.dart';
 import 'drip_campaigns_settings_screen.dart';
+import 'profile_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -23,6 +24,7 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? _vendorInfo;
+  Map<String, dynamic>? _stats;
   int _roleId = 3; // default: agent
   bool _isLoading = true;
 
@@ -41,6 +43,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final stats = await ApiService().fetchDashboardStats();
     if (mounted && stats != null) {
       setState(() {
+        _stats = stats;
         _vendorInfo = stats['vendorInfo'] ?? stats;
         _isLoading = false;
       });
@@ -100,6 +103,17 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
     final bool isAdmin = _roleId == 2;
+    
+    String userName = 'Profil';
+    String userEmail = '';
+    final vendorUserData = _stats?['vendorUserData'];
+    if (vendorUserData != null) {
+      userName = vendorUserData['first_name']?.toString() ?? '';
+      final lastName = vendorUserData['last_name']?.toString() ?? '';
+      if (lastName.isNotEmpty) userName += ' $lastName';
+      if (userName.trim().isEmpty) userName = vendorUserData['full_name']?.toString() ?? '';
+      userEmail = vendorUserData['email']?.toString() ?? '';
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -116,7 +130,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(width: 10),
             const Text(
-              'Compte',
+              'Paramètres',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -131,33 +145,72 @@ class _AccountScreenState extends State<AccountScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Profil Header
-          Center(
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.2),
-              child: Icon(Icons.business,
-                  size: 40, color: ThemeService.primaryColor),
+          // Business Info Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: ThemeService.primaryColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ThemeService.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.business_rounded, color: ThemeService.primaryColor, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _vendorInfo?['title'] ?? 'Mon Entreprise',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        userName.trim().isEmpty ? 'Utilisateur' : userName.trim(),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87),
+                      ),
+                      if (userEmail.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          userEmail,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white54 : Colors.black54),
+                        ),
+                      ],
+                      if (_vendorInfo?['whatsapp_number'] != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.phone_rounded, size: 12, color: ThemeService.primaryColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              '+${_vendorInfo!['whatsapp_number']}',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: ThemeService.primaryColor),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              _vendorInfo?['title'] ?? 'Mon Entreprise',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          if (_vendorInfo?['whatsapp_number'] != null) ...[
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                '+${_vendorInfo!['whatsapp_number']}',
-                style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? Colors.white70 : Colors.black54),
-              ),
-            ),
-          ],
           const SizedBox(height: 20),
 
           // ── Abonnement ──────────────────────────────────────────────────
@@ -281,6 +334,18 @@ class _AccountScreenState extends State<AccountScreen> {
           Card(
             child: Column(
               children: [
+                ListTile(
+                  leading: const Icon(Icons.person_outline_rounded, color: Colors.blueAccent),
+                  title: const Text('Mon Compte'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userData: _stats?['vendorUserData'])),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.qr_code, color: Colors.blue),
                   title: const Text('Mon Code QR'),

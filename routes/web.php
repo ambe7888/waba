@@ -183,6 +183,16 @@ Route::middleware([
                 DashboardController::class,
                 'dashboardView',
             ])->name('central.console');
+            // Mobile Notifications
+            Route::get('/notifications', [
+                \App\Http\Controllers\Admin\NotificationController::class,
+                'index',
+            ])->name('central.notifications.index');
+            Route::post('/notifications/send', [
+                \App\Http\Controllers\Admin\NotificationController::class,
+                'store',
+            ])->name('central.notifications.store');
+
             // Upload Logo
             Route::post('/upload-logo', [
                 MediaController::class,

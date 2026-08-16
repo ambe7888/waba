@@ -7,7 +7,10 @@ import 'services/api_service.dart';
 import 'services/fcm_service.dart';
 import 'services/theme_service.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/main_layout_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,11 +40,16 @@ void main() async {
   final apiService = ApiService();
   await apiService.init();
 
-  runApp(const MyApp());
+  // Check Onboarding
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
+  runApp(MyApp(hasSeenOnboarding: hasSeenOnboarding));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasSeenOnboarding;
+  const MyApp({super.key, required this.hasSeenOnboarding});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +72,13 @@ class MyApp extends StatelessWidget {
           themeMode: themeService.themeMode,
           theme: ThemeService.lightTheme,
           darkTheme: ThemeService.darkTheme,
-          home: ApiService().isAuthenticated ? const MainLayoutScreen() : const LoginScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+          },
+          home: ApiService().isAuthenticated 
+                ? const MainLayoutScreen() 
+                : (hasSeenOnboarding ? const LoginScreen() : const OnboardingScreen()),
         );
       },
     );

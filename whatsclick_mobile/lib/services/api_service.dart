@@ -87,6 +87,36 @@ class ApiService {
     return headers;
   }
 
+  /// Register a new vendor
+  Future<Map<String, dynamic>> registerVendor(Map<String, dynamic> data) async {
+    final url = Uri.parse('${baseApiUrl}register/vendor');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(requireAuth: false),
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 || body['reaction'] == 'success') {
+          return {'success': true, 'message': body['message'] ?? 'Inscription réussie'};
+        } else {
+          return {
+            'success': false,
+            'message': body['message'] ?? 'Erreur lors de l\'inscription',
+            'errors': body['data']?['validation_messages'] ?? body['validation_messages']
+          };
+        }
+      } else {
+        return {'success': false, 'message': 'Erreur serveur: ${response.statusCode}'};
+      }
+    } catch (e) {
+      debugPrint('Registration error: $e');
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   /// Authenticate the user and save the token
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('${baseApiUrl}user/login-process');
@@ -1965,6 +1995,51 @@ class ApiService {
       return false;
     } catch (e) {
       if (debug) debugPrint('Toggle Drip Campaign Error: $e');
+      return false;
+    }
+  }
+  /// Fetch Mobile Notifications
+  Future<Map<String, dynamic>> fetchNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vendorUid = prefs.getString('vendor_uid') ?? '';
+    final url = Uri.parse('${baseApiUrl}$vendorUid/notifications');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] != null) {
+          return {
+            'success': true,
+            'notifications': List<Map<String, dynamic>>.from(body['data']['notifications'] ?? []),
+            'unreadCount': body['data']['unreadCount'] ?? 0,
+          };
+        }
+      }
+      return {'success': false, 'notifications': [], 'unreadCount': 0};
+    } catch (e) {
+      if (debug) debugPrint('Fetch Notifications Error: $e');
+      return {'success': false, 'notifications': [], 'unreadCount': 0};
+    }
+  }
+
+  /// Mark Notifications as Read
+  Future<bool> markNotificationsAsRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vendorUid = prefs.getString('vendor_uid') ?? '';
+    final url = Uri.parse('${baseApiUrl}$vendorUid/notifications/mark-read');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Mark Notifications Read Error: $e');
       return false;
     }
   }
