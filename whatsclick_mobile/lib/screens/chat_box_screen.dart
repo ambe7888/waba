@@ -83,6 +83,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  void _showTemplatesSheet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SendTemplateScreen(contact: widget.contact),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -733,8 +742,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               color: Theme.of(context).colorScheme.primary)),
     );
 
+    final Map<String, dynamic> varMap = {};
+    for (int i = 0; i < variables.length; i++) {
+      varMap['variable_${i + 1}'] = variables[i];
+    }
     final success = await ApiService()
-        .sendTemplateMessage(widget.contact.uid, templateUid, variables);
+        .sendTemplateMessage(widget.contact.uid, templateUid, varMap);
 
     if (!localContext.mounted) return;
     Navigator.pop(localContext);
@@ -2888,7 +2901,5 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       ),
     );
   }
-
-}
 
 }

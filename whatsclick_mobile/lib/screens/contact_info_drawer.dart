@@ -1510,37 +1510,42 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                         color: onSurface.withValues(alpha: 0.6),
                                       ),
                                     ),
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        status.toString().toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: statusColor,
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            status.toString().toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: statusColor,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    trailing: PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert_rounded, size: 20),
-                                      onSelected: (value) {
-                                        if (value == 'status') {
-                                          _showOrderStatusDialog(order);
-                                        } else if (value == 'edit') {
-                                          Navigator.pop(context); // Close Drawer
-                                          widget.onEditOrder?.call(order);
-                                        } else if (value == 'delete') {
-                                          _confirmDeleteOrder(order);
-                                        }
-                                      },
-                                      itemBuilder: (context) => [
-                                        const PopupMenuItem(value: 'status', child: Text('Changer le statut', style: TextStyle(fontSize: 13))),
-                                        const PopupMenuItem(value: 'edit', child: Text('Modifier', style: TextStyle(fontSize: 13))),
-                                        const PopupMenuItem(value: 'delete', child: Text('Supprimer', style: TextStyle(fontSize: 13, color: Colors.red))),
+                                        PopupMenuButton<String>(
+                                          icon: const Icon(Icons.more_vert_rounded, size: 20),
+                                          onSelected: (value) {
+                                            if (value == 'status') {
+                                              _showOrderStatusDialog(order);
+                                            } else if (value == 'edit') {
+                                              Navigator.pop(context); // Close Drawer
+                                              widget.onEditOrder?.call(order);
+                                            } else if (value == 'delete') {
+                                              _confirmDeleteOrder(order);
+                                            }
+                                          },
+                                          itemBuilder: (context) => [
+                                            const PopupMenuItem(value: 'status', child: Text('Changer le statut', style: TextStyle(fontSize: 13))),
+                                            const PopupMenuItem(value: 'edit', child: Text('Modifier', style: TextStyle(fontSize: 13))),
+                                            const PopupMenuItem(value: 'delete', child: Text('Supprimer', style: TextStyle(fontSize: 13, color: Colors.red))),
+                                          ],
+                                        ),
                                       ],
                                     ),
                                   );

@@ -296,8 +296,12 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
         decoration: BoxDecoration(
           color: surfaceCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withAlpha(50)),
-          borderLeft: Border(left: BorderSide(color: color, width: 4)),
+          border: Border(
+            left: BorderSide(color: color, width: 4),
+            top: BorderSide(color: color.withAlpha(50)),
+            right: BorderSide(color: color.withAlpha(50)),
+            bottom: BorderSide(color: color.withAlpha(50)),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

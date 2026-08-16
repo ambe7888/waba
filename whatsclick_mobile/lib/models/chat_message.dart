@@ -23,6 +23,9 @@ class ChatMessage {
     this.referral,
   });
 
+  String? get vendorName => null;
+  String? get createdAt => timestamp;
+
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     var incomingRaw = json['is_incoming'] ?? json['is_incoming_message'];
     bool incoming = incomingRaw == 1 || incomingRaw == true || incomingRaw == '1' || incomingRaw == 'true';
