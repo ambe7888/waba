@@ -87,7 +87,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SendTemplateScreen(contact: widget.contact),
+        builder: (_) => SendTemplateScreen(
+          contactUid: widget.contact.uid,
+          contactName: widget.contact.fullName,
+        ),
       ),
     );
   }
@@ -1636,6 +1639,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   _buildStatusIcon(message.status),
                 ],
               ],
+            ),
           ],
         ),
       ),
