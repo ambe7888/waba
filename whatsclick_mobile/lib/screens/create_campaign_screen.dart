@@ -394,9 +394,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildStep2() {
+  Widget _buildStep2(bool isDark) {
     if (_isLoadingTemplates) return const Center(child: CircularProgressIndicator());
-    if (_templates.isEmpty) return const Center(child: Text("Aucun modèle approuvé."));
+    if (_templates.isEmpty) return Center(child: Text("Aucun modèle approuvé disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)));
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -413,15 +413,15 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('WhatsApp Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
-                  const Text('Choose the account and template for campaign.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text('Configuration WhatsApp', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                  Text('Choisissez le modèle approuvé pour la campagne.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        Text('${_templates.length} APPROVED TEMPLATES', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+        Text('${_templates.length} MODÈLES APPROUVÉS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
         const SizedBox(height: 16),
         GridView.builder(
           shrinkWrap: true,
@@ -435,7 +435,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           itemCount: _templates.length,
           itemBuilder: (context, index) {
             final t = _templates[index];
-            final title = t['template_name'] ?? 'Unknown';
+            final title = t['template_name'] ?? 'Inconnu';
             final lang = t['language'] ?? '';
             final category = t['category'] ?? '';
             final status = t['status'] ?? '';
@@ -449,9 +449,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: isSelected ? ThemeService.primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
+                  border: Border.all(color: isSelected ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300), width: isSelected ? 2 : 1),
                   borderRadius: BorderRadius.circular(12),
-                  color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.05) : Colors.white,
+                  color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,22 +466,22 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.language, size: 12, color: Colors.grey),
+                            Icon(Icons.language, size: 12, color: isDark ? Colors.white54 : Colors.grey),
                             const SizedBox(width: 2),
-                            Text(lang, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            Text(lang, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey)),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 8),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.description, size: 14, color: Colors.grey),
-                        Text(status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                        Icon(Icons.description, size: 14, color: isDark ? Colors.white54 : Colors.grey),
+                        Text(status == 'APPROVED' ? 'Approuvé' : status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
                       ],
                     )
                   ],
@@ -494,23 +494,23 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildStep3() {
+  Widget _buildStep3(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Variable Mapping', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text('Map your template placeholders to contact data.', style: TextStyle(color: Colors.grey)),
+        Text('Variables du modèle', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+        Text('Associez vos variables aux données.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: isDark ? ThemeService.darkCard : Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('TEMPLATE PREVIEW', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+                  Text('APERÇU DU MODÈLE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(color: ThemeService.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
@@ -518,20 +518,20 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                       children: [
                         Icon(Icons.visibility, size: 14, color: ThemeService.primaryColor),
                         const SizedBox(width: 4),
-                        Text('Preview Template', style: TextStyle(fontSize: 12, color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+                        Text('Aperçu', style: TextStyle(fontSize: 12, color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text(_getTemplatePreview(), style: const TextStyle(fontSize: 14)),
+              Text(_getTemplatePreview(), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
             ],
           ),
         ),
         const SizedBox(height: 24),
         if (_requiresHeaderImage) ...[
-          Text('HEADER IMAGE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          Text('IMAGE D\'EN-TÊTE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: _pickImage,
@@ -539,9 +539,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               height: 120,
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300, style: BorderStyle.solid),
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.shade50,
+                color: isDark ? ThemeService.darkCard : Colors.grey.shade50,
               ),
               child: _selectedHeaderImage != null
                   ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_selectedHeaderImage!, fit: BoxFit.cover))
@@ -550,7 +550,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                       children: [
                         Icon(Icons.add_photo_alternate, size: 40, color: ThemeService.primaryColor),
                         const SizedBox(height: 8),
-                        const Text('Upload image from gallery', style: TextStyle(color: Colors.grey)),
+                        Text('Ajouter une image', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
                       ],
                     ),
             ),
@@ -558,25 +558,27 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           const SizedBox(height: 24),
         ],
         if (_bodyVariables.isNotEmpty) ...[
-          Text('BODY VARIABLES', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
-          const Text('Enter static values for placeholders.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          Text('VARIABLES DU CORPS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          Text('Saisissez le texte des variables.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
           const SizedBox(height: 12),
           ..._bodyVariables.map((v) {
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('VARIABLE PLACEHOLDER: $v', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text('VARIABLE: $v', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _variableControllers[v],
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
-                      hintText: 'Enter fixed text...',
+                      hintText: 'Valeur fixe...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                     ),
                   ),
@@ -585,9 +587,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             );
           }),
         ] else ...[
-          const Center(child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Text("Aucune variable dans ce modèle.", style: TextStyle(color: Colors.grey)),
+          Center(child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text("Aucune variable dans ce modèle.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           )),
         ]
       ],

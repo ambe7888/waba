@@ -388,6 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     final String cycleLabel = billingCycle.toLowerCase().contains('annuel') ? '/an' : '/mois';
+    final String billedLabel = isFree ? 'Aucun accès' : (billingCycle.toLowerCase().contains('annuel') ? 'Paiement annuel' : 'Paiement mensuel');
     final Color statusColor = isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
     final String statusText = isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
 
