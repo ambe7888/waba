@@ -344,9 +344,17 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── 1. Carte Abonnement Style WAPI (Bordures Sombre + Jours Restants) ─────
   Widget _buildWapiSubscriptionCard(bool isDark) {
     final sub = _stats?['current_subscription'] ?? _stats?['vendorUserData']?['current_subscription'];
+    final vendorInfo = _stats?['vendorInfo'] as Map?;
+    final vendorUserData = _stats?['vendorUserData'] as Map?;
+    
     final isExpired = sub?['is_expired'] == true;
     final isFree = sub?['is_free'] == true;
     
+    String companyName = vendorInfo?['title']?.toString() ?? vendorUserData?['name']?.toString() ?? vendorUserData?['full_name']?.toString() ?? 'Mon Entreprise';
+    if (companyName.isEmpty || companyName == 'null') {
+      companyName = _firstName.isNotEmpty ? _firstName : 'Mon Entreprise';
+    }
+
     String planTitle = sub?['title']?.toString() ?? 'Aucun abonnement';
     if (isFree || planTitle.toLowerCase().contains('gratuit')) {
       planTitle = 'Aucun abonnement';
@@ -379,36 +387,19 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     }
 
-    String formattedNextPayment = 'Date non spécifiée';
-    String rawDate = '';
-    if (endsAt.isNotEmpty) {
-      try {
-        final dt = DateTime.parse(endsAt);
-        rawDate = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-        formattedNextPayment = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-      } catch (_) {
-        formattedNextPayment = endsAt;
-        rawDate = endsAt;
-      }
-    }
-
-    final String cycleLabel = billingCycle.toLowerCase().contains('annuel') ? '/année' : '/mois';
-    final String billedLabel = isFree ? 'Aucun accès' : (billingCycle.toLowerCase().contains('annuel') ? 'Paiement annuel' : 'Paiement mensuel');
-
-    // Status Colors
+    final String cycleLabel = billingCycle.toLowerCase().contains('annuel') ? '/an' : '/mois';
     final Color statusColor = isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
     final String statusText = isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
 
-    // Progress Bar Color based on remaining days
-    Color progressColor = const Color(0xFF10B981); // Green
+    Color progressColor = const Color(0xFF10B981);
     if (remainingDays <= 5 && !isFree) {
-      progressColor = const Color(0xFFDC2626); // Red
+      progressColor = const Color(0xFFDC2626);
     } else if (remainingDays <= 15 && !isFree) {
-      progressColor = const Color(0xFFF59E0B); // Yellow/Orange
+      progressColor = const Color(0xFFF59E0B);
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -420,76 +411,78 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Icon, Title, Status
+          // Row 1: Crown Icon + Company Name (Prominent) + Status Badge
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Orange Crown Icon
               Container(
-                width: 50,
-                height: 50,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFF97316), width: 1.5),
+                  color: const Color(0xFFF97316).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF97316), width: 1.2),
                 ),
                 child: const Center(
-                  child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFF97316), size: 28),
+                  child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFF97316), size: 24),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      companyName,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF111827),
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            planTitle,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : const Color(0xFF111827),
-                              height: 1.2,
-                            ),
+                        Text(
+                          planTitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white60 : Colors.black54,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Status Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: statusColor, width: 1.2),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Text(
+                          isFree ? '• Gratuit' : '• $price $cycleLabel',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB), // Blue color for price
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isFree 
-                        ? 'AUCUN ABONNEMENT ACTIF' 
-                        : (isExpired ? 'ABONNEMENT EXPIRÉ DEPUIS: $rawDate' : 'PROCHAIN RENOUV.: $rawDate ($remainingDays JOURS)'),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFF97316),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusColor, width: 1),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -1040,39 +1033,53 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildStatCard(String title, IconData icon, Color color, String value, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-          width: 1.5,
+          width: 1.2,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1114,10 +1121,59 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildScrollableCard(String title, String value, IconData icon, Color color, bool isDark) {
     return Container(
       width: 120,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(icon, color: color, size: 14),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: color.withValues(alpha: isDark ? 0.4 : 0.25),

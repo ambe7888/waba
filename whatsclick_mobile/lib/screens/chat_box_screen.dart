@@ -98,7 +98,22 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    // Instant preloading of preview message for zero wait time
+    if (widget.contact.lastMessage != null && widget.contact.lastMessage!.isNotEmpty) {
+      _messages = [
+        ChatMessage(
+          uid: 'preview_${widget.contact.uid}',
+          body: widget.contact.lastMessage!,
+          isIncoming: true,
+          timestamp: widget.contact.lastMessageTime ?? DateTime.now().toIso8601String(),
+          status: 'delivered',
+        )
+      ];
+      _isLoading = false;
+      _loadMessages(silent: true);
+    } else {
+      _loadMessages();
+    }
 
     if (widget.openTemplatePicker) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1412,6 +1427,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           )
         else ...[
           IconButton(
+            icon: const Icon(Icons.search_rounded, size: 20),
+            tooltip: 'Rechercher',
+            onPressed: () {
+              setState(() {
+                _isSearching = true;
+              });
+            },
+          ),
+          IconButton(
             icon: Icon(Icons.call_rounded, size: 20),
             tooltip: 'Appeler',
             onPressed: () {
@@ -1647,6 +1671,44 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  void _showFullImageModal(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Text('Impossible de charger l\'image', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withValues(alpha: 0.6),
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildImageContent(ChatMessage message, Color textColor) {
     if (message.mediaUrl == null || message.mediaUrl!.isEmpty) {
       return Padding(
@@ -1666,22 +1728,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: GestureDetector(
-        onTap: () => launchUrl(Uri.parse(message.mediaUrl!),
-            mode: LaunchMode.externalApplication),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 250,
-            maxHeight: 250,
+        onTap: () => _showFullImageModal(message.mediaUrl!),
+        child: Container(
+          width: 220,
+          height: 220,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              message.mediaUrl!,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
+          clipBehavior: Clip.antiAlias,
+          child: Image.network(
+            message.mediaUrl!,
+            width: 220,
+            height: 220,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
               return Container(
-                height: 150,
+                width: 220,
+                height: 220,
                 color: Colors.black12,
                 child: const Center(
                     child: CircularProgressIndicator(strokeWidth: 2)),
@@ -1704,7 +1769,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               );
             },
           ),
-        ),
         ),
       ),
     );
@@ -1915,6 +1979,38 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 ),
               ),
 
+            // Emoji Picker Row
+            if (_showEmojiRow && !_isRecording)
+              Container(
+                height: 38,
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: ['👍', '❤️', '😂', '🔥', '🙏', '👋', '😊', '🎉', '💯', '👏', '🎁', '🚀', '⭐', '✔️', '👀'].map((emoji) {
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _messageController.text += emoji;
+                          _messageController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: _messageController.text.length),
+                          );
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
             _isRecording
                 ? Row(
                     children: [
@@ -1991,12 +2087,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.04)),
+                                    .withValues(alpha: 0.08)),
                           ),
                           child: TextField(
                             controller: _messageController,
@@ -2006,23 +2102,23 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                 color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 14),
                             decoration: InputDecoration(
-                              hintText: 'Taper un message...',
+                              hintText: "Tapez un message ou '/' pour réponses rapides...",
                               hintStyle: TextStyle(
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.24),
-                                  fontSize: 14),
+                                      .withValues(alpha: 0.3),
+                                  fontSize: 13),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
                               suffixIcon: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.smart_toy_rounded,
+                                    icon: const Icon(Icons.smart_toy_rounded,
                                         color: Color(0xFFF59E0B), size: 20),
                                     tooltip: 'Réponses rapides',
                                     onPressed: _showQuickRepliesSheet,

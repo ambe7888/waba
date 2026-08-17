@@ -112,48 +112,51 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ThemeService().isDark;
-    final bool isAdmin = _roleId == 2;
-    
-    String userName = 'Profil';
-    String userEmail = '';
-    final vendorUserData = _stats?['vendorUserData'];
-    if (vendorUserData != null) {
-      userName = vendorUserData['first_name']?.toString() ?? '';
-      final lastName = vendorUserData['last_name']?.toString() ?? '';
-      if (lastName.isNotEmpty) userName += ' $lastName';
-      if (userName.trim().isEmpty) userName = vendorUserData['full_name']?.toString() ?? '';
-      userEmail = vendorUserData['email']?.toString() ?? '';
-    }
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, _) {
+        final isDark = ThemeService().isDark;
+        final bool isAdmin = _roleId == 2;
+        
+        String userName = 'Profil';
+        String userEmail = '';
+        final vendorUserData = _stats?['vendorUserData'];
+        if (vendorUserData != null) {
+          userName = vendorUserData['first_name']?.toString() ?? '';
+          final lastName = vendorUserData['last_name']?.toString() ?? '';
+          if (lastName.isNotEmpty) userName += ' $lastName';
+          if (userName.trim().isEmpty) userName = vendorUserData['full_name']?.toString() ?? '';
+          userEmail = vendorUserData['email']?.toString() ?? '';
+        }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: ThemeService.primaryColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.person_rounded,
-                  color: ThemeService.primaryColor, size: 20),
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: ThemeService.primaryColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.person_rounded,
+                      color: ThemeService.primaryColor, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Paramètres',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            const Text(
-              'Paramètres',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-      ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: false,
+          ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -517,8 +520,8 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
           const SizedBox(height: 32),
-        ],
-      ),
+        );
+      },
     );
   }
 

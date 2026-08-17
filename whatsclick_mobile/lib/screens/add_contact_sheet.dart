@@ -25,8 +25,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   
-  String _languageCode = 'en'; // default
-  Country _selectedCountry = CountryParser.parseCountryCode('US');
+  String _languageCode = 'fr'; // default
+  Country _selectedCountry = CountryParser.parseCountryCode('CI');
   
   bool _isLoading = false;
 
@@ -205,7 +205,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(
-                          hintText: 'Numéro sans le 0 initial',
+                          hintText: 'Ex: 0701020304',
                           filled: true,
                           fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                           border: OutlineInputBorder(

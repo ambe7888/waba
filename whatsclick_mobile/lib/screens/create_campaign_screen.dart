@@ -225,43 +225,45 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeService().isDark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? ThemeService.darkSurface : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Campaign', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
-            const Text('Follow the steps to launch your campaign', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text('Créer une campagne', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Suivez les étapes pour lancer votre campagne', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
           ],
         ),
       ),
       body: Column(
         children: [
-          _buildStepperHeader(),
+          _buildStepperHeader(isDark),
           Expanded(
-            child: _buildCurrentStepView(),
+            child: _buildCurrentStepView(isDark),
           ),
-          _buildBottomBar(),
+          _buildBottomBar(isDark),
         ],
       ),
     );
   }
 
-  Widget _buildStepperHeader() {
+  Widget _buildStepperHeader(bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? ThemeService.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -272,16 +274,16 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             children: [
               CircleAvatar(
                 radius: 12,
-                backgroundColor: isPast || isCurrent ? ThemeService.primaryColor : Colors.grey.shade200,
+                backgroundColor: isPast || isCurrent ? ThemeService.primaryColor : (isDark ? Colors.white12 : Colors.grey.shade200),
                 child: isPast 
                   ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : Text('${index + 1}', style: TextStyle(color: isCurrent ? Colors.white : Colors.black54, fontSize: 12, fontWeight: FontWeight.bold)),
+                  : Text('${index + 1}', style: TextStyle(color: isCurrent ? Colors.white : (isDark ? Colors.white54 : Colors.black54), fontSize: 12, fontWeight: FontWeight.bold)),
               ),
               if (index < _totalSteps - 1)
                 Container(
                   width: 20,
                   height: 2,
-                  color: isPast ? ThemeService.primaryColor : Colors.grey.shade200,
+                  color: isPast ? ThemeService.primaryColor : (isDark ? Colors.white12 : Colors.grey.shade200),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                 ),
             ],
@@ -291,18 +293,18 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildCurrentStepView() {
+  Widget _buildCurrentStepView(bool isDark) {
     switch (_currentStep) {
-      case 0: return _buildStep1();
-      case 1: return _buildStep2();
-      case 2: return _buildStep3();
-      case 3: return _buildStep4();
-      case 4: return _buildStep5();
+      case 0: return _buildStep1(isDark);
+      case 1: return _buildStep2(isDark);
+      case 2: return _buildStep3(isDark);
+      case 3: return _buildStep4(isDark);
+      case 4: return _buildStep5(isDark);
       default: return const SizedBox.shrink();
     }
   }
 
-  Widget _buildStep1() {
+  Widget _buildStep1(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -321,47 +323,51 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Campaign Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
-                  const Text('Give your campaign an identifiable name to get started.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text('Informations de la campagne', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                  Text('Donnez un nom identifiable à votre campagne.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        const Text('Campaign Name *', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Nom de la campagne *', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 8),
         TextField(
           controller: _titleController,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
           decoration: InputDecoration(
-            hintText: 'E.g. Summer Sale 2024 - Newsletter',
+            hintText: 'Ex: Promo Été 2024 - Offre Spéciale',
+            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
         const SizedBox(height: 16),
-        const Text('Internal Description', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Description interne', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 8),
         TextField(
           controller: _descController,
           maxLines: 3,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
           decoration: InputDecoration(
-            hintText: 'What is the goal of this campaign?',
+            hintText: 'Quel est l\'objectif de cette campagne ?',
+            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
         const SizedBox(height: 24),
-        const Text('Delivery Channel', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Canal de diffusion', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(color: ThemeService.primaryColor, width: 2),
             borderRadius: BorderRadius.circular(12),
-            color: Colors.white,
+            color: isDark ? ThemeService.darkCard : Colors.white,
           ),
           child: Row(
             children: [
@@ -375,8 +381,8 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WhatsApp Broadcast', style: TextStyle(fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
-                    const Text('Official API templates for higher conversions.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Diffusion WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                    Text('Modèles API officiels pour un meilleur taux de conversion.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                   ],
                 ),
               ),
@@ -588,11 +594,11 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildStep4() {
+  Widget _buildStep4(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Choose who will receive this campaign message.', style: TextStyle(color: Colors.grey)),
+        Text('Choisissez qui recevra le message de cette campagne.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
         const SizedBox(height: 16),
         GridView.count(
           shrinkWrap: true,
@@ -602,21 +608,23 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           mainAxisSpacing: 8,
           childAspectRatio: 1.2,
           children: [
-            _buildAudienceCard('all', 'ALL CONTACTS', 'Send to everyone', Icons.contact_mail),
-            _buildAudienceCard('specific', 'SPECIFIC CONTACTS', 'Handpick individuals', Icons.person),
-            _buildAudienceCard('audiences', 'TARGET SEGMENTS', 'Pre-defined segments', Icons.pie_chart),
-            _buildAudienceCard('groups', 'SEGMENT BY TAGS', 'Target specific groups', Icons.local_offer),
+            _buildAudienceCard('all', 'TOUS LES CONTACTS', 'Envoyer à tout le monde', Icons.contact_mail, isDark),
+            _buildAudienceCard('specific', 'CONTACTS SPÉCIFIQUES', 'Sélectionner des contacts', Icons.person, isDark),
+            _buildAudienceCard('audiences', 'AUDIENCES SAUVEGARDÉES', 'Segments enregistrés', Icons.pie_chart, isDark),
+            _buildAudienceCard('groups', 'GROUPES & ÉTIQUETTES', 'Cibler par groupe', Icons.local_offer, isDark),
           ],
         ),
         const SizedBox(height: 24),
         if (_audienceMode == 'specific') ...[
           TextField(
             controller: _searchContactsController,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             decoration: InputDecoration(
-              hintText: 'Search contacts...',
+              hintText: 'Rechercher un contact...',
+              hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
               prefixIcon: const Icon(Icons.search),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
             ),
           ),
@@ -628,8 +636,8 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             itemBuilder: (context, index) {
               final c = _filteredContacts[index];
               return CheckboxListTile(
-                title: Text(c.name),
-                subtitle: Text(c.phoneNumber),
+                title: Text(c.name, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                subtitle: Text(c.phoneNumber, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
                 value: _selectedContactIds.contains(c.uid),
                 activeColor: ThemeService.primaryColor,
                 onChanged: (val) {
@@ -645,12 +653,12 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             },
           ),
         ] else if (_audienceMode == 'audiences') ...[
-          if (_audiences.isEmpty) const Text("Aucune audience disponible."),
+          if (_audiences.isEmpty) Text("Aucune audience enregistrée disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           ..._audiences.map((a) {
             final isSelected = _selectedAudienceUid == a['_uid'];
             return RadioListTile<String>(
-              title: Text(a['title'] ?? 'Sans nom'),
-              subtitle: Text("Créé le ${a['created_at']}"),
+              title: Text(a['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+              subtitle: Text("Créé le ${a['created_at']}", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
               value: a['_uid'],
               groupValue: _selectedAudienceUid,
               activeColor: ThemeService.primaryColor,
@@ -660,12 +668,12 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             );
           }),
         ] else if (_audienceMode == 'groups') ...[
-          if (_groups.isEmpty) const Text("Aucun groupe disponible."),
+          if (_groups.isEmpty) Text("Aucun groupe disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           ..._groups.map((g) {
             final uid = g['_id']?.toString() ?? g['_uid']?.toString() ?? '';
             return CheckboxListTile(
-              title: Text(g['title'] ?? 'Sans nom'),
-              subtitle: Text(g['description'] ?? ''),
+              title: Text(g['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+              subtitle: Text(g['description'] ?? '', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
               value: _selectedGroupIds.contains(uid),
               activeColor: ThemeService.primaryColor,
               onChanged: (val) {
@@ -684,32 +692,32 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildAudienceCard(String mode, String title, String subtitle, IconData icon) {
+  Widget _buildAudienceCard(String mode, String title, String subtitle, IconData icon, bool isDark) {
     final isSelected = _audienceMode == mode;
     return GestureDetector(
       onTap: () => setState(() => _audienceMode = mode),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? ThemeService.primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
+          border: Border.all(color: isSelected ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300), width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? ThemeService.primaryColor : Colors.grey, size: 28),
+            Icon(icon, color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white54 : Colors.grey), size: 28),
             const SizedBox(height: 8),
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isSelected ? ThemeService.primaryColor : Colors.black87), textAlign: TextAlign.center),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white : Colors.black87)), textAlign: TextAlign.center),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+            Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey), textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStep5() {
+  Widget _buildStep5(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -725,8 +733,8 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Launch & Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
-                  const Text('Choose when to send out your campaign.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text('Lancement & Programmation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                  Text('Choisissez quand envoyer votre campagne.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                 ],
               ),
             ),
@@ -738,9 +746,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: _sendImmediately ? ThemeService.primaryColor : Colors.grey.shade300, width: _sendImmediately ? 2 : 1),
+              border: Border.all(color: _sendImmediately ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300), width: _sendImmediately ? 2 : 1),
               borderRadius: BorderRadius.circular(12),
-              color: _sendImmediately ? ThemeService.primaryColor.withValues(alpha: 0.05) : Colors.white,
+              color: _sendImmediately ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
             ),
             child: Row(
               children: [
@@ -754,8 +762,8 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Send Immediately', style: TextStyle(fontWeight: FontWeight.bold)),
-                      const Text('Process and send this campaign right after you hit the launch button.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text('Envoyer immédiatement', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                      Text('Traiter et envoyer la campagne immédiatement après le lancement.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                     ],
                   ),
                 ),
@@ -767,9 +775,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: !_sendImmediately ? ThemeService.primaryColor : Colors.grey.shade300, width: !_sendImmediately ? 2 : 1),
+            border: Border.all(color: !_sendImmediately ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300), width: !_sendImmediately ? 2 : 1),
             borderRadius: BorderRadius.circular(12),
-            color: !_sendImmediately ? ThemeService.primaryColor.withValues(alpha: 0.05) : Colors.white,
+            color: !_sendImmediately ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
           ),
           child: Column(
             children: [
@@ -777,16 +785,16 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.calendar_today, color: Colors.black54, size: 20),
+                    decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                    child: Icon(Icons.calendar_today, color: isDark ? Colors.white70 : Colors.black54, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Schedule for Later', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Pick a specific date and time', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('Programmer pour plus tard', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                        Text('Choisir une date et une heure précises', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                       ],
                     ),
                   ),
@@ -804,9 +812,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          side: BorderSide(color: Colors.grey.shade300),
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                          side: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                         ),
                         icon: const Icon(Icons.calendar_month),
                         label: Text(_scheduledDate != null ? DateFormat('yyyy-MM-dd').format(_scheduledDate!) : 'Date'),
@@ -825,12 +833,12 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          side: BorderSide(color: Colors.grey.shade300),
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                          side: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                         ),
                         icon: const Icon(Icons.access_time),
-                        label: Text(_scheduledTime != null ? _scheduledTime!.format(context) : 'Time'),
+                        label: Text(_scheduledTime != null ? _scheduledTime!.format(context) : 'Heure'),
                         onPressed: () async {
                           final time = await showTimePicker(
                             context: context,
@@ -854,12 +862,12 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             children: [
               Icon(Icons.check_circle_outline, color: ThemeService.primaryColor),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Ready to launch?', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Please review all steps before proceeding. Campaigns cannot be edited once they are in the sending queue.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text('Prêt à lancer ?', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                    Text('Veuillez vérifier toutes les étapes avant de continuer. Les campagnes ne peuvent plus être modifiées une fois en cours d\'envoi.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)),
                   ],
                 ),
               ),
@@ -870,12 +878,12 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        color: isDark ? ThemeService.darkCard : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -884,10 +892,10 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             onPressed: _currentStep == 0 ? () => Navigator.pop(context) : _prevStep,
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              backgroundColor: Colors.grey.shade100,
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(_currentStep == 0 ? 'Cancel' : 'Back', style: const TextStyle(color: Colors.black87)),
+            child: Text(_currentStep == 0 ? 'Annuler' : 'Retour', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
           ),
           if (_currentStep == _totalSteps - 1)
             ElevatedButton(
@@ -899,7 +907,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               ),
               child: _isSubmitting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Publish', style: TextStyle(color: Colors.white)),
+                  : const Text('Publier', style: TextStyle(color: Colors.white)),
             )
           else
             ElevatedButton(
@@ -909,7 +917,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 backgroundColor: ThemeService.primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Next Step', style: TextStyle(color: Colors.white)),
+              child: const Text('Étape suivante', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),

@@ -991,7 +991,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Container(
                     decoration: BoxDecoration(
                       color: surfaceCard,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                           color: Theme.of(context)
                               .colorScheme
@@ -1185,13 +1185,13 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: _loadContacts,
+                        onRefresh: () => _loadContacts(reset: true),
                         color: primaryColor,
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                           itemCount: _filteredContacts.length +
                               (_nextPage > 0 ? 1 : 0),
                           itemBuilder: (context, index) {
@@ -1326,13 +1326,14 @@ class _HomeScreenState extends State<HomeScreen>
     Color accentColor,
   ) {
     final hasUnread = contact.unreadCount > 0;
+    final isDark = ThemeService().isDark;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           onTap: () async {
             final result = await Navigator.of(context).push(
               MaterialPageRoute(
@@ -1359,14 +1360,25 @@ class _HomeScreenState extends State<HomeScreen>
             _loadContacts(silent: true);
           },
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color:
-                  hasUnread ? primaryColor.withAlpha(12) : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              border: hasUnread
-                  ? Border.all(color: primaryColor.withAlpha(30))
-                  : null,
+              color: hasUnread
+                  ? primaryColor.withValues(alpha: isDark ? 0.15 : 0.06)
+                  : (isDark ? ThemeService.darkCard : Colors.white),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: hasUnread
+                    ? primaryColor.withValues(alpha: 0.35)
+                    : (isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0)),
+                width: hasUnread ? 1.2 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
