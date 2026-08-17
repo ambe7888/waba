@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 class CampaignInfoScreen extends StatefulWidget {
   final Map<String, dynamic> campaign;
@@ -27,45 +24,6 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
     _tabController = TabController(length: 2, vsync: this);
     _loadStats();
     _loadContacts();
-  }
-
-  Future<void> _exportPdf() async {
-    final sent = _stats?['total_message_logs'] ?? 0;
-    final delivered = _stats?['successful_deliveries'] ?? 0;
-    final read = _stats?['read_deliveries'] ?? 0;
-    final failed = _stats?['failed_deliveries'] ?? 0;
-    
-    final name = widget.campaign['title'] ?? widget.campaign['campaign_name'] ?? 'N/A';
-    final date = widget.campaign['created_at'] ?? widget.campaign['scheduled_at'] ?? 'N/A';
-
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Header(level: 0, child: pw.Text('Rapport de Campagne')),
-              pw.Paragraph(text: 'Campagne : $name'),
-              pw.Paragraph(text: 'Date : $date'),
-              pw.SizedBox(height: 20),
-              pw.Text('Statistiques', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Bullet(text: 'Messages envoyes : $sent'),
-              pw.Bullet(text: 'Messages delivres : $delivered'),
-              pw.Bullet(text: 'Messages lus : $read'),
-              pw.Bullet(text: 'Messages echoues : $failed'),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.sharePdf(
-        bytes: await pdf.save(), filename: 'rapport_campagne.pdf');
   }
 
   @override
@@ -144,16 +102,6 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
           style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.bold, color: onSurface),
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: _exportPdf,
-            icon: Icon(Icons.picture_as_pdf_rounded,
-                color: ThemeService.primaryColor, size: 18),
-            label: Text('Exporter (PDF)',
-                style: TextStyle(color: ThemeService.primaryColor)),
-          ),
-          const SizedBox(width: 8),
-        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: ThemeService.primaryColor,
