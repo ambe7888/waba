@@ -645,15 +645,6 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     );
   }
 
-                border: Border.all(color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white24 : Colors.grey.shade300)),
-              ),
-              child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 16) : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildToggleButton(String value, String label, String groupValue, Function(String) onChanged, bool isDark) {
     final isSelected = groupValue == value;
