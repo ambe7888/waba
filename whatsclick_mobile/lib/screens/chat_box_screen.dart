@@ -40,6 +40,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   bool _isLoading = true;
   Timer? _pollingTimer;
   StreamSubscription? _fcmSubscription;
+  bool _isFirstLoad = true; // Track first load for auto-scroll
+  int _lastMessageCount = 0; // Track new message detection
 
   // Search State
   bool _isSearching = false;
@@ -305,11 +307,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
     if (hasChanged || !silent) {
       if (mounted) {
+        // Detect if a truly new message arrived (count increased)
+        final newMsgArrived = combinedMessages.length > _lastMessageCount;
+        final wasAtBottom = _isAtBottom();
+        
         setState(() {
           _messages = combinedMessages;
           _isLoading = false;
+          _lastMessageCount = combinedMessages.length;
         });
-        _scrollToBottom();
+        
+        // Scroll to bottom only on first load, or if user is already at bottom and a new message arrives
+        if (_isFirstLoad || (newMsgArrived && wasAtBottom)) {
+          _scrollToBottom();
+          _isFirstLoad = false;
+        }
       }
     } else {
       if (mounted && _isLoading) {
@@ -352,7 +364,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     setState(() {
       _messages.insert(0, tempMsg);
     });
-    _scrollToBottom();
+    _scrollToBottom(); // Always scroll after user sends
 
     final success = await ApiService().sendMessage(widget.contact.uid, text);
     if (!success) {
@@ -361,6 +373,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       _loadMessages(silent: true);
       _startAggressivePolling();
     }
+  }
+
+  /// Returns true if the user is near the bottom of the chat (position <= 100px in reversed list)
+  bool _isAtBottom() {
+    if (!_scrollController.hasClients) return true;
+    return _scrollController.position.pixels <= 100.0;
   }
 
   void _scrollToBottom() {
