@@ -157,9 +157,9 @@ class _AccountScreenState extends State<AccountScreen> {
             elevation: 0,
             centerTitle: false,
           ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
           // Business Info Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -520,9 +520,11 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
           const SizedBox(height: 32),
-        );
-      },
+        ],
+      ),
     );
+  },
+);
   }
 
   Widget _buildSectionTitle(String title) {
