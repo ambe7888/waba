@@ -497,30 +497,28 @@ class _DashboardScreenState extends State<DashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Price
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              // Expiration Date instead of big price
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    price == '0' ? 'Gratuit' : price,
+                    'Expiration',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isFree ? 'Illimité' : (endsAt.isNotEmpty ? endsAt : 'Non défini'),
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
                       color: isDark ? Colors.white : const Color(0xFF111827),
                       height: 1,
                     ),
                   ),
-                  if (price != '0') ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      ' $cycleLabel',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white70 : const Color(0xFF4B5563),
-                      ),
-                    ),
-                  ],
                 ],
               ),
               // Bullet Points

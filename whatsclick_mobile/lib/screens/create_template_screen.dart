@@ -19,8 +19,9 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
   String _selectedCategory = 'MARKETING';
   String _selectedLanguage = 'fr';
   String _headerType = 'NONE'; // NONE, TEXT, MEDIA
-  String _marketingType = 'STANDARD';
-  String _buttonType = 'NONE'; // NONE, CALL_TO_ACTION, QUICK_REPLIES, ALL
+  
+  // Interactive Buttons
+  final List<Map<String, dynamic>> _messageButtons = [];
 
   bool _isSubmitting = false;
 
@@ -94,8 +95,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
         'media_header_type': 'text',
         'template_header': _headerController.text.trim(),
       },
-      // Note: Marketing type and buttons would normally be added here for a fully featured backend,
-      // but we send the standard payload supported by the current API.
+      if (_messageButtons.isNotEmpty) 'message_buttons': _messageButtons,
     };
 
     final result = await ApiService().createTemplate(payload);
@@ -216,31 +216,6 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Section 1.5: Marketing Template Type (Only if Marketing)
-            if (_selectedCategory == 'MARKETING')
-              _buildCardContainer(
-                isDark,
-                cardColor,
-                borderColor,
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('Marketing Template Type', textColor),
-                    const SizedBox(height: 4),
-                    Text('Choose the type of marketing experience to deliver.', style: TextStyle(fontSize: 13, color: subtitleColor)),
-                    const SizedBox(height: 16),
-                    _buildMarketingTypeRow('STANDARD', Icons.local_offer_outlined, 'Standard', 'Regular marketing message', isDark),
-                    _buildMarketingTypeRow('LIMITED_TIME_OFFER', Icons.timer_outlined, 'Limited Time Offer', 'With expiration timer', isDark),
-                    _buildMarketingTypeRow('COUPON_CODE', Icons.credit_card_outlined, 'Coupon Code', 'Include a copy-able code', isDark),
-                    _buildMarketingTypeRow('CATALOG', Icons.menu_book_rounded, 'Catalog', 'Link your product catalog', isDark),
-                    _buildMarketingTypeRow('CALL_PERMISSION', Icons.call_outlined, 'Call Permission', 'Request phone call opt-in', isDark),
-                    _buildMarketingTypeRow('CAROUSEL_PRODUCT', Icons.view_carousel_outlined, 'Carousel Product', 'Horizontal product cards', isDark),
-                    _buildMarketingTypeRow('CAROUSEL_MEDIA', Icons.perm_media_outlined, 'Carousel Media', 'Horizontal image cards', isDark),
-                  ],
-                ),
-              ),
-            if (_selectedCategory == 'MARKETING') const SizedBox(height: 16),
 
             // Section 2: Header
             _buildCardContainer(
@@ -425,7 +400,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Section 5: Interactive Buttons
+            // Section 5: Interactive Buttons (Real)
             _buildCardContainer(
               isDark,
               cardColor,
@@ -435,23 +410,100 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                 children: [
                   _buildSectionTitle('Interactive Buttons', textColor),
                   const SizedBox(height: 6),
-                  Text('Add interactive buttons to your message to drive engagement.', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text('Add up to 3 interactive buttons (Quick Replies or Call to Action).', style: TextStyle(fontSize: 13, color: subtitleColor)),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildToggleButton('NONE', 'NONE', _buttonType, (v) => setState(() => _buttonType = v), isDark)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildToggleButton('CALL_TO_ACTION', 'CALL TO ACTION', _buttonType, (v) => setState(() => _buttonType = v), isDark)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildToggleButton('QUICK_REPLIES', 'QUICK REPLIES', _buttonType, (v) => setState(() => _buttonType = v), isDark)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildToggleButton('ALL', 'ALL', _buttonType, (v) => setState(() => _buttonType = v), isDark)),
-                    ],
-                  ),
+                  
+                  ..._messageButtons.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    Map<String, dynamic> btn = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: btn['type'],
+                                  decoration: _buildInputDecoration('Type', isDark).copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                                  items: const [
+                                    DropdownMenuItem(value: 'QUICK_REPLY', child: Text('Réponse Rapide')),
+                                    DropdownMenuItem(value: 'URL_BUTTON', child: Text('Lien URL')),
+                                    DropdownMenuItem(value: 'PHONE_NUMBER', child: Text('Appel Téléphonique')),
+                                  ],
+                                  onChanged: (v) {
+                                    setState(() {
+                                      btn['type'] = v!;
+                                      if (v == 'QUICK_REPLY') {
+                                        btn.remove('url');
+                                        btn.remove('phone_number');
+                                      } else if (v == 'URL_BUTTON') {
+                                        btn['url'] = '';
+                                        btn.remove('phone_number');
+                                      } else if (v == 'PHONE_NUMBER') {
+                                        btn['phone_number'] = '';
+                                        btn.remove('url');
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () => setState(() => _messageButtons.removeAt(index)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            initialValue: btn['text'],
+                            decoration: _buildInputDecoration('Texte du bouton (ex: Oui, Visiter...)', isDark).copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                            maxLength: 25,
+                            onChanged: (v) => btn['text'] = v,
+                          ),
+                          if (btn['type'] == 'URL_BUTTON') ...[
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              initialValue: btn['url'],
+                              decoration: _buildInputDecoration('https://...', isDark).copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                              onChanged: (v) => btn['url'] = v,
+                            ),
+                          ],
+                          if (btn['type'] == 'PHONE_NUMBER') ...[
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              initialValue: btn['phone_number'],
+                              decoration: _buildInputDecoration('+1234567890', isDark).copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                              keyboardType: TextInputType.phone,
+                              onChanged: (v) => btn['phone_number'] = v,
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  if (_messageButtons.length < 3)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _messageButtons.add({'type': 'QUICK_REPLY', 'text': ''});
+                        });
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ajouter un bouton'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ThemeService.primaryColor,
+                        side: BorderSide(color: ThemeService.primaryColor),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -593,53 +645,6 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     );
   }
 
-  Widget _buildMarketingTypeRow(String value, IconData icon, String title, String subtitle, bool isDark) {
-    final isSelected = _marketingType == value;
-    final borderColor = isDark ? Colors.white10 : Colors.grey.shade200;
-    final textColor = isDark ? Colors.white : const Color(0xFF111827);
-    final subtitleColor = isDark ? Colors.white54 : const Color(0xFF6B7280);
-
-    return InkWell(
-      onTap: () => setState(() => _marketingType = value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.05) : (isDark ? const Color(0xFF0F172A) : Colors.white),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? ThemeService.primaryColor : borderColor,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white70 : const Color(0xFF6B7280)), size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? ThemeService.primaryColor : textColor, fontSize: 15)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: subtitleColor)),
-                ],
-              ),
-            ),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? ThemeService.primaryColor : Colors.transparent,
                 border: Border.all(color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white24 : Colors.grey.shade300)),
               ),
               child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 16) : null,

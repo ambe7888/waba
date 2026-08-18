@@ -188,16 +188,29 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
 
     setState(() => _isSubmitting = true);
     
-    // Prepare API Data
-    // We will call ApiService().createCampaign(...) here once we update it
-    
-    // Mock success for now until ApiService is updated
-    await Future.delayed(const Duration(seconds: 2));
+    // Call real API
+    final result = await ApiService().createCampaign(
+      title: _titleController.text.trim(),
+      templateUid: _selectedTemplate!['_uid'],
+      audienceMode: _audienceMode,
+      contactUids: _selectedContactIds.toList(),
+      audienceUid: _selectedAudienceUid,
+      groupUids: _selectedGroupIds.toList(),
+      sendImmediately: _sendImmediately,
+      scheduledDate: _scheduledDate,
+      scheduledTime: _scheduledTime,
+      headerImage: _selectedHeaderImage,
+      bodyVariables: _variableControllers.map((k, v) => MapEntry(k, v.text)),
+    );
     
     if (mounted) {
       setState(() => _isSubmitting = false);
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Campagne créée avec succès!')));
+      if (result['reaction'] == 1) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Campagne créée avec succès!')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? 'Erreur lors de la création de la campagne')));
+      }
     }
   }
 

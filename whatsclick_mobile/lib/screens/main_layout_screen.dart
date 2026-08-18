@@ -125,7 +125,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               image: const DecorationImage(
                 image: AssetImage('assets/images/whatsapp_bg.png'),
                 fit: BoxFit.cover,
-                opacity: 0.25,
+                opacity: 0.45,
               ),
             ),
             child: IndexedStack(

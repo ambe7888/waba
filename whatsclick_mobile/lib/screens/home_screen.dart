@@ -991,7 +991,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Container(
                     decoration: BoxDecoration(
                       color: surfaceCard,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(30),
                       border: Border.all(
                           color: Theme.of(context)
                               .colorScheme
@@ -999,6 +999,7 @@ class _HomeScreenState extends State<HomeScreen>
                               .withValues(alpha: 0.12),
                           width: 1),
                     ),
+                    clipBehavior: Clip.hardEdge,
                     child: TextField(
                       controller: _searchController,
                       style: TextStyle(
@@ -1318,22 +1319,23 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildContactCard(
-    Contact contact,
-    int index,
-    Color primaryColor,
-    Color surfaceCard,
-    Color accentColor,
-  ) {
-    final hasUnread = contact.unreadCount > 0;
-    final isDark = ThemeService().isDark;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+    Widget _buildContactCard(
+      Contact contact,
+      int index,
+      Color primaryColor,
+      Color surfaceCard,
+      Color accentColor,
+    ) {
+      final hasUnread = contact.unreadCount > 0;
+      final isDark = ThemeService().isDark;
+  
+      return Padding(
+        key: ValueKey(contact.uid),
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
           onTap: () async {
             final result = await Navigator.of(context).push(
               MaterialPageRoute(
@@ -1364,21 +1366,7 @@ class _HomeScreenState extends State<HomeScreen>
             decoration: BoxDecoration(
               color: hasUnread
                   ? primaryColor.withValues(alpha: isDark ? 0.15 : 0.06)
-                  : (isDark ? ThemeService.darkCard : Colors.white),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: hasUnread
-                    ? primaryColor.withValues(alpha: 0.35)
-                    : (isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0)),
-                width: hasUnread ? 1.2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+                  : Colors.transparent,
             ),
             child: Row(
               children: [

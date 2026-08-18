@@ -1806,6 +1806,97 @@ class ApiService {
     }
   }
 
+  /// Create and schedule a campaign
+  Future<Map<String, dynamic>> createCampaign({
+    required String title,
+    required String templateUid,
+    required String audienceMode,
+    List<String>? contactUids,
+    String? audienceUid,
+    List<String>? groupUids,
+    required bool sendImmediately,
+    DateTime? scheduledDate,
+    TimeOfDay? scheduledTime,
+    File? headerImage,
+    Map<String, String>? headerVariables,
+    Map<String, String>? bodyVariables,
+    Map<String, String>? buttonVariables,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/schedule');
+    try {
+      final headers = await _getHeaders();
+      var request = http.MultipartRequest('POST', url);
+      request.headers.addAll(headers);
+      
+      request.fields['title'] = title;
+      request.fields['template_uid'] = templateUid;
+      request.fields['timezone'] = 'UTC'; // Or fetch local timezone
+      
+      if (!sendImmediately && scheduledDate != null && scheduledTime != null) {
+        // Format to YYYY-MM-DD HH:MM:SS
+        final dt = DateTime(
+          scheduledDate.year,
+          scheduledDate.month,
+          scheduledDate.day,
+          scheduledTime.hour,
+          scheduledTime.minute,
+        );
+        request.fields['schedule_at'] = dt.toIso8601String();
+      } else {
+        request.fields['schedule_at'] = ''; // Empty means immediately
+      }
+
+      // Handle audience
+      if (audienceMode == 'specific' && contactUids != null) {
+        for (int i = 0; i < contactUids.length; i++) {
+          request.fields['contact_uids[$i]'] = contactUids[i];
+        }
+      } else if (audienceMode == 'groups' && groupUids != null) {
+        for (int i = 0; i < groupUids.length; i++) {
+          request.fields['contact_group[$i]'] = groupUids[i];
+        }
+      } else if (audienceMode == 'audiences' && audienceUid != null) {
+        request.fields['campaign_audience'] = audienceUid;
+      }
+      // If audienceMode == 'all', we might need to send a specific flag or pass all group uids
+      
+      // Handle variables
+      if (headerVariables != null) {
+        headerVariables.forEach((key, value) {
+          request.fields['header_variables[$key]'] = value;
+        });
+      }
+      if (bodyVariables != null) {
+        bodyVariables.forEach((key, value) {
+          request.fields['body_variables[$key]'] = value;
+        });
+      }
+      if (buttonVariables != null) {
+        buttonVariables.forEach((key, value) {
+          request.fields['button_variables[$key]'] = value;
+        });
+      }
+
+      // Handle image
+      if (headerImage != null) {
+        request.files.add(await http.MultipartFile.fromPath('document', headerImage.path));
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body;
+      } else {
+        return {'reaction': 2, 'message': 'HTTP ${response.statusCode}'};
+      }
+    } catch (e) {
+      if (debug) debugPrint('Create Campaign Error: $e');
+      return {'reaction': 2, 'message': e.toString()};
+    }
+  }
+
   /// Synchronize templates from Meta (Admin Only)
   Future<bool> syncTemplates() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/sync');
