@@ -313,17 +313,17 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
                 'message_id' => $options['repliedToMessageWamid']
             ];
         }
-        if( $options['pool'] and $options['queueUid']) {
-            $dataToProcess['messaging_product'] = 'whatsapp';
-            $dataToProcess['recipient_type'] = 'individual';
-            return $this->baseApiRequest($options['pool']->as($options['queueUid']))->post("{$this->baseApiRequestEndpoint}{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
-        }
-
         // Check if business scope user id exists
         if (__isEmpty($toNumber) and !__isEmpty($options['business_scope_user_id'])) {
             $dataToProcess['recipient'] = $options['business_scope_user_id'];
         } else {
             $dataToProcess['to'] = $toNumber;
+        }
+
+        if( $options['pool'] and $options['queueUid']) {
+            $dataToProcess['messaging_product'] = 'whatsapp';
+            $dataToProcess['recipient_type'] = 'individual';
+            return $this->baseApiRequest($options['pool']->as($options['queueUid']))->post("{$this->baseApiRequestEndpoint}{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
         }
 
         return $this->apiPostRequest("{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
@@ -507,17 +507,17 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
             $type => $typeDetails,
         ];
 
-        if( $options['pool'] and $options['queueUid']) {
-            $dataToProcess['messaging_product'] = 'whatsapp';
-            $dataToProcess['recipient_type'] = 'individual';
-            return $this->baseApiRequest($options['pool']->as($options['queueUid']))->post("{$this->baseApiRequestEndpoint}{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
-        }
-
         // Check if business scope user id exists
         if (__isEmpty($toNumber) and !__isEmpty($options['business_scope_user_id'])) {
             $dataToProcess['recipient'] = $options['business_scope_user_id'];
         } else {
             $dataToProcess['to'] = $toNumber;
+        }
+
+        if( $options['pool'] and $options['queueUid']) {
+            $dataToProcess['messaging_product'] = 'whatsapp';
+            $dataToProcess['recipient_type'] = 'individual';
+            return $this->baseApiRequest($options['pool']->as($options['queueUid']))->post("{$this->baseApiRequestEndpoint}{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
         }
 
         return $this->apiPostRequest("{$this->getServiceConfiguration('current_phone_number_id')}/messages", $dataToProcess);
