@@ -57,6 +57,11 @@ test.php
 temp_alpine.js
 temp_script.js
 temp_test.js
+cpanel_app_key.txt
+dump_contacts.php
+test_dashboard.php
+test_firebase_local.php
+contacts_api_out.json
 update_alpine.py
 update_preview.py
 carousel_steps.html
