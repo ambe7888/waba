@@ -2080,6 +2080,10 @@ class ApiService {
     required String triggerType,
     String? replyTrigger,
     required String replyText,
+    String? dripCampaignId,
+    Map<String, dynamic>? botActions,
+    String messageType = 'simple',
+    Map<String, dynamic>? advancedFields,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/add');
     try {
@@ -2092,7 +2096,11 @@ class ApiService {
               'trigger_type': triggerType,
               'reply_trigger': replyTrigger,
               'reply_text': replyText,
-              'message_type': 'simple',
+              'message_type': messageType,
+              if (dripCampaignId != null)
+                'addon_drip_campaigns__id': dripCampaignId,
+              if (botActions != null) 'bot_actions': botActions,
+              if (advancedFields != null) ...advancedFields,
             }),
           )
           .timeout(const Duration(seconds: 25));
@@ -2113,6 +2121,10 @@ class ApiService {
     required String triggerType,
     String? replyTrigger,
     required String replyText,
+    String? dripCampaignId,
+    Map<String, dynamic>? botActions,
+    String messageType = 'simple',
+    Map<String, dynamic>? advancedFields,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/update');
     try {
@@ -2126,7 +2138,11 @@ class ApiService {
               'trigger_type': triggerType,
               'reply_trigger': replyTrigger,
               'reply_text': replyText,
-              'message_type': 'simple',
+              'message_type': messageType,
+              if (dripCampaignId != null)
+                'addon_drip_campaigns__id': dripCampaignId,
+              if (botActions != null) 'bot_actions': botActions,
+              if (advancedFields != null) ...advancedFields,
             }),
           )
           .timeout(const Duration(seconds: 25));
@@ -2136,6 +2152,26 @@ class ApiService {
       return null;
     } catch (e) {
       if (debug) debugPrint('Update Bot Reply Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch bot action support data (team members, labels, action option lists)
+  Future<Map<String, dynamic>?> fetchBotActionSupportData() async {
+    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/action-support-data');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Bot Action Support Data Error: $e');
       return null;
     }
   }

@@ -686,6 +686,11 @@ Route::group([
                 'apiIndex'
             ])->name('app_api.vendor.bot_reply.management.list');
 
+            Route::get("/action-support-data", [
+                BotReplyController::class,
+                'apiActionSupportData'
+            ])->name('app_api.vendor.bot_reply.management.action_support_data');
+
             Route::post("/add", [
                 BotReplyController::class,
                 'processBotReplyCreate'

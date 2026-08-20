@@ -120,12 +120,57 @@ class BotReplyController extends BaseController
             'vendors__id' => $vendorId
         ])->whereNull('bot_flows__id')
         ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
-        ->select('_id', '_uid', 'name', 'reply_text', 'trigger_type', 'reply_trigger', 'status')
+        ->select('_id', '_uid', 'name', 'reply_text', 'trigger_type', 'reply_trigger', 'status', 'addon_drip_campaigns__id', '__data')
         ->get();
 
         return $this->processResponse(1, [], [
             'bot_replies' => $botReplies,
             'trigger_types' => configItem('bot_reply_trigger_types')
+        ]);
+    }
+
+    /**
+     * Get bot action support data (team members + labels + action options) for API clients
+     *
+     * @return json object
+     */
+    public function apiActionSupportData()
+    {
+        if (!hasVendorAccess('manage_bot_replies')) {
+            return $this->processResponse(1, [], [
+                'team_members' => [],
+                'labels' => [],
+                'promotional_options' => [],
+                'ai_bot_options' => [],
+                'reply_bot_options' => [],
+            ]);
+        }
+
+        $botActionSupportData = $this->botReplyEngine->getBotActionSupportData();
+
+        $teamMembers = collect($botActionSupportData['vendorMessagingUsers'])->map(function ($user) {
+            return [
+                '_id' => $user->_id,
+                '_uid' => $user->_uid,
+                'full_name' => trim($user->first_name . ' ' . $user->last_name),
+                'is_current_user' => $user->_uid === getUserUid(),
+            ];
+        })->values();
+
+        $labels = collect($botActionSupportData['allLabels'])->map(function ($label) {
+            return [
+                '_id' => $label->_id,
+                'title' => $label->title,
+                'color' => $label->color ?? null,
+            ];
+        })->values();
+
+        return $this->processResponse(1, [], [
+            'team_members' => $teamMembers,
+            'labels' => $labels,
+            'promotional_options' => configItem('bot_actions.promotional'),
+            'ai_bot_options' => configItem('bot_actions.ai_bot'),
+            'reply_bot_options' => configItem('bot_actions.reply_bot'),
         ]);
     }
 
