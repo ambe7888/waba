@@ -48,6 +48,15 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   gal: ^2.3.0
 
+dependency_overrides:
+  # flutter_cache_manager pulls in sqflite -> sqflite_android, and the
+  # latest sqflite_android (2.4.3) references Android 16 "Baklava"
+  # API constants / JDK 19 methods (Locale.of, Thread.threadId) that
+  # this project's Gradle/AGP/JDK toolchain can't compile against.
+  # Pin to an older, compatible sqflite_android until the toolchain is
+  # upgraded (see the Gradle/AGP/Kotlin deprecation warnings at build time).
+  sqflite_android: 2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
