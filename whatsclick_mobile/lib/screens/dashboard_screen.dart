@@ -25,6 +25,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   late TabController _tabController;
   int _currentTabIndex = 0;
   int _unreadNotificationsCount = 0;
+  bool _botActive = false; // AI toggle state
+  bool _togglingBot = false; // Loading state for AI toggle
 
   // Filter for template category
   final String _selectedTemplateCategory = 'TOUS';
@@ -61,6 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen>
         setState(() {
           _stats = data;
           _unreadNotificationsCount = notifData['unreadCount'] ?? 0;
+          // Extract bot_active from ai_credits
+          final aiCredits = data?['ai_credits'] as Map?;
+          _botActive = aiCredits?['bot_active'] == true;
           final vendorUserData = data?['vendorUserData'];
           if (vendorUserData != null) {
             String name = vendorUserData['first_name']?.toString() ?? '';
@@ -85,6 +90,24 @@ class _DashboardScreenState extends State<DashboardScreen>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Toggle AI bot globally
+  Future<void> _toggleBot() async {
+    if (_togglingBot) return;
+    setState(() => _togglingBot = true);
+    try {
+      final success = await ApiService().toggleBotReply(); // Utilisation de toggleBotReply selon l'API
+      if (success && mounted) {
+        setState(() => _botActive = !_botActive);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de modifier le statut de l\'IA')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _togglingBot = false);
     }
   }
 
@@ -412,7 +435,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Crown Icon + Company Name (Prominent) + Status Badge
+          // ─── Header: Plan Name + Price + Status Badge ───────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -433,8 +456,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Pack name (formerly company name position)
                     Text(
-                      companyName,
+                      planTitle,
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -445,26 +469,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Text(
-                          planTitle,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white60 : Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isFree ? '• Gratuit' : '• $price $cycleLabel',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF2563EB), // Blue color for price
-                          ),
-                        ),
-                      ],
+                    // Price below plan name
+                    Text(
+                      isFree ? 'Gratuit' : '$price $cycleLabel',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF2563EB),
+                      ),
                     ),
                   ],
                 ),
@@ -493,69 +505,95 @@ class _DashboardScreenState extends State<DashboardScreen>
           Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
           const SizedBox(height: 16),
 
-          // Row 2: Price & Billing Details
+          // ─── Row 2: Company info + AI toggle ────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Expiration Date instead of big price
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Expiration',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+              // Left: Company name + Membre depuis
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      companyName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF111827),
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isFree ? 'Illimité' : (endsAt.isNotEmpty ? endsAt : 'Non défini'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF111827),
-                      height: 1,
+                    const SizedBox(height: 3),
+                    Text(
+                      () {
+                        // Format registration date
+                        final vendorUserData = _stats?['vendorUserData'] as Map?;
+                        final createdAtRaw = vendorUserData?['created_at']?.toString() ?? '';
+                        if (createdAtRaw.isEmpty) return 'Membre';
+                        try {
+                          final dt = DateTime.parse(createdAtRaw);
+                          final months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+                          return 'Membre depuis le ${dt.day} ${months[dt.month - 1]}. ${dt.year}';
+                        } catch (_) {
+                          return 'Membre depuis le $createdAtRaw';
+                        }
+                      }(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              // Bullet Points
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              const SizedBox(width: 12),
+              // Right: AI toggle button
+              GestureDetector(
+                onTap: _togglingBot ? null : _toggleBot,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _botActive
+                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _botActive ? const Color(0xFF10B981) : (isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB)),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.circle, size: 5, color: isDark ? Colors.white70 : const Color(0xFF4B5563)),
-                      const SizedBox(width: 6),
+                      if (_togglingBot)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                        )
+                      else
+                        Icon(
+                          _botActive ? Icons.smart_toy_rounded : Icons.smart_toy_outlined,
+                          size: 15,
+                          color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+                        ),
+                      const SizedBox(width: 5),
                       Text(
-                        billedLabel,
+                        _botActive ? 'IA active' : 'IA inactive',
                         style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white70 : const Color(0xFF374151),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  if (!isFree)
-                  Row(
-                    children: [
-                      Icon(Icons.circle, size: 5, color: isDark ? Colors.white70 : const Color(0xFF4B5563)),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Relance activée',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white70 : const Color(0xFF374151),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -570,7 +608,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Renouvellement dans',
+                  'Votre abonnement expire dans',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
