@@ -101,6 +101,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       final success = await ApiService().toggleBotReply(); // Utilisation de toggleBotReply selon l'API
       if (success && mounted) {
         setState(() => _botActive = !_botActive);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_botActive ? 'IA activée avec succès' : 'IA désactivée avec succès'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Impossible de modifier le statut de l\'IA')),
@@ -109,6 +115,17 @@ class _DashboardScreenState extends State<DashboardScreen>
     } finally {
       if (mounted) setState(() => _togglingBot = false);
     }
+  }
+
+  /// Small "X crédits IA" label shown under the AI toggle, from
+  /// ai_credits.display_credits (a number, or "Unlimited"/untranslated
+  /// fallback when the plan has effectively unlimited credits).
+  String? get _aiCreditsLabel {
+    final aiCredits = _stats?['ai_credits'] as Map?;
+    final display = aiCredits?['display_credits']?.toString();
+    if (display == null || display.isEmpty) return null;
+    if (display.toLowerCase() == 'unlimited') return 'Crédits IA illimités';
+    return '$display crédits IA';
   }
 
   @override
@@ -551,49 +568,65 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              // Right: AI toggle button
-              GestureDetector(
-                onTap: _togglingBot ? null : _toggleBot,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _botActive
-                        ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _botActive ? const Color(0xFF10B981) : (isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB)),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_togglingBot)
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                        )
-                      else
-                        Icon(
-                          _botActive ? Icons.smart_toy_rounded : Icons.smart_toy_outlined,
-                          size: 15,
-                          color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
-                        ),
-                      const SizedBox(width: 5),
-                      Text(
-                        _botActive ? 'IA active' : 'IA inactive',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+              // Right: AI toggle button + available credits
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: _togglingBot ? null : _toggleBot,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _botActive
+                            ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                            : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _botActive ? const Color(0xFF10B981) : (isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB)),
+                          width: 1.2,
                         ),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_togglingBot)
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                            )
+                          else
+                            Icon(
+                              _botActive ? Icons.smart_toy_rounded : Icons.smart_toy_outlined,
+                              size: 15,
+                              color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+                            ),
+                          const SizedBox(width: 5),
+                          Text(
+                            _botActive ? 'IA active' : 'IA inactive',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  if (_aiCreditsLabel != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _aiCreditsLabel!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

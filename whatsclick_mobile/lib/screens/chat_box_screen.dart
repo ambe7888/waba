@@ -51,6 +51,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   // Reply-to state: the message the composer is currently quoting
   ChatMessage? _replyingTo;
 
+  // Older-messages pagination ("load older messages" bar, like the web
+  // dashboard): 0 once there's nothing older left to fetch.
+  int _olderMessagesNextPage = 0;
+  bool _isLoadingOlderMessages = false;
+
   // Media download/share/gallery state
   bool _isDownloadingMedia = false;
 
@@ -322,12 +327,20 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         final newMsgArrived = combinedMessages.length > _lastMessageCount;
         final wasAtBottom = _isAtBottom();
         
+        final wasFirstLoad = _isFirstLoad;
         setState(() {
           _messages = combinedMessages;
           _isLoading = false;
           _lastMessageCount = combinedMessages.length;
+          // Only the very first fetch establishes whether older messages
+          // exist — later silent polls always re-fetch just page 1 and
+          // would otherwise stomp on pagination progress from
+          // _loadOlderMessages.
+          if (wasFirstLoad) {
+            _olderMessagesNextPage = ApiService().lastMessagesNextPage;
+          }
         });
-        
+
         // Scroll to bottom only on first load, or if user is already at bottom and a new message arrives
         if (_isFirstLoad || (newMsgArrived && wasAtBottom)) {
           _scrollToBottom();
@@ -341,6 +354,101 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         });
       }
     }
+  }
+
+  /// "Load older messages" bar shown at the top of the conversation
+  /// (mirrors the web dashboard's own older-messages control) instead of
+  /// relying purely on scroll-up infinite loading.
+  Widget _buildLoadOlderMessagesBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: InkWell(
+          onTap: _isLoadingOlderMessages ? null : _loadOlderMessages,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isLoadingOlderMessages)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(Icons.history_rounded, size: 16, color: _accentColor),
+                const SizedBox(width: 8),
+                Text(
+                  _isLoadingOlderMessages
+                      ? 'Chargement...'
+                      : 'Voir les messages plus anciens',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Fetches and appends the next older page of messages. Appending to the
+  /// *end* of [_messages] (which, since the list is newest-first and the
+  /// ListView is reversed, renders further *up* the screen) never shifts
+  /// the messages the user is currently looking at.
+  Future<void> _loadOlderMessages() async {
+    if (_isLoadingOlderMessages || _olderMessagesNextPage == 0) return;
+    setState(() => _isLoadingOlderMessages = true);
+
+    final result = await ApiService()
+        .fetchOlderMessages(widget.contact.uid, _olderMessagesNextPage);
+
+    if (!mounted) return;
+    if (result == null) {
+      setState(() => _isLoadingOlderMessages = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors du chargement des anciens messages')),
+      );
+      return;
+    }
+
+    final older = List<ChatMessage>.from(result['messages'] as List<ChatMessage>);
+    older.sort((a, b) {
+      final dtA = DateTime.tryParse(a.timestamp);
+      final dtB = DateTime.tryParse(b.timestamp);
+      if (dtA == null || dtB == null) return 0;
+      return dtB.compareTo(dtA);
+    });
+
+    setState(() {
+      final existingUids = _messages.map((m) => m.uid).toSet();
+      for (final m in older) {
+        if (!existingUids.contains(m.uid)) {
+          _messages.add(m);
+        }
+      }
+      _olderMessagesNextPage = result['nextPage'] as int;
+      _isLoadingOlderMessages = false;
+    });
   }
 
   void _startAggressivePolling() {
@@ -1257,8 +1365,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         reverse: true,
                         padding:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        itemCount: filteredMessages.length,
+                        // Extra trailing item = "load older messages" bar.
+                        // Since the list is reversed, the last index renders
+                        // at the very top of the screen — exactly where
+                        // older history belongs.
+                        itemCount: filteredMessages.length +
+                            (_searchQuery.isEmpty && _olderMessagesNextPage != 0 ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (index == filteredMessages.length) {
+                            return _buildLoadOlderMessagesBar();
+                          }
                           final message = filteredMessages[index];
                           return _buildMessageBubble(message);
                         },
@@ -2234,6 +2350,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   /// Round icon button used for the attach/mic buttons flanking the
   /// composer field — a slightly lighter/whiter circle against the gray
   /// field background so they stand out subtly.
+  /// Flat icon button (no background/circle) for the attach/mic buttons
+  /// flanking the composer field — icons sit directly on the gray field,
+  /// matching WhatsApp's own composer.
   Widget _buildComposerIconButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -2241,24 +2360,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     Color? color,
     String? tooltip,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(2.0),
-      child: Material(
-        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
-        shape: const CircleBorder(),
-        child: IconButton(
-          icon: Icon(
-            icon,
-            size: 20,
-            color: color ??
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-          ),
-          tooltip: tooltip,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-          onPressed: onPressed,
-        ),
+    return IconButton(
+      icon: Icon(
+        icon,
+        size: 22,
+        color: color ??
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
       ),
+      tooltip: tooltip,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      onPressed: onPressed,
     );
   }
 

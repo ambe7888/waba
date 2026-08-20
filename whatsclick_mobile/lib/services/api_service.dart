@@ -560,6 +560,11 @@ class ApiService {
     }
   }
 
+  /// Next page to request via [fetchOlderMessages] after the most recent
+  /// [fetchMessages] call (0 when the conversation has no older messages
+  /// beyond what was just fetched).
+  int lastMessagesNextPage = 0;
+
   /// Fetch chat messages for a specific contact
   Future<List<ChatMessage>?> fetchMessages(String contactUid) async {
     final url = Uri.parse(
@@ -574,6 +579,9 @@ class ApiService {
         if (reaction == 1) {
           final logsData = body['client_models']?['whatsappMessageLogs'] ??
               body['data']?['whatsappMessageLogs'];
+          final nextPageRaw = body['client_models']?['messagePaginatePage'] ??
+              body['data']?['messagePaginatePage'];
+          lastMessagesNextPage = _parseNextPage(nextPageRaw);
           if (logsData is List) {
             return logsData
                 .map((m) =>
@@ -595,6 +603,45 @@ class ApiService {
       return null;
     } catch (e) {
       if (debug) debugPrint('Fetch Messages Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch an older page of a conversation's messages (for "load older
+  /// messages" — the initial [fetchMessages] call only returns the most
+  /// recent ~16). Returns the fetched messages plus the next page number
+  /// to request (0 when there's nothing older left), mirroring the same
+  /// messagePaginatePage convention the web dashboard already uses.
+  Future<Map<String, dynamic>?> fetchOlderMessages(String contactUid, int page) async {
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append?page=$page');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final logsData = body['client_models']?['whatsappMessageLogs'] ??
+              body['data']?['whatsappMessageLogs'];
+          final nextPageRaw = body['client_models']?['messagePaginatePage'] ??
+              body['data']?['messagePaginatePage'];
+          List<ChatMessage> list = [];
+          if (logsData is List) {
+            list = logsData
+                .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .toList();
+          } else if (logsData is Map) {
+            list = logsData.values
+                .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .toList();
+          }
+          return {'messages': list, 'nextPage': _parseNextPage(nextPageRaw)};
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Older Messages Error: $e');
       return null;
     }
   }
@@ -2273,6 +2320,73 @@ class ApiService {
       return false;
     }
   }
+
+  /// Last error message from createDripCampaign/storeDripCampaignStep
+  String? lastDripCampaignError;
+
+  /// Create a new drip campaign. Returns its uid on success, null on failure.
+  Future<String?> createDripCampaign(String title) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/store');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'title': title}),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return body['data']?['campaign']?['_uid']?.toString();
+      }
+      lastDripCampaignError = body['message']?.toString();
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Create Drip Campaign Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return null;
+    }
+  }
+
+  /// Add a timed step to a drip campaign. Either [customMessage] or
+  /// [botReplyId] should be provided (a step's message is either free text
+  /// or an existing bot reply).
+  Future<bool> storeDripCampaignStep(
+    String campaignUid, {
+    required int delayValue,
+    required String delayType,
+    String? customMessage,
+    String? botReplyId,
+  }) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/step/store');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'delay_value': delayValue,
+              'delay_type': delayType,
+              if (customMessage != null) 'custom_message': customMessage,
+              if (botReplyId != null) 'bot_replies__id': botReplyId,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return true;
+      }
+      lastDripCampaignError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Store Drip Campaign Step Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
   /// Fetch Mobile Notifications
   Future<Map<String, dynamic>> fetchNotifications() async {
     final prefs = await SharedPreferences.getInstance();

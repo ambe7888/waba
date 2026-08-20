@@ -429,8 +429,15 @@ class _HomeScreenState extends State<HomeScreen>
       // Sort by last message time descending — skipped for background polls
       // so the list doesn't reshuffle under the user while they're
       // scrolling (see the `background` merge path in _loadContacts).
+      //
+      // List.sort() in Dart is NOT stable — contacts sharing the same
+      // (or null) lastMessageTime, which is common for never-messaged
+      // contacts, would get shuffled relative to each other on every
+      // resort, which is exactly what made the list visibly jump around
+      // whenever a scroll-triggered "load more" ran. Decorating with the
+      // original index as a tiebreaker makes the sort stable.
       if (resort) {
-        _filteredContacts.sort((a, b) {
+        int compareByTime(Contact a, Contact b) {
           if (a.lastMessageTime == null && b.lastMessageTime == null) return 0;
           if (a.lastMessageTime == null) return 1;
           if (b.lastMessageTime == null) return -1;
@@ -443,7 +450,15 @@ class _HomeScreenState extends State<HomeScreen>
           if (dateB == null) return -1;
 
           return dateB.compareTo(dateA);
+        }
+
+        final indexed = _filteredContacts.asMap().entries.toList();
+        indexed.sort((a, b) {
+          final cmp = compareByTime(a.value, b.value);
+          if (cmp != 0) return cmp;
+          return a.key.compareTo(b.key);
         });
+        _filteredContacts = indexed.map((e) => e.value).toList();
       }
     });
   }
