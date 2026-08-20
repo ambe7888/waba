@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>WhatsClick a besoin d'accéder à vos photos pour enregistrer les médias téléchargés dans votre galerie.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>WhatsClick a besoin d'accéder à vos photos pour enregistrer les médias téléchargés dans votre galerie.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

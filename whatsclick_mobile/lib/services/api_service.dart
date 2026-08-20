@@ -600,7 +600,8 @@ class ApiService {
   }
 
   /// Send message to a contact
-  Future<bool> sendMessage(String contactUid, String messageBody) async {
+  Future<bool> sendMessage(String contactUid, String messageBody,
+      {String? replyToWamid}) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send');
     try {
       final response = await http
@@ -610,6 +611,8 @@ class ApiService {
             body: jsonEncode({
               'contact_uid': contactUid,
               'message_body': messageBody,
+              if (replyToWamid != null && replyToWamid.isNotEmpty)
+                'reply_to_message_wamid': replyToWamid,
             }),
           )
           .timeout(const Duration(seconds: 20));
@@ -1058,7 +1061,7 @@ class ApiService {
   /// Send media message referencing uploaded temp file
   Future<bool> sendMediaMessage(
       String contactUid, String mediaType, String fileName,
-      {String? caption, String? originalFilename}) async {
+      {String? caption, String? originalFilename, String? replyToWamid}) async {
     final url =
         Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send-media');
     try {
@@ -1074,6 +1077,8 @@ class ApiService {
               'raw_upload_data': jsonEncode({
                 'original_filename': originalFilename ?? fileName,
               }),
+              if (replyToWamid != null && replyToWamid.isNotEmpty)
+                'reply_to_message_wamid': replyToWamid,
             }),
           )
           .timeout(const Duration(seconds: 30));

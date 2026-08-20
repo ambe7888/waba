@@ -8,6 +8,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:gal/gal.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../models/contact.dart';
@@ -42,6 +47,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   StreamSubscription? _fcmSubscription;
   bool _isFirstLoad = true; // Track first load for auto-scroll
   int _lastMessageCount = 0; // Track new message detection
+
+  // Reply-to state: the message the composer is currently quoting
+  ChatMessage? _replyingTo;
+
+  // Media download/share/gallery state
+  bool _isDownloadingMedia = false;
 
   // Search State
   bool _isSearching = false;
@@ -349,9 +360,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
+    final replyTarget = _replyingTo;
     _messageController.clear();
     setState(() {
       _showEmojiRow = false;
+      _replyingTo = null;
     });
 
     final tempMsg = ChatMessage(
@@ -359,6 +372,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       body: text,
       isIncoming: false,
       timestamp: DateTime.now().toIso8601String(),
+      repliedToUid: replyTarget?.uid,
     );
 
     setState(() {
@@ -366,12 +380,60 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     });
     _scrollToBottom(); // Always scroll after user sends
 
-    final success = await ApiService().sendMessage(widget.contact.uid, text);
+    final success = await ApiService().sendMessage(
+      widget.contact.uid,
+      text,
+      replyToWamid: replyTarget?.wamid,
+    );
     if (!success) {
       _loadMessages(silent: true);
     } else {
       _loadMessages(silent: true);
       _startAggressivePolling();
+    }
+  }
+
+  /// Send a single emoji as a quoted reply to [message] (quick-react).
+  /// The Cloud API's native reaction type isn't reliably usable for
+  /// business-initiated reactions in every account tier, and this app
+  /// already renders customer reactions as emoji-only reply bubbles
+  /// (see backend's incoming-reaction handling), so we mirror that same
+  /// representation here for consistency instead of a separate code path.
+  Future<void> _sendEmojiReaction(ChatMessage message, String emoji) async {
+    final tempMsg = ChatMessage(
+      uid: UniqueKey().toString(),
+      body: emoji,
+      isIncoming: false,
+      timestamp: DateTime.now().toIso8601String(),
+      repliedToUid: message.uid,
+    );
+    setState(() {
+      _messages.insert(0, tempMsg);
+    });
+    _scrollToBottom();
+
+    final success = await ApiService().sendMessage(
+      widget.contact.uid,
+      emoji,
+      replyToWamid: message.wamid,
+    );
+    if (success) {
+      _startAggressivePolling();
+    }
+    _loadMessages(silent: true);
+  }
+
+  void _setReplyTarget(ChatMessage message) {
+    setState(() {
+      _replyingTo = message;
+    });
+  }
+
+  ChatMessage? _findRepliedToMessage(String repliedToUid) {
+    try {
+      return _messages.firstWhere((m) => m.uid == repliedToUid);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -492,6 +554,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     setState(() {
       _isRecording = false;
       _localRecordingPath = null;
+      _recordingSeconds = 0;
     });
   }
 
@@ -1536,6 +1599,74 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             : children);
   }
 
+  /// Quoted-message preview shown inside a bubble when the message is a
+  /// reply, mirroring WhatsApp's own reply blocks (used for both incoming
+  /// and outgoing bubbles).
+  Widget _buildQuotedReplyBlock(String repliedToUid, bool isDark, Color textColor) {
+    final quoted = _findRepliedToMessage(repliedToUid);
+    final label = quoted == null
+        ? 'Message'
+        : (quoted.isIncoming ? widget.contact.name : 'Vous');
+    final snippet = quoted == null
+        ? 'Message indisponible'
+        : (quoted.type != null && quoted.type != 'text'
+            ? _mediaTypeLabel(quoted.type!)
+            : quoted.body);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.18)
+            : Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: _accentColor, width: 3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: _accentColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            snippet,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: textColor.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _mediaTypeLabel(String type) {
+    switch (type) {
+      case 'image':
+        return '📷 Photo';
+      case 'video':
+        return '🎥 Vidéo';
+      case 'audio':
+        return '🎤 Note vocale';
+      case 'document':
+        return '📄 Document';
+      default:
+        return type;
+    }
+  }
+
   Widget _buildMessageBubble(ChatMessage message) {
     // System message
     if (message.isSystemMessage) {
@@ -1617,6 +1748,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (message.repliedToUid != null)
+              _buildQuotedReplyBlock(message.repliedToUid!, isDark, textColor),
             if (message.referral != null)
               _buildReferralWidget(message.referral!, textColor),
             // IMAGE
@@ -1634,8 +1767,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
             // VIDEO
             else if (msgType == 'video')
-              _buildMediaTile(Icons.play_circle_outline_rounded, 'Vidéo',
-                  message, textColor, const Color(0xFFEC4899))
+              VideoBubble(
+                message: message,
+                onExpand: () => _showFullVideoModal(message),
+              )
 
             // DOCUMENT
             else if (msgType == 'document')
@@ -1652,6 +1787,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 text: _parseHtmlToTextSpan(
                   message.body,
                   TextStyle(fontSize: 14.5, color: textColor),
+                ),
+              ),
+
+            // Caption glued directly under image/video (single block, like
+            // WhatsApp) instead of the caption being silently dropped.
+            if ((msgType == 'image' || msgType == 'video') && message.body.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: RichText(
+                  text: _parseHtmlToTextSpan(message.body, TextStyle(fontSize: 14.5, color: textColor)),
                 ),
               ),
 
@@ -1689,7 +1834,123 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  void _showFullImageModal(String imageUrl) {
+  /// Guesses a file extension for a downloaded media message from its URL,
+  /// falling back to the message type.
+  String _guessMediaExtension(ChatMessage message) {
+    final url = message.mediaUrl ?? '';
+    final dotIndex = url.lastIndexOf('.');
+    if (dotIndex != -1 && dotIndex > url.lastIndexOf('/')) {
+      final ext = url.substring(dotIndex);
+      if (ext.length <= 6) return ext;
+    }
+    switch (message.type) {
+      case 'image':
+        return '.jpg';
+      case 'video':
+        return '.mp4';
+      case 'audio':
+        return '.m4a';
+      default:
+        return '';
+    }
+  }
+
+  /// Downloads (if not already cached) and either saves a media message's
+  /// file to the device's public gallery ([share] = false, images/videos)
+  /// or opens the OS share sheet ([share] = true). Reuses the same disk
+  /// cache the chat bubbles/full-screen viewer already populated via
+  /// [CachedNetworkImage] — [DefaultCacheManager.getSingleFile] only hits
+  /// the network if the file isn't cached yet, so "download" here is
+  /// usually just copying an already-fetched file into the gallery.
+  Future<void> _downloadOrShareMedia(ChatMessage message, {required bool share}) async {
+    final url = message.mediaUrl;
+    if (url == null || url.isEmpty || _isDownloadingMedia) return;
+
+    setState(() => _isDownloadingMedia = true);
+    try {
+      final file = await DefaultCacheManager().getSingleFile(url);
+
+      if (share) {
+        await Share.shareXFiles([XFile(file.path)]);
+      } else if (message.type == 'image') {
+        await Gal.putImage(file.path, album: 'WhatsClick');
+        if (mounted) _showChatNotice('Enregistré dans la galerie');
+      } else if (message.type == 'video') {
+        await Gal.putVideo(file.path, album: 'WhatsClick');
+        if (mounted) _showChatNotice('Enregistré dans la galerie');
+      } else {
+        // Documents/audio aren't gallery media — keep them in app storage.
+        final docsDir = await getApplicationDocumentsDirectory();
+        final savedDir = Directory('${docsDir.path}/WhatsClick Media');
+        if (!await savedDir.exists()) {
+          await savedDir.create(recursive: true);
+        }
+        final ext = _guessMediaExtension(message);
+        final fileName = 'whatsclick_${DateTime.now().millisecondsSinceEpoch}$ext';
+        await file.copy('${savedDir.path}/$fileName');
+        if (mounted) _showChatNotice('Fichier enregistré');
+      }
+    } on GalException catch (e) {
+      if (mounted) {
+        _showChatNotice(e.type == GalExceptionType.accessDenied
+            ? 'Accès à la galerie refusé. Autorisez-le dans les paramètres.'
+            : 'Échec de l\'enregistrement dans la galerie');
+      }
+    } catch (e) {
+      if (mounted) _showChatNotice('Échec du téléchargement');
+    } finally {
+      if (mounted) setState(() => _isDownloadingMedia = false);
+    }
+  }
+
+  /// 3-dot menu (download/share) shown in the top-right of the fullscreen
+  /// image/video viewer.
+  Widget _buildFullMediaMenuButton(ChatMessage message) {
+    return CircleAvatar(
+      backgroundColor: Colors.black.withValues(alpha: 0.6),
+      child: PopupMenuButton<String>(
+        icon: _isDownloadingMedia
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.more_vert_rounded, color: Colors.white, size: 22),
+        onSelected: (value) {
+          if (value == 'download') {
+            _downloadOrShareMedia(message, share: false);
+          } else if (value == 'share') {
+            _downloadOrShareMedia(message, share: true);
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'download',
+            child: Row(
+              children: [
+                Icon(Icons.download_rounded, size: 18),
+                SizedBox(width: 10),
+                Text('Télécharger'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'share',
+            child: Row(
+              children: [
+                Icon(Icons.share_rounded, size: 18),
+                SizedBox(width: 10),
+                Text('Partager'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullImageModal(ChatMessage message) {
+    final imageUrl = message.mediaUrl!;
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1701,10 +1962,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             InteractiveViewer(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Center(
+                  errorWidget: (_, __, ___) => const Center(
                     child: Text('Impossible de charger l\'image', style: TextStyle(color: Colors.white)),
                   ),
                 ),
@@ -1713,12 +1974,51 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             Positioned(
               right: 8,
               top: 8,
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withValues(alpha: 0.6),
-                child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
-                  onPressed: () => Navigator.pop(context),
-                ),
+              child: Row(
+                children: [
+                  _buildFullMediaMenuButton(message),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.black.withValues(alpha: 0.6),
+                    child: IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFullVideoModal(ChatMessage message) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            _FullScreenVideoPlayer(url: message.mediaUrl!),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: Row(
+                children: [
+                  _buildFullMediaMenuButton(message),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.black.withValues(alpha: 0.6),
+                    child: IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1746,7 +2046,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: GestureDetector(
-        onTap: () => _showFullImageModal(message.mediaUrl!),
+        onTap: () => _showFullImageModal(message),
         child: Container(
           width: 220,
           height: 220,
@@ -1755,22 +2055,19 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Image.network(
-            message.mediaUrl!,
+          child: CachedNetworkImage(
+            imageUrl: message.mediaUrl!,
             width: 220,
             height: 220,
             fit: BoxFit.cover,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return Container(
-                width: 220,
-                height: 220,
-                color: Colors.black12,
-                child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-              );
-            },
-            errorBuilder: (context, err, stack) {
+            placeholder: (context, url) => Container(
+              width: 220,
+              height: 220,
+              color: Colors.black12,
+              child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            errorWidget: (context, url, err) {
               return Padding(
                 padding: const EdgeInsets.all(6),
                 child: Row(
@@ -1934,19 +2231,102 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  /// Round icon button used for the attach/mic buttons flanking the
+  /// composer field — a slightly lighter/whiter circle against the gray
+  /// field background so they stand out subtly.
+  Widget _buildComposerIconButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required bool isDark,
+    Color? color,
+    String? tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(2.0),
+      child: Material(
+        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+        shape: const CircleBorder(),
+        child: IconButton(
+          icon: Icon(
+            icon,
+            size: 20,
+            color: color ??
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+          ),
+          tooltip: tooltip,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReplyPreviewBar(bool isDark) {
+    final target = _replyingTo!;
+    final label = target.isIncoming ? widget.contact.name : 'Vous';
+    final snippet = target.type != null && target.type != 'text'
+        ? _mediaTypeLabel(target.type!)
+        : target.body;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border(left: BorderSide(color: _accentColor, width: 3)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Réponse à $label',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _accentColor),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  snippet,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded,
+                size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => setState(() => _replyingTo = null),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
       child: Container(
+        // Transparent so the chat wallpaper (applied to the whole screen's
+        // body) stays visible behind the composer too, instead of being
+        // cut off by a solid background right above the input row.
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Colors.transparent,
           border: Border(
               top: BorderSide(
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withValues(alpha: 0.03))),
+                      .withValues(alpha: 0.08))),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
         child: Column(
@@ -1995,6 +2375,13 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 isHighlight: true),
                   ],
                 ),
+              ),
+
+            // Reply preview (quoted message above the input field)
+            if (_replyingTo != null && !_isRecording)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: _buildReplyPreviewBar(isDark),
               ),
 
             // Emoji Picker Row
@@ -2074,82 +2461,81 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     ],
                   )
                 : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          _showEmojiRow
-                              ? Icons.keyboard_rounded
-                              : Icons.sentiment_satisfied_alt_rounded,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.39),
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showEmojiRow = !_showEmojiRow;
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.attach_file_rounded,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.39),
-                            size: 22),
-                        onPressed: _showAttachmentMenu,
-                      ),
                       Expanded(
                         child: Container(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
+                            color: isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFE9EDEF),
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.08)),
                           ),
-                          child: TextField(
-                            controller: _messageController,
-                            minLines: 1,
-                            maxLines: 5,
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: "Tapez un message ou '/' pour réponses rapides...",
-                              hintStyle: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.3),
-                                  fontSize: 13),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.smart_toy_rounded,
-                                        color: Color(0xFFF59E0B), size: 20),
-                                    tooltip: 'Réponses rapides',
-                                    onPressed: _showQuickRepliesSheet,
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.mic_rounded,
-                                        color: _accentColor, size: 20),
-                                    tooltip: 'Note vocale',
-                                    onPressed: _startRecording,
-                                  ),
-                                ],
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _buildComposerIconButton(
+                                icon: Icons.attach_file_rounded,
+                                onPressed: _showAttachmentMenu,
+                                isDark: isDark,
                               ),
-                            ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _messageController,
+                                  minLines: 1,
+                                  maxLines: 5,
+                                  style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontSize: 14),
+                                  decoration: InputDecoration(
+                                    // Emoji toggle lives here, at the field's
+                                    // natural leading position, instead of
+                                    // as a separate outer button.
+                                    prefixIcon: IconButton(
+                                      icon: Icon(
+                                        _showEmojiRow
+                                            ? Icons.keyboard_rounded
+                                            : Icons.sentiment_satisfied_alt_rounded,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.39),
+                                        size: 22,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () {
+                                        setState(() {
+                                          _showEmojiRow = !_showEmojiRow;
+                                        });
+                                      },
+                                    ),
+                                    prefixIconConstraints:
+                                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                                    hintText: "Message ou '/' pour réponses rapides...",
+                                    hintStyle: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.3),
+                                        fontSize: 13),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                ),
+                              ),
+                              _buildComposerIconButton(
+                                icon: Icons.mic_rounded,
+                                onPressed: _startRecording,
+                                isDark: isDark,
+                                color: _accentColor,
+                                tooltip: 'Note vocale',
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -2388,6 +2774,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                               .map((emoji) => GestureDetector(
                                     onTap: () {
                                       Navigator.pop(context);
+                                      _sendEmojiReaction(message, emoji);
                                     },
                                     child: Text(emoji, style: const TextStyle(fontSize: 22)),
                                   ))
@@ -2412,9 +2799,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         isDark: isDark,
                         onTap: () {
                           Navigator.pop(context);
-                          setState(() {
-                             _messageController.text = '> ${message.body.replaceAll('\n', '\n> ')}\n\n';
-                          });
+                          _setReplyTarget(message);
                         },
                       ),
                       Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
@@ -2551,6 +2936,175 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+}
+
+/// Inline video bubble with a small play icon; tapping opens the fullscreen
+/// player (via [onExpand]) instead of launching an external app.
+class VideoBubble extends StatefulWidget {
+  final ChatMessage message;
+  final VoidCallback? onExpand;
+  const VideoBubble({super.key, required this.message, this.onExpand});
+
+  @override
+  State<VideoBubble> createState() => _VideoBubbleState();
+}
+
+class _VideoBubbleState extends State<VideoBubble> {
+  VideoPlayerController? _controller;
+  bool _initFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final url = widget.message.mediaUrl;
+    if (url != null && url.isNotEmpty) {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(url))
+        ..initialize().then((_) {
+          if (mounted) setState(() {});
+        }).catchError((_) {
+          if (mounted) setState(() => _initFailed = true);
+        });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.message.mediaUrl == null || widget.message.mediaUrl!.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text('Vidéo en cours de traitement...',
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+      );
+    }
+
+    final controller = _controller;
+    final ready = controller != null && controller.value.isInitialized;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: GestureDetector(
+        onTap: widget.onExpand,
+        child: Container(
+          width: 220,
+          height: 220,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Colors.black12,
+            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (ready)
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: controller.value.size.width,
+                    height: controller.value.size.height,
+                    child: VideoPlayer(controller),
+                  ),
+                )
+              else if (_initFailed)
+                const Icon(Icons.broken_image_rounded, color: Colors.white54, size: 32)
+              else
+                const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+              ),
+              if (widget.onExpand != null)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 16),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fullscreen, autoplaying, tap-to-pause video player with a scrub bar.
+class _FullScreenVideoPlayer extends StatefulWidget {
+  final String url;
+  const _FullScreenVideoPlayer({required this.url});
+
+  @override
+  State<_FullScreenVideoPlayer> createState() => _FullScreenVideoPlayerState();
+}
+
+class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _ready = true);
+          _controller.play();
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return const SizedBox(
+        width: 200,
+        height: 200,
+        child: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _controller.value.isPlaying ? _controller.pause() : _controller.play();
+        });
+      },
+      child: AspectRatio(
+        aspectRatio: _controller.value.aspectRatio,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            VideoPlayer(_controller),
+            if (!_controller.value.isPlaying)
+              const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 64),
+            VideoProgressIndicator(_controller, allowScrubbing: true),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // Custom Voice note component

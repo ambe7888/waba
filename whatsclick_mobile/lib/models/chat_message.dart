@@ -10,6 +10,8 @@ class ChatMessage {
   final bool isSystemMessage;
   final String status;
   final Map<String, dynamic>? referral;
+  final String? wamid;
+  final String? repliedToUid;
 
   ChatMessage({
     required this.uid,
@@ -21,6 +23,8 @@ class ChatMessage {
     this.isSystemMessage = false,
     this.status = 'initialize',
     this.referral,
+    this.wamid,
+    this.repliedToUid,
   });
 
   String? get vendorName => null;
@@ -93,6 +97,8 @@ class ChatMessage {
       isSystemMessage: system,
       status: json['status']?.toString() ?? 'initialize',
       referral: resolvedReferral,
+      wamid: json['wamid']?.toString(),
+      repliedToUid: json['replied_to_whatsapp_message_logs__uid']?.toString(),
     );
   }
 
