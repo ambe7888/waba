@@ -28,10 +28,28 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
   // Step 2: Variables
   List<String> _bodyVariables = [];
   final Map<String, TextEditingController> _variableControllers = {};
+  // 'custom' = manually typed value (default); otherwise one of the
+  // predefined dynamic_contact_* tag keys below. The backend resolves
+  // these tag keys to the real contact field at send time — same
+  // mechanism the web dashboard's "Choose or Write your own" selector
+  // uses (see WhatsAppServiceEngine::setParameterValue).
+  final Map<String, String> _variableTagSelection = {};
   bool _requiresHeaderImage = false;
   File? _selectedHeaderImage;
   String? _headerImageUrl;
   final bool _isUploadingMedia = false;
+
+  // Mirrors config('__tech.contact_data_mapping') — the predefined contact
+  // field tags offered as an alternative to manual entry.
+  static const Map<String, String> _predefinedTags = {
+    'dynamic_contact_full_name': 'Nom complet du contact',
+    'dynamic_contact_first_name': 'Prénom du contact',
+    'dynamic_contact_last_name': 'Nom du contact',
+    'dynamic_contact_wa_id': 'Téléphone du contact',
+    'dynamic_contact_language_code': 'Code langue',
+    'dynamic_contact_country': 'Pays du contact',
+    'dynamic_contact_email': 'E-mail du contact',
+  };
 
   // Step 3: Schedule
   bool _sendImmediately = true;
@@ -71,6 +89,7 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
       
       for (var v in _bodyVariables) {
         _variableControllers[v] = TextEditingController();
+        _variableTagSelection[v] = 'custom';
       }
 
       // Parse Header
@@ -123,7 +142,8 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
     final Map<String, dynamic> payload = {};
     for (var v in _bodyVariables) {
       final index = v.replaceAll('{{', '').replaceAll('}}', '');
-      payload['field_$index'] = _variableControllers[v]!.text;
+      final tag = _variableTagSelection[v] ?? 'custom';
+      payload['field_$index'] = tag == 'custom' ? _variableControllers[v]!.text : tag;
     }
 
     if (_requiresHeaderImage && _selectedHeaderImage != null) {
@@ -440,19 +460,50 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
               ),
               child: Column(
                 children: _bodyVariables.map((v) {
+                  final selectedTag = _variableTagSelection[v] ?? 'custom';
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
-                    child: TextField(
-                      controller: _variableControllers[v],
-                      decoration: InputDecoration(
-                        labelText: 'Valeur pour $v',
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Valeur pour $v',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedTag,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                          items: [
+                            const DropdownMenuItem(value: 'custom', child: Text('Valeur personnalisée...')),
+                            ..._predefinedTags.entries.map(
+                                (e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))),
+                          ],
+                          onChanged: (val) => setState(() => _variableTagSelection[v] = val ?? 'custom'),
                         ),
-                      ),
+                        if (selectedTag == 'custom') ...[
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _variableControllers[v],
+                            decoration: InputDecoration(
+                              hintText: 'Saisissez une valeur...',
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   );
                 }).toList(),

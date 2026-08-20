@@ -98,7 +98,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Campaign Information',
+          'Informations de la campagne',
           style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.bold, color: onSurface),
         ),
@@ -108,7 +108,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
           unselectedLabelColor: onSurface.withValues(alpha: 0.5),
           indicatorColor: ThemeService.primaryColor,
           tabs: const [
-            Tab(text: 'Overview'),
+            Tab(text: 'Aperçu'),
             Tab(text: 'Messages'),
           ],
         ),
@@ -147,7 +147,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Delivery Mastery Section
-          Text('Delivery Mastery',
+          Text('Performance de livraison',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -166,7 +166,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Delivery Progress',
+                    Text('Progression de livraison',
                         style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: onSurface.withValues(alpha: 0.7))),
@@ -190,7 +190,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
           const SizedBox(height: 24),
           
           // Performance Funnel
-          Text('Performance Funnel',
+          Text('Entonnoir de performance',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -200,10 +200,10 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildFunnelCard('SENT', '$sent', Colors.blue, surfaceCard, onSurface),
-              _buildFunnelCard('DELIVERED', '$delivered', Colors.green, surfaceCard, onSurface),
-              _buildFunnelCard('READ', '$read', Colors.purple, surfaceCard, onSurface),
-              _buildFunnelCard('FAILED', '$failed', Colors.red, surfaceCard, onSurface),
+              _buildFunnelCard('ENVOYÉS', '$sent', Colors.blue, surfaceCard, onSurface),
+              _buildFunnelCard('LIVRÉS', '$delivered', Colors.green, surfaceCard, onSurface),
+              _buildFunnelCard('LUS', '$read', Colors.purple, surfaceCard, onSurface),
+              _buildFunnelCard('ÉCHOUÉS', '$failed', Colors.red, surfaceCard, onSurface),
             ],
           ),
           const SizedBox(height: 24),
@@ -223,11 +223,11 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
             ),
             child: Column(
               children: [
-                _buildConfigRow('Name', name, onSurface),
-                _buildConfigRow('Language', lang, onSurface),
+                _buildConfigRow('Nom', name, onSurface),
+                _buildConfigRow('Langue', lang, onSurface),
                 _buildConfigRow('Date', date.toString().split(' ')[0], onSurface),
-                _buildConfigRow('Template', template, onSurface),
-                _buildConfigRow('Status', status, onSurface, isStatus: true),
+                _buildConfigRow('Modèle', template, onSurface),
+                _buildConfigRow('Statut', status, onSurface, isStatus: true),
               ],
             ),
           ),
@@ -317,7 +317,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
             ),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search contacts...',
+                hintText: 'Rechercher un contact...',
                 hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4)),
                 prefixIcon: Icon(Icons.search, color: onSurface.withValues(alpha: 0.4)),
                 border: InputBorder.none,
@@ -330,7 +330,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
         Expanded(
           child: _contacts.isEmpty
               ? Center(
-                  child: Text('Aucun contact trouvÃ©',
+                  child: Text('Aucun contact trouvé',
                       style: TextStyle(color: onSurface.withValues(alpha: 0.5))))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -339,7 +339,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
                     final contact = _contacts[index];
                     final name = contact['full_name'] ?? contact['first_name'] ?? 'Inconnu';
                     final phone = contact['phone_number'] ?? 'N/A';
-                    final status = contact['status'] ?? 'Sent'; // Default mock status if none
+                    final status = contact['status'] ?? 'Envoyé'; // Statut par défaut si absent
                     final date = contact['updated_at'] ?? '';
                     
                     final sColor = _statusColor(status);

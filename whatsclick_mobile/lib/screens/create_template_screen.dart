@@ -136,8 +136,8 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Template', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text('Create a custom template for your cam...', style: TextStyle(color: subtitleColor, fontSize: 12)),
+            Text('Créer un modèle', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Créez un modèle personnalisé pour vos campagnes', style: TextStyle(color: subtitleColor, fontSize: 12)),
           ],
         ),
         actions: [
@@ -163,11 +163,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Template Name', textColor),
+                  _buildSectionTitle('Nom du modèle', textColor),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
-                    decoration: _buildInputDecoration('e.g. welcome_message', isDark),
+                    decoration: _buildInputDecoration('ex. message_bienvenue', isDark),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Nom requis';
                       if (!RegExp(r'^[a-z0-9_]+$').hasMatch(v.trim())) return 'Lettres minuscules, chiffres et _ uniquement';
@@ -175,11 +175,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     },
                   ),
                   const SizedBox(height: 6),
-                  Text('Lowercase letters, numbers and underscores only.', style: TextStyle(fontSize: 12, color: subtitleColor)),
-                  
+                  Text('Lettres minuscules, chiffres et tirets bas uniquement.', style: TextStyle(fontSize: 12, color: subtitleColor)),
+
                   const SizedBox(height: 24),
-                  
-                  _buildSectionTitle('Template Language', textColor),
+
+                  _buildSectionTitle('Langue du modèle', textColor),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedLanguage,
@@ -189,15 +189,15 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     onChanged: (v) => setState(() => _selectedLanguage = v!),
                   ),
                   const SizedBox(height: 6),
-                  Text('The language this template is written in.', style: TextStyle(fontSize: 12, color: subtitleColor)),
+                  Text('La langue dans laquelle ce modèle est rédigé.', style: TextStyle(fontSize: 12, color: subtitleColor)),
 
                   const SizedBox(height: 24),
 
-                  _buildSectionTitle('Template Category', textColor),
+                  _buildSectionTitle('Catégorie du modèle', textColor),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildCategoryCard('UTILITY', Icons.notifications_active_outlined, 'Utility', isDark)),
+                      Expanded(child: _buildCategoryCard('UTILITY', Icons.notifications_active_outlined, 'Utilitaire', isDark)),
                       const SizedBox(width: 12),
                       Expanded(child: _buildCategoryCard('MARKETING', Icons.grid_view_rounded, 'Marketing', isDark)),
                     ],
@@ -205,13 +205,13 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildCategoryCard('AUTHENTICATION', Icons.lock_outline_rounded, 'Authentication', isDark)),
+                      Expanded(child: _buildCategoryCard('AUTHENTICATION', Icons.lock_outline_rounded, 'Authentification', isDark)),
                       const SizedBox(width: 12),
                       const Expanded(child: SizedBox()), // Empty space for alignment
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('Classify your template based on its primary purpose.', style: TextStyle(fontSize: 12, color: subtitleColor)),
+                  Text('Classez votre modèle selon son objectif principal.', style: TextStyle(fontSize: 12, color: subtitleColor)),
                 ],
               ),
             ),
@@ -225,24 +225,24 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Template Header', textColor),
+                  _buildSectionTitle('En-tête du modèle', textColor),
                   const SizedBox(height: 6),
-                  Text('Add an optional header to your template to make it stand out.', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text('Ajoutez un en-tête optionnel pour mettre votre modèle en valeur.', style: TextStyle(fontSize: 13, color: subtitleColor)),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildToggleButton('NONE', 'NONE', _headerType, (v) => setState(() => _headerType = v), isDark),
+                      _buildToggleButton('NONE', 'AUCUN', _headerType, (v) => setState(() => _headerType = v), isDark),
                       const SizedBox(width: 12),
-                      _buildToggleButton('TEXT', 'TEXT', _headerType, (v) => setState(() => _headerType = v), isDark),
+                      _buildToggleButton('TEXT', 'TEXTE', _headerType, (v) => setState(() => _headerType = v), isDark),
                       const SizedBox(width: 12),
-                      _buildToggleButton('MEDIA', 'MEDIA', _headerType, (v) => setState(() => _headerType = v), isDark),
+                      _buildToggleButton('MEDIA', 'MÉDIA', _headerType, (v) => setState(() => _headerType = v), isDark),
                     ],
                   ),
                   if (_headerType == 'TEXT') ...[
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _headerController,
-                      decoration: _buildInputDecoration('Enter text header...', isDark),
+                      decoration: _buildInputDecoration('Saisissez le texte d\'en-tête...', isDark),
                     ),
                   ]
                 ],
@@ -258,11 +258,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Message Body', textColor),
+                  _buildSectionTitle('Corps du message', textColor),
                   const SizedBox(height: 6),
-                  Text('This is the main content of your message. Use {{1}} to add variables.', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text('C\'est le contenu principal de votre message. Utilisez {{1}} pour ajouter des variables.', style: TextStyle(fontSize: 13, color: subtitleColor)),
                   const SizedBox(height: 4),
-                  Text('Variable parameters must be whole numbers with two sets of curly brackets (for example, {{1}}, {{2}}).', style: TextStyle(fontSize: 12, color: subtitleColor)),
+                  Text('Les variables doivent être des nombres entiers entourés de doubles accolades (par exemple {{1}}, {{2}}).', style: TextStyle(fontSize: 12, color: subtitleColor)),
                   const SizedBox(height: 16),
                   
                   // Rich Text Editor Simulation
@@ -299,7 +299,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           controller: _bodyController,
                           maxLines: 6,
                           decoration: InputDecoration(
-                            hintText: 'Type your message here...',
+                            hintText: 'Tapez votre message ici...',
                             hintStyle: TextStyle(color: subtitleColor),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.all(16),
@@ -322,7 +322,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                                     decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text('RICH TEXT EDITOR', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
+                                  Text('ÉDITEUR DE TEXTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
                                 ],
                               ),
                               InkWell(
@@ -339,7 +339,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                                     children: [
                                       Icon(Icons.add_rounded, size: 16, color: ThemeService.primaryColor),
                                       const SizedBox(width: 4),
-                                      Text('ADD VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                                      Text('AJOUTER VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
                                     ],
                                   ),
                                 ),
@@ -351,7 +351,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text('Example: Hello {{1}}, welcome to your store. 0 / 1600', style: TextStyle(fontSize: 11, color: subtitleColor)),
+                  Text('Exemple : Bonjour {{1}}, bienvenue dans votre boutique. 0 / 1600', style: TextStyle(fontSize: 11, color: subtitleColor)),
                 ],
               ),
             ),
@@ -365,19 +365,19 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Template Footer (Optional)', textColor),
+                  _buildSectionTitle('Pied de page du modèle (optionnel)', textColor),
                   const SizedBox(height: 6),
-                  Text('Add a small footer text at the bottom of your message.', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text('Ajoutez un court texte de pied de page en bas de votre message.', style: TextStyle(fontSize: 13, color: subtitleColor)),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _footerController,
                     maxLength: 60,
-                    decoration: _buildInputDecoration('Enter footer text...', isDark),
+                    decoration: _buildInputDecoration('Saisissez le texte du pied de page...', isDark),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Text('QUICK INSERT OPT-OUT KEYWORDS:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor)),
+                      Text('INSÉRER UN MOT-CLÉ DE DÉSINSCRIPTION :', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor)),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: _insertStopKeyword,
@@ -394,7 +394,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text('Recommended: Add an opt-out message in the footer to stay compliant.\nFooter text is limited to 60 characters.', style: TextStyle(fontSize: 12, color: subtitleColor, height: 1.5)),
+                  Text('Recommandé : ajoutez un message de désinscription dans le pied de page pour rester conforme.\nLe pied de page est limité à 60 caractères.', style: TextStyle(fontSize: 12, color: subtitleColor, height: 1.5)),
                 ],
               ),
             ),
@@ -408,9 +408,9 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Interactive Buttons', textColor),
+                  _buildSectionTitle('Boutons interactifs', textColor),
                   const SizedBox(height: 6),
-                  Text('Add up to 3 interactive buttons (Quick Replies or Call to Action).', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text('Ajoutez jusqu\'à 3 boutons interactifs (réponses rapides ou appel à l\'action).', style: TextStyle(fontSize: 13, color: subtitleColor)),
                   const SizedBox(height: 16),
                   
                   ..._messageButtons.asMap().entries.map((entry) {
@@ -420,7 +420,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.03),
+                        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: borderColor),
                       ),
@@ -430,7 +430,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: btn['type'],
+                                  initialValue: btn['type'],
                                   decoration: _buildInputDecoration('Type', isDark).copyWith(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                                   items: const [
                                     DropdownMenuItem(value: 'QUICK_REPLY', child: Text('Réponse Rapide')),
@@ -536,7 +536,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Discard Changes', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15)),
+                  child: Text('Annuler', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -552,7 +552,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                   ),
                   child: _isSubmitting 
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Submit Template', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      : const Text('Soumettre le modèle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),
             ],

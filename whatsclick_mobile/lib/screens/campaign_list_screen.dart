@@ -184,12 +184,12 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Campaign',
+                const Text('Campagnes',
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.teal)),
-                Text('Manage all your campaigns.',
+                Text('Gérez toutes vos campagnes.',
                     style: TextStyle(
                         fontSize: 12,
                         color: onSurface.withValues(alpha: 0.5))),
@@ -232,14 +232,14 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Campaigns',
+                              const Text('Campagnes',
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.teal)),
                               Row(
                                 children: [
-                                  const Text('Newest',
+                                  const Text('Plus récentes',
                                       style: TextStyle(
                                           color: Colors.teal,
                                           fontWeight: FontWeight.w600)),
@@ -288,33 +288,33 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         runSpacing: 10,
         children: [
           _statCardUI(
-              title: 'CAMPAIGNS\nLAUNCHED',
+              title: 'CAMPAGNES\nLANCÉES',
               value: '$launched',
-              subtitle: 'Total campaigns',
+              subtitle: 'Total des campagnes',
               icon: Icons.campaign_rounded,
               color: Colors.orange,
               surfaceCard: surfaceCard,
               onSurface: onSurface),
           _statCardUI(
-              title: 'MESSAGES\nSENT',
+              title: 'MESSAGES\nENVOYÉS',
               value: '$sent',
-              subtitle: 'Total outgoing',
+              subtitle: 'Total sortant',
               icon: Icons.send_outlined,
               color: Colors.blue,
               surfaceCard: surfaceCard,
               onSurface: onSurface),
           _statCardUI(
-              title: 'DELIVERED\nMESSAGES',
+              title: 'MESSAGES\nLIVRÉS',
               value: '$delivered',
-              subtitle: 'Successfully delivered',
+              subtitle: 'Livrés avec succès',
               icon: Icons.check_circle_outline,
               color: Colors.green,
               surfaceCard: surfaceCard,
               onSurface: onSurface),
           _statCardUI(
-              title: 'MESSAGES\nREAD',
+              title: 'MESSAGES\nLUS',
               value: '$read',
-              subtitle: 'Read by users',
+              subtitle: 'Lus par les destinataires',
               icon: Icons.visibility_outlined,
               color: Colors.purple,
               surfaceCard: surfaceCard,
@@ -401,7 +401,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               ),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search campaigns...',
+                  hintText: 'Rechercher une campagne...',
                   hintStyle:
                       TextStyle(color: onSurface.withValues(alpha: 0.4)),
                   prefixIcon: Icon(Icons.search,
@@ -442,7 +442,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               onPressed: _fetchCampaigns,
               style: ElevatedButton.styleFrom(
                   backgroundColor: ThemeService.primaryColor),
-              child: const Text('RÃ©essayer',
+              child: const Text('Réessayer',
                   style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -456,14 +456,14 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             Icon(Icons.campaign_outlined,
                 size: 64, color: onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
-            Text('Aucune campagne trouvÃ©e',
+            Text('Aucune campagne trouvée',
                 style: TextStyle(
                     fontSize: 16, color: onSurface.withValues(alpha: 0.4))),
             if (_isAdmin) ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('CrÃ©er une campagne'),
+                label: const Text('Créer une campagne'),
                 onPressed: _showCreateWizard,
               ),
             ],
