@@ -850,6 +850,32 @@ Route::group([
             return response()->json(['reaction' => 1, 'message' => 'Statut mis à jour avec succès', 'data' => ['status' => $campaign->status]]);
         })->name('app_api.vendor.drip_campaigns.toggle_status');
 
+        // Agents / Team members management
+        Route::get('/agents', [
+            UserController::class,
+            'apiAgentsList',
+        ])->name('app_api.vendor.agents.list');
+
+        Route::get('/agents/{userIdOrUid}', [
+            UserController::class,
+            'apiAgentUpdateData',
+        ])->name('app_api.vendor.agents.show');
+
+        Route::post('/agents/{userIdOrUid}/update', [
+            UserController::class,
+            'apiAgentUpdate',
+        ])->name('app_api.vendor.agents.update');
+
+        Route::post('/agents/{userIdOrUid}/toggle-status', [
+            UserController::class,
+            'apiAgentToggleStatus',
+        ])->name('app_api.vendor.agents.toggle_status');
+
+        Route::delete('/agents/{userIdOrUid}', [
+            UserController::class,
+            'apiAgentDelete',
+        ])->name('app_api.vendor.agents.delete');
+
     });
 
     // logout

@@ -200,6 +200,33 @@ class UserRepository extends AuthRepository implements UserRepositoryInterface
         return $vendorUsers;
     }
 
+    /**
+     * Fetch agents/team members list for API (mobile app)
+     *
+     * @param int $vendorId
+     * @return \Illuminate\Support\Collection
+     */
+    public function fetchAgentsList($vendorId)
+    {
+        return $this->primaryModel::select([
+            'users._id',
+            'users._uid',
+            'users.first_name',
+            'users.last_name',
+            'users.username',
+            'users.email',
+            'users.mobile_number',
+            'users.status',
+            'users.user_roles__id',
+            'users.created_at',
+        ])
+            ->leftJoin('vendor_users', 'users._id', '=', 'vendor_users.users__id')
+            ->where('vendor_users.vendors__id', $vendorId)
+            ->with('role')
+            ->orderBy('users.first_name')
+            ->get();
+    }
+
     public function getRandomTemMember($vendorId)
     {
         // only vendor users having messaging permission

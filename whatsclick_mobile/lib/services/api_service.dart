@@ -2271,4 +2271,128 @@ class ApiService {
       return false;
     }
   }
+
+  /// Fetch the list of agents/team members (admin only)
+  Future<List<Map<String, dynamic>>?> fetchAgents() async {
+    final url = Uri.parse('${baseApiUrl}vendor/agents');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] != null) {
+          return List<Map<String, dynamic>>.from(body['data']['agents'] ?? []);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Agents Error: $e');
+      return null;
+    }
+  }
+
+  /// Fetch a single agent's detail/edit data
+  Future<Map<String, dynamic>?> fetchAgentDetail(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/agents/$uid');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Agent Detail Error: $e');
+      return null;
+    }
+  }
+
+  /// Last error message from updateAgent (for UI display)
+  String? lastAgentUpdateError;
+
+  /// Update an agent's basic info and/or login status.
+  /// Only non-null fields are sent.
+  Future<bool> updateAgent(
+    String uid, {
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? mobileNumber,
+    String? password,
+    bool? status,
+  }) async {
+    lastAgentUpdateError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/agents/$uid/update');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              if (firstName != null) 'first_name': firstName,
+              if (lastName != null) 'last_name': lastName,
+              if (email != null) 'email': email,
+              if (mobileNumber != null) 'mobile_number': mobileNumber,
+              if (password != null && password.isNotEmpty) 'password': password,
+              if (status != null) 'status': status ? '1' : '0',
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return true;
+      }
+      lastAgentUpdateError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Update Agent Error: $e');
+      lastAgentUpdateError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
+  /// Quick toggle: allow/disallow an agent's login (status field)
+  Future<bool> toggleAgentStatus(String uid, bool allowLogin) async {
+    final url = Uri.parse('${baseApiUrl}vendor/agents/$uid/toggle-status');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'status': allowLogin ? '1' : '0'}),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Toggle Agent Status Error: $e');
+      return false;
+    }
+  }
+
+  /// Delete an agent/team member
+  Future<bool> deleteAgent(String uid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/agents/$uid');
+    try {
+      final response = await http
+          .delete(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Agent Error: $e');
+      return false;
+    }
+  }
 }

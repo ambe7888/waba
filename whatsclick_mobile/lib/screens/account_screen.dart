@@ -12,6 +12,7 @@ import 'templates_admin_screen.dart';
 import 'bot_replies_screen.dart';
 import 'drip_campaigns_settings_screen.dart';
 import 'profile_screen.dart';
+import 'agents_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -26,6 +27,7 @@ class _AccountScreenState extends State<AccountScreen> {
   int _roleId = 3; // default: agent
   bool _canManageBot = false;
   bool _canManageTemplates = false;
+  bool _canManageTeam = false;
   bool _isLoading = true;
 
   @override
@@ -39,12 +41,14 @@ class _AccountScreenState extends State<AccountScreen> {
     final roleId = await ApiService().getUserRoleId();
     final canManageBot = await ApiService().hasPermission('manage_bot_replies');
     final canManageTemplates = await ApiService().hasPermission('manage_templates');
-    
+    final canManageTeam = await ApiService().hasPermission('administrative');
+
     if (mounted) {
       setState(() {
         _roleId = roleId;
         _canManageBot = canManageBot;
         _canManageTemplates = canManageTemplates;
+        _canManageTeam = canManageTeam;
       });
     }
   }
@@ -432,7 +436,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
 
           // ── Outils ────────────────────────────────────────────────
-          if (isAdmin || _canManageBot || _canManageTemplates) ...[
+          if (isAdmin || _canManageBot || _canManageTemplates || _canManageTeam) ...[
             _buildSectionTitle('Outils'),
             Container(
               decoration: BoxDecoration(
@@ -442,6 +446,17 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               child: Column(
                 children: [
+                  if (isAdmin || _canManageTeam)
+                    _buildSettingsTile(
+                      icon: Icons.groups_rounded,
+                      title: 'Agents',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AgentsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
                   if (isAdmin || _canManageBot)
                     _buildSettingsTile(
                       icon: Icons.smart_toy_rounded,

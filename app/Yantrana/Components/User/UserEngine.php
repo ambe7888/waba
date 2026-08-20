@@ -488,4 +488,98 @@ class UserEngine extends BaseEngine implements UserEngineInterface
 
         return $this->engineReaction(2, __tr('Failed to store device token.'));
     }
+
+    /**
+     * Prepare agents/team members list for the mobile app
+     *
+     * @return array|mixed
+     */
+    public function prepareAgentsListForApi()
+    {
+        $vendorId = getVendorId();
+        $currentUserUid = getUserUid();
+        $agents = $this->userRepository->fetchAgentsList($vendorId);
+
+        $list = $agents->map(function ($agent) use ($currentUserUid) {
+            return [
+                '_uid' => $agent->_uid,
+                'first_name' => $agent->first_name,
+                'last_name' => $agent->last_name,
+                'username' => $agent->username,
+                'email' => maskString($agent->email, 'email'),
+                'mobile_number' => maskString($agent->mobile_number, 'phone'),
+                'status' => (int) $agent->status,
+                'status_label' => ((int) $agent->status === 1) ? __tr('Actif') : __tr('Bloqué'),
+                'role_title' => optional($agent->role)->title,
+                'created_at' => formatDate($agent->created_at),
+                'is_current_user' => ($agent->_uid === $currentUserUid),
+            ];
+        })->values();
+
+        return $this->engineSuccessResponse([
+            'agents' => $list,
+        ]);
+    }
+
+    /**
+     * Process a basic agent update from the mobile app
+     * (name, contact info, status/login access, password)
+     * Note: intentionally does NOT touch permissions/__data, unlike
+     * the full web team-management update, to avoid wiping out an
+     * agent's existing permission matrix when the mobile app only
+     * sends a partial set of fields.
+     *
+     * @param mixed $userIdOrUid
+     * @param array $inputData
+     * @return array|mixed
+     */
+    public function processAgentBasicUpdate($userIdOrUid, $inputData)
+    {
+        $user = $this->userRepository->fetchIt($userIdOrUid);
+        if (__isEmpty($user)) {
+            return $this->engineResponse(18, null, __tr('Membre introuvable.'));
+        }
+
+        $vendorId = getVendorId();
+        if (!$this->userRepository->isVendorUser($user->_id, $vendorId)) {
+            return $this->engineFailedResponse([], __tr('Membre invalide.'));
+        }
+
+        $updateData = [];
+        if (array_key_exists('first_name', $inputData) && $inputData['first_name']) {
+            $updateData['first_name'] = $inputData['first_name'];
+        }
+        if (array_key_exists('last_name', $inputData) && $inputData['last_name']) {
+            $updateData['last_name'] = $inputData['last_name'];
+        }
+        if (array_key_exists('mobile_number', $inputData) && $inputData['mobile_number']) {
+            $updateData['mobile_number'] = $inputData['mobile_number'];
+        }
+        if (array_key_exists('email', $inputData) && $inputData['email']) {
+            $updateData['email'] = $inputData['email'];
+        }
+        if (array_key_exists('status', $inputData)) {
+            $updateData['status'] = ((int) $inputData['status'] === 1) ? 1 : 0;
+        }
+        if (!empty($inputData['password'])) {
+            $updateData['password'] = $inputData['password'];
+        }
+
+        if (empty($updateData)) {
+            return $this->engineResponse(14, null, __tr('Rien à mettre à jour.'));
+        }
+
+        // prevent an agent from locking themselves out via the mobile app
+        if ((int) $user->_id === (int) getUserID() && array_key_exists('status', $updateData) && $updateData['status'] === 0) {
+            return $this->engineFailedResponse([], __tr('Vous ne pouvez pas bloquer votre propre compte.'));
+        }
+
+        if ($this->userRepository->updateUser($user, $updateData)) {
+            return $this->engineResponse(1, [
+                'status' => $updateData['status'] ?? (int) $user->status,
+            ], __tr('Membre mis à jour avec succès.'));
+        }
+
+        return $this->engineResponse(14, null, __tr('Aucune modification effectuée.'));
+    }
 }

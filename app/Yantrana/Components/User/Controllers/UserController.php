@@ -382,5 +382,125 @@ class UserController extends BaseController
         return $this->processResponse($processReaction, [], [], true);
     }
 
-  
+    /**
+      * Agents list for the mobile app
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentsList()
+    {
+        validateVendorAccess('administrative');
+        $processReaction = $this->userEngine->prepareAgentsListForApi();
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+      * Agent detail/update data for the mobile app
+      *
+      * @param  mix $userIdOrUid
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentUpdateData($userIdOrUid)
+    {
+        validateVendorAccess('administrative');
+        $processReaction = $this->userEngine->prepareUserUpdateData($userIdOrUid);
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+      * Agent update process (basic info + status/login access) for the mobile app
+      *
+      * @param  object BaseRequest $request
+      * @param  mix $userIdOrUid
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentUpdate(BaseRequest $request, $userIdOrUid)
+    {
+        validateVendorAccess('administrative');
+
+        if ($request->filled('mobile_number') && (str_starts_with($request->get('mobile_number'), '0') || str_starts_with($request->get('mobile_number'), '+'))) {
+            return $this->processResponse(2, [
+                2 => __tr('Le numéro doit être numérique, sans préfixe 0 ou +.')
+            ], [], true);
+        }
+
+        $validations = [
+            'first_name' => 'required|string|min:1|max:45',
+            'last_name' => 'required|string|min:1|max:45',
+            'password' => 'nullable|string|min:8',
+        ];
+
+        if ($request->filled('email')) {
+            $validations['email'] = [
+                'required',
+                'email',
+                (getAppSettings('disallow_disposable_emails') ? 'indisposable' : ''),
+                Rule::unique((new AuthModel())->getTable())->ignore($userIdOrUid, '_uid'),
+            ];
+        }
+
+        if ($request->filled('mobile_number')) {
+            $mobileNumber = $request->mobile_number;
+            $validations['mobile_number'] = [
+                'required',
+                'numeric',
+                'min_digits:9',
+                'max_digits:15',
+                function ($attribute, $value, $fail) use ($mobileNumber, $userIdOrUid) {
+                    $exists = AuthModel::where('mobile_number', $mobileNumber)
+                        ->where('_uid', '!=', $userIdOrUid)
+                        ->exists();
+                    if ($exists) {
+                        $fail(__tr('Ce numéro est déjà utilisé.'));
+                    }
+                }
+            ];
+        }
+
+        $request->validate($validations);
+
+        $processReaction = $this->userEngine->processAgentBasicUpdate($userIdOrUid, $request->all());
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+      * Agent quick status toggle (allow/disallow login) for the mobile app
+      *
+      * @param  object BaseRequest $request
+      * @param  mix $userIdOrUid
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentToggleStatus(BaseRequest $request, $userIdOrUid)
+    {
+        validateVendorAccess('administrative');
+        $request->validate([
+            'status' => 'required',
+        ]);
+        $processReaction = $this->userEngine->processAgentBasicUpdate($userIdOrUid, [
+            'status' => $request->get('status'),
+        ]);
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+      * Agent delete process for the mobile app
+      *
+      * @param  mix $userIdOrUid
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentDelete($userIdOrUid)
+    {
+        validateVendorAccess('administrative');
+        if ($userIdOrUid === getUserUid()) {
+            return $this->processResponse(2, [
+                2 => __tr('Vous ne pouvez pas supprimer votre propre compte.')
+            ], [], true);
+        }
+        $processReaction = $this->userEngine->processUserDelete($userIdOrUid);
+        return $this->processResponse($processReaction, [], [], true);
+    }
 }
