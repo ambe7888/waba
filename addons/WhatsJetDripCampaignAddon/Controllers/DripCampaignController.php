@@ -60,6 +60,83 @@ class DripCampaignController extends Controller
     }
 
     /**
+     * Create a new Drip Campaign — clean JSON response for the mobile app
+     */
+    public function apiStore(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $vendorId = getVendorId();
+
+        $vendorPlanDetails = vendorPlanDetails('drip_campaigns', DripCampaign::where('vendors__id', $vendorId)->count(), $vendorId);
+        if (!$vendorPlanDetails['is_limit_available']) {
+            return response()->json(['reaction' => 2, 'message' => $vendorPlanDetails['message']]);
+        }
+
+        $campaign = DripCampaign::create([
+            'vendors__id' => $vendorId,
+            'title' => $request->title,
+            'status' => 1,
+        ]);
+
+        return response()->json([
+            'reaction' => 1,
+            'message' => __tr('Campagne Drip créée avec succès.'),
+            'data' => [
+                'campaign' => [
+                    '_id' => $campaign->_id,
+                    '_uid' => $campaign->_uid,
+                    'title' => $campaign->title,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Add a Step to a Campaign — clean JSON response for the mobile app
+     */
+    public function apiStoreStep(Request $request, $campaignId)
+    {
+        $request->validate([
+            'delay_value' => 'required|integer|min:0',
+            'delay_type' => 'required|in:minutes,hours,days',
+            'whatsapp_templates__id' => 'nullable',
+            'bot_replies__id' => 'nullable',
+            'custom_message' => 'nullable|string',
+        ]);
+
+        $campaign = DripCampaign::where('_uid', $campaignId)
+            ->where('vendors__id', getVendorId())
+            ->first();
+
+        if (!$campaign) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Campagne introuvable.')]);
+        }
+
+        $customMessage = $request->custom_message;
+        if ($request->has('custom_message_b64')) {
+            $customMessage = base64_decode($request->custom_message_b64);
+        }
+
+        $step = DripStep::create([
+            'addon_drip_campaigns__id' => $campaign->_id,
+            'delay_value' => $request->delay_value,
+            'delay_type' => $request->delay_type,
+            'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
+            'bot_replies__id' => $request->bot_replies__id ?: null,
+            'custom_message' => $customMessage ?: null,
+        ]);
+
+        return response()->json([
+            'reaction' => 1,
+            'message' => __tr('Étape ajoutée avec succès.'),
+            'data' => ['step_id' => $step->_id, 'step_uid' => $step->_uid],
+        ]);
+    }
+
+    /**
      * Show the Drip Builder (Manage Steps)
      */
     public function builder($campaignId)

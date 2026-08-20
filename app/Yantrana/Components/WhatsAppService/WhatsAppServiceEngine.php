@@ -2513,19 +2513,30 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      */
     public function contactChatData(string|int $contactIdOrUid)
     {
+        $currentPaginatedPage = request()->page;
         $contact = is_string($contactIdOrUid)
             ? $this->contactRepository->getVendorContact($contactIdOrUid)
             : $this->contactRepository->fetchIt($contactIdOrUid);
 
         if ($contact) {
-            $this->markAsReadProcess($contact, getVendorId());
+            // Only mark as read / reset the unread badge on the first page —
+            // fetching older messages shouldn't re-trigger that side effect.
+            if (!$currentPaginatedPage || (int) $currentPaginatedPage <= 1) {
+                $this->markAsReadProcess($contact, getVendorId());
+            }
             $contactId = $contact->_id;
         } else {
             $contactId = $contactIdOrUid;
         }
 
+        // Note: page is not passed explicitly — simplePaginate() resolves
+        // it from the current request's ?page= query param automatically,
+        // same as the web dashboard's chatData()/messagePaginatePage.
+        $messages = $this->getContactMessagesForChatBox($contactId, true);
+
         return $this->engineSuccessResponse([
-            'whatsappMessageLogs' => $this->getContactMessagesForChatBox($contactId, true),
+            'whatsappMessageLogs' => $messages,
+            'messagePaginatePage' => ($this->hasMoreMessages ? ($currentPaginatedPage ? ($currentPaginatedPage + 1) : 2) : 0),
         ]);
     }
 

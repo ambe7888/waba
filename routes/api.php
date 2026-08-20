@@ -855,6 +855,20 @@ Route::group([
             return response()->json(['reaction' => 1, 'message' => 'Statut mis à jour avec succès', 'data' => ['status' => $campaign->status]]);
         })->name('app_api.vendor.drip_campaigns.toggle_status');
 
+        Route::post('/drip-campaigns/store', function (Illuminate\Http\Request $request) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiStore($request);
+        })->name('app_api.vendor.drip_campaigns.store');
+
+        Route::post('/drip-campaigns/{campaignId}/step/store', function (Illuminate\Http\Request $request, $campaignId) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiStoreStep($request, $campaignId);
+        })->name('app_api.vendor.drip_campaigns.step.store');
+
         // Agents / Team members management
         Route::get('/agents', [
             UserController::class,
