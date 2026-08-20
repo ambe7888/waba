@@ -254,6 +254,7 @@ class ApiService {
     String? endDate,
     String? assigned,
     String? search,
+    bool unreadOnly = false,
   }) async {
     final List<String> params = ['page=$page'];
     if (search != null && search.isNotEmpty) params.add('search=$search');
@@ -264,11 +265,14 @@ class ApiService {
     if (startDate != null) params.add('start_date=$startDate');
     if (endDate != null) params.add('end_date=$endDate');
     if (assigned != null) params.add('assigned=$assigned');
+    if (unreadOnly) params.add('unread_only=true');
 
     final url = Uri.parse(
         '${baseApiUrl}vendor/contact/contacts-data?${params.join('&')}');
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
       if (debug) {
         debugPrint(
             'fetchContacts status=${response.statusCode} body=${response.body}');
@@ -313,7 +317,9 @@ class ApiService {
       return {'contacts': <Contact>[], 'nextPage': 0};
     } catch (e, stack) {
       if (debug) debugPrint('Fetch Contacts Error: $e\n$stack');
-      return {'contacts': <Contact>[], 'nextPage': 0};
+      // Signal a network failure distinctly from "genuinely zero contacts"
+      // so callers don't wipe an already-shown list to a false empty state.
+      return {'contacts': <Contact>[], 'nextPage': 0, 'error': true};
     }
   }
 

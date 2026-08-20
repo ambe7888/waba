@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen>
     _pollingTimer = Timer.periodic(
       const Duration(seconds: pollingIntervalSeconds),
       (_) {
-        _loadContacts(silent: true);
+        _loadContacts(silent: true, background: true);
         _refreshBadgeCounts();
       },
     );
@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen>
       _pollingTimer = Timer.periodic(
         const Duration(seconds: pollingIntervalSeconds),
         (_) {
-          _loadContacts(silent: true);
+          _loadContacts(silent: true, background: true);
           _refreshBadgeCounts();
         },
       );
@@ -211,7 +211,11 @@ class _HomeScreenState extends State<HomeScreen>
 
 
 
-  Future<void> _loadContacts({bool silent = false, bool reset = false}) async {
+  Future<void> _loadContacts({
+    bool silent = false,
+    bool reset = false,
+    bool background = false,
+  }) async {
     if (_isLoadingMore && !reset) return;
 
     if (reset) {
@@ -221,17 +225,34 @@ class _HomeScreenState extends State<HomeScreen>
       _isLoading = true;
     } else if (!silent && _nextPage == 0) {
       setState(() => _isLoading = true);
-    } else if (_nextPage > 0) {
-      setState(() => _isLoadingMore = true);
     }
+    // Note: _isLoadingMore is owned exclusively by _loadMoreContacts. This
+    // function only ever refreshes page 1, so it must never set that flag —
+    // doing so previously left it stuck at true after every silent poll
+    // once the user had scrolled past page 1, which silently broke
+    // infinite-scroll pagination for the rest of the session.
 
     try {
       final result = await ApiService().fetchContacts(
         page: 1,
         assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
         search: _searchController.text,
+        unreadOnly: _assignedFilter == 'unread',
       );
       final data = result;
+      if (data['error'] == true) {
+        // Network failure/timeout: keep whatever contacts are already
+        // shown instead of wiping the list to a false "empty" state.
+        if (mounted) {
+          setState(() { _isLoading = false; _isLoadingMore = false; });
+          if (!silent) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Impossible de charger les discussions. Vérifiez votre connexion.')),
+            );
+          }
+        }
+        return;
+      }
       if (data.isEmpty) {
         if (mounted) setState(() { _isLoading = false; _isLoadingMore = false; });
         return;
@@ -248,6 +269,19 @@ class _HomeScreenState extends State<HomeScreen>
         if (reset || (!silent && _nextPage == 0)) {
           _contacts = loaded;
           _nextPage = next;
+        } else if (background) {
+          // Background timer poll: never reshuffle contacts the user might
+          // currently be scrolled past — only refresh each existing
+          // contact's data (unread count, last message, ...) in place, and
+          // add genuinely new contacts (a new conversation) at the top.
+          // Re-sorting/re-ordering here is what made the list jump around
+          // under the user's finger every few seconds while scrolling.
+          final freshByUid = {for (final c in loaded) c.uid: c};
+          final updated = _contacts.map((existing) {
+            return freshByUid.remove(existing.uid) ?? existing;
+          }).toList();
+          final newOnes = freshByUid.values.toList();
+          _contacts = [...newOnes, ...updated];
         } else {
           // If silent (refreshing page 1), we want the `loaded` contacts to be at the top in their exact order.
           // Then we append any existing contacts that aren't in the `loaded` list.
@@ -266,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen>
         _allUniqueLabels = _contacts.expand((c) => c.labels).toSet().toList();
         _isLoading = false;
       });
-      _applyFilters();
+      _applyFilters(resort: !background);
       if (!silent) {
         _fadeController.forward(from: 0);
       }
@@ -295,7 +329,22 @@ class _HomeScreenState extends State<HomeScreen>
         page: _nextPage,
         assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
         search: _searchController.text,
+        unreadOnly: _assignedFilter == 'unread',
       );
+
+      if (result['error'] == true) {
+        // Network failure/timeout: stop the spinner but keep _nextPage
+        // untouched so the user can retry (auto on next scroll, or via
+        // the "Charger plus" button) instead of silently losing pagination.
+        if (mounted) {
+          setState(() => _isLoadingMore = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur réseau. Réessayez.')),
+          );
+        }
+        return;
+      }
+
       final List<Contact> loaded = result['contacts'] as List<Contact>;
       final int next = _parseNextPage(result['nextPage']);
 
@@ -336,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  void _applyFilters() {
+  void _applyFilters({bool resort = true}) {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredContacts = _contacts.where((contact) {
@@ -377,21 +426,25 @@ class _HomeScreenState extends State<HomeScreen>
         return matchesSearch && matchesLabel && matchesDate;
       }).toList();
 
-      // Sort by last message time descending
-      _filteredContacts.sort((a, b) {
-        if (a.lastMessageTime == null && b.lastMessageTime == null) return 0;
-        if (a.lastMessageTime == null) return 1;
-        if (b.lastMessageTime == null) return -1;
-        
-        final dateA = DateTime.tryParse(a.lastMessageTime!);
-        final dateB = DateTime.tryParse(b.lastMessageTime!);
-        
-        if (dateA == null && dateB == null) return 0;
-        if (dateA == null) return 1;
-        if (dateB == null) return -1;
-        
-        return dateB.compareTo(dateA);
-      });
+      // Sort by last message time descending — skipped for background polls
+      // so the list doesn't reshuffle under the user while they're
+      // scrolling (see the `background` merge path in _loadContacts).
+      if (resort) {
+        _filteredContacts.sort((a, b) {
+          if (a.lastMessageTime == null && b.lastMessageTime == null) return 0;
+          if (a.lastMessageTime == null) return 1;
+          if (b.lastMessageTime == null) return -1;
+
+          final dateA = DateTime.tryParse(a.lastMessageTime!);
+          final dateB = DateTime.tryParse(b.lastMessageTime!);
+
+          if (dateA == null && dateB == null) return 0;
+          if (dateA == null) return 1;
+          if (dateB == null) return -1;
+
+          return dateB.compareTo(dateA);
+        });
+      }
     });
   }
 
