@@ -89,9 +89,22 @@ class _AccountScreenState extends State<AccountScreen> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: ThemeService.primaryColor,
+        ),
+      ),
+    );
 
     await ApiService().logout();
+
     if (!mounted) return;
+    Navigator.of(context).pop(); // Dismiss loading dialog
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,

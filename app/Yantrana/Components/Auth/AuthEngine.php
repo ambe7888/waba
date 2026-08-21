@@ -177,6 +177,10 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
     {
         Auth::logout();
         if (isMobileAppRequest()) {
+            // revoke the token registry entry so this token is rejected by
+            // verifyToken() on any future request, not just cleared client-side
+            YesTokenAuth::revokeCurrentToken();
+
             return $this->engineReaction(1, ['auth_info' => getUserAuthInfo()], 'logout Successfully');
         }
         $request->session()->invalidate();

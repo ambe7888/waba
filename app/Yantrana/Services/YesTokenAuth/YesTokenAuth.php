@@ -21,9 +21,11 @@
 namespace App\Yantrana\Services\YesTokenAuth;
 
 use App\Yantrana\Services\YesTokenAuth\TokenRegistry\Repositories\TokenRegistryRepository;
+use Carbon\Carbon;
 use Exception;
 use Firebase\JWT\JWT as FirebaseJwt;
 use Firebase\JWT\Key as FirebaseKey;
+use Illuminate\Support\Facades\DB;
 use Route;
 use YesSecurity;
 
@@ -95,6 +97,14 @@ class YesTokenAuth
      *
      *-----------------------------------------*/
     private $apiRequestFrom;
+
+    /**
+     * jti/exp of the token verified during this request, if any
+     *
+     *-----------------------------------------*/
+    private $currentJti = null;
+
+    private $currentExp = null;
 
     /**
      * __construct
@@ -313,6 +323,15 @@ class YesTokenAuth
             $decoded = FirebaseJwt::decode($decryptedToken, new FirebaseKey($this->key, 'HS256'));
             $this->refreshedToken = false;
             $time = time();
+
+            // reject tokens explicitly revoked via logout, regardless of
+            // their remaining JWT expiry or the (disabled) token_registry
+            if (DB::table('revoked_tokens')->where('jti', $decoded->jti)->exists()) {
+                return [
+                    'error' => 'token revoked',
+                ];
+            }
+
             if(!$isBroadcastCheckUrl) { // if not broadcast check url from mobile app etc
                 if ($this->userAgent and ($decoded->uai != $_SERVER['HTTP_USER_AGENT'])) {
                     return [
@@ -378,6 +397,9 @@ class YesTokenAuth
             $decoded = (array) $decoded;
             $decoded['error'] = false;
 
+            $this->currentJti = $decoded['jti'];
+            $this->currentExp = $decoded['exp'];
+
             return $decoded;
         } catch (Exception $e) {
             //check if registry enabled
@@ -411,5 +433,31 @@ class YesTokenAuth
     public function revokeAccessByToken($token)
     {
         return $this->tokenRegistryRepository->deleteByToken($token);
+    }
+
+    /**
+     * Revoke the token verified during this request (logout) so it can no
+     * longer pass verifyToken(), regardless of its remaining JWT expiry.
+     * Uses a small denylist table independent of the (disabled, tableless)
+     * yes-token-auth token_registry feature.
+     *
+     * @return mixed
+     *------------------------------------------------------------------------ */
+    public function revokeCurrentToken()
+    {
+        if (! $this->currentJti or ! $this->currentExp) {
+            return false;
+        }
+
+        // prune expired denylist entries opportunistically, keeping the
+        // table small without needing a scheduled job
+        DB::table('revoked_tokens')->where('expires_at', '<', Carbon::now())->delete();
+
+        return DB::table('revoked_tokens')->insertOrIgnore([
+            'jti' => $this->currentJti,
+            'expires_at' => Carbon::createFromTimestamp($this->currentExp),
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
     }
 }

@@ -7,7 +7,6 @@ import '../services/fcm_service.dart';
 import '../services/theme_service.dart';
 import '../models/contact.dart';
 import 'chat_box_screen.dart';
-import 'login_screen.dart';
 import 'notifications_screen.dart';
 import '../config/app_config.dart';
 
@@ -966,15 +965,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
-  }
-
-  Future<void> _handleLogout() async {
-    await ApiService().logout();
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
   }
 
   @override

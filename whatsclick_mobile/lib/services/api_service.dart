@@ -68,6 +68,20 @@ class ApiService {
   }
 
   Future<void> logout() async {
+    // Revoke the token server-side first, while it's still attached to the
+    // request — otherwise it stays valid in the backend's token registry
+    // even after this device "logs out".
+    if (_token != null) {
+      try {
+        final url = Uri.parse('${baseApiUrl}user/logout');
+        await http
+            .post(url, headers: _getHeaders())
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        if (debug) debugPrint('Logout revoke Error: $e');
+      }
+    }
+
     _token = null;
     _cachedRoleId = null;
     final prefs = await SharedPreferences.getInstance();
