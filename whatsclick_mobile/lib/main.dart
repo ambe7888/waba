@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,27 @@ import 'screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
+  // Catch errors from async code that isn't inside a widget build (e.g. a
+  // Timer or unawaited Future callback) — without this, such an error can
+  // escape Flutter's normal error handling and take the whole screen down
+  // instead of just failing that one widget.
+  runZonedGuarded(() async {
+    await _runApp();
+  }, (error, stack) {
+    if (kDebugMode) {
+      debugPrint('Uncaught zone error: $error\n$stack');
+    }
+  });
+}
+
+Future<void> _runApp() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    if (kDebugMode) {
+      debugPrint('FlutterError: ${details.exceptionAsString()}');
+    }
+  };
 
   // Initialize Firebase for push notifications
   bool firebaseReady = false;

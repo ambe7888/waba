@@ -2546,6 +2546,24 @@ class ApiService {
     }
   }
 
+  /// Archive (or unarchive) a campaign — hides/restores it from the list.
+  Future<bool> archiveCampaign(String campaignUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/campaign/$campaignUid/archive-toggle');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Archive Campaign Error: $e');
+      return false;
+    }
+  }
+
   /// Last error message from createDripCampaign/storeDripCampaignStep
   String? lastDripCampaignError;
 

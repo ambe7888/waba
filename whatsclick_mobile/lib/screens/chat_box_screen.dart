@@ -3233,12 +3233,18 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+  Timer? _progressPoller;
 
   @override
   void initState() {
     super.initState();
     _player.onPlayerStateChanged.listen((state) {
       if (mounted) setState(() => _playerState = state);
+      if (state == PlayerState.playing) {
+        _startProgressPolling();
+      } else {
+        _progressPoller?.cancel();
+      }
     });
     _player.onDurationChanged.listen((d) {
       if (mounted) setState(() => _duration = d);
@@ -3247,12 +3253,31 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
       if (mounted) setState(() => _position = p);
     });
     _player.onPlayerComplete.listen((_) {
+      _progressPoller?.cancel();
       if (mounted) setState(() => _position = Duration.zero);
+    });
+  }
+
+  // onPositionChanged doesn't fire reliably for every source/platform
+  // combination — the progress bar and time countdown just sat frozen.
+  // Poll the player directly as a robust fallback while playing.
+  void _startProgressPolling() {
+    _progressPoller?.cancel();
+    _progressPoller = Timer.periodic(const Duration(milliseconds: 250), (_) async {
+      if (!mounted || _playerState != PlayerState.playing) return;
+      final position = await _player.getCurrentPosition();
+      final duration = await _player.getDuration();
+      if (!mounted) return;
+      setState(() {
+        if (position != null) _position = position;
+        if (duration != null && duration > Duration.zero) _duration = duration;
+      });
     });
   }
 
   @override
   void dispose() {
+    _progressPoller?.cancel();
     _player.dispose();
     super.dispose();
   }
@@ -3280,9 +3305,12 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
     final isPlaying = _playerState == PlayerState.playing;
     final hasUrl =
         widget.message.mediaUrl != null && widget.message.mediaUrl!.isNotEmpty;
-    final total = _duration.inMilliseconds > 0
+    // If duration never resolves, don't let the bar collapse to an
+    // unusable ~0-1ms range — keep it at least as large as the current
+    // position so playback still visibly progresses.
+    final total = _duration.inMilliseconds > _position.inMilliseconds
         ? _duration.inMilliseconds.toDouble()
-        : 1.0;
+        : (_position.inMilliseconds > 0 ? _position.inMilliseconds.toDouble() + 1000 : 1.0);
     final current = _position.inMilliseconds.clamp(0, total.toInt()).toDouble();
 
     return Padding(

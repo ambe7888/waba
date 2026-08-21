@@ -774,6 +774,28 @@ Route::group([
             CampaignController::class,
             'apiGetCampaignList',
         ])->name('app_api.vendor.campaign.read.mobile_list');
+        // Archive / unarchive a campaign (mobile "..." menu)
+        Route::post('/campaign/{campaignUid}/archive-toggle', function ($campaignUid) {
+            validateVendorAccess('manage_campaigns');
+            $campaign = \App\Yantrana\Components\Campaign\Models\CampaignModel::where('_uid', $campaignUid)
+                ->where('vendors__id', getVendorId())
+                ->first();
+            if (!$campaign) {
+                return response()->json(['reaction' => 2, 'message' => 'Campagne introuvable.']);
+            }
+            $isArchived = !(bool) data_get($campaign->__data, 'is_archived', false);
+            // modelUpdate() only merges into a JSON column when the update
+            // key IS the column itself (__data), not the nested sub-key —
+            // passing 'is_archived' directly at the top level is a silent
+            // no-op (matches nothing in $jsonColumns, which is keyed by
+            // column name, so the whole entry is skipped).
+            $campaign->modelUpdate(['__data' => ['is_archived' => $isArchived]]);
+            return response()->json([
+                'reaction' => 1,
+                'data' => ['is_archived' => $isArchived],
+                'message' => $isArchived ? 'Campagne archivée.' : 'Campagne désarchivée.',
+            ]);
+        })->name('app_api.vendor.campaign.archive_toggle');
         // Sync templates from Meta
         Route::post('/whatsapp/templates/sync', [
             WhatsAppTemplateController::class,

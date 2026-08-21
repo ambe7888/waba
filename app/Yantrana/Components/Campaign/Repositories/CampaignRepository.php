@@ -356,13 +356,21 @@ class CampaignRepository extends BaseRepository implements CampaignRepositoryInt
         $paginateCount = request()->get('page_size') ?? 100;
         $searchTerm = request()->get('search_term');
 
+        $showArchived = request()->boolean('show_archived');
+
         return $this->primaryModel::where('vendors__id', getVendorId())->where(function ($q) use ($searchTerm) {
             $q->where('title', 'like', "%{$searchTerm}%")
                 ->orWhere('template_name', 'like', "%{$searchTerm}%")
                 ->orWhere('template_language', 'like', "%{$searchTerm}%")
                 ->orWhere('timezone', 'like', "%{$searchTerm}%");
         })
-            ->select('_id', '_uid', 'title', 'status', 'template_name', 'updated_at', 'created_at', 'whatsapp_templates__id', 'scheduled_at', 'users__id', 'vendors__id', 'template_language', 'timezone', DB::raw("JSON_UNQUOTE(JSON_EXTRACT(__data, '$.total_contacts')) as total_contacts"))
+            ->when(!$showArchived, function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereRaw("JSON_EXTRACT(__data, '$.is_archived') IS NULL")
+                        ->orWhereRaw("JSON_EXTRACT(__data, '$.is_archived') = false");
+                });
+            })
+            ->select('_id', '_uid', 'title', 'status', 'template_name', 'updated_at', 'created_at', 'whatsapp_templates__id', 'scheduled_at', 'users__id', 'vendors__id', 'template_language', 'timezone', DB::raw("JSON_UNQUOTE(JSON_EXTRACT(__data, '$.total_contacts')) as total_contacts"), DB::raw("JSON_EXTRACT(__data, '$.is_archived') as is_archived"))
             ->orderByDesc('updated_at')
             ->paginate($paginateCount);
     }

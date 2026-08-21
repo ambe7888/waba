@@ -104,6 +104,38 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     }
   }
 
+  Future<void> _archiveCampaign(Map<String, dynamic> campaign) async {
+    final uid = campaign['_uid']?.toString() ?? '';
+    if (uid.isEmpty) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archiver la campagne'),
+        content: Text('Archiver "${campaign['title'] ?? 'cette campagne'}" ? Elle ne sera plus affichée dans la liste.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Archiver')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final success = await ApiService().archiveCampaign(uid);
+    if (!mounted) return;
+    if (success) {
+      setState(() {
+        _campaigns.removeWhere((c) => c['_uid'] == uid);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Campagne archivée.'), backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur lors de l'archivage."), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   Future<void> _fetchCampaigns() async {
     setState(() {
       _isLoading = true;
@@ -747,7 +779,38 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                 fontSize: 12, color: onSurface.withValues(alpha: 0.5)),
           ),
         ),
-        trailing: Icon(Icons.more_vert, color: onSurface.withValues(alpha: 0.5)),
+        trailing: PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert, color: onSurface.withValues(alpha: 0.5)),
+          onSelected: (value) {
+            if (value == 'details') {
+              _openDashboard(c);
+            } else if (value == 'archive') {
+              _archiveCampaign(c);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'details',
+              child: Row(
+                children: [
+                  Icon(Icons.visibility_outlined, size: 18),
+                  SizedBox(width: 10),
+                  Text('Voir les détails'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'archive',
+              child: Row(
+                children: [
+                  Icon(Icons.archive_outlined, size: 18),
+                  SizedBox(width: 10),
+                  Text('Archiver'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
