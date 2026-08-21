@@ -99,9 +99,15 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _showQrCode() {
-    String phone = '000000000';
-    if (_vendorInfo != null && _vendorInfo!['whatsapp_number'] != null) {
-      phone = _vendorInfo!['whatsapp_number'];
+    // The real configured WhatsApp API number lives under whatsapp_setup,
+    // not vendorInfo (vendorInfo only has title/id/uid/logo — it never had
+    // a whatsapp_number field, so this always silently fell back below).
+    final phone = _stats?['whatsapp_setup']?['phone_number']?.toString();
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Aucun numéro WhatsApp configuré pour ce compte.")),
+      );
+      return;
     }
 
     Navigator.of(context).push(
