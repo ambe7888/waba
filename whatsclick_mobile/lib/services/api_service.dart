@@ -2141,11 +2141,15 @@ class ApiService {
   }
 
   /// Fetch Campaign Contacts (Messages log)
+  /// [logType] is 'queue' (not-yet-sent messages) or 'executed' (already sent).
+  /// [logStatus] filters within that: 'all', or for queue a numeric status
+  /// code (1=in queue, 2=failed, 3=processing, 4=processed, 6=awaiting
+  /// response, 7=aborted), or for executed a status string like 'delivered',
+  /// 'read', 'failed'.
   Future<List<Map<String, dynamic>>> fetchCampaignContacts(
-      String campaignUid, {String logType = 'queue'}) async {
-    // logType should be 'queue' or 'executed'
+      String campaignUid, {String logType = 'queue', String logStatus = 'all'}) async {
     final url = Uri.parse(
-        '${baseApiUrl}vendor/whatsapp/campaign/$logType/$campaignUid/all?length=-1&draw=1');
+        '${baseApiUrl}vendor/whatsapp/campaign/$logType/$campaignUid/$logStatus?length=-1&draw=1');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
