@@ -72,6 +72,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
   Map<String, dynamic> _aiBotOptions = {};
   Map<String, dynamic> _replyBotOptions = {};
   bool _isLoadingActionSupportData = true;
+  bool _actionSupportDataFailed = false;
 
   String _assignedUserAction = 'no_action';
   final Set<String> _assignLabelIds = {};
@@ -163,6 +164,10 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
   }
 
   Future<void> _loadActionSupportData() async {
+    setState(() {
+      _isLoadingActionSupportData = true;
+      _actionSupportDataFailed = false;
+    });
     final data = await ApiService().fetchBotActionSupportData();
     if (mounted && data != null) {
       setState(() {
@@ -182,7 +187,10 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
         }
       });
     } else if (mounted) {
-      setState(() => _isLoadingActionSupportData = false);
+      setState(() {
+        _isLoadingActionSupportData = false;
+        _actionSupportDataFailed = true;
+      });
     }
   }
 
@@ -916,6 +924,35 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 16),
                         child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_actionSupportDataFailed)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            Icon(Icons.cloud_off_rounded, color: Colors.red.shade300, size: 32),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Impossible de charger les agents, labels et options d\'action.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12.5, color: subtitleColor),
+                            ),
+                            if (ApiService().lastActionSupportDataError != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                ApiService().lastActionSupportDataError!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 11, color: Colors.red.shade300),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed: _loadActionSupportData,
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Réessayer'),
+                            ),
+                          ],
+                        ),
                       )
                     else ...[
                       _buildLabel('Attribution à un agent', textColor),

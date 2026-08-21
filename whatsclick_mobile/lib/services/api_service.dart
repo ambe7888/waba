@@ -2359,9 +2359,14 @@ class ApiService {
     }
   }
 
+  /// Reason the last fetchBotActionSupportData() call failed, if any —
+  /// surfaced in the UI instead of just silently showing empty lists.
+  String? lastActionSupportDataError;
+
   /// Fetch bot action support data (team members, labels, action option lists)
   Future<Map<String, dynamic>?> fetchBotActionSupportData() async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/action-support-data');
+    lastActionSupportDataError = null;
     try {
       final response = await http
           .get(url, headers: _getHeaders())
@@ -2371,9 +2376,16 @@ class ApiService {
         if (body['reaction'] == 1 && body['data'] != null) {
           return Map<String, dynamic>.from(body['data']);
         }
+        lastActionSupportDataError = body['message']?.toString() ?? 'Erreur serveur';
+      } else {
+        lastActionSupportDataError = 'HTTP ${response.statusCode}';
+      }
+      if (debug) {
+        debugPrint('Fetch Bot Action Support Data failed [${response.statusCode}]: ${response.body}');
       }
       return null;
     } catch (e) {
+      lastActionSupportDataError = e.toString();
       if (debug) debugPrint('Fetch Bot Action Support Data Error: $e');
       return null;
     }
