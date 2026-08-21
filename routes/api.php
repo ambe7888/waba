@@ -989,6 +989,17 @@ Route::group([
             return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiDeleteStep($stepUid);
         })->name('app_api.vendor.drip_campaigns.step.delete');
 
+        // Vendor's own subscription/invoice history (mobile) — mirrors the
+        // web "Mes Factures & Abonnements" page (subscription.vendor-history).
+        Route::get('/subscription/history', function () {
+            $engine = app(\App\Yantrana\Components\Subscription\ManualSubscriptionEngine::class);
+            $processReaction = $engine->getVendorSubscriptionHistory();
+            return response()->json([
+                'reaction' => 1,
+                'data' => $processReaction->data(),
+            ]);
+        })->name('app_api.vendor.subscription.history');
+
         // Agents / Team members management
         Route::post('/agents/create', [
             UserController::class,

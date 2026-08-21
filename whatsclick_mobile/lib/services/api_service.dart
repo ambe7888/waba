@@ -2327,6 +2327,28 @@ class ApiService {
     }
   }
 
+  /// Fetch the vendor's own subscription/invoice history — mirrors the web
+  /// "Mes Factures & Abonnements" page.
+  Future<List<Map<String, dynamic>>> fetchSubscriptionHistory() async {
+    final url = Uri.parse('${baseApiUrl}vendor/subscription/history');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['subscriptions'] as List?;
+          if (list != null) return List<Map<String, dynamic>>.from(list);
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Subscription History Error: $e');
+      return [];
+    }
+  }
+
   /// Fetch Bot Replies list
   Future<Map<String, dynamic>?> fetchBotReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/list');

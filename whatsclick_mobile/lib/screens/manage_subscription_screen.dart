@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
+import '../services/api_service.dart';
 import '../services/theme_service.dart';
 
-class ManageSubscriptionScreen extends StatelessWidget {
+class ManageSubscriptionScreen extends StatefulWidget {
   final Map<String, dynamic> subscriptionData;
   final Map<String, dynamic> statsData;
 
@@ -12,7 +15,42 @@ class ManageSubscriptionScreen extends StatelessWidget {
   });
 
   @override
+  State<ManageSubscriptionScreen> createState() => _ManageSubscriptionScreenState();
+}
+
+class _ManageSubscriptionScreenState extends State<ManageSubscriptionScreen> {
+  bool _isLoadingHistory = true;
+  List<Map<String, dynamic>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final data = await ApiService().fetchSubscriptionHistory();
+    if (mounted) {
+      setState(() {
+        _history = data;
+        _isLoadingHistory = false;
+      });
+    }
+  }
+
+  Future<void> _openInvoice(String subscriptionUid) async {
+    final url = Uri.parse('${baseUrl}vendor-console/subscription/invoice/$subscriptionUid/print');
+    final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'ouvrir le navigateur.')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final subscriptionData = widget.subscriptionData;
     final isDark = ThemeService().isDark;
 
     final isExpired = subscriptionData['is_expired'] == true;
@@ -307,43 +345,11 @@ class ManageSubscriptionScreen extends StatelessWidget {
             ),
           ],
 
-          // ── Limites et Utilisation ────────────────────────────────────
+          // ── Historique des Factures & Abonnements ──────────────────────
           const SizedBox(height: 24),
-          _sectionTitle('Limites et Utilisation', isDark),
+          _sectionTitle('Historique des Factures & Abonnements', isDark),
           const SizedBox(height: 12),
-          Builder(builder: (context) {
-            final limits = subscriptionData['limits'] as Map? ?? {};
-            String getLimit(String key) {
-              final lim = limits[key];
-              if (lim == null) return '0';
-              if (lim == -1) return '∞';
-              return lim.toString();
-            }
-
-            final cContacts = statsData['totalContacts']?.toString() ?? '0';
-            final cCampaigns = statsData['totalCampaigns']?.toString() ?? '0';
-            final cBotReplies = statsData['totalBotReplies']?.toString() ?? '0';
-            final cDrip = statsData['totalDripCampaigns']?.toString() ?? '0';
-            final cBotFlows = statsData['totalBotFlows']?.toString() ?? '0';
-            final cAgents = (statsData['agents'] as List?)?.length.toString() ?? statsData['activeTeamMembers']?.toString() ?? '0';
-
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.1,
-              children: [
-                _usageTile('Contacts', '$cContacts / ${getLimit("contacts")}', Icons.contacts_rounded, const Color(0xFF6C63FF), isDark),
-                _usageTile('Campagnes', '$cCampaigns / ${getLimit("campaigns")}', Icons.campaign_rounded, Colors.pinkAccent, isDark),
-                _usageTile('Rép. du Bot', '$cBotReplies / ${getLimit("bot_replies")}', Icons.smart_toy_rounded, Colors.green, isDark),
-                _usageTile('Drip Camp.', '$cDrip / ${getLimit("drip_campaigns")}', Icons.water_drop_rounded, Colors.teal, isDark),
-                _usageTile('Flux du Bot', '$cBotFlows / ${getLimit("bot_flows")}', Icons.account_tree_rounded, Colors.purple, isDark),
-                _usageTile('Agents', '$cAgents / ${getLimit("system_users")}', Icons.support_agent_rounded, Colors.blue, isDark),
-              ],
-            );
-          }),
+          _buildHistorySection(isDark),
         ],
       ),
     );
@@ -392,47 +398,192 @@ class ManageSubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _usageTile(String label, String value, IconData icon, Color color, bool isDark) {
+  Widget _buildHistorySection(bool isDark) {
+    if (_isLoadingHistory) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_history.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.receipt_long_rounded, size: 40, color: Colors.grey.withValues(alpha: 0.5)),
+            const SizedBox(height: 12),
+            Text(
+              'Aucun abonnement trouvé',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Vos abonnements apparaîtront ici une fois que vous en aurez souscrit un.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: _history.map((sub) => _buildInvoiceCard(sub, isDark)).toList(),
+    );
+  }
+
+  Widget _buildInvoiceCard(Map<String, dynamic> sub, bool isDark) {
+    final bool isActive = sub['is_active'] == true;
+    final bool isExpired = sub['is_expired'] == true;
+
+    Color statusColor = const Color(0xFFD97706);
+    IconData statusIcon = Icons.schedule_rounded;
+    if (isActive) {
+      statusColor = const Color(0xFF059669);
+      statusIcon = Icons.check_circle_rounded;
+    } else if (isExpired) {
+      statusColor = const Color(0xFFDC2626);
+      statusIcon = Icons.cancel_rounded;
+    }
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-          width: 1.5,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: (isActive ? const Color(0xFF10B981) : Colors.grey).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.badge_rounded,
+                    size: 17, color: isActive ? const Color(0xFF10B981) : Colors.grey.shade600),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sub['plan_title']?.toString() ?? '',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      ),
+                    ),
+                    Text(
+                      sub['freq_title']?.toString() ?? '',
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                sub['charges']?.toString() ?? '',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _dateColumn(isDark, 'Début', sub['created_at']?.toString() ?? '-'),
+              ),
+              Expanded(
+                child: _dateColumn(isDark, 'Expire le', sub['ends_at']?.toString() ?? '-',
+                    valueColor: isExpired ? const Color(0xFFDC2626) : null),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, size: 12, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      sub['status']?.toString() ?? '',
+                      style: TextStyle(color: statusColor, fontSize: 11.5, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () => _openInvoice(sub['_uid']),
+                icon: const Icon(Icons.receipt_long_rounded, size: 15),
+                label: const Text('Facture', style: TextStyle(fontSize: 12.5)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white70 : const Color(0xFF475569),
+                  side: BorderSide(color: isDark ? Colors.white24 : const Color(0xFFE2E8F0)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dateColumn(bool isDark, String label, String value, {Color? valueColor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.black45)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? (isDark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+      ],
     );
   }
 }
