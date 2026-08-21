@@ -66,7 +66,8 @@ class CampaignModel extends BaseModel
             'campaign_type' => 'string',
             'preset_message_id' => 'string', // bot reply id for preset message
             'preset_message_name' => 'string',
-            'send_message_via_marketing_message_api' => 'boolean'
+            'send_message_via_marketing_message_api' => 'boolean',
+            'completion_notified' => 'boolean'
         ],
     ];
 

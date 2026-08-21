@@ -1407,6 +1407,33 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 ]));
             }
         }
+
+        // Notify vendors once a campaign has no more pending/processing
+        // messages left — only the campaigns touched in this batch are
+        // checked, and each is only notified once (flagged in __data).
+        $campaignIds = array_unique(array_filter(array_column($poolData, 'campaignId')));
+        foreach ($campaignIds as $campaignId) {
+            $hasPending = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageQueueModel::where('campaigns__id', $campaignId)
+                ->whereIn('status', [1, 3]) // 1: in queue, 3: processing
+                ->exists();
+            if ($hasPending) {
+                continue;
+            }
+            $campaign = \App\Yantrana\Components\Campaign\Models\CampaignModel::find($campaignId);
+            if (!$campaign || data_get($campaign->__data, 'completion_notified')) {
+                continue;
+            }
+            \App\Models\VendorNotification::create([
+                'title' => 'Campagne terminée',
+                'message' => 'Votre campagne "' . $campaign->title . '" a été entièrement envoyée.',
+                'type' => 'success',
+                'vendors__id' => $campaign->vendors__id,
+            ]);
+            $this->campaignRepository->updateIt($campaign, [
+                '__data' => ['completion_notified' => true],
+            ]);
+        }
+
         return $this->engineSuccessResponse([], __tr('Message processed'));
     }
 

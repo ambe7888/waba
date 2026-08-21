@@ -80,6 +80,15 @@ class InfoMaterialController extends BaseController
             ]
         ]);
 
+        // This resource has no vendors__id, so it's visible to every vendor —
+        // notify everyone the same way (vendors__id null = global/broadcast).
+        \App\Models\VendorNotification::create([
+            'title' => 'Nouvelle ressource disponible',
+            'message' => $request->title,
+            'type' => 'info',
+            'vendors__id' => null,
+        ]);
+
         return redirect()->route('info_material.index')->with('success', __tr('Material uploaded successfully.'));
     }
 

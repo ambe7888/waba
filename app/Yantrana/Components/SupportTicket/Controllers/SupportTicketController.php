@@ -222,6 +222,14 @@ class SupportTicketController extends BaseController
                     ]
                 );
             }
+
+            // Record it in the in-app notification list too, not just the push
+            \App\Models\VendorNotification::create([
+                'title' => 'Réponse à votre ticket : ' . $ticket->subject,
+                'message' => \Illuminate\Support\Str::limit(strip_tags($request->message), 150),
+                'type' => 'info',
+                'vendors__id' => $ticket->vendors__id,
+            ]);
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
             if ($ticket->status == 2) {
@@ -375,6 +383,14 @@ class SupportTicketController extends BaseController
                     ]
                 );
             }
+
+            // Record it in the in-app notification list too, not just the push
+            \App\Models\VendorNotification::create([
+                'title' => 'Réponse à votre ticket : ' . $ticket->subject,
+                'message' => \Illuminate\Support\Str::limit(strip_tags($request->message), 150),
+                'type' => 'info',
+                'vendors__id' => $ticket->vendors__id,
+            ]);
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
             if ($ticket->status == 2) {
