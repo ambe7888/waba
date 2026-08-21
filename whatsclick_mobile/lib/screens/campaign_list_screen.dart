@@ -24,6 +24,45 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   List<Map<String, dynamic>> _campaigns = [];
   Map<String, dynamic>? _globalStats;
   String? _error;
+  final _searchController = TextEditingController();
+  String? _statusFilter;
+  bool _sortNewestFirst = true;
+
+  List<Map<String, dynamic>> get _filteredCampaigns {
+    final query = _searchController.text.trim().toLowerCase();
+    final list = _campaigns.where((c) {
+      if (_statusFilter != null &&
+          (c['status']?.toString().toLowerCase() ?? '') != _statusFilter) {
+        return false;
+      }
+      if (query.isEmpty) return true;
+      final title = (c['title'] ?? c['campaign_name'] ?? '').toString().toLowerCase();
+      final templateName = (c['template_name'] ?? '').toString().toLowerCase();
+      return title.contains(query) || templateName.contains(query);
+    }).toList();
+
+    DateTime? parseDate(Map<String, dynamic> c) =>
+        DateTime.tryParse((c['updated_at'] ?? c['created_at'] ?? '').toString());
+
+    final indexed = list.asMap().entries.toList();
+    indexed.sort((a, b) {
+      final da = parseDate(a.value);
+      final db = parseDate(b.value);
+      int cmp;
+      if (da == null && db == null) {
+        cmp = 0;
+      } else if (da == null) {
+        cmp = 1;
+      } else if (db == null) {
+        cmp = -1;
+      } else {
+        cmp = _sortNewestFirst ? db.compareTo(da) : da.compareTo(db);
+      }
+      if (cmp != 0) return cmp;
+      return a.key.compareTo(b.key);
+    });
+    return indexed.map((e) => e.value).toList();
+  }
 
   @override
   void initState() {
@@ -31,6 +70,13 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     _loadRoleAndPermissions();
     _fetchStats();
     _fetchCampaigns();
+    _searchController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadRoleAndPermissions() async {
@@ -237,22 +283,38 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.teal)),
-                              Row(
-                                children: [
-                                  const Text('Plus récentes',
-                                      style: TextStyle(
+                              InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () => setState(
+                                    () => _sortNewestFirst = !_sortNewestFirst),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                          _sortNewestFirst
+                                              ? 'Plus récentes'
+                                              : 'Plus anciennes',
+                                          style: const TextStyle(
+                                              color: Colors.teal,
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                          _sortNewestFirst
+                                              ? Icons.arrow_downward_rounded
+                                              : Icons.arrow_upward_rounded,
                                           color: Colors.teal,
-                                          fontWeight: FontWeight.w600)),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.swap_vert_rounded,
-                                      color: Colors.teal, size: 18),
-                                ],
+                                          size: 18),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      if (_campaigns.isEmpty)
+                      if (_filteredCampaigns.isEmpty)
                         SliverFillRemaining(
                           child: _buildEmpty(onSurface),
                         )
@@ -260,8 +322,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                         SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (_, i) => _buildCard(
-                                _campaigns[i], surfaceCard, onSurface),
-                            childCount: _campaigns.length,
+                                _filteredCampaigns[i], surfaceCard, onSurface),
+                            childCount: _filteredCampaigns.length,
                           ),
                         ),
                       SliverToBoxAdapter(
@@ -394,36 +456,192 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         children: [
           Expanded(
             child: Container(
-              height: 45,
               decoration: BoxDecoration(
-                color: onSurface.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                color: surfaceCard,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                    color: onSurface.withValues(alpha: 0.12), width: 1),
               ),
+              clipBehavior: Clip.hardEdge,
               child: TextField(
+                controller: _searchController,
+                style: TextStyle(color: onSurface, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Rechercher une campagne...',
                   hintStyle:
-                      TextStyle(color: onSurface.withValues(alpha: 0.4)),
-                  prefixIcon: Icon(Icons.search,
-                      color: onSurface.withValues(alpha: 0.4)),
+                      TextStyle(color: onSurface.withValues(alpha: 0.31), fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: onSurface.withValues(alpha: 0.31), size: 20),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear_rounded,
+                              color: onSurface.withValues(alpha: 0.31), size: 18),
+                          onPressed: () => _searchController.clear(),
+                        )
+                      : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            height: 45,
-            width: 45,
-            decoration: BoxDecoration(
-              color: onSurface.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+          InkWell(
+            onTap: _showCampaignFilterSheet,
+            borderRadius: BorderRadius.circular(14),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: surfaceCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: onSurface.withValues(alpha: 0.12), width: 1),
+                  ),
+                  child: Icon(Icons.filter_list_rounded,
+                      size: 20, color: onSurface.withValues(alpha: 0.7)),
+                ),
+                if (_statusFilter != null)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.teal,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            child: Icon(Icons.filter_alt_outlined,
-                color: onSurface.withValues(alpha: 0.6)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCampaignFilterSheet() {
+    const statuses = ['executed', 'processing', 'scheduled', 'aborted', 'failed'];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final surfaceCard = Theme.of(context).scaffoldBackgroundColor;
+            final onSurface = Theme.of(context).colorScheme.onSurface;
+            return Container(
+              padding: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: surfaceCard,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Filtrer les campagnes',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFilterStatusTile(
+                          label: 'Toutes les campagnes',
+                          icon: Icons.all_inbox_rounded,
+                          color: Colors.grey,
+                          selected: _statusFilter == null,
+                          onSurface: onSurface,
+                          onTap: () {
+                            setModalState(() {});
+                            setState(() => _statusFilter = null);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ...statuses.map((s) => _buildFilterStatusTile(
+                              label: _statusLabel(s),
+                              icon: _statusIcon(s),
+                              color: _statusColor(s),
+                              selected: _statusFilter == s,
+                              onSurface: onSurface,
+                              onTap: () {
+                                setModalState(() {});
+                                setState(() => _statusFilter = s);
+                                Navigator.pop(context);
+                              },
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterStatusTile({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool selected,
+    required Color onSurface,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? color : onSurface.withValues(alpha: 0.12),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+            ),
+            if (selected) Icon(Icons.check_circle_rounded, size: 18, color: color),
+          ],
+        ),
       ),
     );
   }
