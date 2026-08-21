@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 
@@ -15,12 +17,21 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
   final _bodyController = TextEditingController();
   final _footerController = TextEditingController();
   final _headerController = TextEditingController();
+  final _bodyFocusNode = FocusNode();
 
   String _selectedCategory = 'MARKETING';
   String _selectedLanguage = 'fr';
   String _headerType = 'NONE'; // NONE, TEXT, MEDIA
-  
-  // Interactive Buttons
+
+  // Media header
+  String _mediaHeaderType = 'image'; // image, video, document
+  File? _selectedMediaFile;
+
+  // Interactive Buttons — Meta allows up to 10 total, max 2 URL, max 1 phone
+  // number (matches the web dashboard's template wizard).
+  static const int _maxButtons = 10;
+  static const int _maxUrlButtons = 2;
+  static const int _maxPhoneButtons = 1;
   final List<Map<String, dynamic>> _messageButtons = [];
 
   bool _isSubmitting = false;
@@ -39,7 +50,47 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     _bodyController.dispose();
     _footerController.dispose();
     _headerController.dispose();
+    _bodyFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickMediaFile() async {
+    FileType type;
+    List<String>? extensions;
+    switch (_mediaHeaderType) {
+      case 'video':
+        type = FileType.video;
+        break;
+      case 'document':
+        type = FileType.custom;
+        extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+        break;
+      default:
+        type = FileType.image;
+    }
+    final result = await FilePicker.platform.pickFiles(type: type, allowedExtensions: extensions);
+    if (result != null && result.files.single.path != null) {
+      setState(() => _selectedMediaFile = File(result.files.single.path!));
+    }
+  }
+
+  // WhatsApp formatting: wraps the current selection (or inserts markers at
+  // the cursor if nothing is selected) with the given markdown characters.
+  void _applyFormatting(String marker) {
+    final text = _bodyController.text;
+    final selection = _bodyController.selection;
+    final start = selection.start > -1 ? selection.start : text.length;
+    final end = selection.end > -1 ? selection.end : text.length;
+    final selectedText = text.substring(start, end);
+
+    final newText = text.replaceRange(start, end, '$marker$selectedText$marker');
+    setState(() {
+      _bodyController.text = newText;
+      _bodyController.selection = selectedText.isEmpty
+          ? TextSelection.collapsed(offset: start + marker.length)
+          : TextSelection(baseOffset: start, extentOffset: end + marker.length * 2);
+    });
+    _bodyFocusNode.requestFocus();
   }
 
   void _insertVariable() {
@@ -74,15 +125,60 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_bodyController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Le corps du message est requis.'), backgroundColor: Colors.red),
       );
       return;
     }
+    if (_headerType == 'TEXT' && _headerController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Le texte d'en-tête est requis."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_headerType == 'MEDIA' && _selectedMediaFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez sélectionner un fichier pour l'en-tête média."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    for (var btn in _messageButtons) {
+      if ((btn['text'] ?? '').toString().trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Veuillez remplir le texte de chaque bouton.'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      if (btn['type'] == 'URL_BUTTON' && (btn['url'] ?? '').toString().trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Veuillez remplir l'URL de chaque bouton lien."), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      if (btn['type'] == 'PHONE_NUMBER' && (btn['phone_number'] ?? '').toString().trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Veuillez remplir le numéro de chaque bouton téléphone.'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+    }
 
     setState(() => _isSubmitting = true);
+
+    String? uploadedMediaFileName;
+    if (_headerType == 'MEDIA' && _selectedMediaFile != null) {
+      uploadedMediaFileName =
+          await ApiService().uploadTempMedia(_selectedMediaFile!, 'whatsapp_$_mediaHeaderType');
+      if (uploadedMediaFileName == null) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erreur lors de l'upload du fichier d'en-tête."), backgroundColor: Colors.red),
+        );
+        return;
+      }
+    }
 
     final payload = {
       'template_name': _nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
@@ -93,7 +189,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
       if (_footerController.text.trim().isNotEmpty) 'template_footer': _footerController.text.trim(),
       if (_headerType == 'TEXT' && _headerController.text.trim().isNotEmpty) ...{
         'media_header_type': 'text',
-        'template_header': _headerController.text.trim(),
+        'header_text_body': _headerController.text.trim(),
+      },
+      if (_headerType == 'MEDIA' && uploadedMediaFileName != null) ...{
+        'media_header_type': _mediaHeaderType,
+        'uploaded_media_file_name': uploadedMediaFileName,
       },
       if (_messageButtons.isNotEmpty) 'message_buttons': _messageButtons,
     };
@@ -202,14 +302,6 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                       Expanded(child: _buildCategoryCard('MARKETING', Icons.grid_view_rounded, 'Marketing', isDark)),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildCategoryCard('AUTHENTICATION', Icons.lock_outline_rounded, 'Authentification', isDark)),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox()), // Empty space for alignment
-                    ],
-                  ),
                   const SizedBox(height: 6),
                   Text('Classez votre modèle selon son objectif principal.', style: TextStyle(fontSize: 12, color: subtitleColor)),
                 ],
@@ -242,9 +334,73 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _headerController,
+                      maxLength: 60,
                       decoration: _buildInputDecoration('Saisissez le texte d\'en-tête...', isDark),
                     ),
-                  ]
+                  ],
+                  if (_headerType == 'MEDIA') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildToggleButton('image', 'IMAGE', _mediaHeaderType,
+                            (v) => setState(() { _mediaHeaderType = v; _selectedMediaFile = null; }), isDark),
+                        const SizedBox(width: 12),
+                        _buildToggleButton('video', 'VIDÉO', _mediaHeaderType,
+                            (v) => setState(() { _mediaHeaderType = v; _selectedMediaFile = null; }), isDark),
+                        const SizedBox(width: 12),
+                        _buildToggleButton('document', 'DOCUMENT', _mediaHeaderType,
+                            (v) => setState(() { _mediaHeaderType = v; _selectedMediaFile = null; }), isDark),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: _pickMediaFile,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _selectedMediaFile != null ? ThemeService.primaryColor : borderColor,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _mediaHeaderType == 'image'
+                                  ? Icons.image_outlined
+                                  : _mediaHeaderType == 'video'
+                                      ? Icons.videocam_outlined
+                                      : Icons.description_outlined,
+                              color: _selectedMediaFile != null ? ThemeService.primaryColor : subtitleColor,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _selectedMediaFile != null
+                                    ? _selectedMediaFile!.path.split(Platform.pathSeparator).last
+                                    : 'Sélectionner un fichier...',
+                                style: TextStyle(
+                                  color: _selectedMediaFile != null ? textColor : subtitleColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (_selectedMediaFile != null)
+                              Icon(Icons.check_circle, color: ThemeService.primaryColor, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Ce fichier sert d\'exemple à Meta pour la validation du modèle.',
+                      style: TextStyle(fontSize: 12, color: subtitleColor),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -274,30 +430,14 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     ),
                     child: Column(
                       children: [
-                        // Toolbar
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                            border: Border(bottom: BorderSide(color: borderColor)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.format_bold_rounded, color: textColor, size: 20),
-                              const SizedBox(width: 16),
-                              Icon(Icons.format_italic_rounded, color: textColor, size: 20),
-                              const SizedBox(width: 16),
-                              Icon(Icons.format_strikethrough_rounded, color: textColor, size: 20),
-                              const SizedBox(width: 16),
-                              Icon(Icons.format_underlined_rounded, color: textColor, size: 20),
-                            ],
-                          ),
-                        ),
                         // Text Area
                         TextFormField(
                           controller: _bodyController,
+                          focusNode: _bodyFocusNode,
                           maxLines: 6,
+                          maxLength: 1024, // Meta's real body length limit
+                          buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             hintText: 'Tapez votre message ici...',
                             hintStyle: TextStyle(color: subtitleColor),
@@ -311,38 +451,59 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                           decoration: BoxDecoration(
                             border: Border(top: BorderSide(color: borderColor)),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text('ÉDITEUR DE TEXTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
-                                ],
-                              ),
-                              InkWell(
-                                onTap: _insertVariable,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: borderColor),
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                  ),
-                                  child: Row(
+                                  Row(
                                     children: [
-                                      Icon(Icons.add_rounded, size: 16, color: ThemeService.primaryColor),
-                                      const SizedBox(width: 4),
-                                      Text('AJOUTER VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text('ÉDITEUR DE TEXTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
                                     ],
                                   ),
-                                ),
+                                  InkWell(
+                                    onTap: _insertVariable,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: borderColor),
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.add_rounded, size: 16, color: ThemeService.primaryColor),
+                                          const SizedBox(width: 4),
+                                          Text('AJOUTER VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              // Formatting shortcuts, bottom-right: WhatsApp
+                              // markdown — *bold*, _italic_, ~strikethrough~,
+                              // ```monospace```.
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildFormatButton(Icons.format_bold_rounded, '*', textColor, isDark),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.format_italic_rounded, '_', textColor, isDark),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.format_strikethrough_rounded, '~', textColor, isDark),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.code_rounded, '```', textColor, isDark),
+                                ],
                               ),
                             ],
                           ),
@@ -351,7 +512,10 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text('Exemple : Bonjour {{1}}, bienvenue dans votre boutique. 0 / 1600', style: TextStyle(fontSize: 11, color: subtitleColor)),
+                  Text(
+                    'Exemple : Bonjour {{1}}, bienvenue dans votre boutique. ${_bodyController.text.length} / 1024',
+                    style: TextStyle(fontSize: 11, color: subtitleColor),
+                  ),
                 ],
               ),
             ),
@@ -410,7 +574,10 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                 children: [
                   _buildSectionTitle('Boutons interactifs', textColor),
                   const SizedBox(height: 6),
-                  Text('Ajoutez jusqu\'à 3 boutons interactifs (réponses rapides ou appel à l\'action).', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  Text(
+                    'Ajoutez jusqu\'à 10 boutons (max 2 liens URL, max 1 appel téléphonique) — règles Meta.',
+                    style: TextStyle(fontSize: 13, color: subtitleColor),
+                  ),
                   const SizedBox(height: 16),
                   
                   ..._messageButtons.asMap().entries.map((entry) {
@@ -438,6 +605,18 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                                     DropdownMenuItem(value: 'PHONE_NUMBER', child: Text('Appel Téléphonique')),
                                   ],
                                   onChanged: (v) {
+                                    if (v == 'URL_BUTTON' && btn['type'] != 'URL_BUTTON' && _urlButtonCount() >= _maxUrlButtons) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Maximum $_maxUrlButtons boutons lien URL (règle Meta).')),
+                                      );
+                                      return;
+                                    }
+                                    if (v == 'PHONE_NUMBER' && btn['type'] != 'PHONE_NUMBER' && _phoneButtonCount() >= _maxPhoneButtons) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Maximum $_maxPhoneButtons bouton appel téléphonique (règle Meta).')),
+                                      );
+                                      return;
+                                    }
                                     setState(() {
                                       btn['type'] = v!;
                                       if (v == 'QUICK_REPLY') {
@@ -489,7 +668,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                     );
                   }).toList(),
 
-                  if (_messageButtons.length < 3)
+                  if (_messageButtons.length < _maxButtons)
                     OutlinedButton.icon(
                       onPressed: () {
                         setState(() {
@@ -503,6 +682,11 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                         side: BorderSide(color: ThemeService.primaryColor),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
+                    )
+                  else
+                    Text(
+                      'Nombre maximum de boutons atteint (10).',
+                      style: TextStyle(fontSize: 12, color: subtitleColor),
                     ),
                 ],
               ),
@@ -558,6 +742,20 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  int _urlButtonCount() => _messageButtons.where((b) => b['type'] == 'URL_BUTTON').length;
+  int _phoneButtonCount() => _messageButtons.where((b) => b['type'] == 'PHONE_NUMBER').length;
+
+  Widget _buildFormatButton(IconData icon, String marker, Color textColor, bool isDark) {
+    return InkWell(
+      onTap: () => _applyFormatting(marker),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, color: textColor, size: 18),
       ),
     );
   }

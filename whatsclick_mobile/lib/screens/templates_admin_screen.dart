@@ -200,8 +200,7 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
               children: [
                 _buildCategoryChip('ALL', 'Tous', isDark),
                 _buildCategoryChip('MARKETING', 'Marketing', isDark),
-                _buildCategoryChip('UTILITY', 'Utility', isDark),
-                _buildCategoryChip('AUTHENTICATION', 'Auth', isDark),
+                _buildCategoryChip('UTILITY', 'Utilitaire', isDark),
               ],
             ),
           ),
@@ -253,6 +252,27 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ),
     );
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toUpperCase()) {
+      case 'APPROVED':
+        return 'Approuvé';
+      case 'PENDING':
+        return 'En attente';
+      case 'REJECTED':
+        return 'Rejeté';
+      case 'PAUSED':
+        return 'En pause';
+      case 'DISABLED':
+        return 'Désactivé';
+      case 'IN_APPEAL':
+        return 'En appel';
+      case 'PENDING_DELETION':
+        return 'Suppression en attente';
+      default:
+        return status;
+    }
   }
 
   Widget _buildCategoryChip(String code, String label, bool isDark) {
@@ -317,9 +337,17 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
     if (status == 'REJECTED') statusColor = Colors.red;
 
     IconData catIcon = Icons.message_rounded;
-    if (category == 'MARKETING') catIcon = Icons.campaign_rounded;
-    if (category == 'UTILITY') catIcon = Icons.notifications_active_rounded;
-    if (category == 'AUTHENTICATION') catIcon = Icons.security_rounded;
+    Color catColor = ThemeService.primaryColor;
+    if (category == 'MARKETING') {
+      catIcon = Icons.campaign_rounded;
+      catColor = Colors.deepOrange;
+    } else if (category == 'UTILITY') {
+      catIcon = Icons.notifications_active_rounded;
+      catColor = Colors.blue;
+    } else if (category == 'AUTHENTICATION') {
+      catIcon = Icons.security_rounded;
+      catColor = Colors.purple;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -342,10 +370,10 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: ThemeService.primaryColor.withValues(alpha: 0.1),
+            color: catColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(catIcon, color: ThemeService.primaryColor, size: 22),
+          child: Icon(catIcon, color: catColor, size: 22),
         ),
         title: Text(
           name, 
@@ -375,7 +403,7 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    status,
+                    _statusLabel(status),
                     style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10),
                   ),
                 ),

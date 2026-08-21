@@ -19,6 +19,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
   late TextEditingController _nameController;
   late TextEditingController _triggerController;
   late TextEditingController _replyController;
+  final _replyFocusNode = FocusNode();
 
   late String _selectedTriggerType;
   bool _isSubmitting = false;
@@ -253,7 +254,27 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
     _ctaDisplayTextController.dispose();
     _ctaUrlController.dispose();
     _footerController.dispose();
+    _replyFocusNode.dispose();
     super.dispose();
+  }
+
+  // WhatsApp formatting: wraps the current selection (or inserts markers at
+  // the cursor if nothing is selected) with the given markdown characters.
+  void _applyFormatting(String marker) {
+    final text = _replyController.text;
+    final selection = _replyController.selection;
+    final start = selection.start > -1 ? selection.start : text.length;
+    final end = selection.end > -1 ? selection.end : text.length;
+    final selectedText = text.substring(start, end);
+
+    final newText = text.replaceRange(start, end, '$marker$selectedText$marker');
+    setState(() {
+      _replyController.text = newText;
+      _replyController.selection = selectedText.isEmpty
+          ? TextSelection.collapsed(offset: start + marker.length)
+          : TextSelection(baseOffset: start, extentOffset: end + marker.length * 2);
+    });
+    _replyFocusNode.requestFocus();
   }
 
   void _insertVariable() {
@@ -601,27 +622,10 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                     ),
                     child: Column(
                       children: [
-                        // Toolbar
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                            border: Border(bottom: BorderSide(color: borderColor)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.format_bold_rounded, color: textColor, size: 20),
-                              const SizedBox(width: 16),
-                              Icon(Icons.format_italic_rounded, color: textColor, size: 20),
-                              const SizedBox(width: 16),
-                              Icon(Icons.format_strikethrough_rounded, color: textColor, size: 20),
-                            ],
-                          ),
-                        ),
                         // Text Area
                         TextFormField(
                           controller: _replyController,
+                          focusNode: _replyFocusNode,
                           maxLines: 6,
                           decoration: InputDecoration(
                             hintText: 'Tapez votre réponse automatique ici...',
@@ -636,38 +640,59 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                           decoration: BoxDecoration(
                             border: Border(top: BorderSide(color: borderColor)),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text('ÉDITEUR DE TEXTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
-                                ],
-                              ),
-                              InkWell(
-                                onTap: _insertVariable,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: borderColor),
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                  ),
-                                  child: Row(
+                                  Row(
                                     children: [
-                                      Icon(Icons.add_rounded, size: 16, color: ThemeService.primaryColor),
-                                      const SizedBox(width: 4),
-                                      Text('AJOUTER VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text('ÉDITEUR DE TEXTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subtitleColor)),
                                     ],
                                   ),
-                                ),
+                                  InkWell(
+                                    onTap: _insertVariable,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: borderColor),
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.add_rounded, size: 16, color: ThemeService.primaryColor),
+                                          const SizedBox(width: 4),
+                                          Text('AJOUTER VARIABLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.primaryColor)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              // Formatting shortcuts, bottom-right: WhatsApp
+                              // markdown — *bold*, _italic_, ~strikethrough~,
+                              // ```monospace```.
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildFormatButton(Icons.format_bold_rounded, '*', textColor),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.format_italic_rounded, '_', textColor),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.format_strikethrough_rounded, '~', textColor),
+                                  const SizedBox(width: 4),
+                                  _buildFormatButton(Icons.code_rounded, '```', textColor),
+                                ],
                               ),
                             ],
                           ),
@@ -1095,6 +1120,17 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFormatButton(IconData icon, String marker, Color textColor) {
+    return InkWell(
+      onTap: () => _applyFormatting(marker),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, color: textColor, size: 18),
       ),
     );
   }
