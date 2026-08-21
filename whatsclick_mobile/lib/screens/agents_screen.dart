@@ -86,30 +86,35 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 )
               : _agents.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.groups_rounded,
-                              size: 64, color: Colors.grey.withValues(alpha: 0.4)),
-                          const SizedBox(height: 16),
-                          Text('Aucun agent pour le moment',
-                              style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Ajoutez des membres d\'équipe depuis le tableau de bord web.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.groups_rounded,
+                                size: 64, color: Colors.grey.withValues(alpha: 0.4)),
+                            const SizedBox(height: 16),
+                            Text('Aucun agent pour le moment',
+                                style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                            const SizedBox(height: 16),
+                            _buildAddAgentHint(isDark),
+                          ],
+                        ),
                       ),
                     )
                   : RefreshIndicator(
                       onRefresh: _loadAgents,
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: _agents.length,
+                        itemCount: _agents.length + 1,
                         itemBuilder: (context, index) {
-                          final agent = _agents[index];
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildAddAgentHint(isDark),
+                            );
+                          }
+                          final agent = _agents[index - 1];
                           final bool isActive = agent['status'] == 1;
                           final String fullName =
                               '${agent['first_name'] ?? ''} ${agent['last_name'] ?? ''}'.trim();
@@ -248,6 +253,52 @@ class _AgentsScreenState extends State<AgentsScreen> {
                         },
                       ),
                     ),
+    );
+  }
+
+  /// Agent creation is web-only (no mobile API endpoint for it) — explain
+  /// exactly where to go instead of leaving the user guessing.
+  Widget _buildAddAgentHint(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: ThemeService.primaryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ThemeService.primaryColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: ThemeService.primaryColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pour ajouter un nouvel agent',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cela se fait depuis la version web : ouvrez le Menu → '
+                  '« Membres de l\'équipe » → « Ajouter un Nouveau Membre », '
+                  'puis créez-le en définissant ses autorisations.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
