@@ -47,6 +47,19 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     }
   }
 
+  String _categoryLabel(String? category) {
+    switch ((category ?? '').toUpperCase()) {
+      case 'UTILITY':
+        return 'UTILITAIRE';
+      case 'MARKETING':
+        return 'MARKETING';
+      case 'AUTHENTICATION':
+        return 'AUTHENTIFICATION';
+      default:
+        return category ?? '';
+    }
+  }
+
   // Step 3: Variables
   List<String> _bodyVariables = [];
   final Map<String, TextEditingController> _variableControllers = {};
@@ -520,8 +533,6 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     if (_isLoadingTemplates) return const Center(child: CircularProgressIndicator());
     if (_templates.isEmpty) return Center(child: Text("Aucun modèle approuvé disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)));
 
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final surface = Theme.of(context).colorScheme.surface;
     final filtered = _filteredTemplates;
 
     return ListView(
@@ -589,6 +600,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
               final category = (t['category'] ?? '').toString();
               final status = t['status'] ?? '';
               final catColor = _categoryColor(category);
+              final catLabel = _categoryLabel(category);
               final isSelected = _selectedTemplate != null && _selectedTemplate!['_uid'] == t['_uid'];
 
               return GestureDetector(
@@ -599,9 +611,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: isSelected ? ThemeService.primaryColor : onSurface.withValues(alpha: 0.12), width: isSelected ? 2 : 1),
+                    border: Border.all(color: isSelected ? ThemeService.primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
                     borderRadius: BorderRadius.circular(12),
-                    color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : surface,
+                    color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : Colors.white,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,25 +624,25 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(color: catColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                            child: Text(category, style: TextStyle(fontSize: 10, color: catColor, fontWeight: FontWeight.bold)),
+                            child: Text(catLabel, style: TextStyle(fontSize: 10, color: catColor, fontWeight: FontWeight.bold)),
                           ),
                           Row(
                             children: [
-                              Icon(Icons.language, size: 12, color: onSurface.withValues(alpha: 0.5)),
+                              const Icon(Icons.language, size: 12, color: Colors.grey),
                               const SizedBox(width: 2),
-                              Text(lang, style: TextStyle(fontSize: 10, color: onSurface.withValues(alpha: 0.5))),
+                              Text(lang, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                             ],
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black), maxLines: 2, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 8),
                       const Spacer(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.description, size: 14, color: onSurface.withValues(alpha: 0.5)),
+                          const Icon(Icons.description, size: 14, color: Colors.grey),
                           Text(status == 'APPROVED' ? 'Approuvé' : status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
                         ],
                       )
