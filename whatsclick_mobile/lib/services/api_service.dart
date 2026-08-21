@@ -1965,15 +1965,23 @@ class ApiService {
       request.fields['timezone'] = 'UTC'; // Or fetch local timezone
 
       if (!sendImmediately && scheduledDate != null && scheduledTime != null) {
-        // Format to YYYY-MM-DD HH:MM:SS
-        final dt = DateTime(
+        // Backend parses this with Carbon::createFromFormat('Y-m-d\TH:i:s', ...,
+        // 'UTC') — a strict 19-char format with NO milliseconds. toIso8601String()
+        // always appends ".000", which makes Carbon throw "Trailing data" and
+        // silently fails every scheduled campaign. Convert the locally-picked
+        // wall-clock time to true UTC (matching the hardcoded 'UTC' timezone
+        // field below) and format it manually instead.
+        final localDt = DateTime(
           scheduledDate.year,
           scheduledDate.month,
           scheduledDate.day,
           scheduledTime.hour,
           scheduledTime.minute,
         );
-        request.fields['schedule_at'] = dt.toIso8601String();
+        final utcDt = localDt.toUtc();
+        String two(int n) => n.toString().padLeft(2, '0');
+        request.fields['schedule_at'] =
+            '${utcDt.year}-${two(utcDt.month)}-${two(utcDt.day)}T${two(utcDt.hour)}:${two(utcDt.minute)}:00';
       } else {
         request.fields['schedule_at'] = ''; // Empty means immediately
       }
@@ -2037,13 +2045,24 @@ class ApiService {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
+      if (debug) debugPrint('Create Campaign [${response.statusCode}]: ${response.body}');
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
         return body;
-      } else {
-        return {'reaction': 2, 'message': 'HTTP ${response.statusCode}'};
       }
+      // Laravel validation errors: {"message": "...", "errors": {"field_1": ["The field_1 field is required."]}}
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else if (body['message'] is String) {
+        message = body['message'];
+      } else {
+        message = 'HTTP ${response.statusCode}';
+      }
+      return {'reaction': body['reaction'] ?? 2, 'message': message};
     } catch (e) {
       if (debug) debugPrint('Create Campaign Error: $e');
       return {'reaction': 2, 'message': e.toString()};

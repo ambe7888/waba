@@ -1005,7 +1005,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         $mediaMessageData['caption'] = $this->dynamicValuesReplacement($mediaMessageData['caption'], $contact);
                     }
                 } else {
-                    $templateMessageSentProcess = $this->sendTemplateMessageProcess($request, $contact, true, $campaign->_id, $vendorId, $whatsAppTemplate, $isTestMessageProcessed->data('inputs'));
+                    // $isTestMessageProcessed can be null if the upfront test send failed
+                    // (e.g. transient WhatsApp API error) — the surrounding try/catch treats
+                    // that as fail-soft, so fall back to the raw request inputs here too
+                    // instead of a fatal error on a null method call.
+                    $templateMessageSentProcess = $this->sendTemplateMessageProcess($request, $contact, true, $campaign->_id, $vendorId, $whatsAppTemplate, $isTestMessageProcessed?->data('inputs'));
                 }
                 // large contacts simulation
                 // for ($i=0; $i < 2000; $i++) {
