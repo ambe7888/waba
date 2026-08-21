@@ -2825,6 +2825,60 @@ class ApiService {
     }
   }
 
+  /// Last error message from createAgent (for UI display)
+  String? lastAgentCreateError;
+
+  /// Create a new agent from the mobile app. No permissions are sent here —
+  /// the backend defaults a fresh agent to zero permissions, matching the
+  /// web form's behaviour when no permission checkbox is ticked. The vendor
+  /// grants actual access from the web console afterwards.
+  Future<bool> createAgent({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String mobileNumber,
+    required String password,
+    bool allowLogin = true,
+  }) async {
+    lastAgentCreateError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/agents/create');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'first_name': firstName,
+              'last_name': lastName,
+              'email': email,
+              'mobile_number': mobileNumber,
+              'password': password,
+              'allow_login': allowLogin,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return true;
+      }
+      final errors = body['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        lastAgentCreateError = errors.values.first is List
+            ? (errors.values.first as List).first.toString()
+            : errors.values.first.toString();
+      } else if (body['message'] is String) {
+        lastAgentCreateError = body['message'];
+      } else {
+        lastAgentCreateError = 'HTTP ${response.statusCode}';
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Create Agent Error: $e');
+      lastAgentCreateError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
   /// Quick toggle: allow/disallow an agent's login (status field)
   Future<bool> toggleAgentStatus(String uid, bool allowLogin) async {
     final url = Uri.parse('${baseApiUrl}vendor/agents/$uid/toggle-status');

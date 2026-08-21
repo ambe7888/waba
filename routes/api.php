@@ -962,6 +962,11 @@ Route::group([
         })->name('app_api.vendor.drip_campaigns.step.store');
 
         // Agents / Team members management
+        Route::post('/agents/create', [
+            UserController::class,
+            'apiAgentCreate',
+        ])->name('app_api.vendor.agents.create');
+
         Route::get('/agents', [
             UserController::class,
             'apiAgentsList',

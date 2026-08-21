@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/date_format_utils.dart';
 
 class CampaignInfoScreen extends StatefulWidget {
   final Map<String, dynamic> campaign;
@@ -197,7 +198,8 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
     final template = widget.campaign['template_name'] ?? 'N/A';
     final lang = widget.campaign['template_language'] ?? 'N/A';
     final status = widget.campaign['status'] ?? 'N/A';
-    final date = widget.campaign['created_at'] ?? 'N/A';
+    final formattedDate = formatDate(widget.campaign['created_at']);
+    final date = formattedDate.isEmpty ? 'N/A' : formattedDate;
 
     return RefreshIndicator(
       color: ThemeService.primaryColor,
@@ -467,7 +469,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
                             final displayStatus = _logType == 'queue'
                                 ? (contact['formatted_status'] ?? statusCode).toString()
                                 : _messageStatusLabel(statusCode.isEmpty ? 'Envoyé' : statusCode);
-                            final date = contact['updated_at'] ?? contact['messaged_at'] ?? '';
+                            final date = formatDateOnly(contact['updated_at'] ?? contact['messaged_at']);
 
                             final sColor = _statusColor(statusCode);
 

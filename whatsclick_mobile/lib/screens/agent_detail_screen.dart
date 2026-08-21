@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/date_format_utils.dart';
 
 class AgentDetailScreen extends StatefulWidget {
   final String agentUid;
@@ -72,7 +73,8 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
       _mobileController.text = data['mobile_number']?.toString() ?? '';
       _allowLogin = (data['status'] == 1 || data['status'] == '1');
       _roleTitle = role?['title']?.toString();
-      _createdAt = data['created_at']?.toString();
+      final formattedCreatedAt = formatDate(data['created_at']);
+      _createdAt = formattedCreatedAt.isEmpty ? null : formattedCreatedAt;
       _isLoading = false;
     });
   }

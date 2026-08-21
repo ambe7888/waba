@@ -31,6 +31,7 @@ use App\Yantrana\Base\BaseRequest;
 use App\Yantrana\Components\Auth\Models\AuthModel;
 use App\Yantrana\Components\User\UserEngine;
 use App\Yantrana\Support\CommonClearPostRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends BaseController
@@ -379,6 +380,62 @@ class UserController extends BaseController
         // ask engine to process the request
         $processReaction = $this->userEngine->processUserUpdate($request->get('userIdOrUid'), $request);
         // get back with response
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+      * Agent create process for the mobile app. Permissions aren't set
+      * here — a freshly created agent gets none (same default as the web
+      * form when no permission is checked) and the vendor grants access
+      * from the web console, since role/permission editing stays web-only.
+      *
+      * @param  object BaseRequest $request
+      *
+      * @return  json object
+      *---------------------------------------------------------------- */
+    public function apiAgentCreate(BaseRequest $request)
+    {
+        validateVendorAccess('administrative');
+
+        if ($request->filled('mobile_number') && (str_starts_with($request->get('mobile_number'), '0') || str_starts_with($request->get('mobile_number'), '+'))) {
+            return $this->processResponse(2, [
+                2 => __tr('Le numéro doit être numérique, sans préfixe 0 ou +.')
+            ], [], true);
+        }
+
+        $mobileNumber = $request->mobile_number;
+        $request->validate([
+            'email' => 'required|string|email|unique:users,email' . (getAppSettings('disallow_disposable_emails') ? '|indisposable' : ''),
+            'password' => 'required|string|min:8',
+            'first_name' => 'required|string|min:1|max:45',
+            'last_name' => 'required|string|min:1|max:45',
+            'mobile_number' => [
+                'required',
+                'numeric',
+                'min_digits:9',
+                'max_digits:15',
+                function ($attribute, $value, $fail) use ($mobileNumber) {
+                    if (AuthModel::where('mobile_number', $mobileNumber)->exists()) {
+                        $fail(__tr('Ce numéro est déjà utilisé.'));
+                    }
+                }
+            ],
+        ]);
+
+        $inputs = $request->all();
+        // The mobile form doesn't collect a username — derive one from the
+        // name, the same value storeUser() needs, and guarantee it's unique.
+        $baseUsername = Str::slug($inputs['first_name'] . ' ' . $inputs['last_name'], '') ?: 'agent';
+        $username = $baseUsername;
+        $suffix = 1;
+        while (AuthModel::where('username', $username)->exists()) {
+            $username = $baseUsername . $suffix;
+            $suffix++;
+        }
+        $inputs['username'] = $username;
+        $inputs['status'] = $request->boolean('allow_login', true) ? 1 : 0;
+
+        $processReaction = $this->userEngine->processUserCreate($inputs);
         return $this->processResponse($processReaction, [], [], true);
     }
 

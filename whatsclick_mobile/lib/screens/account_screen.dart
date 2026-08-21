@@ -373,6 +373,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.person_outline_rounded,
                   title: 'Mon Profil',
+                  iconColor: const Color(0xFF3B82F6),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -384,12 +385,14 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.qr_code,
                   title: 'Code QR',
+                  iconColor: const Color(0xFF8B5CF6),
                   onTap: _showQrCode,
                   isDark: isDark,
                 ),
                 _buildSettingsTile(
                   icon: Icons.notifications_none_rounded,
                   title: 'Notifications',
+                  iconColor: const Color(0xFFF59E0B),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -402,6 +405,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: isDark ? Icons.light_mode : Icons.dark_mode,
                   title: isDark ? 'Mode Clair' : 'Mode Sombre',
+                  iconColor: const Color(0xFF6366F1),
                   onTap: () {
                     ThemeService().toggleTheme();
                   },
@@ -431,6 +435,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.folder_open_rounded,
                   title: 'Ressources',
+                  iconColor: const Color(0xFF14B8A6),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -442,6 +447,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.support_agent_rounded,
                   title: 'Assistance',
+                  iconColor: const Color(0xFF06B6D4),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -469,6 +475,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     _buildSettingsTile(
                       icon: Icons.groups_rounded,
                       title: 'Agents',
+                      iconColor: const Color(0xFF7C3AED),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const AgentsScreen()),
@@ -480,6 +487,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     _buildSettingsTile(
                       icon: Icons.smart_toy_rounded,
                       title: 'Réponses Automatiques',
+                      iconColor: const Color(0xFF10B981),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -492,6 +500,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     _buildSettingsTile(
                       icon: Icons.message_rounded,
                       title: 'Modèles de messages',
+                      iconColor: const Color(0xFFEC4899),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -504,6 +513,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     _buildSettingsTile(
                       icon: Icons.water_drop_rounded,
                       title: 'Campagnes Goutte à Goutte',
+                      iconColor: const Color(0xFF0EA5E9),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -530,6 +540,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.system_update_rounded,
                   title: 'Mise à jour',
+                  iconColor: const Color(0xFF22C55E),
                   onTap: () async {
                     final url = Uri.parse('${baseUrl}downloads/whatsclick-latest.apk');
                     if (await canLaunchUrl(url)) {
@@ -592,9 +603,9 @@ class _AccountScreenState extends State<AccountScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.05),
+                color: iconColor.withValues(alpha: isDark ? 0.18 : 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade200),
+                border: Border.all(color: iconColor.withValues(alpha: isDark ? 0.3 : 0.2)),
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),

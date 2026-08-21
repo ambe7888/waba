@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/date_format_utils.dart';
 import 'agent_detail_screen.dart';
 import 'create_agent_screen.dart';
 
@@ -46,7 +47,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
   void _openCreateAgent() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CreateAgentScreen()),
-    );
+    ).then((created) {
+      if (created == true) _loadAgents();
+    });
   }
 
   void _openDetail(Map<String, dynamic> agent) {
@@ -223,7 +226,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                                               const SizedBox(width: 3),
                                               Expanded(
                                                 child: Text(
-                                                  agent['created_at'] ?? '',
+                                                  formatDate(agent['created_at']),
                                                   style: TextStyle(
                                                       fontSize: 10.5, color: Colors.grey.shade500),
                                                   overflow: TextOverflow.ellipsis,

@@ -5,6 +5,7 @@ import 'dart:io';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../models/contact.dart';
+import '../utils/date_format_utils.dart';
 import 'create_audience_screen.dart';
 
 class CreateCampaignScreen extends StatefulWidget {
@@ -1342,7 +1343,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           ..._audiences.map((a) {
             return RadioListTile<String>(
               title: Text(a['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
-              subtitle: Text("Créé le ${a['created_at']}", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+              subtitle: Text("Créé le ${formatDate(a['created_at'])}", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
               value: a['_uid'],
               groupValue: _selectedAudienceUid,
               activeColor: ThemeService.primaryColor,
