@@ -95,6 +95,150 @@ class DripCampaignController extends Controller
     }
 
     /**
+     * Single campaign detail (steps + subscriber counts) — clean JSON
+     * response for the mobile app's drip campaign detail screen.
+     */
+    public function apiShow($campaignId)
+    {
+        $vendorId = getVendorId();
+        $campaign = DripCampaign::where('_uid', $campaignId)
+            ->where('vendors__id', $vendorId)
+            ->withCount('subscribers')
+            ->withCount(['subscribers as active_subscribers_count' => function ($query) {
+                $query->where('status', 1);
+            }])
+            ->first();
+
+        if (!$campaign) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Campagne introuvable.')]);
+        }
+
+        $steps = DripStep::where('addon_drip_campaigns__id', $campaign->_id)
+            ->with(['template', 'botReply'])
+            ->get()
+            ->sortBy(function ($step) {
+                $val = $step->delay_value;
+                if ($step->delay_type == 'hours') return $val * 60;
+                if ($step->delay_type == 'days') return $val * 1440;
+                return $val;
+            })
+            ->values()
+            ->map(function ($step) {
+                return [
+                    '_uid' => $step->_uid,
+                    'delay_value' => $step->delay_value,
+                    'delay_type' => $step->delay_type,
+                    'custom_message' => $step->custom_message,
+                    'bot_reply' => $step->botReply ? [
+                        '_id' => $step->botReply->_id,
+                        'name' => $step->botReply->name ?: $step->botReply->reply_trigger,
+                        'reply_text' => $step->botReply->reply_text,
+                    ] : null,
+                    'template' => $step->template ? [
+                        '_id' => $step->template->_id,
+                        'template_name' => $step->template->template_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'reaction' => 1,
+            'data' => [
+                'campaign' => [
+                    '_uid' => $campaign->_uid,
+                    'title' => $campaign->title,
+                    'status' => $campaign->status,
+                    'subscribers_count' => $campaign->subscribers_count,
+                    'active_subscribers_count' => $campaign->active_subscribers_count,
+                ],
+                'steps' => $steps,
+            ],
+        ]);
+    }
+
+    /**
+     * Update a Step — clean JSON response for the mobile app
+     */
+    public function apiUpdateStep(Request $request, $stepUid)
+    {
+        $request->validate([
+            'delay_value' => 'required|integer|min:0',
+            'delay_type' => 'required|in:minutes,hours,days',
+            'whatsapp_templates__id' => 'nullable',
+            'bot_replies__id' => 'nullable',
+            'custom_message' => 'nullable|string',
+        ]);
+
+        $step = DripStep::where('_uid', $stepUid)->first();
+        if (!$step) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Étape introuvable.')]);
+        }
+
+        $campaign = DripCampaign::where('_id', $step->addon_drip_campaigns__id)
+            ->where('vendors__id', getVendorId())
+            ->first();
+        if (!$campaign) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Étape introuvable.')]);
+        }
+
+        $customMessage = $request->custom_message;
+        if ($request->has('custom_message_b64')) {
+            $customMessage = base64_decode($request->custom_message_b64);
+        }
+
+        $step->update([
+            'delay_value' => $request->delay_value,
+            'delay_type' => $request->delay_type,
+            'whatsapp_templates__id' => $request->whatsapp_templates__id ?: null,
+            'bot_replies__id' => $request->bot_replies__id ?: null,
+            'custom_message' => $customMessage ?: null,
+        ]);
+
+        return response()->json(['reaction' => 1, 'message' => __tr('Étape mise à jour avec succès.')]);
+    }
+
+    /**
+     * Delete a Step — clean JSON response for the mobile app
+     */
+    public function apiDeleteStep($stepUid)
+    {
+        $step = DripStep::where('_uid', $stepUid)->first();
+        if (!$step) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Étape introuvable.')]);
+        }
+
+        $campaign = DripCampaign::where('_id', $step->addon_drip_campaigns__id)
+            ->where('vendors__id', getVendorId())
+            ->first();
+        if (!$campaign) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Étape introuvable.')]);
+        }
+
+        $step->delete();
+
+        return response()->json(['reaction' => 1, 'message' => __tr('Étape supprimée avec succès.')]);
+    }
+
+    /**
+     * Delete a Campaign — clean JSON response for the mobile app
+     */
+    public function apiDeleteCampaign($campaignUid)
+    {
+        $campaign = DripCampaign::where('_uid', $campaignUid)
+            ->where('vendors__id', getVendorId())
+            ->first();
+
+        if (!$campaign) {
+            return response()->json(['reaction' => 2, 'message' => __tr('Campagne introuvable.')]);
+        }
+
+        $campaign->delete();
+
+        return response()->json(['reaction' => 1, 'message' => __tr('Campagne Drip supprimée avec succès.')]);
+    }
+
+    /**
      * Add a Step to a Campaign — clean JSON response for the mobile app
      */
     public function apiStoreStep(Request $request, $campaignId)

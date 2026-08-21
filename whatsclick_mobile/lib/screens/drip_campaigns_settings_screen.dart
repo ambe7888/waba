@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'create_drip_campaign_screen.dart';
+import 'drip_campaign_detail_screen.dart';
 
 class DripCampaignsSettingsScreen extends StatefulWidget {
   const DripCampaignsSettingsScreen({super.key});
@@ -158,7 +159,17 @@ class _DripCampaignsSettingsScreenState
                       color: isDark
                           ? ThemeService.darkCard
                           : ThemeService.lightCard,
-                      child: Padding(
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () async {
+                          final changed = await Navigator.of(context).push<bool>(
+                            MaterialPageRoute(
+                              builder: (_) => DripCampaignDetailScreen(campaignUid: uid),
+                            ),
+                          );
+                          if (changed == true) _fetchCampaigns();
+                        },
+                        child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
                           children: [
@@ -237,6 +248,7 @@ class _DripCampaignsSettingsScreenState
                                 onChanged: (val) => _toggleStatus(uid, status),
                               ),
                           ],
+                        ),
                         ),
                       ),
                     );

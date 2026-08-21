@@ -2679,6 +2679,100 @@ class ApiService {
     }
   }
 
+  /// Fetch a single drip campaign's detail — steps (with resolved bot
+  /// reply/template names) and subscriber counts.
+  Future<Map<String, dynamic>?> fetchDripCampaignDetail(String campaignUid) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return Map<String, dynamic>.from(body['data']);
+      }
+      lastDripCampaignError = body['message']?.toString();
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Drip Campaign Detail Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return null;
+    }
+  }
+
+  /// Update an existing drip campaign step.
+  Future<bool> updateDripCampaignStep(
+    String stepUid, {
+    required int delayValue,
+    required String delayType,
+    String? customMessage,
+    String? botReplyId,
+  }) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/update');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'delay_value': delayValue,
+              'delay_type': delayType,
+              if (customMessage != null) 'custom_message': customMessage,
+              if (botReplyId != null) 'bot_replies__id': botReplyId,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) return true;
+      lastDripCampaignError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Update Drip Campaign Step Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
+  /// Delete a drip campaign step.
+  Future<bool> deleteDripCampaignStep(String stepUid) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/delete');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) return true;
+      lastDripCampaignError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Drip Campaign Step Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
+  /// Delete an entire drip campaign.
+  Future<bool> deleteDripCampaign(String campaignUid) async {
+    lastDripCampaignError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/delete');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) return true;
+      lastDripCampaignError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Drip Campaign Error: $e');
+      lastDripCampaignError = 'Erreur de connexion';
+      return false;
+    }
+  }
+
   /// Vendor UID for the {vendorUid}/-prefixed API routes (notifications).
   /// Normally cached at login, but falls back to deriving it from the
   /// dashboard stats endpoint for sessions that logged in before this was

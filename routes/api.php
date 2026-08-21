@@ -961,6 +961,34 @@ Route::group([
             return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiStoreStep($request, $campaignId);
         })->name('app_api.vendor.drip_campaigns.step.store');
 
+        Route::get('/drip-campaigns/{campaignId}', function ($campaignId) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiShow($campaignId);
+        })->name('app_api.vendor.drip_campaigns.show');
+
+        Route::post('/drip-campaigns/{campaignId}/delete', function ($campaignId) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiDeleteCampaign($campaignId);
+        })->name('app_api.vendor.drip_campaigns.delete');
+
+        Route::post('/drip-campaigns/step/{stepUid}/update', function (Illuminate\Http\Request $request, $stepUid) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiUpdateStep($request, $stepUid);
+        })->name('app_api.vendor.drip_campaigns.step.update');
+
+        Route::post('/drip-campaigns/step/{stepUid}/delete', function ($stepUid) {
+            if (!class_exists('\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController')) {
+                return response()->json(['reaction' => 2, 'message' => 'Addon not installed']);
+            }
+            return app(\Addons\WhatsJetDripCampaignAddon\Controllers\DripCampaignController::class)->apiDeleteStep($stepUid);
+        })->name('app_api.vendor.drip_campaigns.step.delete');
+
         // Agents / Team members management
         Route::post('/agents/create', [
             UserController::class,
