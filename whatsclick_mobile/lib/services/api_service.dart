@@ -988,11 +988,16 @@ class ApiService {
     }
   }
 
+  /// Message from the last sendTemplateMessage() failure, if any — the real
+  /// reason (e.g. which field failed validation) instead of a generic error.
+  String? lastTemplateSendError;
+
   /// Send WhatsApp template message
   Future<bool> sendTemplateMessage(String contactUid, String templateUid,
       Map<String, dynamic> variables) async {
     final url =
         Uri.parse('${baseApiUrl}vendor/whatsapp/contact/send-template-message');
+    lastTemplateSendError = null;
     try {
       final Map<String, dynamic> bodyMap = {
         'contact_uid': contactUid,
@@ -1004,9 +1009,18 @@ class ApiService {
         headers: _getHeaders(),
         body: jsonEncode(bodyMap),
       );
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return body['reaction'] == 1;
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return true;
+      }
+      // Laravel validation errors: {"message": "...", "errors": {"field_1": ["The field_1 field is required."]}}
+      final errors = body['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        lastTemplateSendError = errors.values.first is List
+            ? (errors.values.first as List).first.toString()
+            : errors.values.first.toString();
+      } else if (body['message'] is String) {
+        lastTemplateSendError = body['message'];
       }
       return false;
     } catch (e) {
