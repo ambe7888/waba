@@ -2440,8 +2440,13 @@ class ApiService {
   }
 
   /// Fetch Drip Campaigns
+  /// Reason the last fetchDripCampaigns() call failed, if any — surfaced in
+  /// the UI instead of just silently showing an empty list.
+  String? lastDripCampaignsError;
+
   Future<List<Map<String, dynamic>>> fetchDripCampaigns() async {
     final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns');
+    lastDripCampaignsError = null;
     try {
       final response = await http
           .get(url, headers: _getHeaders())
@@ -2453,9 +2458,13 @@ class ApiService {
             body['data']['campaigns'] != null) {
           return List<Map<String, dynamic>>.from(body['data']['campaigns']);
         }
+        lastDripCampaignsError = body['message']?.toString() ?? 'Erreur serveur';
+      } else {
+        lastDripCampaignsError = 'HTTP ${response.statusCode}';
       }
       return [];
     } catch (e) {
+      lastDripCampaignsError = e.toString();
       if (debug) debugPrint('Fetch Drip Campaigns Error: $e');
       return [];
     }

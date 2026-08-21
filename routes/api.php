@@ -856,12 +856,19 @@ Route::group([
         // Mobile App API routes for Drip Campaigns
         Route::get('/drip-campaigns', function() {
             $vendorId = getVendorId();
-            $campaigns = class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign') 
+            $campaigns = class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign')
                 ? \Addons\WhatsJetDripCampaignAddon\Models\DripCampaign::where('vendors__id', $vendorId)
                 ->withCount('steps')
                 ->withCount('subscribers')
                 ->withCount(['subscribers as active_subscribers_count' => function ($query) {
                     $query->where('status', 1);
+                }])
+                // Step delays only (not the full step, e.g. no message
+                // content) — just enough for a mobile list preview like
+                // "5min → 1h → 1j".
+                ->with(['steps' => function ($query) {
+                    $query->select('_id', 'addon_drip_campaigns__id', 'delay_value', 'delay_type')
+                        ->orderBy('_id');
                 }])
                 ->orderBy('_id', 'desc')
                 ->get() : [];

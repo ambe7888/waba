@@ -31,6 +31,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
   List<Map<String, dynamic>> _dripCampaigns = [];
   String? _selectedDripCampaignId;
   bool _isLoadingDripCampaigns = true;
+  bool _dripCampaignsFailed = false;
 
   // 'media' message type (pure media, no buttons) and the 'list' button
   // type still aren't supported from mobile.
@@ -196,6 +197,10 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
   }
 
   Future<void> _loadDripCampaigns() async {
+    setState(() {
+      _isLoadingDripCampaigns = true;
+      _dripCampaignsFailed = false;
+    });
     final campaigns = await ApiService().fetchDripCampaigns();
     if (mounted) {
       setState(() {
@@ -204,6 +209,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
           return status == 1 || status == '1';
         }).toList();
         _isLoadingDripCampaigns = false;
+        _dripCampaignsFailed = ApiService().lastDripCampaignsError != null;
       });
     }
   }
@@ -545,60 +551,6 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Section: Drip Campaign Subscription Action
-            if (!_isLoadingDripCampaigns && _dripCampaigns.isNotEmpty) ...[
-              _buildCardContainer(
-                isDark,
-                cardColor,
-                borderColor,
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.water_drop_rounded, color: const Color(0xFF10B981), size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildSectionTitle(
-                              'Inscription à la campagne de relance', textColor),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Quand cette réponse automatique se déclenche, le contact sera automatiquement inscrit à la campagne sélectionnée.',
-                      style: TextStyle(fontSize: 12, color: subtitleColor),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String?>(
-                      initialValue: _selectedDripCampaignId,
-                      decoration: _buildInputDecoration('', isDark),
-                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: subtitleColor),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Aucune action (ne pas abonner)'),
-                        ),
-                        ..._dripCampaigns.map((c) {
-                          return DropdownMenuItem<String?>(
-                            value: c['_id']?.toString(),
-                            child: Text(
-                              c['title']?.toString() ?? 'Campagne sans titre',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }),
-                      ],
-                      onChanged: (val) {
-                        setState(() => _selectedDripCampaignId = val);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
 
             // Section 2: Message Body
             _buildCardContainer(
@@ -1064,6 +1016,81 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                         subtitleColor: subtitleColor,
                         onChanged: (v) => setState(() => _replyBotAction = v ?? 'no_action'),
                       ),
+                      const SizedBox(height: 20),
+
+                      Row(
+                        children: [
+                          Icon(Icons.water_drop_rounded, color: const Color(0xFF10B981), size: 16),
+                          const SizedBox(width: 6),
+                          _buildLabel('Inscription à la campagne de relance', textColor),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (_isLoadingDripCampaigns)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      else if (_dripCampaignsFailed)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Impossible de charger les campagnes goutte à goutte.',
+                              style: TextStyle(fontSize: 12.5, color: subtitleColor),
+                            ),
+                            if (ApiService().lastDripCampaignsError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  ApiService().lastDripCampaignsError!,
+                                  style: TextStyle(fontSize: 11, color: Colors.red.shade300),
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: _loadDripCampaigns,
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Réessayer'),
+                            ),
+                          ],
+                        )
+                      else if (_dripCampaigns.isEmpty)
+                        Text(
+                          'Aucune campagne active. Créez-en une dans Campagnes Goutte à Goutte pour l\'utiliser ici.',
+                          style: TextStyle(fontSize: 12.5, color: subtitleColor),
+                        )
+                      else ...[
+                        Text(
+                          'Quand cette réponse automatique se déclenche, le contact sera automatiquement inscrit à la campagne sélectionnée.',
+                          style: TextStyle(fontSize: 12, color: subtitleColor),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _selectedDripCampaignId,
+                          decoration: _buildInputDecoration('', isDark),
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: subtitleColor),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('Aucune action (ne pas abonner)'),
+                            ),
+                            ..._dripCampaigns.map((c) {
+                              return DropdownMenuItem<String?>(
+                                value: c['_id']?.toString(),
+                                child: Text(
+                                  c['title']?.toString() ?? 'Campagne sans titre',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            setState(() => _selectedDripCampaignId = val);
+                          },
+                        ),
+                      ],
                     ],
                   ],
                 ),

@@ -34,6 +34,23 @@ class _DripCampaignsSettingsScreenState
     }
   }
 
+  String _formatDelay(dynamic value, dynamic type) {
+    final unit = switch (type?.toString()) {
+      'minutes' => 'min',
+      'hours' => 'h',
+      'days' => 'j',
+      _ => (type ?? '').toString(),
+    };
+    return '$value$unit';
+  }
+
+  /// Short preview of a campaign's step intervals, e.g. "5min → 1h → 1j".
+  String? _stepsPreview(Map<String, dynamic> campaign) {
+    final steps = campaign['steps'];
+    if (steps is! List || steps.isEmpty) return null;
+    return steps.map((s) => _formatDelay(s['delay_value'], s['delay_type'])).join(' → ');
+  }
+
   Future<void> _toggleStatus(String uid, dynamic currentStatus) async {
     setState(() {
       _togglingUids.add(uid);
@@ -132,6 +149,7 @@ class _DripCampaignsSettingsScreenState
                     final status = campaign['status'];
                     final isActive = status == 1 || status == '1' || status == true || status == 'active';
                     final isToggling = _togglingUids.contains(uid);
+                    final stepsPreview = _stepsPreview(campaign);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -179,6 +197,28 @@ class _DripCampaignsSettingsScreenState
                                           : Colors.redAccent,
                                     ),
                                   ),
+                                  if (stepsPreview != null) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.schedule_rounded,
+                                            size: 13,
+                                            color: isDark ? Colors.white38 : Colors.black38),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            stepsPreview,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? Colors.white54 : Colors.black54,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

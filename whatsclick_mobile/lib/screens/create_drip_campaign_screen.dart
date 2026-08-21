@@ -219,6 +219,29 @@ class _CreateDripCampaignScreenState extends State<CreateDripCampaignScreen> {
                   _buildSectionTitle('Étapes de la séquence', textColor),
                   const SizedBox(height: 6),
                   Text('Chaque étape envoie un message après un délai depuis l\'inscription.', style: TextStyle(fontSize: 13, color: subtitleColor)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Fenêtre de 24h WhatsApp : un message libre ne peut être envoyé que dans les 24h suivant le dernier message du contact. '
+                            'Pour une étape programmée au-delà de ce délai, utilisez une réponse auto liée à un modèle approuvé — sinon l\'envoi échouera.',
+                            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.85), height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   ...List.generate(_steps.length, (index) => _buildStepCard(index, isDark, cardColor, borderColor, textColor, subtitleColor)),
                   const SizedBox(height: 8),
