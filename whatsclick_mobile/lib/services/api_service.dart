@@ -1890,21 +1890,29 @@ class ApiService {
     required bool sendImmediately,
     DateTime? scheduledDate,
     TimeOfDay? scheduledTime,
-    File? headerImage,
-    Map<String, String>? headerVariables,
     Map<String, String>? bodyVariables,
-    Map<String, String>? buttonVariables,
+    String? headerFieldValue,
+    String? headerImageFileName,
+    String? headerVideoFileName,
+    String? headerDocumentFileName,
+    String? headerDocumentName,
+    String? locationLatitude,
+    String? locationLongitude,
+    String? locationName,
+    String? locationAddress,
+    Map<int, String>? dynamicUrlButtons,
+    String? copyCode,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/schedule');
     try {
-      final headers = await _getHeaders();
+      final headers = _getHeaders();
       var request = http.MultipartRequest('POST', url);
       request.headers.addAll(headers);
-      
+
       request.fields['title'] = title;
       request.fields['template_uid'] = templateUid;
       request.fields['timezone'] = 'UTC'; // Or fetch local timezone
-      
+
       if (!sendImmediately && scheduledDate != null && scheduledTime != null) {
         // Format to YYYY-MM-DD HH:MM:SS
         final dt = DateTime(
@@ -1932,30 +1940,39 @@ class ApiService {
         request.fields['campaign_audience'] = audienceUid;
       }
       // If audienceMode == 'all', we might need to send a specific flag or pass all group uids
-      
-      // Handle variables
-      if (headerVariables != null) {
-        headerVariables.forEach((key, value) {
-          request.fields['header_variables[$key]'] = value;
-        });
-      }
+
+      // Handle template variables. Backend (WhatsAppServiceEngine::
+      // sendTemplateMessageProcess) reads flat request keys like 'field_N',
+      // 'header_field_1', 'button_N', not nested arrays.
       if (bodyVariables != null) {
-        // Backend (WhatsAppServiceEngine::sendTemplateMessageProcess) reads
-        // flat 'field_N' request keys, not a nested 'body_variables' array —
-        // it never reads the latter, so variables would silently be dropped.
         bodyVariables.forEach((key, value) {
           request.fields['field_$key'] = value;
         });
       }
-      if (buttonVariables != null) {
-        buttonVariables.forEach((key, value) {
-          request.fields['button_variables[$key]'] = value;
+      if (headerFieldValue != null) {
+        request.fields['header_field_1'] = headerFieldValue;
+      }
+      if (headerImageFileName != null) {
+        request.fields['header_image'] = headerImageFileName;
+      }
+      if (headerVideoFileName != null) {
+        request.fields['header_video'] = headerVideoFileName;
+      }
+      if (headerDocumentFileName != null) {
+        request.fields['header_document'] = headerDocumentFileName;
+        request.fields['header_document_name'] = headerDocumentName ?? 'document';
+      }
+      if (locationLatitude != null) request.fields['location_latitude'] = locationLatitude;
+      if (locationLongitude != null) request.fields['location_longitude'] = locationLongitude;
+      if (locationName != null) request.fields['location_name'] = locationName;
+      if (locationAddress != null) request.fields['location_address'] = locationAddress;
+      if (dynamicUrlButtons != null) {
+        dynamicUrlButtons.forEach((index, value) {
+          request.fields['button_$index'] = value;
         });
       }
-
-      // Handle image
-      if (headerImage != null) {
-        request.files.add(await http.MultipartFile.fromPath('document', headerImage.path));
+      if (copyCode != null) {
+        request.fields['copy_code'] = copyCode;
       }
 
       final streamedResponse = await request.send();

@@ -68,6 +68,31 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   File? _selectedHeaderImage;
   String? _headerImageUrl;
 
+  // Header: TEXT variable (e.g. "Bonjour {{1}}")
+  bool _requiresHeaderText = false;
+  final TextEditingController _headerFieldController = TextEditingController();
+  String _headerFieldTagSelection = 'custom';
+
+  // Header: VIDEO / DOCUMENT
+  bool _requiresHeaderVideo = false;
+  File? _selectedHeaderVideo;
+  bool _requiresHeaderDocument = false;
+  File? _selectedHeaderDocument;
+  final TextEditingController _headerDocumentNameController = TextEditingController();
+
+  // Header: LOCATION
+  bool _requiresLocation = false;
+  final TextEditingController _locationLatController = TextEditingController();
+  final TextEditingController _locationLngController = TextEditingController();
+  final TextEditingController _locationNameController = TextEditingController();
+  final TextEditingController _locationAddressController = TextEditingController();
+
+  // BUTTONS: dynamic URL suffix + copy code
+  final Map<int, TextEditingController> _dynamicUrlButtonControllers = {};
+  final Map<int, String> _dynamicUrlButtonLabels = {};
+  bool _requiresCopyCode = false;
+  final TextEditingController _copyCodeController = TextEditingController();
+
   // Mirrors config('__tech.contact_data_mapping') — same predefined contact
   // field tags offered when sending a single template (send_template_screen.dart).
   static const Map<String, String> _predefinedTags = {
@@ -116,6 +141,16 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     for (var c in _variableControllers.values) {
       c.dispose();
     }
+    for (var c in _dynamicUrlButtonControllers.values) {
+      c.dispose();
+    }
+    _headerFieldController.dispose();
+    _headerDocumentNameController.dispose();
+    _locationLatController.dispose();
+    _locationLngController.dispose();
+    _locationNameController.dispose();
+    _locationAddressController.dispose();
+    _copyCodeController.dispose();
     super.dispose();
   }
 
@@ -178,15 +213,54 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       }
 
       final headerComponent = components.firstWhere((c) => c['type'] == 'HEADER', orElse: () => null);
-      if (headerComponent != null && headerComponent['format'] == 'IMAGE') {
-        _requiresHeaderImage = true;
-      } else {
-        _requiresHeaderImage = false;
-      }
+      final String headerFormat = headerComponent?['format'] ?? '';
+      _requiresHeaderImage = headerFormat == 'IMAGE';
+      _requiresHeaderVideo = headerFormat == 'VIDEO';
+      _requiresHeaderDocument = headerFormat == 'DOCUMENT';
+      _requiresLocation = headerFormat == 'LOCATION';
+      _requiresHeaderText = headerFormat == 'TEXT' &&
+          (headerComponent?['text'] ?? '').toString().contains('{{1}}');
       _selectedHeaderImage = null;
+      _selectedHeaderVideo = null;
+      _selectedHeaderDocument = null;
+      _headerFieldController.clear();
+      _headerFieldTagSelection = 'custom';
+      _headerDocumentNameController.clear();
+      _locationLatController.clear();
+      _locationLngController.clear();
+      _locationNameController.clear();
+      _locationAddressController.clear();
+
+      // Parse Buttons (dynamic URL suffix + copy code)
+      for (var c in _dynamicUrlButtonControllers.values) {
+        c.dispose();
+      }
+      _dynamicUrlButtonControllers.clear();
+      _dynamicUrlButtonLabels.clear();
+      _requiresCopyCode = false;
+      _copyCodeController.clear();
+      final buttonsComponent = components.firstWhere((c) => c['type'] == 'BUTTONS', orElse: () => null);
+      final List buttons = buttonsComponent?['buttons'] ?? [];
+      for (var i = 0; i < buttons.length; i++) {
+        final btn = buttons[i];
+        final String btnType = btn['type'] ?? '';
+        if (btnType == 'URL' && (btn['url'] ?? '').toString().contains('{{1}}')) {
+          _dynamicUrlButtonControllers[i] = TextEditingController();
+          _dynamicUrlButtonLabels[i] = btn['text'] ?? 'Bouton ${i + 1}';
+        } else if (btnType == 'COPY_CODE') {
+          _requiresCopyCode = true;
+        }
+      }
     } catch (e) {
       _bodyVariables = [];
       _requiresHeaderImage = false;
+      _requiresHeaderVideo = false;
+      _requiresHeaderDocument = false;
+      _requiresLocation = false;
+      _requiresHeaderText = false;
+      _dynamicUrlButtonControllers.clear();
+      _dynamicUrlButtonLabels.clear();
+      _requiresCopyCode = false;
     }
   }
 
@@ -212,6 +286,78 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
     }
   }
 
+  Future<void> _pickVideo() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (result != null && result.files.single.path != null) {
+      setState(() => _selectedHeaderVideo = File(result.files.single.path!));
+    }
+  }
+
+  Future<void> _pickDocument() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedHeaderDocument = File(result.files.single.path!);
+        if (_headerDocumentNameController.text.isEmpty) {
+          _headerDocumentNameController.text = result.files.single.name;
+        }
+      });
+    }
+  }
+
+  /// Returns a French error message describing the first missing/invalid
+  /// required field, or null if everything the template needs is filled in.
+  /// Mirrors send_template_screen.dart's validation so both screens behave
+  /// consistently.
+  String? _findMissingCampaignFieldError() {
+    for (var v in _bodyVariables) {
+      final tag = _variableTagSelection[v] ?? 'custom';
+      if (tag == 'custom' && (_variableControllers[v]?.text.trim().isEmpty ?? true)) {
+        return 'Veuillez remplir la variable $v.';
+      }
+    }
+    if (_requiresHeaderText &&
+        _headerFieldTagSelection == 'custom' &&
+        _headerFieldController.text.trim().isEmpty) {
+      return "Veuillez remplir le texte de l'en-tête.";
+    }
+    if (_requiresHeaderImage && _selectedHeaderImage == null) {
+      return "Veuillez sélectionner une image pour l'en-tête.";
+    }
+    if (_requiresHeaderVideo && _selectedHeaderVideo == null) {
+      return "Veuillez sélectionner une vidéo pour l'en-tête.";
+    }
+    if (_requiresHeaderDocument && _selectedHeaderDocument == null) {
+      return "Veuillez sélectionner un document pour l'en-tête.";
+    }
+    if (_requiresLocation) {
+      if (_locationLatController.text.trim().isEmpty || _locationLngController.text.trim().isEmpty) {
+        return 'Veuillez indiquer la latitude et la longitude.';
+      }
+      if (_locationNameController.text.trim().isEmpty || _locationAddressController.text.trim().isEmpty) {
+        return 'Veuillez indiquer le nom et l\'adresse du lieu.';
+      }
+    }
+    for (var entry in _dynamicUrlButtonControllers.entries) {
+      if (entry.value.text.trim().isEmpty) {
+        return 'Veuillez remplir la valeur du bouton "${_dynamicUrlButtonLabels[entry.key]}".';
+      }
+    }
+    if (_requiresCopyCode) {
+      final code = _copyCodeController.text.trim();
+      if (code.isEmpty) {
+        return 'Veuillez indiquer le code promo.';
+      }
+      if (!RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(code)) {
+        return 'Le code promo ne doit contenir que des lettres, chiffres, tirets et underscores.';
+      }
+    }
+    return null;
+  }
+
   Future<void> _submitCampaign() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le titre est requis.')));
@@ -234,9 +380,44 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner au moins un groupe.')));
       return;
     }
+    final missingFieldError = _findMissingCampaignFieldError();
+    if (missingFieldError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(missingFieldError), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
-    
+
+    String? headerImageFileName;
+    if (_requiresHeaderImage && _selectedHeaderImage != null) {
+      headerImageFileName = await ApiService().uploadTempMedia(_selectedHeaderImage!, 'whatsapp_image');
+      if (headerImageFileName == null) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erreur lors de l'upload de l'image.")));
+        return;
+      }
+    }
+    String? headerVideoFileName;
+    if (_requiresHeaderVideo && _selectedHeaderVideo != null) {
+      headerVideoFileName = await ApiService().uploadTempMedia(_selectedHeaderVideo!, 'whatsapp_video');
+      if (headerVideoFileName == null) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erreur lors de l'upload de la vidéo.")));
+        return;
+      }
+    }
+    String? headerDocumentFileName;
+    if (_requiresHeaderDocument && _selectedHeaderDocument != null) {
+      headerDocumentFileName = await ApiService().uploadTempMedia(_selectedHeaderDocument!, 'whatsapp_document');
+      if (headerDocumentFileName == null) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erreur lors de l'upload du document.")));
+        return;
+      }
+    }
+
     // Call real API
     final result = await ApiService().createCampaign(
       title: _titleController.text.trim(),
@@ -248,7 +429,6 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       sendImmediately: _sendImmediately,
       scheduledDate: _scheduledDate,
       scheduledTime: _scheduledTime,
-      headerImage: _selectedHeaderImage,
       bodyVariables: {
         for (var v in _bodyVariables)
           v.replaceAll('{{', '').replaceAll('}}', ''):
@@ -256,8 +436,23 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                   ? _variableControllers[v]!.text
                   : _variableTagSelection[v]!
       },
+      headerFieldValue: _requiresHeaderText
+          ? (_headerFieldTagSelection == 'custom' ? _headerFieldController.text : _headerFieldTagSelection)
+          : null,
+      headerImageFileName: headerImageFileName,
+      headerVideoFileName: headerVideoFileName,
+      headerDocumentFileName: headerDocumentFileName,
+      headerDocumentName: _requiresHeaderDocument ? _headerDocumentNameController.text : null,
+      locationLatitude: _requiresLocation ? _locationLatController.text : null,
+      locationLongitude: _requiresLocation ? _locationLngController.text : null,
+      locationName: _requiresLocation ? _locationNameController.text : null,
+      locationAddress: _requiresLocation ? _locationAddressController.text : null,
+      dynamicUrlButtons: _dynamicUrlButtonControllers.isNotEmpty
+          ? _dynamicUrlButtonControllers.map((k, v) => MapEntry(k, v.text))
+          : null,
+      copyCode: _requiresCopyCode ? _copyCodeController.text : null,
     );
-    
+
     if (mounted) {
       setState(() => _isSubmitting = false);
       if (result['reaction'] == 1) {
@@ -741,12 +936,78 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           ),
           const SizedBox(height: 24),
         ],
+        if (_requiresHeaderText) ...[
+          Text('TEXTE D\'EN-TÊTE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _buildTagOrTextField(
+            isDark: isDark,
+            tagSelection: _headerFieldTagSelection,
+            controller: _headerFieldController,
+            onTagChanged: (val) => setState(() => _headerFieldTagSelection = val ?? 'custom'),
+          ),
+          const SizedBox(height: 24),
+        ],
+        if (_requiresHeaderVideo) ...[
+          Text('VIDÉO D\'EN-TÊTE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _buildFilePickerBox(
+            isDark: isDark,
+            onTap: _pickVideo,
+            icon: Icons.videocam_outlined,
+            label: _selectedHeaderVideo != null
+                ? _selectedHeaderVideo!.path.split(Platform.pathSeparator).last
+                : 'Sélectionner une vidéo',
+            hasFile: _selectedHeaderVideo != null,
+          ),
+          const SizedBox(height: 24),
+        ],
+        if (_requiresHeaderDocument) ...[
+          Text('DOCUMENT D\'EN-TÊTE', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _buildFilePickerBox(
+            isDark: isDark,
+            onTap: _pickDocument,
+            icon: Icons.description_outlined,
+            label: _selectedHeaderDocument != null
+                ? _selectedHeaderDocument!.path.split(Platform.pathSeparator).last
+                : 'Sélectionner un document',
+            hasFile: _selectedHeaderDocument != null,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _headerDocumentNameController,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+            decoration: InputDecoration(
+              hintText: 'Nom du fichier (ex: Facture.pdf)',
+              hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+              filled: true,
+              fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        if (_requiresLocation) ...[
+          Text('LOCALISATION', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _buildSimpleTextField(isDark, _locationLatController, 'Latitude')),
+              const SizedBox(width: 12),
+              Expanded(child: _buildSimpleTextField(isDark, _locationLngController, 'Longitude')),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildSimpleTextField(isDark, _locationNameController, 'Nom du lieu'),
+          const SizedBox(height: 12),
+          _buildSimpleTextField(isDark, _locationAddressController, 'Adresse'),
+          const SizedBox(height: 24),
+        ],
         if (_bodyVariables.isNotEmpty) ...[
           Text('VARIABLES DU CORPS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
           Text('Choisissez un tag prédéfini ou saisissez une valeur fixe.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
           const SizedBox(height: 12),
           ..._bodyVariables.map((v) {
-            final selectedTag = _variableTagSelection[v] ?? 'custom';
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
@@ -756,49 +1017,138 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 children: [
                   Text('VARIABLE: $v', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedTag,
-                    isExpanded: true,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
-                    dropdownColor: isDark ? ThemeService.darkCard : Colors.white,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: [
-                      const DropdownMenuItem(value: 'custom', child: Text('Valeur personnalisée...')),
-                      ..._predefinedTags.entries.map(
-                          (e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))),
-                    ],
-                    onChanged: (val) => setState(() => _variableTagSelection[v] = val ?? 'custom'),
+                  _buildTagOrTextField(
+                    isDark: isDark,
+                    tagSelection: _variableTagSelection[v] ?? 'custom',
+                    controller: _variableControllers[v]!,
+                    onTagChanged: (val) => setState(() => _variableTagSelection[v] = val ?? 'custom'),
                   ),
-                  if (selectedTag == 'custom') ...[
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _variableControllers[v],
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                      decoration: InputDecoration(
-                        hintText: 'Valeur fixe...',
-                        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
-                        filled: true,
-                        fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             );
           }),
-        ] else ...[
+        ] else if (!_requiresHeaderText &&
+            !_requiresHeaderVideo &&
+            !_requiresHeaderDocument &&
+            !_requiresLocation &&
+            _dynamicUrlButtonControllers.isEmpty &&
+            !_requiresCopyCode) ...[
           Center(child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text("Aucune variable dans ce modèle.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           )),
-        ]
+        ],
+        if (_dynamicUrlButtonControllers.isNotEmpty || _requiresCopyCode) ...[
+          const SizedBox(height: 8),
+          Text('BOUTONS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          ..._dynamicUrlButtonControllers.entries.map((entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _buildSimpleTextField(
+                    isDark, entry.value, '${_dynamicUrlButtonLabels[entry.key]} — suffixe de l\'URL'),
+              )),
+          if (_requiresCopyCode) _buildSimpleTextField(isDark, _copyCodeController, 'Code promo'),
+        ],
       ],
+    );
+  }
+
+  /// Dropdown to pick a predefined contact tag, or "custom" to reveal a free
+  /// text field. Shared by body variables and the header text variable.
+  Widget _buildTagOrTextField({
+    required bool isDark,
+    required String tagSelection,
+    required TextEditingController controller,
+    required ValueChanged<String?> onTagChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: tagSelection,
+          isExpanded: true,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+          dropdownColor: isDark ? ThemeService.darkCard : Colors.white,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          items: [
+            const DropdownMenuItem(value: 'custom', child: Text('Valeur personnalisée...')),
+            ..._predefinedTags.entries.map(
+                (e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))),
+          ],
+          onChanged: onTagChanged,
+        ),
+        if (tagSelection == 'custom') ...[
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+            decoration: InputDecoration(
+              hintText: 'Valeur fixe...',
+              hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+              filled: true,
+              fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSimpleTextField(bool isDark, TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+        filled: true,
+        fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildFilePickerBox({
+    required bool isDark,
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    required bool hasFile,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasFile ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: hasFile ? ThemeService.primaryColor : Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(color: hasFile ? (isDark ? Colors.white : Colors.black87) : Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (hasFile) Icon(Icons.check_circle, color: ThemeService.primaryColor, size: 18),
+          ],
+        ),
+      ),
     );
   }
 
