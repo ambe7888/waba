@@ -678,7 +678,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                 @endif
                 @if(getAppSettings('enable_android_app'))
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" target="_blank" download>
+                    <a class="nav-link" href="{{ getAppSettings('android_app_url') ?: url('downloads/whatsclick-latest.apk') }}" target="_blank" download>
                         <i class="fab fa-android text-success"></i>
                         {{ __tr('Application Android') }}
                     </a>

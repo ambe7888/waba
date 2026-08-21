@@ -531,7 +531,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   icon: Icons.system_update_rounded,
                   title: 'Mise à jour',
                   onTap: () async {
-                    final url = Uri.parse('${baseUrl}downloads/whatsclick.apk');
+                    final url = Uri.parse('${baseUrl}downloads/whatsclick-latest.apk');
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url, mode: LaunchMode.externalApplication);
                     } else {

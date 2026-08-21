@@ -1257,7 +1257,7 @@ class ApiService {
         if (_isNewerVersion(version, latestVersion)) {
           return {
             'version': latestVersion,
-            'apk_url': data['apk_url'] ?? '${baseUrl}whatsclick-latest.apk',
+            'apk_url': data['apk_url'] ?? '${baseUrl}downloads/whatsclick-latest.apk',
             'change_log':
                 data['change_log'] ?? 'Correctifs et améliorations générales.',
           };

@@ -96,7 +96,7 @@ const Map configItems = {
             <x-lw.checkbox id="lwEnableAndroidApp" name="enable_android_app" :offValue="0" :checked="getAppSettings('enable_android_app')" data-lw-plugin="lwSwitchery" :label="__tr('Activer et afficher l\'application Android (APK / Play Store)')" />
             <div class="form-group mt-2">
                 <label for="lwAndroidAppUrl">{{ __tr('Lien de téléchargement Android (Fichier APK ou Lien Play Store)') }}</label>
-                <input type="text" id="lwAndroidAppUrl" class="lw-form-field form-control" placeholder="{{ url('downloads/whatsclick.apk') }}" name="android_app_url" value="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" />
+                <input type="text" id="lwAndroidAppUrl" class="lw-form-field form-control" placeholder="{{ url('downloads/whatsclick-latest.apk') }}" name="android_app_url" value="{{ getAppSettings('android_app_url') ?: url('downloads/whatsclick-latest.apk') }}" />
             </div>
         </div>
 

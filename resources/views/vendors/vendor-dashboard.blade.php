@@ -119,7 +119,7 @@ $vendorViewBySuperAdmin = null;
             <div class="d-flex flex-wrap align-items-center">
                 @if(getAppSettings('enable_android_app'))
                 <a class="btn btn-sm btn-success font-weight-bold mr-2 mb-1" style="background-color: #25d366; border-color: #25d366; color: white;"
-                    href="{{ getAppSettings('android_app_url', url('downloads/whatsclick.apk')) }}" target="_blank" download>
+                    href="{{ getAppSettings('android_app_url') ?: url('downloads/whatsclick-latest.apk') }}" target="_blank" download>
                     <i class="fab fa-android mr-1"></i> {{ __tr('Android (APK)') }}
                 </a>
                 @endif
