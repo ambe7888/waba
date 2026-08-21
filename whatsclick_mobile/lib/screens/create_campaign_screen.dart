@@ -1341,15 +1341,30 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           ),
           if (_audiences.isEmpty) Text("Aucune audience enregistrée disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           ..._audiences.map((a) {
-            return RadioListTile<String>(
-              title: Text(a['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
-              subtitle: Text("Créé le ${formatDate(a['created_at'])}", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
-              value: a['_uid'],
-              groupValue: _selectedAudienceUid,
-              activeColor: ThemeService.primaryColor,
-              onChanged: (val) {
-                setState(() => _selectedAudienceUid = val);
-              },
+            final isAllContacts = a['is_all_contacts'] == true;
+            final contactsText = a['contacts_formatted']?.toString() ?? '';
+            final groupsText = a['groups_formatted']?.toString() ?? '';
+            final labelsText = a['labels_formatted']?.toString() ?? '';
+            final subtitleParts = <String>[
+              if (isAllContacts) 'Tous les contacts',
+              if (!isAllContacts && contactsText.isNotEmpty) contactsText,
+              if (!isAllContacts && groupsText.isNotEmpty && !groupsText.startsWith('0')) groupsText,
+              if (!isAllContacts && labelsText.isNotEmpty && !labelsText.startsWith('0')) labelsText,
+            ];
+            final count = int.tryParse(RegExp(r'\d+').firstMatch(contactsText)?.group(0) ?? '') ?? 0;
+            final uid = a['_uid']?.toString() ?? '';
+            return _buildSelectableTile(
+              isDark: isDark,
+              selected: _selectedAudienceUid == uid,
+              leading: Icon(
+                isAllContacts ? Icons.public_rounded : Icons.pie_chart_rounded,
+                color: ThemeService.primaryColor,
+                size: 20,
+              ),
+              title: a['title']?.toString() ?? 'Sans nom',
+              subtitle: subtitleParts.isNotEmpty ? subtitleParts.join(' · ') : "Créé le ${formatDate(a['created_at'])}",
+              count: count,
+              onTap: () => setState(() => _selectedAudienceUid = uid),
             );
           }),
         ] else if (_audienceMode == 'groups') ...[

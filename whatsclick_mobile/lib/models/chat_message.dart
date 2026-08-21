@@ -12,6 +12,7 @@ class ChatMessage {
   final Map<String, dynamic>? referral;
   final String? wamid;
   final String? repliedToUid;
+  final String? senderName;
 
   ChatMessage({
     required this.uid,
@@ -25,9 +26,12 @@ class ChatMessage {
     this.referral,
     this.wamid,
     this.repliedToUid,
+    this.senderName,
   });
 
-  String? get vendorName => null;
+  // Only ever set for messages sent from the chat box after the backend
+  // started recording messaged_by_users__id — older messages have none.
+  String? get vendorName => senderName;
   String? get createdAt => timestamp;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -99,6 +103,7 @@ class ChatMessage {
       referral: resolvedReferral,
       wamid: json['wamid']?.toString(),
       repliedToUid: json['replied_to_whatsapp_message_logs__uid']?.toString(),
+      senderName: json['sender_name']?.toString(),
     );
   }
 

@@ -18,6 +18,7 @@ import '../services/fcm_service.dart';
 import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
+import '../utils/date_format_utils.dart';
 import 'contact_info_drawer.dart';
 import 'order_creation_sheet.dart';
 import 'canned_replies_screen.dart';
@@ -2974,9 +2975,13 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInfoRow(Icons.person_outline, 'Agent', message.vendorName ?? 'Inconnu'),
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.access_time_rounded, 'Envoyé le', message.createdAt ?? 'Inconnu'),
+              // Only outgoing messages have a sending agent — incoming ones
+              // are from the contact, so "Agent" doesn't apply there.
+              if (!message.isIncoming) ...[
+                _buildInfoRow(Icons.person_outline, 'Agent', message.vendorName ?? 'Non renseigné'),
+                const SizedBox(height: 12),
+              ],
+              _buildInfoRow(Icons.access_time_rounded, 'Envoyé le', formatDate(message.createdAt)),
               const SizedBox(height: 12),
               _buildInfoRow(
                   message.isIncoming ? Icons.call_received_rounded : Icons.check_circle_outline_rounded, 

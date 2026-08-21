@@ -1010,6 +1010,45 @@ class ApiService {
   }
 
   /// Fetch WhatsApp approved templates list
+  /// Contacts within WhatsApp's active 24h customer-service window right
+  /// now, plus the window bounds — only these contacts can receive a free
+  /// (non-template) message. Returns null on failure.
+  Future<Map<String, dynamic>?> fetchEligible24hContacts() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/24h-campaign/eligible-contacts');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Eligible 24h Contacts Error: $e');
+      return null;
+    }
+  }
+
+  /// Existing free-form (non-template) campaign message presets — bot
+  /// replies created specifically for use as a campaign body instead of a
+  /// Meta template.
+  Future<List<Map<String, dynamic>>> fetchNonTemplateMessagePresets() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/non-template-message-presets/all/list-data?length=-1&draw=1');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final list = body['data'] as List?;
+        if (list != null) return List<Map<String, dynamic>>.from(list);
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Non-Template Message Presets Error: $e');
+      return [];
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchTemplates() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates');
     try {
@@ -2013,10 +2052,14 @@ class ApiService {
     }
   }
 
-  /// Create and schedule a campaign
+  /// Create and schedule a campaign. Either [templateUid] (Meta-approved
+  /// template) or [presetMessageUid] (an existing free-form bot-reply-based
+  /// message, no template needed — only deliverable within WhatsApp's 24h
+  /// customer-service window) must be provided.
   Future<Map<String, dynamic>> createCampaign({
     required String title,
-    required String templateUid,
+    String? templateUid,
+    String? presetMessageUid,
     required String audienceMode,
     List<String>? contactUids,
     String? audienceUid,
@@ -2045,7 +2088,11 @@ class ApiService {
       request.headers.addAll(headers);
 
       request.fields['title'] = title;
-      request.fields['template_uid'] = templateUid;
+      if (presetMessageUid != null) {
+        request.fields['selected_preset_message_uid'] = presetMessageUid;
+      } else {
+        request.fields['template_uid'] = templateUid ?? '';
+      }
       request.fields['timezone'] = 'UTC'; // Or fetch local timezone
 
       if (!sendImmediately && scheduledDate != null && scheduledTime != null) {
@@ -2472,6 +2519,12 @@ class ApiService {
             url,
             headers: _getHeaders(),
             body: jsonEncode({
+              // processBotReplyUpdate() reads $request->get('botReplyIdOrUid')
+              // to know which record to update — sending only '_uid' left
+              // that empty, so every edit (not just drip-campaign ones)
+              // failed validation with "Le champ bot reply id or uid est
+              // obligatoire.", surfaced to the user as a generic save error.
+              'botReplyIdOrUid': uid,
               '_uid': uid,
               'name': name,
               'trigger_type': triggerType,

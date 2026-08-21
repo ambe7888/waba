@@ -555,6 +555,40 @@ Route::group([
             ]);
         })->name('app_api.vendor.contact.mobile_group_contacts');
 
+        // Contacts with an active WhatsApp 24h customer-service window —
+        // powers the "free mass message" dashboard card/wizard, since only
+        // these contacts can receive a non-template message right now.
+        Route::get('/whatsapp/24h-campaign/eligible-contacts', function () {
+            $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
+            }
+            $windowStart = now()->subHours(24);
+            $windowEnd = now();
+            $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->whereHas('lastIncomingMessage', function ($query) use ($windowStart) {
+                    $query->where('messaged_at', '>', $windowStart);
+                })
+                ->get(['_id', '_uid', 'first_name', 'last_name', 'wa_id'])
+                ->map(function ($c) {
+                    return [
+                        '_id' => $c->_id,
+                        '_uid' => $c->_uid,
+                        'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
+                        'wa_id' => $c->wa_id,
+                    ];
+                });
+            return response()->json([
+                'reaction' => 1,
+                'data' => [
+                    'count' => $contacts->count(),
+                    'window_start' => $windowStart->toIso8601String(),
+                    'window_end' => $windowEnd->toIso8601String(),
+                    'contacts' => $contacts,
+                ],
+            ]);
+        })->name('app_api.vendor.whatsapp.24h_campaign.eligible_contacts');
+
         Route::get('/contacts/simple-list', function () {
             $vendorId = getVendorId();
             if (!$vendorId) {
@@ -832,10 +866,12 @@ Route::group([
             $contactUids = $request->get('contact_uids');
             if ($contactUids && is_array($contactUids)) {
                 $vendorId = getVendorId();
-                $groupUid = (string) \Str::uuid();
-                // Create a temporary group for this specific campaign audience
-                $newGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::create([
-                    '_uid' => $groupUid,
+                // ContactGroupModel has an empty $fillable, so plain create()
+                // always throws MassAssignmentException — forceCreate() is
+                // the standard Eloquent escape hatch for server-generated,
+                // fully-trusted input like this.
+                $newGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::forceCreate([
+                    '_uid' => (string) \Str::uuid(),
                     'title' => 'Audience: ' . $request->get('title') . ' (' . now()->format('d-m-Y H:i') . ')',
                     'description' => 'Groupe temporaire créé pour envoi direct',
                     'vendors__id' => $vendorId,
@@ -858,9 +894,13 @@ Route::group([
                 if (!empty($insertData)) {
                     \DB::table('group_contacts')->insert($insertData);
                 }
-                // Replace contact_group parameter with the created group
+                // Replace contact_group parameter with the created group.
+                // processCampaignCreate()'s legacy contact_group path does
+                // whereIn('_id', $contactGroupIds) — it needs the group's
+                // numeric _id, not its _uid, or the lookup matches nothing
+                // and the campaign fails with "Invalid Group".
                 $request->merge([
-                    'contact_group' => [$groupUid]
+                    'contact_group' => [(string) $newGroup->_id]
                 ]);
             }
             return app(WhatsAppServiceController::class)->scheduleCampaign($request);

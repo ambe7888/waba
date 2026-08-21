@@ -7,6 +7,7 @@ import 'manage_waba_screen.dart';
 import 'notifications_screen.dart';
 import 'account_screen.dart';
 import 'profile_screen.dart';
+import 'send_24h_campaign_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -308,6 +309,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                             // 2. Carte WhatsApp API
                             _buildWabaCard(isDark),
+                            const SizedBox(height: 16),
+
+                            // 2b. Carte envoi gratuit (fenêtre 24h)
+                            const _Eligible24hCampaignCard(),
                             const SizedBox(height: 24),
 
                             // 3. Onglets : Général à gauche, Abonnement à droite
@@ -1268,6 +1273,147 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Dashboard card advertising free (non-template) mass messaging to
+/// contacts within WhatsApp's active 24h customer-service window. Fetches
+/// its own data independently of the main dashboard stats so a slow/failed
+/// call here never blocks the rest of the dashboard from loading.
+class _Eligible24hCampaignCard extends StatefulWidget {
+  const _Eligible24hCampaignCard();
+
+  @override
+  State<_Eligible24hCampaignCard> createState() => _Eligible24hCampaignCardState();
+}
+
+class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
+  bool _isLoading = true;
+  int _count = 0;
+  List<Map<String, dynamic>> _contacts = [];
+  DateTime? _windowStart;
+  DateTime? _windowEnd;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final data = await ApiService().fetchEligible24hContacts();
+    if (!mounted) return;
+    setState(() {
+      _count = (data?['count'] as num?)?.toInt() ?? 0;
+      _contacts = data != null ? List<Map<String, dynamic>>.from(data['contacts'] ?? []) : [];
+      _windowStart = data?['window_start'] != null ? DateTime.tryParse(data!['window_start'])?.toLocal() : null;
+      _windowEnd = data?['window_end'] != null ? DateTime.tryParse(data!['window_end'])?.toLocal() : null;
+      _isLoading = false;
+    });
+  }
+
+  String _dayLabel(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final that = DateTime(d.year, d.month, d.day);
+    if (that == today) return "aujourd'hui";
+    if (that == today.subtract(const Duration(days: 1))) return 'hier';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  }
+
+  String _hhmm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _openWizard() async {
+    if (_windowStart == null || _windowEnd == null) return;
+    final sent = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => Send24hCampaignScreen(
+          eligibleCount: _count,
+          eligibleContacts: _contacts,
+          windowStart: _windowStart!,
+          windowEnd: _windowEnd!,
+        ),
+      ),
+    );
+    if (sent == true) _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeService().isDark;
+
+    if (_isLoading) return const SizedBox.shrink();
+    if (_count == 0 || _windowStart == null || _windowEnd == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.bolt_rounded, color: Color(0xFF10B981), size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Envoi gratuit disponible',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$_count discussion(s) ouvertes depuis 24h — envoyez-leur une campagne sans frais, sans modèle Meta.',
+                      style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : Colors.black54, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Seuls ceux qui ont écrit depuis ${_dayLabel(_windowStart!)} à ${_hhmm(_windowStart!)} '
+            'jusqu\'à ${_dayLabel(_windowEnd!)} à ${_hhmm(_windowEnd!)} recevront ce message.',
+            style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white54 : Colors.black45, fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _openWizard,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: const Text('Envoyer une campagne', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

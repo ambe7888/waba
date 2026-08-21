@@ -2539,7 +2539,22 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         }
 
         $this->hasMoreMessages = $resultOfMessages->hasMorePages();
-        return $resultOfMessages->keyBy('_uid')->transform(function ($item, string $key) {
+
+        // Batch-resolve the sending agent's name for this page of messages
+        // (messaged_by_users__id is only populated going forward — older
+        // messages sent before this existed will have none, and simply
+        // won't show a sender name).
+        $senderIds = $resultOfMessages->pluck('messaged_by_users__id')->filter()->unique();
+        $senderNames = $senderIds->isNotEmpty()
+            ? \App\Yantrana\Components\Auth\Models\AuthModel::whereIn('_id', $senderIds)
+                ->get(['_id', 'first_name', 'last_name'])
+                ->mapWithKeys(function ($user) {
+                    return [$user->_id => trim($user->first_name . ' ' . $user->last_name)];
+                })
+            : collect();
+
+        return $resultOfMessages->keyBy('_uid')->transform(function ($item, string $key) use ($senderNames) {
+            $item->sender_name = $senderNames->get($item->messaged_by_users__id);
             if (__isEmpty($item->__data) and __isEmpty($item->message)) {
                 $item->message = '<i class="fas fa-trash"></i> ' . __tr('This message was deleted by system for cleanup.');
             } elseif ($item->is_system_message == 1 and __isEmpty(($item->message))) {
@@ -3023,6 +3038,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'wab_phone_number_id' => $currentBusinessPhoneNumber,
                 'message' => $messageBody,
                 'messaged_at' => now(),
+                // Which agent actually sent this from the chat box — was
+                // never captured before, so the mobile "message info" panel
+                // could only ever show "Inconnu" regardless of who sent it.
+                'messaged_by_users__id' => getUserID(),
                 '__data' => [
                     'options' => Arr::only($options, [
                         'bot_reply',
