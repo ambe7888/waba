@@ -364,7 +364,10 @@ class CampaignRepository extends BaseRepository implements CampaignRepositoryInt
                 ->orWhere('template_language', 'like', "%{$searchTerm}%")
                 ->orWhere('timezone', 'like', "%{$searchTerm}%");
         })
-            ->when(!$showArchived, function ($q) {
+            ->when($showArchived, function ($q) {
+                // "view archived" — only archived, not a union with active ones
+                $q->whereRaw("JSON_EXTRACT(__data, '$.is_archived') = true");
+            }, function ($q) {
                 $q->where(function ($q2) {
                     $q2->whereRaw("JSON_EXTRACT(__data, '$.is_archived') IS NULL")
                         ->orWhereRaw("JSON_EXTRACT(__data, '$.is_archived') = false");

@@ -25,14 +25,16 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
   bool _isLoadingTemplates = true;
   Map<String, dynamic>? _selectedTemplate;
   String _templateSearchQuery = '';
+  String? _categoryFilter; // null = all, else 'MARKETING' / 'UTILITY' / ...
 
   List<Map<String, dynamic>> get _filteredTemplates {
-    if (_templateSearchQuery.trim().isEmpty) return _templates;
-    final query = _templateSearchQuery.toLowerCase();
     return _templates.where((t) {
+      final category = (t['category'] ?? '').toString().toUpperCase();
+      if (_categoryFilter != null && category != _categoryFilter) return false;
+      if (_templateSearchQuery.trim().isEmpty) return true;
+      final query = _templateSearchQuery.toLowerCase();
       final name = (t['template_name'] ?? '').toString().toLowerCase();
-      final category = (t['category'] ?? '').toString().toLowerCase();
-      return name.contains(query) || category.contains(query);
+      return name.contains(query) || category.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -497,7 +499,7 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: TextField(
             onChanged: (val) => setState(() => _templateSearchQuery = val),
             decoration: InputDecoration(
@@ -511,6 +513,18 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 0),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              _buildCategoryFilterChip(null, 'Tous'),
+              const SizedBox(width: 8),
+              _buildCategoryFilterChip('MARKETING', 'Marketing'),
+              const SizedBox(width: 8),
+              _buildCategoryFilterChip('UTILITY', 'Utilitaire'),
+            ],
           ),
         ),
         Expanded(
@@ -617,6 +631,32 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
       default:
         return const Color(0xFF10B981);
     }
+  }
+
+  /// Category filter chip — same look as the campaign wizard's template step.
+  Widget _buildCategoryFilterChip(String? value, String label) {
+    final selected = _categoryFilter == value;
+    final color = value == null ? const Color(0xFF10B981) : _categoryColor(value);
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => setState(() => _categoryFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : Colors.grey.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            color: selected ? color : Colors.grey,
+          ),
+        ),
+      ),
+    );
   }
 
   String _getPreviewText(Map<String, dynamic> template) {

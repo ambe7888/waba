@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'campaign_info_screen.dart';
@@ -27,6 +28,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   final _searchController = TextEditingController();
   String? _statusFilter;
   bool _sortNewestFirst = true;
+  bool _showingArchived = false;
 
   List<Map<String, dynamic>> get _filteredCampaigns {
     final query = _searchController.text.trim().toLowerCase();
@@ -107,14 +109,17 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   Future<void> _archiveCampaign(Map<String, dynamic> campaign) async {
     final uid = campaign['_uid']?.toString() ?? '';
     if (uid.isEmpty) return;
+    final actionLabel = _showingArchived ? 'Désarchiver' : 'Archiver';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Archiver la campagne'),
-        content: Text('Archiver "${campaign['title'] ?? 'cette campagne'}" ? Elle ne sera plus affichée dans la liste.'),
+        title: Text('$actionLabel la campagne'),
+        content: Text(_showingArchived
+            ? '$actionLabel "${campaign['title'] ?? 'cette campagne'}" ? Elle réapparaîtra dans la liste principale.'
+            : '$actionLabel "${campaign['title'] ?? 'cette campagne'}" ? Elle ne sera plus affichée dans la liste.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Archiver')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(actionLabel)),
         ],
       ),
     );
@@ -127,7 +132,10 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         _campaigns.removeWhere((c) => c['_uid'] == uid);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Campagne archivée.'), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(_showingArchived ? 'Campagne désarchivée.' : 'Campagne archivée.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +150,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
       _error = null;
     });
     try {
-      final data = await ApiService().fetchCampaigns();
+      final data = await ApiService().fetchCampaigns(showArchived: _showingArchived);
       if (mounted) {
         setState(() {
           _campaigns = data;
@@ -262,12 +270,15 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Campagnes',
-                    style: TextStyle(
+                Text(_showingArchived ? 'Campagnes archivées' : 'Campagnes',
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.teal)),
-                Text('Gérez toutes vos campagnes.',
+                Text(
+                    _showingArchived
+                        ? 'Campagnes mises de côté.'
+                        : 'Gérez toutes vos campagnes.',
                     style: TextStyle(
                         fontSize: 12,
                         color: onSurface.withValues(alpha: 0.5))),
@@ -275,6 +286,19 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _showingArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+              color: onSurface.withValues(alpha: 0.7),
+            ),
+            tooltip: _showingArchived ? 'Voir les campagnes actives' : 'Voir les campagnes archivées',
+            onPressed: () {
+              setState(() => _showingArchived = !_showingArchived);
+              _fetchCampaigns();
+            },
+          ),
+        ],
       ),
       floatingActionButton: (_isAdmin || _canManageCampaigns)
           ? FloatingActionButton(
@@ -703,13 +727,13 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.campaign_outlined,
+            Icon(_showingArchived ? Icons.archive_outlined : Icons.campaign_outlined,
                 size: 64, color: onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
-            Text('Aucune campagne trouvée',
+            Text(_showingArchived ? 'Aucune campagne archivée' : 'Aucune campagne trouvée',
                 style: TextStyle(
                     fontSize: 16, color: onSurface.withValues(alpha: 0.4))),
-            if (_isAdmin) ...[
+            if (_isAdmin && !_showingArchived) ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_rounded),
@@ -721,10 +745,19 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         ),
       );
 
+  /// Was displayed as the raw ISO string (e.g. "2026-08-21T13:27:22.000000Z")
+  /// with no parsing at all — hence the "0000000Z" the date column showed.
+  String _formatDate(dynamic raw) {
+    if (raw == null) return '';
+    final parsed = DateTime.tryParse(raw.toString());
+    if (parsed == null) return '';
+    return DateFormat('dd/MM/yyyy à HH:mm').format(parsed.toLocal());
+  }
+
   Widget _buildCard(
       Map<String, dynamic> c, Color surfaceCard, Color onSurface) {
     final title = c['title'] ?? c['campaign_name'] ?? 'Sans titre';
-    final scheduledAt = c['scheduled_at']?.toString() ?? '';
+    final scheduledAt = _formatDate(c['scheduled_at']);
     
     // Convert status to styling
     Color iconBg = Colors.teal.withAlpha(20);
@@ -799,13 +832,13 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'archive',
               child: Row(
                 children: [
-                  Icon(Icons.archive_outlined, size: 18),
-                  SizedBox(width: 10),
-                  Text('Archiver'),
+                  Icon(_showingArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18),
+                  const SizedBox(width: 10),
+                  Text(_showingArchived ? 'Désarchiver' : 'Archiver'),
                 ],
               ),
             ),

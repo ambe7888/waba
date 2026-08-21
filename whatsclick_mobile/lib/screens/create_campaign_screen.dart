@@ -887,7 +887,15 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 8),
-                      const Spacer(),
+                      Expanded(
+                        child: Text(
+                          _getTemplatePreviewText(t),
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -907,6 +915,20 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           ),
       ],
     );
+  }
+
+  /// Body text preview for a template card — was missing entirely, so
+  /// every card in step 2 showed just the title with a blank gap below it.
+  String _getTemplatePreviewText(Map<String, dynamic> template) {
+    try {
+      final Map<String, dynamic> data = template['__data'] ?? {};
+      final Map<String, dynamic> temp = data['template'] ?? {};
+      final List components = temp['components'] ?? [];
+      final bodyComponent = components.firstWhere((c) => c['type'] == 'BODY', orElse: () => null);
+      return bodyComponent?['text'] ?? '';
+    } catch (e) {
+      return '';
+    }
   }
 
   Widget _buildCategoryFilterChip(String? value, String label, bool isDark) {

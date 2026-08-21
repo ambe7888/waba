@@ -35,6 +35,31 @@ Future<void> _runApp() async {
       debugPrint('FlutterError: ${details.exceptionAsString()}');
     }
   };
+  // Release builds default to a plain grey box when a widget fails to
+  // build, with no indication of what went wrong or where — indistinguishable
+  // from a stuck loading state. Show the real error on screen instead so a
+  // screenshot is actually diagnosable.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: Colors.red.shade50,
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.red, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              details.exceptionAsString(),
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  };
 
   // Initialize Firebase for push notifications
   bool firebaseReady = false;

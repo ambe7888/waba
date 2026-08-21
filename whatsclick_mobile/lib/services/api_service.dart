@@ -1201,8 +1201,8 @@ class ApiService {
   }
 
   /// Fetch campaign list for mobile
-  Future<List<Map<String, dynamic>>> fetchCampaigns() async {
-    final url = Uri.parse('${baseApiUrl}vendor/campaign-list');
+  Future<List<Map<String, dynamic>>> fetchCampaigns({bool showArchived = false}) async {
+    final url = Uri.parse('${baseApiUrl}vendor/campaign-list${showArchived ? '?show_archived=1' : ''}');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
