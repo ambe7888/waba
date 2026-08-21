@@ -25,13 +25,47 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   List<Map<String, dynamic>> _templates = [];
   bool _isLoadingTemplates = true;
   Map<String, dynamic>? _selectedTemplate;
+  String? _categoryFilter; // null = all, 'MARKETING', 'UTILITY'
+
+  List<Map<String, dynamic>> get _filteredTemplates {
+    if (_categoryFilter == null) return _templates;
+    return _templates
+        .where((t) => (t['category']?.toString().toUpperCase() ?? '') == _categoryFilter)
+        .toList();
+  }
+
+  Color _categoryColor(String? category) {
+    switch ((category ?? '').toUpperCase()) {
+      case 'UTILITY':
+        return Colors.blue;
+      case 'MARKETING':
+        return Colors.deepOrange;
+      case 'AUTHENTICATION':
+        return Colors.purple;
+      default:
+        return ThemeService.primaryColor;
+    }
+  }
 
   // Step 3: Variables
   List<String> _bodyVariables = [];
   final Map<String, TextEditingController> _variableControllers = {};
+  final Map<String, String> _variableTagSelection = {};
   bool _requiresHeaderImage = false;
   File? _selectedHeaderImage;
   String? _headerImageUrl;
+
+  // Mirrors config('__tech.contact_data_mapping') — same predefined contact
+  // field tags offered when sending a single template (send_template_screen.dart).
+  static const Map<String, String> _predefinedTags = {
+    'dynamic_contact_full_name': 'Nom complet du contact',
+    'dynamic_contact_first_name': 'Prénom du contact',
+    'dynamic_contact_last_name': 'Nom du contact',
+    'dynamic_contact_wa_id': 'Téléphone du contact',
+    'dynamic_contact_language_code': 'Code langue',
+    'dynamic_contact_country': 'Pays du contact',
+    'dynamic_contact_email': 'E-mail du contact',
+  };
 
   // Step 4: Audience
   String _audienceMode = 'all'; // 'all', 'specific', 'audiences', 'groups'
@@ -124,8 +158,10 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       _bodyVariables = matches.map((m) => m.group(0)!).toSet().toList();
       
       _variableControllers.clear();
+      _variableTagSelection.clear();
       for (var v in _bodyVariables) {
         _variableControllers[v] = TextEditingController();
+        _variableTagSelection[v] = 'custom';
       }
 
       final headerComponent = components.firstWhere((c) => c['type'] == 'HEADER', orElse: () => null);
@@ -200,7 +236,13 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       scheduledDate: _scheduledDate,
       scheduledTime: _scheduledTime,
       headerImage: _selectedHeaderImage,
-      bodyVariables: _variableControllers.map((k, v) => MapEntry(k, v.text)),
+      bodyVariables: {
+        for (var v in _bodyVariables)
+          v.replaceAll('{{', '').replaceAll('}}', ''):
+              (_variableTagSelection[v] ?? 'custom') == 'custom'
+                  ? _variableControllers[v]!.text
+                  : _variableTagSelection[v]!
+      },
     );
     
     if (mounted) {
@@ -403,13 +445,84 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        _buildMetaCampaignInfoBlock(isDark),
       ],
+    );
+  }
+
+  Widget _buildMetaCampaignInfoBlock(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: isDark ? 0.12 : 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.blue, size: 20),
+              const SizedBox(width: 8),
+              Text('À savoir sur l\'envoi via Meta',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildInfoBullet(
+            isDark,
+            'Chaque message envoyé via un modèle est facturé par Meta selon sa catégorie : Utilitaire, Marketing ou Authentification. Les tarifs varient selon le pays du destinataire.',
+          ),
+          _buildInfoBullet(
+            isDark,
+            'Les modèles Marketing coûtent généralement plus cher que les modèles Utilitaires, et ne sont envoyés qu\'aux contacts n\'ayant pas refusé ce type de message (opt-out).',
+          ),
+          _buildInfoBullet(
+            isDark,
+            'La qualité de votre numéro WhatsApp (évaluée par Meta selon les blocages/plaintes reçus) influence votre capacité d\'envoi quotidienne et peut limiter ou suspendre vos campagnes en cas de baisse.',
+          ),
+          _buildInfoBullet(
+            isDark,
+            'Un modèle rejeté, une mauvaise qualité, ou un dépassement de limite peuvent bloquer l\'envoi de la campagne — vérifiez le statut de votre modèle avant de continuer.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBullet(bool isDark, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Container(
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : Colors.black87, height: 1.4)),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildStep2(bool isDark) {
     if (_isLoadingTemplates) return const Center(child: CircularProgressIndicator());
     if (_templates.isEmpty) return Center(child: Text("Aucun modèle approuvé disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)));
+
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final surface = Theme.of(context).colorScheme.surface;
+    final filtered = _filteredTemplates;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -434,76 +547,122 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        Text('${_templates.length} MODÈLES APPROUVÉS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.75,
-          ),
-          itemCount: _templates.length,
-          itemBuilder: (context, index) {
-            final t = _templates[index];
-            final title = t['template_name'] ?? 'Inconnu';
-            final lang = t['language'] ?? '';
-            final category = t['category'] ?? '';
-            final status = t['status'] ?? '';
-            final isSelected = _selectedTemplate != null && _selectedTemplate!['_uid'] == t['_uid'];
-
-            return GestureDetector(
-              onTap: () {
-                setState(() => _selectedTemplate = t);
-                _parseTemplate(t);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: isSelected ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300), width: isSelected ? 2 : 1),
-                  borderRadius: BorderRadius.circular(12),
-                  color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: ThemeService.primaryColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                          child: Text(category, style: TextStyle(fontSize: 10, color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.language, size: 12, color: isDark ? Colors.white54 : Colors.grey),
-                            const SizedBox(width: 2),
-                            Text(lang, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 8),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(Icons.description, size: 14, color: isDark ? Colors.white54 : Colors.grey),
-                        Text(status == 'APPROVED' ? 'Approuvé' : status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            );
-          },
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${filtered.length} MODÈLES APPROUVÉS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+            Row(
+              children: [
+                _buildCategoryFilterChip(null, 'Tous', isDark),
+                const SizedBox(width: 6),
+                _buildCategoryFilterChip('MARKETING', 'Marketing', isDark),
+                const SizedBox(width: 6),
+                _buildCategoryFilterChip('UTILITY', 'Utilitaire', isDark),
+              ],
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
+        if (filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('Aucun modèle dans cette catégorie.',
+                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final t = filtered[index];
+              final title = t['template_name'] ?? 'Inconnu';
+              final lang = t['language'] ?? '';
+              final category = (t['category'] ?? '').toString();
+              final status = t['status'] ?? '';
+              final catColor = _categoryColor(category);
+              final isSelected = _selectedTemplate != null && _selectedTemplate!['_uid'] == t['_uid'];
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _selectedTemplate = t);
+                  _parseTemplate(t);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: isSelected ? ThemeService.primaryColor : onSurface.withValues(alpha: 0.12), width: isSelected ? 2 : 1),
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : surface,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: catColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
+                            child: Text(category, style: TextStyle(fontSize: 10, color: catColor, fontWeight: FontWeight.bold)),
+                          ),
+                          Row(
+                            children: [
+                              Icon(Icons.language, size: 12, color: onSurface.withValues(alpha: 0.5)),
+                              const SizedBox(width: 2),
+                              Text(lang, style: TextStyle(fontSize: 10, color: onSurface.withValues(alpha: 0.5))),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: onSurface), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 8),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(Icons.description, size: 14, color: onSurface.withValues(alpha: 0.5)),
+                          Text(status == 'APPROVED' ? 'Approuvé' : status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
       ],
+    );
+  }
+
+  Widget _buildCategoryFilterChip(String? value, String label, bool isDark) {
+    final selected = _categoryFilter == value;
+    final color = value == null ? ThemeService.primaryColor : _categoryColor(value);
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => setState(() => _categoryFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : (isDark ? Colors.white24 : Colors.grey.shade300)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected ? color : (isDark ? Colors.white54 : Colors.grey.shade700))),
+      ),
     );
   }
 
@@ -572,9 +731,10 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
         ],
         if (_bodyVariables.isNotEmpty) ...[
           Text('VARIABLES DU CORPS', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold)),
-          Text('Saisissez le texte des variables.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
+          Text('Choisissez un tag prédéfini ou saisissez une valeur fixe.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
           const SizedBox(height: 12),
           ..._bodyVariables.map((v) {
+            final selectedTag = _variableTagSelection[v] ?? 'custom';
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
@@ -584,17 +744,38 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 children: [
                   Text('VARIABLE: $v', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _variableControllers[v],
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedTag,
+                    isExpanded: true,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+                    dropdownColor: isDark ? ThemeService.darkCard : Colors.white,
                     decoration: InputDecoration(
-                      hintText: 'Valeur fixe...',
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
                       filled: true,
                       fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
+                    items: [
+                      const DropdownMenuItem(value: 'custom', child: Text('Valeur personnalisée...')),
+                      ..._predefinedTags.entries.map(
+                          (e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))),
+                    ],
+                    onChanged: (val) => setState(() => _variableTagSelection[v] = val ?? 'custom'),
                   ),
+                  if (selectedTag == 'custom') ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _variableControllers[v],
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: InputDecoration(
+                        hintText: 'Valeur fixe...',
+                        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+                        filled: true,
+                        fillColor: isDark ? ThemeService.darkCard : Colors.grey.shade50,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );

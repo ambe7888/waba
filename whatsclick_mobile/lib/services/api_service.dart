@@ -1940,8 +1940,11 @@ class ApiService {
         });
       }
       if (bodyVariables != null) {
+        // Backend (WhatsAppServiceEngine::sendTemplateMessageProcess) reads
+        // flat 'field_N' request keys, not a nested 'body_variables' array —
+        // it never reads the latter, so variables would silently be dropped.
         bodyVariables.forEach((key, value) {
-          request.fields['body_variables[$key]'] = value;
+          request.fields['field_$key'] = value;
         });
       }
       if (buttonVariables != null) {
