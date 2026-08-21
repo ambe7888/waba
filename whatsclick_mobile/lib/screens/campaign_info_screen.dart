@@ -184,10 +184,14 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
           child: CircularProgressIndicator(color: ThemeService.primaryColor));
     }
 
-    final sent = _stats?['total_message_logs'] ?? 0;
-    final delivered = _stats?['successful_deliveries'] ?? 0;
-    final read = _stats?['read_deliveries'] ?? 0;
-    final failed = _stats?['failed_deliveries'] ?? 0;
+    // Field names match CampaignEngine::prepareCampaignData()'s
+    // $campaignStatusCountData (returned under client_models) — not the
+    // snake_case names this used to read, which never existed in the
+    // response, so these cards always silently showed zero.
+    final sent = _stats?['executedCount'] ?? 0;
+    final delivered = _stats?['totalDelivered'] ?? 0;
+    final read = _stats?['totalRead'] ?? 0;
+    final failed = _stats?['totalFailed'] ?? 0;
     
     final name = widget.campaign['title'] ?? 'N/A';
     final template = widget.campaign['template_name'] ?? 'N/A';

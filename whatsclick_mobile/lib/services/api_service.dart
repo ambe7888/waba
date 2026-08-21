@@ -2192,7 +2192,13 @@ class ApiService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
-          return Map<String, dynamic>.from(body['data']);
+          // The actual delivery counts (totalDelivered, totalRead, ...)
+          // live in client_models, not data — data only has the campaign
+          // record and status metadata.
+          return {
+            ...Map<String, dynamic>.from(body['data'] ?? {}),
+            ...Map<String, dynamic>.from(body['client_models'] ?? {}),
+          };
         }
       }
       return null;
