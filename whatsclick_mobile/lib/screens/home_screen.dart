@@ -45,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Notification badge counts
   int _unreadNewCount = 0; // nouveaux (unassigned)
   int _unreadMyCount = 0; // mes messages (assigned to me)
+  int _unreadNotificationsCount = 0; // bell icon (support replies, campaigns, etc.)
 
   // Animation
   late AnimationController _fadeController;
@@ -868,6 +869,12 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     } catch (_) {}
+    try {
+      final notifData = await ApiService().fetchNotifications();
+      if (mounted) {
+        setState(() => _unreadNotificationsCount = notifData['unreadCount'] ?? 0);
+      }
+    } catch (_) {}
   }
 
   Widget _buildSegmentButton(String label, String filter) {
@@ -1039,11 +1046,37 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, size: 24),
-            onPressed: () {
-              Navigator.of(context).push(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_none_rounded, size: 24),
+                if (_unreadNotificationsCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _unreadNotificationsCount > 9 ? '9+' : _unreadNotificationsCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () async {
+              await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
+              _refreshBadgeCounts();
             },
           ),
         ],

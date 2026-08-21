@@ -173,6 +173,11 @@ class ApiService {
               if (roleId != null) {
                 await _saveRoleId((roleId as num).toInt());
               }
+              final vendorUid = authInfo['vendor_uid']?.toString();
+              if (vendorUid != null && vendorUid.isNotEmpty) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('vendor_uid', vendorUid);
+              }
             }
             return {'success': true, 'two_factor': false};
           }
@@ -2504,10 +2509,27 @@ class ApiService {
     }
   }
 
+  /// Vendor UID for the {vendorUid}/-prefixed API routes (notifications).
+  /// Normally cached at login, but falls back to deriving it from the
+  /// dashboard stats endpoint for sessions that logged in before this was
+  /// persisted, so existing installs don't need to re-login.
+  Future<String> _getVendorUid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('vendor_uid');
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    final stats = await fetchDashboardStats();
+    final vendorUid = stats?['vendorInfo']?['uid']?.toString();
+    if (vendorUid != null && vendorUid.isNotEmpty) {
+      await prefs.setString('vendor_uid', vendorUid);
+      return vendorUid;
+    }
+    return '';
+  }
+
   /// Fetch Mobile Notifications
   Future<Map<String, dynamic>> fetchNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final vendorUid = prefs.getString('vendor_uid') ?? '';
+    final vendorUid = await _getVendorUid();
     final url = Uri.parse('$baseApiUrl$vendorUid/notifications');
     try {
       final response = await http
@@ -2532,8 +2554,7 @@ class ApiService {
 
   /// Mark Notifications as Read
   Future<bool> markNotificationsAsRead() async {
-    final prefs = await SharedPreferences.getInstance();
-    final vendorUid = prefs.getString('vendor_uid') ?? '';
+    final vendorUid = await _getVendorUid();
     final url = Uri.parse('$baseApiUrl$vendorUid/notifications/mark-read');
     try {
       final response = await http
