@@ -111,7 +111,10 @@ class _CreateDripCampaignScreenState extends State<CreateDripCampaignScreen> {
       return;
     }
 
-    for (final step in _steps) {
+    int failedSteps = 0;
+    String? lastStepError;
+    for (int i = 0; i < _steps.length; i++) {
+      final step = _steps[i];
       final success = await ApiService().storeDripCampaignStep(
         campaignUid,
         delayValue: step.delayValue,
@@ -119,21 +122,33 @@ class _CreateDripCampaignScreenState extends State<CreateDripCampaignScreen> {
         customMessage: step.useBotReply ? null : step.messageController.text.trim(),
         botReplyId: step.useBotReply ? step.selectedBotReplyId : null,
       );
-      if (!success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(ApiService().lastDripCampaignError ?? 'Erreur lors de l\'ajout d\'une étape'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+      if (!success) {
+        failedSteps++;
+        lastStepError = ApiService().lastDripCampaignError;
       }
     }
 
     if (mounted) {
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Campagne Drip créée avec succès !'), backgroundColor: Colors.green),
-      );
+      if (failedSteps > 0) {
+        // The campaign and any successful steps were still created — don't
+        // claim full success, but don't discard the work either.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$failedSteps étape(s) sur ${_steps.length} n\'ont pas pu être ajoutées'
+              '${lastStepError != null ? ' ($lastStepError)' : ''}. '
+              'La campagne a été créée avec le reste.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Campagne Drip créée avec succès !'), backgroundColor: Colors.green),
+        );
+      }
       Navigator.pop(context, true);
     }
   }
@@ -432,8 +447,12 @@ class _CreateDripCampaignScreenState extends State<CreateDripCampaignScreen> {
                 decoration: _buildInputDecoration('Choisir une réponse auto', isDark),
                 icon: Icon(Icons.keyboard_arrow_down_rounded, color: subtitleColor),
                 items: _botReplies.map((r) {
+                  // bot_replies__id on the backend is the numeric internal
+                  // id, not the uid — sending the uid here made MySQL choke
+                  // on the insert (truncation error) and silently drop the
+                  // step, which is why only earlier steps ever showed up.
                   return DropdownMenuItem(
-                    value: r['_uid']?.toString(),
+                    value: r['_id']?.toString(),
                     child: Text(r['name']?.toString() ?? 'Sans nom', overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
