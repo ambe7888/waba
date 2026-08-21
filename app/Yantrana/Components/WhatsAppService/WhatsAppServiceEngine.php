@@ -1834,6 +1834,18 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 }
                 $componentBodyIndex++;
             }
+            // WhatsApp's API requires "parameters" to be a plain, positionally
+            // ordered JSON array ([{{1}}, {{2}}, ...]) — the loop above keys
+            // it by placeholder string instead ("{{1}}", "{{2}}", ...), which
+            // json_encode()s as an object and gets the whole message rejected
+            // by Meta. Re-index in numeric {{N}} order before sending.
+            if (!empty($componentBody[0]['parameters'])) {
+                $bodyParametersByPlaceholder = $componentBody[0]['parameters'];
+                uksort($bodyParametersByPlaceholder, function ($a, $b) {
+                    return (int) trim($a, '{}') <=> (int) trim($b, '{}');
+                });
+                $componentBody[0]['parameters'] = array_values($bodyParametersByPlaceholder);
+            }
             $componentButtons = [];
             $parametersComponentsCreations = [
                 'COPY_CODE',

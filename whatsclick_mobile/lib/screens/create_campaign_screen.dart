@@ -158,22 +158,43 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
 
   Future<void> _fetchInitialData() async {
     try {
-      final templates = await ApiService().fetchTemplates();
-      // Full, unpaginated contact list — needed so "Contacts spécifiques"
-      // can actually offer every contact, not just the first page.
-      final contacts = await ApiService().fetchAllContactsSimple();
-      final audiences = await ApiService().fetchAudiences();
-      final groups = await ApiService().fetchContactGroups();
-      final labels = await ApiService().fetchContactLabelsWithCounts();
+      // Each fetch is isolated so that one failing (e.g. audiences or
+      // labels) doesn't wipe out data the others already loaded fine —
+      // previously a single failure here left step 2 showing "Aucun
+      // modèle approuvé disponible" even though templates had loaded.
+      final results = await Future.wait<dynamic>([
+        ApiService().fetchTemplates().catchError((e) {
+          debugPrint('fetchTemplates error: $e');
+          return <Map<String, dynamic>>[];
+        }),
+        // Full, unpaginated contact list — needed so "Contacts spécifiques"
+        // can actually offer every contact, not just the first page.
+        ApiService().fetchAllContactsSimple().catchError((e) {
+          debugPrint('fetchAllContactsSimple error: $e');
+          return <Contact>[];
+        }),
+        ApiService().fetchAudiences().catchError((e) {
+          debugPrint('fetchAudiences error: $e');
+          return <Map<String, dynamic>>[];
+        }),
+        ApiService().fetchContactGroups().catchError((e) {
+          debugPrint('fetchContactGroups error: $e');
+          return <Map<String, dynamic>>[];
+        }),
+        ApiService().fetchContactLabelsWithCounts().catchError((e) {
+          debugPrint('fetchContactLabelsWithCounts error: $e');
+          return <Map<String, dynamic>>[];
+        }),
+      ]);
 
       if (mounted) {
         setState(() {
-          _templates = templates;
-          _contacts = contacts;
+          _templates = results[0] as List<Map<String, dynamic>>;
+          _contacts = results[1] as List<Contact>;
           _filteredContacts = _contacts;
-          _audiences = audiences;
-          _groups = groups;
-          _labels = labels;
+          _audiences = results[2] as List<Map<String, dynamic>>;
+          _groups = results[3] as List<Map<String, dynamic>>;
+          _labels = results[4] as List<Map<String, dynamic>>;
           _isLoadingTemplates = false;
           _isLoadingAudienceData = false;
         });

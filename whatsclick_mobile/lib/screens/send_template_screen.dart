@@ -24,6 +24,17 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
   List<Map<String, dynamic>> _templates = [];
   bool _isLoadingTemplates = true;
   Map<String, dynamic>? _selectedTemplate;
+  String _templateSearchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredTemplates {
+    if (_templateSearchQuery.trim().isEmpty) return _templates;
+    final query = _templateSearchQuery.toLowerCase();
+    return _templates.where((t) {
+      final name = (t['template_name'] ?? '').toString().toLowerCase();
+      final category = (t['category'] ?? '').toString().toLowerCase();
+      return name.contains(query) || category.contains(query);
+    }).toList();
+  }
 
   // Step 2: Variables
   List<String> _bodyVariables = [];
@@ -475,11 +486,38 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
   }
 
   Widget _buildStep1() {
-    return _isLoadingTemplates
-        ? Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-        : _templates.isEmpty
-            ? Center(child: Text('Aucun modèle approuvé.'))
-            : GridView.builder(
+    if (_isLoadingTemplates) {
+      return Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
+    }
+    if (_templates.isEmpty) {
+      return Center(child: Text('Aucun modèle approuvé.'));
+    }
+
+    final filtered = _filteredTemplates;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: TextField(
+            onChanged: (val) => setState(() => _templateSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'Rechercher un modèle...',
+              prefixIcon: Icon(Icons.search_rounded, color: Colors.grey, size: 20),
+              filled: true,
+              fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            ),
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(child: Text('Aucun modèle ne correspond à la recherche.', style: TextStyle(color: Colors.grey)))
+              : GridView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -487,12 +525,13 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
                   crossAxisSpacing: 16,
                   childAspectRatio: 0.75,
                 ),
-                itemCount: _templates.length,
+                itemCount: filtered.length,
                 itemBuilder: (context, index) {
-                  final template = _templates[index];
+                  final template = filtered[index];
                   final isSelected = _selectedTemplate == template;
                   final category = template['category'] ?? 'Utility';
-                  
+                  final categoryColor = _categoryColor(category.toString());
+
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -506,7 +545,7 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                          color: isSelected ? categoryColor : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -519,12 +558,12 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
                               Container(
                                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF10B981).withValues(alpha: 0.1),
+                                  color: categoryColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  category.toUpperCase(),
-                                  style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
+                                  category.toString().toUpperCase(),
+                                  style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
                               ),
                               Icon(Icons.language, size: 14, color: Colors.grey),
@@ -559,7 +598,26 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
                     ),
                   );
                 },
-              );
+              ),
+        ),
+      ],
+    );
+  }
+
+  /// Distinct color per WhatsApp template category, instead of one color
+  /// for every card regardless of type. Matches the palette used on the
+  /// campaign creation wizard's template step.
+  static Color _categoryColor(String category) {
+    switch (category.toUpperCase()) {
+      case 'UTILITY':
+        return Colors.blue;
+      case 'MARKETING':
+        return Colors.deepOrange;
+      case 'AUTHENTICATION':
+        return Colors.purple;
+      default:
+        return const Color(0xFF10B981);
+    }
   }
 
   String _getPreviewText(Map<String, dynamic> template) {
