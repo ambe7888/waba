@@ -194,10 +194,17 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
     final read = _stats?['totalRead'] ?? 0;
     final failed = _stats?['totalFailed'] ?? 0;
     
-    final name = widget.campaign['title'] ?? 'N/A';
-    final template = widget.campaign['template_name'] ?? 'N/A';
-    final lang = widget.campaign['template_language'] ?? 'N/A';
-    final status = widget.campaign['status'] ?? 'N/A';
+    final name = widget.campaign['title']?.toString() ?? 'N/A';
+    final template = widget.campaign['template_name']?.toString() ?? 'N/A';
+    final lang = widget.campaign['template_language']?.toString() ?? 'N/A';
+    // widget.campaign['status'] is the raw tinyint DB column (e.g. 1, 5, 6),
+    // not a display string — passing it straight into a widget typed for
+    // String crashed with "type 'int' is not a subtype of type 'String'".
+    // _stats carries the same computed status text/key the web dashboard
+    // uses (CampaignEngine::prepareCampaignData()'s statusText/campaignStatus).
+    final statusText = _stats?['statusText']?.toString();
+    final status = (statusText != null && statusText.isNotEmpty) ? statusText : 'N/A';
+    final statusColorKey = _stats?['campaignStatus']?.toString();
     final formattedDate = formatDate(widget.campaign['created_at']);
     final date = formattedDate.isEmpty ? 'N/A' : formattedDate;
 
@@ -291,7 +298,7 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
                 _buildConfigRow('Langue', lang, onSurface),
                 _buildConfigRow('Date', date.toString().split(' ')[0], onSurface),
                 _buildConfigRow('Modèle', template, onSurface),
-                _buildConfigRow('Statut', status, onSurface, isStatus: true),
+                _buildConfigRow('Statut', status, onSurface, isStatus: true, colorKey: statusColorKey),
               ],
             ),
           ),
@@ -334,7 +341,8 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
     });
   }
 
-  Widget _buildConfigRow(String label, String value, Color onSurface, {bool isStatus = false}) {
+  Widget _buildConfigRow(String label, String value, Color onSurface, {bool isStatus = false, String? colorKey}) {
+    final statusColor = _statusColor(colorKey ?? value);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -345,14 +353,14 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor(value).withAlpha(30),
+                    color: statusColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(value.toUpperCase(),
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: _statusColor(value))),
+                          color: statusColor)),
                 )
               : Text(value,
                   style: TextStyle(
