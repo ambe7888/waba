@@ -78,7 +78,6 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
   // Mirrors config('__tech.contact_data_mapping') — the predefined contact
   // field tags offered as an alternative to manual entry.
   static const Map<String, String> _predefinedTags = {
-    'dynamic_contact_full_name': 'Nom complet du contact',
     'dynamic_contact_first_name': 'Prénom du contact',
     'dynamic_contact_last_name': 'Nom du contact',
     'dynamic_contact_wa_id': 'Téléphone du contact',

@@ -68,7 +68,7 @@ class CampaignAudienceController extends BaseController
     {
         validateVendorAccess('manage_campaigns');
 
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'title' => [
                 'required',
                 'max:150',
@@ -77,6 +77,20 @@ class CampaignAudienceController extends BaseController
                 })->ignore($audienceUid, '_uid')
             ]
         ]);
+        $validator->after(function ($validator) use ($request) {
+            $isAllContacts = $request->is_all_contacts == '1'
+                || $request->is_all_contacts == 'on'
+                || $request->is_all_contacts === true;
+            if (
+                !$isAllContacts
+                and empty($request->contacts)
+                and empty($request->groups)
+                and empty($request->labels)
+            ) {
+                $validator->errors()->add('contacts', __tr('Sélectionnez au moins des contacts, un groupe ou une étiquette.'));
+            }
+        });
+        $validator->validate();
 
         $processReaction = $this->campaignAudienceEngine->processAddOrUpdate($request, $audienceUid);
         return $this->processResponse($processReaction, [], [], true);

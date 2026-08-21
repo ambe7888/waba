@@ -5,6 +5,7 @@ import 'dart:io';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../models/contact.dart';
+import 'create_audience_screen.dart';
 
 class CreateCampaignScreen extends StatefulWidget {
   const CreateCampaignScreen({super.key});
@@ -96,7 +97,6 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   // Mirrors config('__tech.contact_data_mapping') — same predefined contact
   // field tags offered when sending a single template (send_template_screen.dart).
   static const Map<String, String> _predefinedTags = {
-    'dynamic_contact_full_name': 'Nom complet du contact',
     'dynamic_contact_first_name': 'Prénom du contact',
     'dynamic_contact_last_name': 'Nom du contact',
     'dynamic_contact_wa_id': 'Téléphone du contact',
@@ -205,6 +205,24 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
         setState(() {
           _isLoadingTemplates = false;
           _isLoadingAudienceData = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openCreateAudience() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CreateAudienceScreen()),
+    );
+    if (created == true && mounted) {
+      final audiences = await ApiService().fetchAudiences().catchError((e) => <Map<String, dynamic>>[]);
+      if (mounted) {
+        setState(() {
+          _audiences = audiences;
+          // Sorted ascending by id, so the newest one (just created) is last.
+          if (audiences.isNotEmpty) {
+            _selectedAudienceUid = audiences.last['_uid'];
+          }
         });
       }
     }
@@ -834,9 +852,14 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: isSelected ? ThemeService.primaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
+                    border: Border.all(
+                      color: isSelected ? ThemeService.primaryColor : (isDark ? Colors.white10 : Colors.grey.shade300),
+                      width: isSelected ? 2 : 1,
+                    ),
                     borderRadius: BorderRadius.circular(12),
-                    color: isSelected ? ThemeService.primaryColor.withValues(alpha: 0.08) : Colors.white,
+                    color: isSelected
+                        ? ThemeService.primaryColor.withValues(alpha: 0.08)
+                        : (isDark ? ThemeService.darkCard : Colors.white),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -851,22 +874,29 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
                           ),
                           Row(
                             children: [
-                              const Icon(Icons.language, size: 12, color: Colors.grey),
+                              Icon(Icons.language, size: 12, color: isDark ? Colors.white54 : Colors.grey),
                               const SizedBox(width: 2),
-                              Text(lang, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                              Text(lang, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey)),
                             ],
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(title,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 8),
                       const Spacer(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.description, size: 14, color: Colors.grey),
-                          Text(status == 'APPROVED' ? 'Approuvé' : status, style: TextStyle(color: status == 'APPROVED' ? Colors.green : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                          Icon(Icons.description, size: 14, color: isDark ? Colors.white54 : Colors.grey),
+                          Text(status == 'APPROVED' ? 'Approuvé' : status,
+                              style: TextStyle(
+                                  color: status == 'APPROVED' ? Colors.green : (isDark ? Colors.white54 : Colors.grey),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       )
                     ],
@@ -1277,6 +1307,15 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             ],
           ],
         ] else if (_audienceMode == 'audiences') ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _openCreateAudience,
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: const Text('Créer une audience'),
+              style: TextButton.styleFrom(foregroundColor: ThemeService.primaryColor),
+            ),
+          ),
           if (_audiences.isEmpty) Text("Aucune audience enregistrée disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           ..._audiences.map((a) {
             return RadioListTile<String>(

@@ -554,12 +554,13 @@ Route::group([
             // fields are ever used from the result.
             $contacts = \Illuminate\Support\Facades\DB::table('contacts')
                 ->where('vendors__id', $vendorId)
-                ->select(['_uid', 'first_name', 'last_name', 'wa_id'])
+                ->select(['_id', '_uid', 'first_name', 'last_name', 'wa_id'])
                 ->orderBy('first_name', 'asc')
                 ->orderBy('last_name', 'asc')
                 ->get()
                 ->map(function ($c) {
                     return [
+                        '_id' => $c->_id,
                         '_uid' => $c->_uid,
                         'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
                         'wa_id' => $c->wa_id,

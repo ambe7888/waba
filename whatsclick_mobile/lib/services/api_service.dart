@@ -1212,8 +1212,11 @@ class ApiService {
         final body = jsonDecode(response.body);
         if (debug) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
 
-        // 1. Standard API response (reaction == 1)
-        if (body['reaction'] == 1) {
+        // 1. Standard API response (reaction == 1) or the "external API"
+        // convention (result == 'success') — apiGetCampaignList() is shared
+        // with a genuine external-API route, so it wraps with result/data
+        // instead of this app's usual reaction/data.
+        if (body['reaction'] == 1 || body['result'] == 'success') {
           final raw = body['data']?['campaignList'];
           if (debug) {
             debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
@@ -1719,20 +1722,26 @@ class ApiService {
     }
   }
 
+  /// Reason the last createAudience() call failed, if any.
+  String? lastAudienceError;
+
   /// Create a campaign audience
   Future<Map<String, dynamic>?> createAudience({
     required String title,
+    bool isAllContacts = false,
     List<String>? contacts,
     List<String>? groups,
     List<String>? labels,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/create');
+    lastAudienceError = null;
     try {
       final payload = {
         'title': title,
-        'contacts': contacts ?? [],
-        'groups': groups ?? [],
-        'labels': labels ?? [],
+        if (isAllContacts) 'is_all_contacts': '1',
+        'contacts': isAllContacts ? [] : (contacts ?? []),
+        'groups': isAllContacts ? [] : (groups ?? []),
+        'labels': isAllContacts ? [] : (labels ?? []),
       };
       final response = await http
           .post(
@@ -1741,8 +1750,17 @@ class ApiService {
             body: jsonEncode(payload),
           )
           .timeout(const Duration(seconds: 20));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return body as Map<String, dynamic>;
+      }
+      final errors = body['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        lastAudienceError = errors.values.first is List
+            ? (errors.values.first as List).first.toString()
+            : errors.values.first.toString();
+      } else if (body['message'] is String) {
+        lastAudienceError = body['message'];
       }
       return null;
     } catch (e) {

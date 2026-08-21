@@ -27,6 +27,7 @@ class ContactLabel {
 }
 
 class Contact {
+  final int? id;
   final String uid;
   final String name;
   String get fullName => name;
@@ -43,6 +44,7 @@ class Contact {
   final bool isBlocked;
 
   Contact({
+    this.id,
     required this.uid,
     required this.name,
     required this.phoneNumber,
@@ -77,6 +79,7 @@ class Contact {
         : <ContactLabel>[];
 
     return Contact(
+      id: int.tryParse(json['id']?.toString() ?? json['_id']?.toString() ?? ''),
       uid: json['uid']?.toString() ?? json['_uid']?.toString() ?? '',
       name: json['full_name']?.toString() ?? json['name']?.toString() ?? json['first_name']?.toString() ?? json['wa_name']?.toString() ?? json['wa_id']?.toString() ?? 'Inconnu',
       phoneNumber: json['phone_number']?.toString() ?? json['wa_id']?.toString() ?? json['phoneNumber']?.toString() ?? '',
@@ -112,6 +115,7 @@ class Contact {
     bool? isBlocked,
   }) {
     return Contact(
+      id: id,
       uid: uid ?? this.uid,
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
