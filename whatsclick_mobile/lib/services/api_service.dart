@@ -1030,6 +1030,30 @@ class ApiService {
     }
   }
 
+  /// Fetch every template regardless of status (APPROVED/PENDING/REJECTED/…)
+  /// — for the template management screen. fetchTemplates() above only
+  /// returns APPROVED ones, which is right for sending/campaigns but hides
+  /// pending or rejected templates from the admin list.
+  Future<List<Map<String, dynamic>>> fetchAllTemplates() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/all');
+    try {
+      final response = await http.get(url, headers: _getHeaders());
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['templates'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch All Templates Error: $e');
+      return [];
+    }
+  }
+
   /// Message from the last sendTemplateMessage() failure, if any — the real
   /// reason (e.g. which field failed validation) instead of a generic error.
   String? lastTemplateSendError;
@@ -2146,6 +2170,31 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Sync Templates Error: $e');
       return (reaction: 2, message: null);
+    }
+  }
+
+  /// Reason the last deleteTemplate() call failed, if any.
+  String? lastTemplateDeleteError;
+
+  /// Delete a WhatsApp Meta template. The backend removes it from the local
+  /// database in all cases, even if the Meta-side deletion call itself fails
+  /// or is still propagating — so a true result here means it's already
+  /// gone from our list, regardless of Meta's own sync delay.
+  Future<bool> deleteTemplate(String templateUid) async {
+    lastTemplateDeleteError = null;
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/$templateUid');
+    try {
+      final response = await http
+          .delete(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (body['reaction'] == 1) return true;
+      lastTemplateDeleteError = body['message']?.toString();
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Template Error: $e');
+      lastTemplateDeleteError = e.toString();
+      return false;
     }
   }
 

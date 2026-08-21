@@ -90,6 +90,19 @@ class WhatsAppTemplateRepository extends BaseRepository implements WhatsAppTempl
         ])->latest()->get();
     }
 
+    /**
+     * Get all templates (any status) in latest order — for template
+     * management views where pending/rejected templates must stay visible,
+     * unlike getApprovedTemplatesByNewest() which is for send/campaign flows.
+     *
+     * @return Eloquent
+     */
+    function getAllTemplatesByNewest() {
+        return $this->primaryModel::where([
+            'vendors__id' => getVendorId(),
+        ])->latest()->get();
+    }
+
     public function fetchTemplateListPaginatedData()
     {
         $paginateCount = request()->get('page_size') ?? 100;

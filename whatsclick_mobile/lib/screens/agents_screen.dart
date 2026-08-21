@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'agent_detail_screen.dart';
+import 'create_agent_screen.dart';
 
 class AgentsScreen extends StatefulWidget {
   const AgentsScreen({super.key});
@@ -42,6 +43,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
     }
   }
 
+  void _openCreateAgent() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreateAgentScreen()),
+    );
+  }
+
   void _openDetail(Map<String, dynamic> agent) {
     Navigator.of(context)
         .push(
@@ -67,6 +74,13 @@ class _AgentsScreenState extends State<AgentsScreen> {
         title: const Text('Agents', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            tooltip: 'Ajouter un agent',
+            onPressed: _openCreateAgent,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -256,48 +270,39 @@ class _AgentsScreenState extends State<AgentsScreen> {
     );
   }
 
-  /// Agent creation is web-only (no mobile API endpoint for it) — explain
-  /// exactly where to go instead of leaving the user guessing.
+  /// Agent creation is web-only (no mobile API endpoint for it) — this bar
+  /// just points to the dedicated CreateAgentScreen for the full explanation.
   Widget _buildAddAgentHint(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: ThemeService.primaryColor.withValues(alpha: 0.08),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: ThemeService.primaryColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded, color: ThemeService.primaryColor, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pour ajouter un nouvel agent',
+        onTap: _openCreateAgent,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: ThemeService.primaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: ThemeService.primaryColor.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.person_add_alt_1_rounded, color: ThemeService.primaryColor, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Ajouter un nouvel agent',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Cela se fait depuis la version web : ouvrez le Menu → '
-                  '« Membres de l\'équipe » → « Ajouter un Nouveau Membre », '
-                  'puis créez-le en définissant ses autorisations.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: ThemeService.primaryColor, size: 20),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

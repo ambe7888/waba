@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'create_template_screen.dart';
@@ -15,7 +17,7 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
   List<Map<String, dynamic>> _filteredTemplates = [];
   bool _isLoading = true;
   bool _isSyncing = false;
-  
+
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
   String _selectedStatus = 'ALL';
@@ -28,7 +30,10 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
 
   Future<void> _loadTemplates() async {
     setState(() => _isLoading = true);
-    final templates = await ApiService().fetchTemplates();
+    // Every status (APPROVED/PENDING/REJECTED/…), not just approved — this
+    // is the management screen, so a freshly created pending template must
+    // be visible here even though it can't be sent yet.
+    final templates = await ApiService().fetchAllTemplates();
     if (mounted) {
       setState(() {
         _allTemplates = templates;
@@ -41,21 +46,14 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
   void _filterTemplates() {
     setState(() {
       _filteredTemplates = _allTemplates.where((t) {
-        // 1. Seulement les modèles Meta
-        final isMeta = (t['status'] != null && t['status'].toString().isNotEmpty);
-        if (!isMeta) return false;
-
-        // 2. Recherche texte
         final matchesSearch = (t['template_name'] ?? '')
             .toString()
             .toLowerCase()
             .contains(_searchQuery.toLowerCase());
 
-        // 3. Catégorie
         final category = t['category'] ?? '';
         final matchesCategory = _selectedCategory == 'ALL' || category == _selectedCategory;
 
-        // 4. Statut
         final status = t['status'] ?? '';
         final matchesStatus = _selectedStatus == 'ALL' || status == _selectedStatus;
 
@@ -97,10 +95,231 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
     });
   }
 
+  Future<void> _openTemplateOnWeb(Map<String, dynamic> template) async {
+    final uid = template['_uid']?.toString();
+    if (uid == null) return;
+    final url = Uri.parse('${baseUrl}vendor-console/whatsapp/templates/update/$uid');
+    final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'ouvrir le navigateur.')),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete(Map<String, dynamic> template) async {
+    final name = template['template_name'] ?? 'ce modèle';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce modèle ?'),
+        content: Text(
+          'Le modèle « $name » sera supprimé de votre compte WhatsApp Business. '
+          'Cette action est définitive et ne peut pas être annulée.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final uid = template['_uid']?.toString();
+    if (uid == null) return;
+
+    final success = await ApiService().deleteTemplate(uid);
+    if (!mounted) return;
+
+    if (success) {
+      // Optimistic removal: the backend already deletes the local record
+      // in all cases (even if the Meta-side API call lags or fails), so the
+      // template must disappear here immediately rather than waiting for a
+      // future sync/refresh to catch up.
+      setState(() {
+        _allTemplates.removeWhere((t) => t['_uid']?.toString() == uid);
+        _filterTemplates();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Modèle « $name » supprimé.'), backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ApiService().lastTemplateDeleteError ?? 'Échec de la suppression.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openTemplateActions(Map<String, dynamic> template) {
+    final isDark = ThemeService().isDark;
+    final String name = template['template_name'] ?? 'Sans nom';
+    final String status = template['status'] ?? '';
+    final String language = template['language'] ?? '';
+    final String category = template['category'] ?? '';
+    final String bodyText = _bodyTextOf(template);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (ctx, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                  _statusBadge(status),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${category.isNotEmpty ? category : '—'} · ${language.toUpperCase()}',
+                style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.black12 : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                ),
+                child: Text(
+                  bodyText.isNotEmpty ? bodyText : 'Pas de texte dans le corps du modèle.',
+                  style: TextStyle(fontSize: 14, height: 1.5, color: isDark ? Colors.white : const Color(0xFF1F2937)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showEditConditions(template);
+                  },
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  label: const Text('Modifier'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ThemeService.primaryColor,
+                    side: BorderSide(color: ThemeService.primaryColor),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _confirmDelete(template);
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  label: const Text('Supprimer'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Editing a Meta template isn't a simple in-app form — Meta imposes real
+  /// constraints (re-review, edit-frequency limits, some fields locked after
+  /// creation), so this explains them upfront instead of the app silently
+  /// letting an edit fail or get rejected on Meta's side.
+  void _showEditConditions(Map<String, dynamic> template) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Avant de modifier'),
+        content: const Text(
+          'La modification d\'un modèle Meta se fait depuis la version web, '
+          'et est soumise aux règles de WhatsApp :\n\n'
+          '• Un modèle déjà approuvé repasse en « En attente » et doit être '
+          're-validé par Meta après modification.\n'
+          '• Le nombre de modifications est limité sur une période donnée ; '
+          'des modifications trop fréquentes peuvent être bloquées.\n'
+          '• Le nom, la langue et la catégorie ne peuvent pas être changés — '
+          'il faut créer un nouveau modèle pour cela.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _openTemplateOnWeb(template);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeService.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continuer sur le web'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _bodyTextOf(Map<String, dynamic> template) {
+    final Map<String, dynamic> rawData = template['__data']?['template'] ?? {};
+    final List components = rawData['components'] ?? [];
+    for (var comp in components) {
+      if (comp['type'] == 'BODY') return comp['text'] ?? '';
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService().isDark;
-    
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -201,7 +420,7 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
               ],
             ),
           ),
-          
+
           // Catégories (Filtres horizontaux)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -216,7 +435,7 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Liste des modèles
+          // Grille des modèles
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -247,8 +466,14 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _loadTemplates,
-                        child: ListView.builder(
+                        child: GridView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            childAspectRatio: 0.72,
+                          ),
                           itemCount: _filteredTemplates.length,
                           itemBuilder: (ctx, i) => _buildTemplateCard(isDark, _filteredTemplates[i]),
                         ),
@@ -281,7 +506,49 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
       case 'PENDING_DELETION':
         return 'Suppression en attente';
       default:
-        return status;
+        return status.isEmpty ? '—' : status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'APPROVED':
+        return const Color(0xFF10B981);
+      case 'PENDING':
+        return Colors.orange;
+      case 'REJECTED':
+      case 'DISABLED':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _statusBadge(String status) {
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10.5),
+      ),
+    );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category.toUpperCase()) {
+      case 'UTILITY':
+        return Colors.blue;
+      case 'MARKETING':
+        return Colors.deepOrange;
+      case 'AUTHENTICATION':
+        return Colors.purple;
+      default:
+        return ThemeService.primaryColor;
     }
   }
 
@@ -300,8 +567,8 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected 
-                ? ThemeService.primaryColor 
+            color: isSelected
+                ? ThemeService.primaryColor
                 : (isDark ? const Color(0xFF1E293B) : Colors.white),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
@@ -330,131 +597,82 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
     final String status = template['status'] ?? '';
     final String language = template['language'] ?? '';
     final String category = template['category'] ?? '';
-    final Map<String, dynamic> rawData = template['__data']?['template'] ?? {};
-    final List components = rawData['components'] ?? [];
-
-    String bodyText = '';
-    for (var comp in components) {
-      if (comp['type'] == 'BODY') {
-        bodyText = comp['text'] ?? '';
-        break;
-      }
-    }
-
-    Color statusColor = Colors.grey;
-    if (status == 'APPROVED') statusColor = Colors.green;
-    if (status == 'PENDING') statusColor = Colors.orange;
-    if (status == 'REJECTED') statusColor = Colors.red;
+    final String bodyText = _bodyTextOf(template);
+    final categoryColor = _categoryColor(category);
 
     IconData catIcon = Icons.message_rounded;
-    Color catColor = ThemeService.primaryColor;
     if (category == 'MARKETING') {
       catIcon = Icons.campaign_rounded;
-      catColor = Colors.deepOrange;
     } else if (category == 'UTILITY') {
       catIcon = Icons.notifications_active_rounded;
-      catColor = Colors.blue;
     } else if (category == 'AUTHENTICATION') {
       catIcon = Icons.security_rounded;
-      catColor = Colors.purple;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: catColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(catIcon, color: catColor, size: 22),
+    return GestureDetector(
+      onTap: () => _openTemplateActions(template),
+      onLongPress: () => _openTemplateActions(template),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-        title: Text(
-          name, 
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  language.toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54),
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (status.isNotEmpty)
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
+                    color: categoryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(
-                    _statusLabel(status),
-                    style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(catIcon, size: 11, color: categoryColor),
+                      const SizedBox(width: 3),
+                      Text(
+                        language.toUpperCase(),
+                        style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-        ),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.black12 : const Color(0xFFF8FAFC),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.segment_rounded, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text('Contenu du message', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                  ),
-                  child: Text(
-                    bodyText.isNotEmpty ? bodyText : 'Pas de texte dans le corps du modèle.',
-                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1F2937), height: 1.5),
-                  ),
-                ),
+                Icon(Icons.more_horiz_rounded, size: 18, color: Colors.grey.withValues(alpha: 0.6)),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Expanded(
+              child: Text(
+                bodyText.isNotEmpty ? bodyText : 'Pas de texte.',
+                style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _statusBadge(status),
+          ],
+        ),
       ),
     );
   }

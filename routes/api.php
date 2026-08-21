@@ -328,6 +328,21 @@ Route::group([
             ]);
         })->name('app_api.vendor.whatsapp.templates');
 
+        // Get all WhatsApp templates (any status) — for the template
+        // management screen, unlike the endpoint above which only returns
+        // APPROVED templates (meant for sending/campaign selection).
+        Route::get('/whatsapp/templates/all', function () {
+            validateVendorAccess('messaging');
+            $repository = app(App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppTemplateRepository::class);
+            $whatsAppTemplates = $repository->getAllTemplatesByNewest();
+            return response()->json([
+                'reaction' => 1,
+                'data' => [
+                    'templates' => $whatsAppTemplates
+                ]
+            ]);
+        })->name('app_api.vendor.whatsapp.templates.all');
+
         // Send WhatsApp template message
         Route::post('/whatsapp/contact/send-template-message', function (Illuminate\Http\Request $request) {
             validateVendorAccess('messaging');
@@ -806,6 +821,11 @@ Route::group([
             WhatsAppTemplateController::class,
             'createNewTemplateProcess',
         ])->name('app_api.vendor.whatsapp.templates.create');
+        // Delete WhatsApp Template
+        Route::delete('/whatsapp/templates/{whatsappTemplateId}', [
+            WhatsAppTemplateController::class,
+            'deleteTemplate',
+        ])->name('app_api.vendor.whatsapp.templates.delete');
         // Create and schedule campaign (supports contact_uids)
         Route::post('/whatsapp/campaign/schedule', function (Illuminate\Http\Request $request) {
             validateVendorAccess('manage_campaigns');
