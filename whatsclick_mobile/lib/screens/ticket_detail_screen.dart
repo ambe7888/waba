@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../config/app_config.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final String ticketUid;
@@ -128,9 +130,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     }
   }
 
+  Future<void> _openAttachment(String filePath) async {
+    final uri = Uri.parse('${baseUrl}storage/$filePath');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Impossible d'ouvrir cette pièce jointe.")),
+      );
+    }
+  }
+
   Widget _buildMessageBubble(
       String sender, String message, String time, bool isMe,
-      {Map<String, dynamic>? attachment}) {
+      {List<Map<String, dynamic>>? attachments}) {
     final isDark = ThemeService().isDark;
 
     return Align(
@@ -181,38 +194,57 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     : (isDark ? Colors.white : Colors.black87),
               ),
             ),
-            if (attachment != null) ...[
+            if (attachments != null && attachments.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isMe ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.attach_file,
-                        size: 16,
-                        color: isMe
-                            ? Colors.white
-                            : (isDark ? Colors.white70 : Colors.black54)),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        attachment['file_name'] ?? 'Fichier',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isMe
-                              ? Colors.white
-                              : (isDark ? Colors.white70 : Colors.black87),
-                        ),
-                        overflow: TextOverflow.ellipsis,
+              ...attachments.map((attachment) {
+                final filePath = attachment['file_path'];
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: InkWell(
+                    onTap: filePath != null ? () => _openAttachment(filePath) : null,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isMe ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.attach_file,
+                              size: 16,
+                              color: isMe
+                                  ? Colors.white
+                                  : (isDark ? Colors.white70 : Colors.black54)),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              attachment['file_name'] ?? 'Fichier',
+                              style: TextStyle(
+                                fontSize: 12,
+                                decoration: filePath != null ? TextDecoration.underline : null,
+                                color: isMe
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (filePath != null) ...[
+                            const SizedBox(width: 4),
+                            Icon(Icons.download_rounded,
+                                size: 14,
+                                color: isMe
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black54)),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              }),
             ],
             const SizedBox(height: 6),
             Text(
@@ -280,15 +312,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         controller: _scrollController,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         children: [
-                          // Original ticket message
+                          // Original ticket message. apiStore stores a single
+                          // attachment under the singular 'attachment' key.
                           _buildMessageBubble(
                             'Vous',
                             _ticket?['description'] ?? '',
                             _formatDate(_ticket?['created_at']),
                             true,
+                            attachments: _ticket?['__data']?['attachment'] != null
+                                ? [Map<String, dynamic>.from(_ticket!['__data']['attachment'])]
+                                : null,
                           ),
 
-                          // Replies
+                          // Replies. apiReply always stores under the plural
+                          // 'attachments' key (a list), even for a single file.
                           ..._replies.map((reply) {
                             // Check if reply is from vendor or admin
                             final isMe = reply['users__id'] ==
@@ -296,13 +333,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                             final senderName = isMe
                                 ? 'Vous'
                                 : (reply['user']?['first_name'] ?? 'Support');
+                            final rawAttachments = reply['__data']?['attachments'];
 
                             return _buildMessageBubble(
                               senderName,
                               reply['message'] ?? '',
                               _formatDate(reply['created_at']),
                               isMe,
-                              attachment: reply['__data']?['attachment'],
+                              attachments: rawAttachments is List
+                                  ? rawAttachments.map((a) => Map<String, dynamic>.from(a)).toList()
+                                  : null,
                             );
                           }),
                         ],

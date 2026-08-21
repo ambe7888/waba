@@ -434,9 +434,32 @@ class ApiService {
   }
 
   /// Create support ticket
-  Future<bool> createSupportTicket(String subject, String description) async {
+  Future<bool> createSupportTicket(String subject, String description,
+      {File? attachment}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/store');
     try {
+      if (attachment != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('auth_token') ?? '';
+        var request = http.MultipartRequest('POST', url);
+        request.headers.addAll({
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        });
+        request.fields['subject'] = subject;
+        request.fields['description'] = description;
+        // Backend (SupportTicketController::store) reads a single file
+        // under 'attachment' (singular) — unlike replies, which accept
+        // multiple files under 'attachments[]'.
+        request.files.add(await http.MultipartFile.fromPath('attachment', attachment.path));
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 200) {
+          final body = jsonDecode(response.body);
+          return body['reaction'] == 1;
+        }
+        return false;
+      }
       final response = await http.post(
         url,
         headers: _getHeaders(),

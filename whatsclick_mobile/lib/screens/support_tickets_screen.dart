@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'ticket_detail_screen.dart';
@@ -75,6 +77,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     final subjectController = TextEditingController();
     final descriptionController = TextEditingController();
     bool isSubmitting = false;
+    File? selectedFile;
 
     showModalBottomSheet(
       context: context,
@@ -117,6 +120,44 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                           borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final result = await FilePicker.platform.pickFiles();
+                      if (result != null && result.files.single.path != null) {
+                        setModalState(() => selectedFile = File(result.files.single.path!));
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.attach_file, size: 18, color: Colors.grey.shade600),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              selectedFile != null
+                                  ? selectedFile!.path.split(Platform.pathSeparator).last
+                                  : 'Ajouter une pièce jointe (optionnel)',
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (selectedFile != null)
+                            GestureDetector(
+                              onTap: () => setModalState(() => selectedFile = null),
+                              child: Icon(Icons.close, size: 16, color: Colors.red),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -135,7 +176,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
 
                               setModalState(() => isSubmitting = true);
                               final success = await ApiService()
-                                  .createSupportTicket(subject, desc);
+                                  .createSupportTicket(subject, desc, attachment: selectedFile);
 
                               if (mounted) {
                                 Navigator.pop(context);

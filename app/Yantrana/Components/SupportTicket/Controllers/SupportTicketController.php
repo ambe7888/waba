@@ -112,6 +112,7 @@ class SupportTicketController extends BaseController
             'subject' => 'required|string|max:150',
             'description' => 'required|string',
             'priority' => 'nullable|string|in:low,normal,high',
+            'attachment' => 'nullable|file|max:10240', // 10MB max
         ]);
 
         $vendorId = getVendorId();
@@ -121,6 +122,17 @@ class SupportTicketController extends BaseController
             'users__id' => Auth::id()
         ])->first();
 
+        $fileData = null;
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('support_tickets', $filename, 'public');
+            $fileData = [
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName()
+            ];
+        }
+
         $ticket = TicketModel::create([
             'status' => 1,
             'vendors__id' => $vendorId,
@@ -129,7 +141,7 @@ class SupportTicketController extends BaseController
             'priority' => $request->priority ?? 'normal',
             'vendor_users__id' => $vendorUser ? $vendorUser->_id : null,
             'contacts__id' => null,
-            '__data' => null,
+            '__data' => $fileData ? ['attachment' => $fileData] : null,
         ]);
 
         return $this->processResponse(1, [
