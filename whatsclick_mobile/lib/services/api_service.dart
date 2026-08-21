@@ -2253,7 +2253,10 @@ class ApiService {
           .timeout(const Duration(seconds: 35));
 
       final body = jsonDecode(response.body);
-      if (response.statusCode == 200 && (body['reaction'] == 1 || body['result'] == 'success')) {
+      // createNewTemplateProcess() uses reaction 21 (not 1) for a genuine
+      // success — this was silently misread as a failure until now, even
+      // though the template really was created.
+      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21 || body['result'] == 'success')) {
         return Map<String, dynamic>.from(body);
       }
       final errors = body['errors'];

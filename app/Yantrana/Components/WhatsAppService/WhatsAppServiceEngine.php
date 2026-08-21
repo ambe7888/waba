@@ -2265,6 +2265,26 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             'media_message' => '',
             'send_message_via_marketing_message_api' => false
         ], $options);
+        // Template sends never pass message_body, so the chat log's
+        // "message" column — and with it, every chat bubble for a sent
+        // template — was always stored empty. Reconstruct a readable
+        // preview from the template's BODY component with its parameter
+        // values substituted in, so history actually shows what was sent.
+        if (__isEmpty($options['message_body']) and !__isEmpty($templateProforma)) {
+            $bodyComponentProforma = Arr::first($templateProforma['components'] ?? [], function ($component) {
+                return ($component['type'] ?? null) == 'BODY';
+            });
+            $bodyText = $bodyComponentProforma['text'] ?? '';
+            if (!__isEmpty($bodyText)) {
+                $bodyComponentValues = Arr::first($messageComponents ?? [], function ($component) {
+                    return ($component['type'] ?? null) == 'body';
+                });
+                foreach (($bodyComponentValues['parameters'] ?? []) as $paramIndex => $param) {
+                    $bodyText = str_replace('{{' . ($paramIndex + 1) . '}}', $param['text'] ?? '', $bodyText);
+                }
+                $options['message_body'] = $bodyText;
+            }
+        }
         // sleep(2); // sleep for 2 seconds to avoid CPU overload
         $currentPhoneNumberId = $fromPhoneNumberId ?: getVendorSettings('current_phone_number_id', null, null, $vendorId);
         fromPhoneNumberIdForRequest($currentPhoneNumberId);

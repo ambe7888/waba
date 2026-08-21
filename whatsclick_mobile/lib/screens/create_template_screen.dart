@@ -201,7 +201,9 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
     final result = await ApiService().createTemplate(payload);
     if (mounted) {
       setState(() => _isSubmitting = false);
-      if (result != null && result['reaction'] == 1) {
+      // createTemplate() only ever returns non-null on a genuine success
+      // (it already checks reaction 1/21/result:success internally).
+      if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Modèle créé avec succès !'), backgroundColor: Colors.green),
         );
