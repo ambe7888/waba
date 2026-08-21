@@ -318,7 +318,7 @@ class CampaignController extends BaseController
      *---------------------------------------------------------------- */
     public function apiGetCampaignList()
     {
-        validateVendorAccess('administrative');
+        validateVendorAccess('manage_campaigns');
         // ask engine to process the request
         $processReaction = $this->campaignEngine->prepareCampaignList();
         

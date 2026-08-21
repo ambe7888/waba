@@ -276,7 +276,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   Widget _buildHeaderStats(Color surfaceCard, Color onSurface) {
     if (_globalStats == null) return const SizedBox.shrink();
     
-    final launched = _globalStats?['campaignsLaunched'] ?? 0; // Adjust keys later based on API
+    final launched = _globalStats?['totalCampaigns'] ?? 0;
     final sent = _globalStats?['totalMessagesSent'] ?? 0;
     final delivered = _globalStats?['totalDeliveredMessages'] ?? 0;
     final read = _globalStats?['totalMessagesRead'] ?? 0;
