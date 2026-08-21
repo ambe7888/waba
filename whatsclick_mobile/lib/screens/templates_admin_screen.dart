@@ -66,16 +66,26 @@ class _TemplatesAdminScreenState extends State<TemplatesAdminScreen> {
 
   Future<void> _syncTemplates() async {
     setState(() => _isSyncing = true);
-    final success = await ApiService().syncTemplates();
+    final result = await ApiService().syncTemplates();
     if (mounted) {
       setState(() => _isSyncing = false);
+      // 1 = synced with real changes; 14 = reached the server fine but
+      // nothing new to sync — that's not a failure, just show it as info
+      // instead of a scary red "failed" banner. Anything else is a real
+      // error, and we show the backend's actual message, not a generic one.
+      final isRealFailure = result.reaction != 1 && result.reaction != 14;
+      final message = result.message?.isNotEmpty == true
+          ? result.message!
+          : (result.reaction == 1 ? 'Modèles synchronisés !' : 'Échec de la synchronisation.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Modèles synchronisés !' : 'Échec de la synchronisation.'),
-          backgroundColor: success ? Colors.green : Colors.red,
+          content: Text(message),
+          backgroundColor: result.reaction == 1
+              ? Colors.green
+              : (isRealFailure ? Colors.red : Colors.blueGrey),
         ),
       );
-      if (success) _loadTemplates();
+      if (result.reaction == 1) _loadTemplates();
     }
   }
 

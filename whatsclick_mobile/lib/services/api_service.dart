@@ -2098,20 +2098,22 @@ class ApiService {
   }
 
   /// Synchronize templates from Meta (Admin Only)
-  Future<bool> syncTemplates() async {
+  /// [reaction] 1 = synced with changes, 14 = reached out to Meta fine but
+  /// nothing new to sync (not an error), anything else = a real failure.
+  /// [message] is the backend's own text, e.g. "Templates Sync successfully"
+  /// / "Nothing Updated" / "Please complete your WhatsApp Cloud API Setup
+  /// first", so the UI can show the real reason instead of a generic one.
+  Future<({int reaction, String? message})> syncTemplates() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/sync');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 40));
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return body['reaction'] == 1;
-      }
-      return false;
+      final body = jsonDecode(response.body);
+      return (reaction: (body['reaction'] as num?)?.toInt() ?? 2, message: body['message']?.toString());
     } catch (e) {
       if (debug) debugPrint('Sync Templates Error: $e');
-      return false;
+      return (reaction: 2, message: null);
     }
   }
 
