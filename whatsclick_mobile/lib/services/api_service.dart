@@ -2088,7 +2088,13 @@ class ApiService {
           request.fields['contact_labels[$i]'] = labels[i];
         }
       } else if (audienceMode == 'audiences' && audienceUid != null) {
-        request.fields['campaign_audience'] = audienceUid;
+        // WhatsAppServiceEngine::processCampaignCreate() reads
+        // $request->audience_uid — sending it under any other key left it
+        // empty from the engine's point of view, so it fell back to
+        // requiring contact_group (never sent in this mode) and every
+        // audience-based campaign failed validation with "Le champ contact
+        // group est obligatoire.", regardless of what the user picked.
+        request.fields['audience_uid'] = audienceUid;
       } else if (audienceMode == 'all') {
         request.fields['contact_group[0]'] = 'all_contacts';
       }

@@ -173,7 +173,11 @@ abstract class CoreModel extends Eloquent
     {
         $inputData = Request::all();
 
-        $columns = $inputData['columns'];
+        // jQuery DataTables always sends columns/start/search, but a plain
+        // JSON API caller (e.g. the mobile app, which only sends length and
+        // draw) doesn't — defaulting these avoids an "Undefined array key"
+        // crash for any caller that isn't the web DataTables widget.
+        $columns = $inputData['columns'] ?? [];
         $order = isset($inputData['order']) ? $inputData['order'] : null;
 
         $sortBy = $this->table . '.' . $this->primaryKey;
@@ -185,12 +189,12 @@ abstract class CoreModel extends Eloquent
             $sortOrder = $order[0]['dir'];
         }
 
-        $receivedLength = $inputData['length'];
+        $receivedLength = $inputData['length'] ?? 0;
 
         $perPage = ($receivedLength <= 0)
             ? $this->maxDataTableResultCount : $receivedLength;
 
-        $start = $inputData['start'] / $perPage;
+        $start = ($inputData['start'] ?? 0) / $perPage;
 
         /*  Field aliases
         --------------------------------------------------------------------- */
@@ -212,7 +216,7 @@ abstract class CoreModel extends Eloquent
         /* DataTable Search
         --------------------------------------------------------------------- */
 
-        $search = $inputData['search'];
+        $search = $inputData['search'] ?? ['value' => null];
         $searchableColumns = isset($dataTablesConfig['searchable'])
             ? $dataTablesConfig['searchable'] : null;
 
