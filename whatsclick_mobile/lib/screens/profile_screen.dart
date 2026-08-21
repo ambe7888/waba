@@ -95,6 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildTextField('Prénom', _firstNameController, isDark),
             const SizedBox(height: 16),
             _buildTextField('Nom', _lastNameController, isDark),
+            const SizedBox(height: 16),
             _buildDropdownField(
               'Pays',
               _countryController.text,
