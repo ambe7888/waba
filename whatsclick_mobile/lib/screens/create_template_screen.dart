@@ -207,7 +207,7 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
         );
         Navigator.pop(context, true);
       } else {
-        final msg = result?['message'] ?? 'Impossible de créer le modèle.';
+        final msg = result?['message'] ?? ApiService().lastTemplateCreateError ?? 'Impossible de créer le modèle.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );

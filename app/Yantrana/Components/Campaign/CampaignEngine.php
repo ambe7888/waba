@@ -283,7 +283,9 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
         // if record found
         abortIf(__isEmpty($campaign));
         $rawTime = Carbon::parse($campaign->scheduled_at, 'UTC');
-        $scheduleAt = $rawTime->setTimezone($campaign->timezone);
+        // Older/imported campaigns can have a null timezone column, which
+        // fatally errors setTimezone() and 500s this whole endpoint.
+        $scheduleAt = $rawTime->setTimezone($campaign->timezone ?: config('app.timezone', 'UTC'));
         $campaign->scheduled_at_by_timezone = $scheduleAt;
         $statusText = __tr('Upcoming');
         $campaignStatus = 'upcoming';
@@ -323,19 +325,25 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
         }
         $campaignData = $campaign->__data;
         $totalContacts = (int) Arr::get($campaignData, 'total_contacts');
+        // total_contacts is missing/0 for some campaigns (older records,
+        // interrupted scheduling, etc.) — every percentage below used to
+        // divide by it unconditionally, fatally erroring the whole endpoint.
+        $percentOf = function ($count) use ($totalContacts) {
+            return $totalContacts > 0 ? (round($count / $totalContacts * 100, 2) . '%') : '0%';
+        };
         $totalRead = $messageLog->where('status', 'read')->count();
-        $totalReadInPercent = round($totalRead / $totalContacts * 100, 2) . '%';
+        $totalReadInPercent = $percentOf($totalRead);
         $totalDelivered = $messageLog->where('status', 'delivered')->count() + $totalRead;
-        $totalDeliveredInPercent = round($totalDelivered / $totalContacts * 100, 2) . '%';
+        $totalDeliveredInPercent = $percentOf($totalDelivered);
         $totalFailed = $queueFailedCount + $messageLog->where('status', 'failed')->count();
-        $totalFailedInPercent = round($totalFailed / $totalContacts * 100, 2) . '%';
-        $totalExpiredInPercent = round($expiredCount / $totalContacts * 100, 2) . '%';
+        $totalFailedInPercent = $percentOf($totalFailed);
+        $totalExpiredInPercent = $percentOf($expiredCount);
         $totalSent = $messageLog->where('status', 'sent')->count();
-        $totalSentInPercent = round($totalSent / $totalContacts * 100, 2) . '%';
+        $totalSentInPercent = $percentOf($totalSent);
         $inQueueCount = $queueMessages->where('status', 1)->count();
-        $totalInQueueInPercent = round($inQueueCount / $totalContacts * 100, 2) . '%';
+        $totalInQueueInPercent = $percentOf($inQueueCount);
         $acceptedCount = $messageLog->where('status', 'accepted')->count();
-        $totalAcceptedInPercent = round($acceptedCount / $totalContacts * 100, 2) . '%';
+        $totalAcceptedInPercent = $percentOf($acceptedCount);
 
         $campaignStatusCountData = [
             'timeTookFromScheduledAtFormatted' => __tr($timeTookFromScheduledAt),

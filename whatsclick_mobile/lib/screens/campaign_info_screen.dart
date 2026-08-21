@@ -136,9 +136,14 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final surfaceCard = Theme.of(context).colorScheme.surface;
+    final isDark = ThemeService().isDark;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // This screen is pushed as its own standalone route (not nested
+      // inside main_layout_screen's tab host), so a transparent
+      // background here has nothing behind it to show through —
+      // it rendered as a solid black screen.
+      backgroundColor: isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

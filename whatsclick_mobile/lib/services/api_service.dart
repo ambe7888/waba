@@ -2229,10 +2229,14 @@ class ApiService {
     }
   }
 
+  /// Reason the last createTemplate() call failed, if any.
+  String? lastTemplateCreateError;
+
   /// Create WhatsApp Template (Admin Only)
   Future<Map<String, dynamic>?> createTemplate(
       Map<String, dynamic> data) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/create');
+    lastTemplateCreateError = null;
     try {
       final response = await http
           .post(
@@ -2242,12 +2246,24 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 35));
 
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && (body['reaction'] == 1 || body['result'] == 'success')) {
         return Map<String, dynamic>.from(body);
       }
+      final errors = body['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        lastTemplateCreateError = errors.values.first is List
+            ? (errors.values.first as List).first.toString()
+            : errors.values.first.toString();
+      } else if (body['message'] is String) {
+        lastTemplateCreateError = body['message'];
+      } else {
+        lastTemplateCreateError = 'HTTP ${response.statusCode}';
+      }
+      if (debug) debugPrint('Create Template failed: $lastTemplateCreateError — body: ${response.body}');
       return null;
     } catch (e) {
+      lastTemplateCreateError = e.toString();
       if (debug) debugPrint('Create Template Error: $e');
       return null;
     }
