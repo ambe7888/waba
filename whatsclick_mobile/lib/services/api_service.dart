@@ -1582,6 +1582,56 @@ class ApiService {
     }
   }
 
+  /// Fetch all contact labels with a live contact count per label, for
+  /// campaign audience targeting ("Groupes & étiquettes").
+  Future<List<Map<String, dynamic>>> fetchContactLabelsWithCounts() async {
+    final url = Uri.parse('${baseApiUrl}vendor/contact/mobile-labels');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['labels'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Contact Labels Error: $e');
+      return [];
+    }
+  }
+
+  /// Fetch the complete, unpaginated contact list (for the campaign
+  /// "Contacts spécifiques" picker, which needs every contact available).
+  Future<List<Contact>> fetchAllContactsSimple() async {
+    final url = Uri.parse('${baseApiUrl}vendor/contacts/simple-list');
+    try {
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['contacts'] as List?;
+          if (list != null) {
+            return list
+                .map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map)))
+                .toList();
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch All Contacts Simple Error: $e');
+      return [];
+    }
+  }
+
   /// Fetch campaign audiences
   Future<List<Map<String, dynamic>>> fetchAudiences() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data?length=-1&draw=1');
@@ -1887,6 +1937,7 @@ class ApiService {
     List<String>? contactUids,
     String? audienceUid,
     List<String>? groupUids,
+    List<String>? labelIds,
     required bool sendImmediately,
     DateTime? scheduledDate,
     TimeOfDay? scheduledTime,
@@ -1927,19 +1978,28 @@ class ApiService {
         request.fields['schedule_at'] = ''; // Empty means immediately
       }
 
-      // Handle audience
+      // Handle audience. Backend (WhatsAppServiceEngine::processCampaignCreate)
+      // requires a non-empty 'contact_group' array unless an audience_uid or
+      // preset message is set — sending the literal 'all_contacts' marker
+      // satisfies that and tells it to skip group/label filtering entirely.
       if (audienceMode == 'specific' && contactUids != null) {
         for (int i = 0; i < contactUids.length; i++) {
           request.fields['contact_uids[$i]'] = contactUids[i];
         }
-      } else if (audienceMode == 'groups' && groupUids != null) {
-        for (int i = 0; i < groupUids.length; i++) {
-          request.fields['contact_group[$i]'] = groupUids[i];
+      } else if (audienceMode == 'groups' && (groupUids != null || labelIds != null)) {
+        final groups = groupUids ?? [];
+        for (int i = 0; i < groups.length; i++) {
+          request.fields['contact_group[$i]'] = groups[i];
+        }
+        final labels = labelIds ?? [];
+        for (int i = 0; i < labels.length; i++) {
+          request.fields['contact_labels[$i]'] = labels[i];
         }
       } else if (audienceMode == 'audiences' && audienceUid != null) {
         request.fields['campaign_audience'] = audienceUid;
+      } else if (audienceMode == 'all') {
+        request.fields['contact_group[0]'] = 'all_contacts';
       }
-      // If audienceMode == 'all', we might need to send a specific flag or pass all group uids
 
       // Handle template variables. Backend (WhatsAppServiceEngine::
       // sendTemplateMessageProcess) reads flat request keys like 'field_N',

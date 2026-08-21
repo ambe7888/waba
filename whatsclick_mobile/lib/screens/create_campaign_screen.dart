@@ -111,11 +111,13 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   List<Contact> _filteredContacts = [];
   List<Map<String, dynamic>> _audiences = [];
   List<Map<String, dynamic>> _groups = [];
-  
+  List<Map<String, dynamic>> _labels = [];
+
   final List<String> _selectedContactIds = [];
   String? _selectedAudienceUid;
   final List<String> _selectedGroupIds = [];
-  
+  final List<String> _selectedLabelIds = [];
+
   bool _isLoadingAudienceData = true;
   final _searchContactsController = TextEditingController();
 
@@ -157,17 +159,21 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   Future<void> _fetchInitialData() async {
     try {
       final templates = await ApiService().fetchTemplates();
-      final contactsRes = await ApiService().fetchContacts(page: 1); // simplify for now
+      // Full, unpaginated contact list — needed so "Contacts spécifiques"
+      // can actually offer every contact, not just the first page.
+      final contacts = await ApiService().fetchAllContactsSimple();
       final audiences = await ApiService().fetchAudiences();
       final groups = await ApiService().fetchContactGroups();
+      final labels = await ApiService().fetchContactLabelsWithCounts();
 
       if (mounted) {
         setState(() {
           _templates = templates;
-          _contacts = contactsRes['contacts'] as List<Contact>? ?? [];
+          _contacts = contacts;
           _filteredContacts = _contacts;
           _audiences = audiences;
           _groups = groups;
+          _labels = labels;
           _isLoadingTemplates = false;
           _isLoadingAudienceData = false;
         });
@@ -376,8 +382,8 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner une audience.')));
       return;
     }
-    if (_audienceMode == 'groups' && _selectedGroupIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner au moins un groupe.')));
+    if (_audienceMode == 'groups' && _selectedGroupIds.isEmpty && _selectedLabelIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner au moins un groupe ou une étiquette.')));
       return;
     }
     final missingFieldError = _findMissingCampaignFieldError();
@@ -426,6 +432,7 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
       contactUids: _selectedContactIds.toList(),
       audienceUid: _selectedAudienceUid,
       groupUids: _selectedGroupIds.toList(),
+      labelIds: _selectedLabelIds.toList(),
       sendImmediately: _sendImmediately,
       scheduledDate: _scheduledDate,
       scheduledTime: _scheduledTime,
@@ -1168,12 +1175,42 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
           children: [
             _buildAudienceCard('all', 'TOUS LES CONTACTS', 'Envoyer à tout le monde', Icons.contact_mail, isDark),
             _buildAudienceCard('specific', 'CONTACTS SPÉCIFIQUES', 'Sélectionner des contacts', Icons.person, isDark),
-            _buildAudienceCard('audiences', 'AUDIENCES SAUVEGARDÉES', 'Segments enregistrés', Icons.pie_chart, isDark),
+            _buildAudienceCard('audiences', 'AUDIENCE', 'Segments enregistrés', Icons.pie_chart, isDark),
             _buildAudienceCard('groups', 'GROUPES & ÉTIQUETTES', 'Cibler par groupe', Icons.local_offer, isDark),
           ],
         ),
         const SizedBox(height: 24),
-        if (_audienceMode == 'specific') ...[
+        if (_audienceMode == 'all') ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: ThemeService.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.groups_rounded, color: ThemeService.primaryColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Cette campagne ciblera tous vos contacts',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _isLoadingAudienceData
+                            ? 'Chargement du nombre de contacts...'
+                            : '${_contacts.length} contact${_contacts.length > 1 ? 's' : ''} ciblé${_contacts.length > 1 ? 's' : ''} au total',
+                        style: TextStyle(fontSize: 13, color: ThemeService.primaryColor, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (_audienceMode == 'specific') ...[
           TextField(
             controller: _searchContactsController,
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
@@ -1187,33 +1224,40 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredContacts.length,
-            itemBuilder: (context, index) {
-              final c = _filteredContacts[index];
-              return CheckboxListTile(
-                title: Text(c.name, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
-                subtitle: Text(c.phoneNumber, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
-                value: _selectedContactIds.contains(c.uid),
-                activeColor: ThemeService.primaryColor,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) {
-                      _selectedContactIds.add(c.uid);
-                    } else {
-                      _selectedContactIds.remove(c.uid);
-                    }
-                  });
-                },
-              );
-            },
-          ),
+          if (_isLoadingAudienceData)
+            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+          else ...[
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _filteredContacts.length,
+              itemBuilder: (context, index) {
+                final c = _filteredContacts[index];
+                return CheckboxListTile(
+                  title: Text(c.name, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                  subtitle: Text(c.phoneNumber, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+                  value: _selectedContactIds.contains(c.uid),
+                  activeColor: ThemeService.primaryColor,
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedContactIds.add(c.uid);
+                      } else {
+                        _selectedContactIds.remove(c.uid);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+            if (_selectedContactIds.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildTargetedCountBar(isDark, _selectedContactIds.length),
+            ],
+          ],
         ] else if (_audienceMode == 'audiences') ...[
           if (_audiences.isEmpty) Text("Aucune audience enregistrée disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
           ..._audiences.map((a) {
-            final isSelected = _selectedAudienceUid == a['_uid'];
             return RadioListTile<String>(
               title: Text(a['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
               subtitle: Text("Créé le ${a['created_at']}", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
@@ -1226,27 +1270,168 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             );
           }),
         ] else if (_audienceMode == 'groups') ...[
-          if (_groups.isEmpty) Text("Aucun groupe disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
-          ..._groups.map((g) {
-            final uid = g['_id']?.toString() ?? g['_uid']?.toString() ?? '';
-            return CheckboxListTile(
-              title: Text(g['title'] ?? 'Sans nom', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
-              subtitle: Text(g['description'] ?? '', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
-              value: _selectedGroupIds.contains(uid),
-              activeColor: ThemeService.primaryColor,
-              onChanged: (val) {
-                setState(() {
-                  if (val == true) {
-                    _selectedGroupIds.add(uid);
-                  } else {
-                    _selectedGroupIds.remove(uid);
-                  }
-                });
-              },
-            );
-          }),
+          if (_isLoadingAudienceData)
+            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+          else ...[
+            if (_groups.isEmpty && _labels.isEmpty)
+              Text("Aucun groupe ni étiquette disponible.", style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+            if (_groups.isNotEmpty) ...[
+              Text('GROUPES', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 8),
+              ..._groups.map((g) {
+                final uid = g['_id']?.toString() ?? g['_uid']?.toString() ?? '';
+                final count = g['total_contacts'] ?? 0;
+                final selected = _selectedGroupIds.contains(uid);
+                return _buildSelectableTile(
+                  isDark: isDark,
+                  selected: selected,
+                  leading: Icon(Icons.folder_rounded, color: selected ? ThemeService.primaryColor : Colors.grey, size: 22),
+                  title: g['title'] ?? 'Sans nom',
+                  subtitle: (g['description'] ?? '').toString().isNotEmpty ? g['description'] : null,
+                  count: count,
+                  onTap: () {
+                    setState(() {
+                      if (selected) {
+                        _selectedGroupIds.remove(uid);
+                      } else {
+                        _selectedGroupIds.add(uid);
+                      }
+                    });
+                  },
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+            if (_labels.isNotEmpty) ...[
+              Text('ÉTIQUETTES', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 8),
+              ..._labels.map((l) {
+                final id = l['_id']?.toString() ?? '';
+                final count = l['total_contacts'] ?? 0;
+                final selected = _selectedLabelIds.contains(id);
+                final bgColor = _parseHexColor(l['bg_color']) ?? ThemeService.primaryColor;
+                return _buildSelectableTile(
+                  isDark: isDark,
+                  selected: selected,
+                  leading: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                  ),
+                  title: l['title'] ?? 'Sans nom',
+                  count: count,
+                  onTap: () {
+                    setState(() {
+                      if (selected) {
+                        _selectedLabelIds.remove(id);
+                      } else {
+                        _selectedLabelIds.add(id);
+                      }
+                    });
+                  },
+                );
+              }),
+            ],
+            if (_selectedGroupIds.isNotEmpty || _selectedLabelIds.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildTargetedCountBar(
+                isDark,
+                _groups.where((g) => _selectedGroupIds.contains(g['_id']?.toString() ?? g['_uid']?.toString() ?? '')).fold<int>(0, (sum, g) => sum + ((g['total_contacts'] ?? 0) as int)) +
+                    _labels.where((l) => _selectedLabelIds.contains(l['_id']?.toString() ?? '')).fold<int>(0, (sum, l) => sum + ((l['total_contacts'] ?? 0) as int)),
+                approximate: true,
+              ),
+            ],
+          ],
         ]
       ],
+    );
+  }
+
+  Color? _parseHexColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    var value = hex.replaceAll('#', '');
+    if (value.length == 6) value = 'FF$value';
+    return Color(int.tryParse(value, radix: 16) ?? 0xFF10B981);
+  }
+
+  Widget _buildTargetedCountBar(bool isDark, int count, {bool approximate = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: ThemeService.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.groups_rounded, color: ThemeService.primaryColor, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              approximate
+                  ? '~$count contact${count > 1 ? 's' : ''} ciblé${count > 1 ? 's' : ''} (les doublons entre groupes/étiquettes ne sont comptés qu\'une fois à l\'envoi)'
+                  : '$count contact${count > 1 ? 's' : ''} ciblé${count > 1 ? 's' : ''}',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ThemeService.primaryColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectableTile({
+    required bool isDark,
+    required bool selected,
+    required Widget leading,
+    required String title,
+    String? subtitle,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? ThemeService.primaryColor.withValues(alpha: 0.08) : (isDark ? ThemeService.darkCard : Colors.white),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? ThemeService.primaryColor : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
+                  if (subtitle != null)
+                    Text(subtitle, style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white54 : Colors.grey)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('$count', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54)),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              color: selected ? ThemeService.primaryColor : Colors.grey,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

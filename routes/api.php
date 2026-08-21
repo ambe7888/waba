@@ -459,6 +459,7 @@ Route::group([
                         ->where('contact_groups__id', $g->_id)
                         ->count();
                     return [
+                        '_id'            => $g->_id,
                         '_uid'           => $g->_uid,
                         'title'          => $g->title,
                         'description'    => $g->description,
@@ -470,6 +471,34 @@ Route::group([
                 'data'     => ['groups' => $groups],
             ]);
         })->name('app_api.vendor.contact.read.mobile_group_list');
+
+        // Contact Labels with contact counts (Mobile)
+        Route::get('/contact/mobile-labels', function () {
+            $vendorId = getVendorId();
+            if (!$vendorId) {
+                return response()->json(['reaction' => 2, 'message' => 'Non autorisé.'], 401);
+            }
+            $labels = \App\Yantrana\Components\Contact\Models\LabelModel::where('vendors__id', $vendorId)
+                ->orderBy('title', 'asc')
+                ->get()
+                ->map(function ($l) {
+                    $count = \DB::table('contact_labels')
+                        ->where('labels__id', $l->_id)
+                        ->count();
+                    return [
+                        '_id'            => $l->_id,
+                        '_uid'           => $l->_uid,
+                        'title'          => $l->title,
+                        'text_color'     => $l->text_color,
+                        'bg_color'       => $l->bg_color,
+                        'total_contacts' => $count,
+                    ];
+                });
+            return response()->json([
+                'reaction' => 1,
+                'data'     => ['labels' => $labels],
+            ]);
+        })->name('app_api.vendor.contact.read.mobile_label_list');
 
         // Group contacts (Mobile) - unique path to avoid {vendorUid} wildcard conflict
         Route::get('/contact/mobile-group-contacts/{groupUid}', function ($groupUid) {
