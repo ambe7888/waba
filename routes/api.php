@@ -176,8 +176,14 @@ Route::group([
 
 Route::get('/app-version', function () {
     return response()->json([
-        'version' => '1.0.4',
-        'apk_url' => url('downloads/whatsclick-latest.apk')
+        // Kept in sync manually with whatsclick_mobile/lib/config/app_config.dart's
+        // `version` const on every APK release — the mobile app's update
+        // check (checkForUpdate() in api_service.dart) only prompts when
+        // this is newer than that constant, so a stale value here silently
+        // disables the update prompt for everyone already on a newer build.
+        'version' => '1.0.7',
+        'apk_url' => url('downloads/whatsclick-latest.apk'),
+        'change_log' => "Correction de bugs : envoi de campagnes, message sans modèle, et navigation du tableau de bord.",
     ]);
 })->name('api.app_version');
 // Mobile app apis

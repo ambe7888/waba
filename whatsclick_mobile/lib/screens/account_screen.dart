@@ -29,12 +29,24 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _canManageTemplates = false;
   bool _canManageTeam = false;
   bool _isLoading = true;
+  // Same check HomeScreen runs at launch to pop the "Mise à jour dispo"
+  // dialog — kept here too so dismissing that dialog with "Plus tard"
+  // still leaves a visible trace: a badge on the "Mise à jour" tile below.
+  Map<String, dynamic>? _updateInfo;
 
   @override
   void initState() {
     super.initState();
     _loadRoleAndPermissions();
     _loadData();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    final updateInfo = await ApiService().checkForUpdate();
+    if (mounted) {
+      setState(() => _updateInfo = updateInfo);
+    }
   }
 
   Future<void> _loadRoleAndPermissions() async {
@@ -540,9 +552,15 @@ class _AccountScreenState extends State<AccountScreen> {
                 _buildSettingsTile(
                   icon: Icons.system_update_rounded,
                   title: 'Mise à jour',
+                  subtitle: _updateInfo != null
+                      ? 'Nouvelle version ${_updateInfo!['version']} disponible'
+                      : null,
+                  showBadge: _updateInfo != null,
                   iconColor: const Color(0xFF22C55E),
                   onTap: () async {
-                    final url = Uri.parse('${baseUrl}downloads/whatsclick-latest.apk');
+                    final apkUrl = _updateInfo?['apk_url']?.toString() ??
+                        '${baseUrl}downloads/whatsclick-latest.apk';
+                    final url = Uri.parse(apkUrl);
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url, mode: LaunchMode.externalApplication);
                     } else {
@@ -590,6 +608,7 @@ class _AccountScreenState extends State<AccountScreen> {
     required VoidCallback onTap,
     Color iconColor = Colors.grey,
     bool isDark = false,
+    bool showBadge = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -600,14 +619,36 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: isDark ? 0.18 : 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: iconColor.withValues(alpha: isDark ? 0.3 : 0.2)),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: isDark ? 0.18 : 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: iconColor.withValues(alpha: isDark ? 0.3 : 0.2)),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                if (showBadge)
+                  Positioned(
+                    right: -3,
+                    top: -3,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 16),
             Expanded(
