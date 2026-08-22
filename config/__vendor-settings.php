@@ -623,6 +623,10 @@ return [
                 'key' => 'shopify_access_token',
                 'data_type' => 1,
                 'default' => '',
+                // Same fix as gemini_api_key/openai_api_key in
+                // config/__settings.php — this grants real access to the
+                // vendor's store and was stored in plaintext.
+                'hide_value' => true,
                 'ignore_empty' => true,
             ],
             'woocommerce_shop_url' => [
@@ -635,12 +639,14 @@ return [
                 'key' => 'woocommerce_consumer_key',
                 'data_type' => 1,
                 'default' => '',
+                'hide_value' => true,
                 'ignore_empty' => true,
             ],
             'woocommerce_consumer_secret' => [
                 'key' => 'woocommerce_consumer_secret',
                 'data_type' => 1,
                 'default' => '',
+                'hide_value' => true,
                 'ignore_empty' => true,
             ],
             'whatsapp_catalog_id' => [

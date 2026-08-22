@@ -14,6 +14,7 @@ import 'drip_campaigns_settings_screen.dart';
 import 'profile_screen.dart';
 import 'agents_screen.dart';
 import 'ai_settings_screen.dart';
+import 'shop_settings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -517,6 +518,18 @@ class _AccountScreenState extends State<AccountScreen> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin)
+                    _buildSettingsTile(
+                      icon: Icons.storefront_rounded,
+                      title: 'Paramètres boutique',
+                      iconColor: const Color(0xFFF59E0B),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
                         );
                       },
                       isDark: isDark,

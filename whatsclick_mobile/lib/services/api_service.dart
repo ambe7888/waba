@@ -441,6 +441,130 @@ class ApiService {
     }
   }
 
+  /// Fetch current shop settings (for the "Paramètres boutique" screen pre-fill).
+  Future<Map<String, dynamic>?> fetchShopSettings() async {
+    final url = Uri.parse('${baseApiUrl}vendor/shop-settings');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Shop Settings Error: $e');
+      return null;
+    }
+  }
+
+  /// Save shop settings (WhatsApp catalog ID, Shopify/WooCommerce
+  /// integration). Same reaction-code convention as saveAiSettings — 21
+  /// means success (see comment there).
+  Future<Map<String, dynamic>> saveShopSettings(Map<String, dynamic> fields) async {
+    final url = Uri.parse('${baseApiUrl}vendor/shop-settings');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'pageType': 'internals', ...fields}),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21)) {
+        return {'success': true, 'message': body['message']?.toString()};
+      }
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else {
+        message = body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      if (debug) debugPrint('Save Shop Settings Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Add a product manually. Image is by URL only in this version (no
+  /// camera/gallery upload yet).
+  Future<Map<String, dynamic>> addProduct({
+    required String name,
+    required String price,
+    String? description,
+    String? directLink,
+    String? imageUrl,
+  }) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/add');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'name': name,
+              'price': price,
+              if (description != null && description.isNotEmpty) 'description': description,
+              if (directLink != null && directLink.isNotEmpty) 'direct_link': directLink,
+              if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+      }
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else {
+        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'ajout du produit.';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      if (debug) debugPrint('Add Product Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Delete a product from the catalog.
+  Future<bool> deleteProduct(String productUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/delete/$productUid');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Product Error: $e');
+      return false;
+    }
+  }
+
+  /// Trigger a Shopify/WooCommerce catalog sync.
+  Future<Map<String, dynamic>> syncProducts(String source) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/sync');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders(), body: jsonEncode({'source': source}))
+          .timeout(const Duration(seconds: 40));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+      }
+      return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Échec de la synchronisation.'};
+    } catch (e) {
+      if (debug) debugPrint('Sync Products Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   /// Toggle OpenAI Bot replies status
   Future<bool> toggleBotReply() async {
     final url = Uri.parse('${baseApiUrl}vendor/settings/toggle-bot');

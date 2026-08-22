@@ -446,7 +446,11 @@ Route::group([
 
         Route::post('/ecommerce/orders/delete/{orderUid}', [
             \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
-            'processOrderDelete',
+            // Was 'processOrderDelete', which doesn't exist on this
+            // controller (the real method is deleteOrder) -- every order
+            // delete from the app threw a fatal "method does not exist"
+            // error instead of actually deleting anything.
+            'deleteOrder',
         ])->name('app_api.vendor.ecommerce.orders.delete');
 
         // Canned replies
@@ -1006,6 +1010,47 @@ Route::group([
             $formRequest = \App\Yantrana\Components\Vendor\Requests\VendorSettingsRequest::createFrom($request);
             return app(\App\Yantrana\Components\Vendor\Controllers\VendorSettingsController::class)->update($formRequest);
         })->name('app_api.vendor.ai_settings.write');
+
+        // Shop settings (mobile "Paramètres boutique" screen) — read current
+        // values for pre-fill. Same convention as ai-settings above: secrets
+        // (woocommerce_consumer_key/secret, shopify_access_token) are never
+        // sent back in plaintext, only whether one is configured.
+        Route::get('/shop-settings', function () {
+            $vendorId = getVendorId();
+            return response()->json([
+                'is_feature_available' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? false),
+                'ecommerce_integration' => getVendorSettings('ecommerce_integration') ?: 'none',
+                'whatsapp_catalog_id' => getVendorSettings('whatsapp_catalog_id') ?: '',
+                'shopify_shop_url' => getVendorSettings('shopify_shop_url') ?: '',
+                'shopify_configured' => (bool) getVendorSettings('shopify_access_token'),
+                'woocommerce_shop_url' => getVendorSettings('woocommerce_shop_url') ?: '',
+                'woocommerce_configured' => (bool) getVendorSettings('woocommerce_consumer_secret'),
+            ]);
+        })->name('app_api.vendor.shop_settings.read');
+
+        // Shop settings — save. Whitelisted to 'internals', the only
+        // pageType this screen manages — same reasoning as ai-settings above.
+        Route::post('/shop-settings', function (Illuminate\Http\Request $request) {
+            validateVendorAccess('administrative');
+            abortIf($request->pageType !== 'internals', 422, __tr('Invalid page type.'));
+
+            $formRequest = \App\Yantrana\Components\Vendor\Requests\VendorSettingsRequest::createFrom($request);
+            return app(\App\Yantrana\Components\Vendor\Controllers\VendorSettingsController::class)->update($formRequest);
+        })->name('app_api.vendor.shop_settings.write');
+
+        // Product catalog (mobile "Paramètres boutique" screen) — the list
+        // and add routes already existed (registered earlier as
+        // app_api.vendor.ecommerce.products / .products.add); only delete
+        // and sync were actually missing.
+        Route::post('/ecommerce/products/delete/{productUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'deleteProduct',
+        ])->name('app_api.vendor.ecommerce.products.delete');
+
+        Route::post('/ecommerce/sync', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'syncProducts',
+        ])->name('app_api.vendor.ecommerce.sync');
 
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
