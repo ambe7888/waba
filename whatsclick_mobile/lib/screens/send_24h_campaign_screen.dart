@@ -65,10 +65,17 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
     final presets = await ApiService().fetchNonTemplateMessagePresets();
     if (mounted) {
       setState(() {
-        _campaignPresets = presets;
+        _campaignPresets = _mostRecentFour(presets);
         _isLoadingCampaignPresets = false;
       });
     }
+  }
+
+  // The backend returns these oldest-first (no explicit order requested),
+  // so "récemment envoyé" needs reversing to actually show the most recent
+  // ones — and only the last 4, not the full history.
+  List<Map<String, dynamic>> _mostRecentFour(List<Map<String, dynamic>> presets) {
+    return presets.reversed.take(4).toList();
   }
 
   Future<void> _loadBotReplies() async {
@@ -97,11 +104,20 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
   int get _selectedContactsCount => widget.eligibleContacts.length - _excludedContactUids.length;
 
   void _selectPreset(Map<String, dynamic> p, {bool freshlyComposed = false}) {
+    final uid = p['_uid']?.toString();
     setState(() {
-      _selectedPresetUid = p['_uid']?.toString();
-      _selectedMessageName = p['name']?.toString();
-      _selectedMessagePreview = p['reply_text']?.toString();
-      _isFreshlyComposedPreset = freshlyComposed;
+      if (!freshlyComposed && _selectedPresetUid == uid) {
+        // Tapping the already-selected preset again deselects it.
+        _selectedPresetUid = null;
+        _selectedMessageName = null;
+        _selectedMessagePreview = null;
+        _isFreshlyComposedPreset = false;
+      } else {
+        _selectedPresetUid = uid;
+        _selectedMessageName = p['name']?.toString();
+        _selectedMessagePreview = p['reply_text']?.toString();
+        _isFreshlyComposedPreset = freshlyComposed;
+      }
     });
   }
 
@@ -119,7 +135,7 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
       final refreshed = await ApiService().fetchNonTemplateMessagePresets();
       final match = refreshed.firstWhere((p) => p['name']?.toString() == name, orElse: () => {});
       if (mounted && match.isNotEmpty) {
-        setState(() => _campaignPresets = refreshed);
+        setState(() => _campaignPresets = _mostRecentFour(refreshed));
         _selectPreset(match, freshlyComposed: true);
       }
     }
@@ -364,7 +380,7 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
           const SizedBox(height: 20),
           _buildPresetSection(
             isDark: isDark,
-            title: 'RÉPONSES AUTO ENREGISTRÉES',
+            title: "ENVOYÉ À PARTIR D'UNE RÉPONSE AUTO ENREGISTRÉE",
             isLoading: _isLoadingBotReplies,
             items: _botReplies,
           ),

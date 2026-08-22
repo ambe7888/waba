@@ -917,12 +917,15 @@ Route::group([
                     'contact_group' => [(string) $tempGroup->_id]
                 ]);
             }
-            // The temp group above is only ever useful as this campaign's
-            // audience — if the campaign creation itself failed (plan
-            // limit, no eligible contacts, invalid template, etc.) or threw
-            // outright (an aborted request, a DB error), leaving it behind
-            // is pure orphaned clutter that accumulates on every retry.
-            // The try/catch (not just checking the response) matters
+            // The temp group above is only ever useful *during* this call —
+            // processCampaignCreate() always saves 'selected_groups' => []
+            // on the campaign itself, and by the time scheduleCampaign()
+            // returns, message queue rows already reference each contact's
+            // own _id rather than the group. So it must be deleted every
+            // time, success or failure, not just on failure — leaving it
+            // behind on success was creating one orphaned "Audience: ..."
+            // group per send with no purpose, cluttering the real contact
+            // groups list. `finally` (not just a post-call check) matters
             // because a thrown exception — abort_if()'s "Template not
             // found", a validation failure, ... — skips straight past a
             // plain post-call check.
@@ -938,19 +941,8 @@ Route::group([
                 // is empty and scheduleCampaign() validates explicitly itself.
                 $formRequest = \App\Yantrana\Base\BaseRequestTwo::createFrom($request);
                 $response = app(WhatsAppServiceController::class)->scheduleCampaign($formRequest);
-            } catch (\Throwable $e) {
+            } finally {
                 if ($tempGroup) {
-                    \DB::table('group_contacts')->where('contact_groups__id', $tempGroup->_id)->delete();
-                    $tempGroup->delete();
-                }
-                throw $e;
-            }
-            if ($tempGroup) {
-                $reaction = null;
-                if (method_exists($response, 'getData')) {
-                    $reaction = $response->getData(true)['reaction'] ?? null;
-                }
-                if ($reaction !== 1) {
                     \DB::table('group_contacts')->where('contact_groups__id', $tempGroup->_id)->delete();
                     $tempGroup->delete();
                 }

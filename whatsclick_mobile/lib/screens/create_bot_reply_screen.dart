@@ -304,30 +304,80 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
     _replyFocusNode.requestFocus();
   }
 
+  // Merge fields actually understood by the backend's dynamicValuesReplacement()
+  // (WhatsAppServiceEngine.php) at send time — {{1}}, {{2}}... are WhatsApp
+  // *template* body-variable syntax, which only gets filled in for real
+  // approved templates via a separate variables step. Auto-replies and
+  // campaign presets (this screen) send raw text with no such step, so a
+  // numbered placeholder was going out to recipients completely unreplaced
+  // ("Bonjour {{1}}" verbatim). These are the placeholders that do get
+  // substituted with the contact's real data.
+  static const Map<String, String> _mergeFields = {
+    '{first_name}': 'Prénom',
+    '{last_name}': 'Nom',
+    '{full_name}': 'Nom complet',
+    '{phone_number}': 'Téléphone',
+    '{email}': 'Email',
+    '{country}': 'Pays',
+  };
+
   void _insertVariable() {
+    final isDark = ThemeService().isDark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Insérer une variable',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+              ..._mergeFields.entries.map((entry) => ListTile(
+                    title: Text(entry.value,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                    subtitle: Text(entry.key,
+                        style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _insertMergeField(entry.key);
+                    },
+                  )),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _insertMergeField(String placeholder) {
     final text = _replyController.text;
     final selection = _replyController.selection;
 
-    // WhatsApp variables are numbered placeholders ({{1}}, {{2}}, ...),
-    // not a repeated literal token — find the highest existing number in
-    // the message and insert the next one, matching how the template
-    // screens already number theirs.
-    final matches = RegExp(r'\{\{(\d+)\}\}').allMatches(text);
-    int nextNumber = 1;
-    for (final m in matches) {
-      final n = int.tryParse(m.group(1)!) ?? 0;
-      if (n >= nextNumber) nextNumber = n + 1;
-    }
-    final variable = '{{$nextNumber}}';
-
     final insertStart = selection.start > -1 ? selection.start : text.length;
     final insertEnd = selection.end > -1 ? selection.end : text.length;
-    final newText = text.replaceRange(insertStart, insertEnd, variable);
+    final newText = text.replaceRange(insertStart, insertEnd, placeholder);
 
     setState(() {
       _replyController.text = newText;
       _replyController.selection = TextSelection.collapsed(
-        offset: insertStart + variable.length,
+        offset: insertStart + placeholder.length,
       );
     });
   }
