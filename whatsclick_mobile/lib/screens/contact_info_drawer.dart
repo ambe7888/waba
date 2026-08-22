@@ -181,16 +181,57 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       _isLoading = true;
     });
 
+    // Each fetch's parsing runs in its own try/catch — previously a single
+    // shared try block meant a parsing error in the contact-details section
+    // (e.g. an unexpected field shape) silently aborted before ever reaching
+    // the labels/agents assignment below, even though that data had already
+    // been fetched successfully. Isolating them means one section failing
+    // doesn't blank out the others.
+    Map<String, dynamic>? details;
     try {
-      final details =
-          await ApiService().fetchContactDetails(widget.contact.uid);
-      final labelsAndAgents =
-          await ApiService().fetchLabelsAndAgents(widget.contact.uid);
+      details = await ApiService().fetchContactDetails(widget.contact.uid);
+    } catch (e) {
+      debugPrint('Fetch Contact Details Error: $e');
+    }
 
-      if (details != null) {
-        _firstName = details['first_name'];
-        _lastName = details['last_name'];
-        _email = details['email'];
+    Map<String, dynamic>? labelsAndAgents;
+    try {
+      labelsAndAgents = await ApiService().fetchLabelsAndAgents(widget.contact.uid);
+    } catch (e) {
+      debugPrint('Fetch Labels And Agents Error: $e');
+    }
+
+    if (labelsAndAgents != null) {
+      try {
+        final List<dynamic> allLabelsList =
+            labelsAndAgents['listOfAllLabels'] ?? [];
+        final List<dynamic> agentsList =
+            labelsAndAgents['vendorMessagingUsers'] ?? [];
+
+        _allLabels =
+            allLabelsList.map((l) => Map<String, dynamic>.from(l)).toList();
+        _agents = agentsList.map((a) => Map<String, dynamic>.from(a)).toList();
+
+        if (details != null && details['assigned_users__id'] != null) {
+          final assignedId = details['assigned_users__id'].toString();
+          final matchingAgent = _agents.firstWhere(
+            (a) => a['_id'].toString() == assignedId,
+            orElse: () => {},
+          );
+          if (matchingAgent.isNotEmpty) {
+            _assignedUserUid = matchingAgent['_uid'];
+          }
+        }
+      } catch (e) {
+        debugPrint('Parse Labels And Agents Error: $e');
+      }
+    }
+
+    if (details != null) {
+      try {
+        _firstName = details['first_name']?.toString();
+        _lastName = details['last_name']?.toString();
+        _email = details['email']?.toString();
         _enableAiBot = (details['disable_ai_bot'] ?? 1) == 0;
         _enableReplyBot = (details['disable_reply_bot'] ?? 1) == 0;
         _isBlocked = details['wa_blocked_at'] != null;
@@ -225,46 +266,30 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
             _customFieldControllers[fieldUid]!.text = val;
           }
         }
+      } catch (e) {
+        debugPrint('Parse Contact Details Error: $e');
       }
 
-      if (labelsAndAgents != null) {
-        final List<dynamic> allLabelsList =
-            labelsAndAgents['listOfAllLabels'] ?? [];
-        final List<dynamic> agentsList =
-            labelsAndAgents['vendorMessagingUsers'] ?? [];
-
-        _allLabels =
-            allLabelsList.map((l) => Map<String, dynamic>.from(l)).toList();
-        _agents = agentsList.map((a) => Map<String, dynamic>.from(a)).toList();
-
-        if (details != null && details['assigned_users__id'] != null) {
-          final assignedId = details['assigned_users__id'].toString();
-          final matchingAgent = _agents.firstWhere(
-            (a) => a['_id'].toString() == assignedId,
-            orElse: () => {},
-          );
-          if (matchingAgent.isNotEmpty) {
-            _assignedUserUid = matchingAgent['_uid'];
+      try {
+        if (details['groups'] != null) {
+          final List<dynamic> assignedGroups = details['groups'] as List;
+          _selectedGroupUids.clear();
+          for (var g in assignedGroups) {
+            final uid = g['uid'] ?? g['_uid'];
+            if (uid != null) {
+              _selectedGroupUids.add(uid.toString());
+            }
           }
         }
+      } catch (e) {
+        debugPrint('Parse Contact Groups Error: $e');
       }
+    }
 
-      // Fetch all groups
-      final allGroups = await ApiService().fetchContactGroups();
-      _allGroups = allGroups;
-
-      if (details != null && details['groups'] != null) {
-        final List<dynamic> assignedGroups = details['groups'] as List;
-        _selectedGroupUids.clear();
-        for (var g in assignedGroups) {
-          final uid = g['uid'] ?? g['_uid'];
-          if (uid != null) {
-            _selectedGroupUids.add(uid.toString());
-          }
-        }
-      }
+    try {
+      _allGroups = await ApiService().fetchContactGroups();
     } catch (e) {
-      debugPrint('Load Contact Data Error: $e');
+      debugPrint('Fetch Contact Groups Error: $e');
     }
 
     setState(() {

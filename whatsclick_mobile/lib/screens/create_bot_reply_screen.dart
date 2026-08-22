@@ -8,7 +8,21 @@ class CreateBotReplyScreen extends StatefulWidget {
   final Map<String, dynamic>? reply;
   final Map<String, dynamic> triggerTypes;
 
-  const CreateBotReplyScreen({super.key, this.reply, required this.triggerTypes});
+  // When true, this screen is being used to compose a one-off campaign
+  // message (NT_CAMPAIGN_MESSAGE) instead of a real auto-reply: the
+  // trigger-type/keyword fields and the Actions section (agent assignment,
+  // labels, drip campaign subscription — all meaningless for a message sent
+  // once, immediately) are hidden, and on success the created message's
+  // name is returned so the caller can look it up by its (now guaranteed
+  // unique) name.
+  final bool isCampaignPresetMode;
+
+  const CreateBotReplyScreen({
+    super.key,
+    this.reply,
+    required this.triggerTypes,
+    this.isCampaignPresetMode = false,
+  });
 
   @override
   State<CreateBotReplyScreen> createState() => _CreateBotReplyScreenState();
@@ -98,7 +112,9 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
     _ctaUrlController = TextEditingController();
     _footerController = TextEditingController();
 
-    _selectedTriggerType = isEdit ? (widget.reply!['trigger_type'] ?? 'is') : 'is';
+    _selectedTriggerType = widget.isCampaignPresetMode
+        ? 'NT_CAMPAIGN_MESSAGE'
+        : (isEdit ? (widget.reply!['trigger_type'] ?? 'is') : 'is');
     _selectedDripCampaignId = isEdit
         ? widget.reply!['addon_drip_campaigns__id']?.toString()
         : null;
@@ -161,8 +177,13 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
       }
     }
 
-    _loadDripCampaigns();
-    _loadActionSupportData();
+    if (!widget.isCampaignPresetMode) {
+      _loadDripCampaigns();
+      _loadActionSupportData();
+    } else {
+      _isLoadingDripCampaigns = false;
+      _isLoadingActionSupportData = false;
+    }
   }
 
   Future<void> _loadActionSupportData() async {
@@ -394,14 +415,24 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final botActions = {
-      'assigned_users_id': _assignedUserAction,
-      'contact_labels': _assignLabelIds.toList(),
-      'unassign_contact_labels': _unassignLabelIds.toList(),
-      'promotional': _promotionalAction,
-      'ai_bot': _aiBotAction,
-      'reply_bot': _replyBotAction,
-    };
+    // Actions/drip-campaign subscription don't apply to a one-off campaign
+    // message — nothing "triggers" it, it's sent once, immediately.
+    final botActions = widget.isCampaignPresetMode
+        ? null
+        : {
+            'assigned_users_id': _assignedUserAction,
+            'contact_labels': _assignLabelIds.toList(),
+            'unassign_contact_labels': _unassignLabelIds.toList(),
+            'promotional': _promotionalAction,
+            'ai_bot': _aiBotAction,
+            'reply_bot': _replyBotAction,
+          };
+
+    if (widget.isCampaignPresetMode) {
+      // processBotReplyCreate() defaults status to inactive unless a truthy
+      // 'status' is sent — this message should be usable right away.
+      advancedFields = {...?advancedFields, 'status': '1'};
+    }
 
     Map<String, dynamic>? res;
     if (widget.reply != null) {
@@ -411,7 +442,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
         triggerType: _selectedTriggerType,
         replyTrigger: _selectedTriggerType == 'welcome' ? null : trigger,
         replyText: text,
-        dripCampaignId: _selectedDripCampaignId,
+        dripCampaignId: widget.isCampaignPresetMode ? null : _selectedDripCampaignId,
         botActions: botActions,
         messageType: messageType,
         advancedFields: advancedFields,
@@ -422,7 +453,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
         triggerType: _selectedTriggerType,
         replyTrigger: _selectedTriggerType == 'welcome' ? null : trigger,
         replyText: text,
-        dripCampaignId: _selectedDripCampaignId,
+        dripCampaignId: widget.isCampaignPresetMode ? null : _selectedDripCampaignId,
         botActions: botActions,
         messageType: messageType,
         advancedFields: advancedFields,
@@ -433,9 +464,12 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
       setState(() => _isSubmitting = false);
       if (res != null && res['reaction'] == 1) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Réponse auto enregistrée avec succès !'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Message enregistré avec succès !'), backgroundColor: Colors.green),
         );
-        Navigator.pop(context, true);
+        // processBotReplyCreate() doesn't return the new record's uid — the
+        // name is unique (server-enforced) by the time this succeeds, so
+        // hand it back for the caller to look the record up by.
+        Navigator.pop(context, widget.isCampaignPresetMode ? {'success': true, 'name': name} : true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(res?['message'] ?? 'Erreur lors de l\'enregistrement'), backgroundColor: Colors.red),
@@ -466,8 +500,18 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isEdit ? 'Modifier la réponse auto' : 'Créer une réponse auto', style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text('Automatisez votre service client', style: TextStyle(color: subtitleColor, fontSize: 12)),
+            Text(
+              widget.isCampaignPresetMode
+                  ? 'Composer le message'
+                  : (isEdit ? 'Modifier la réponse auto' : 'Créer une réponse auto'),
+              style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            Text(
+              widget.isCampaignPresetMode
+                  ? 'En-tête, corps, pied de page et boutons'
+                  : 'Automatisez votre service client',
+              style: TextStyle(color: subtitleColor, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -508,44 +552,57 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Informations de la règle', textColor),
+                  _buildSectionTitle(
+                    widget.isCampaignPresetMode ? 'Nom du message' : 'Informations de la règle',
+                    textColor,
+                  ),
                   const SizedBox(height: 16),
 
-                  _buildLabel('Nom de la règle', textColor),
+                  _buildLabel(widget.isCampaignPresetMode ? 'Nom (pour le retrouver plus tard)' : 'Nom de la règle', textColor),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
-                    decoration: _buildInputDecoration('ex. Message de bienvenue', isDark),
+                    // backend validates name as max:200 — matching it here
+                    // gives immediate feedback instead of a round-trip
+                    // 422 that reads as a cryptic "must not be greater
+                    // than 200 characters" error.
+                    maxLength: 200,
+                    decoration: _buildInputDecoration(
+                      widget.isCampaignPresetMode ? 'ex. Promo weekend' : 'ex. Message de bienvenue',
+                      isDark,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
-                  _buildLabel('Type de déclencheur', textColor),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedTriggerType,
-                    decoration: _buildInputDecoration('', isDark),
-                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: subtitleColor),
-                    items: widget.triggerTypes.entries.map((e) {
-                      return DropdownMenuItem<String>(
-                        value: e.key,
-                        child: Text(e.value['title'] ?? e.key),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedTriggerType = val);
-                    },
-                  ),
-
-                  if (_selectedTriggerType != 'welcome') ...[
-                    const SizedBox(height: 24),
-                    _buildLabel('Mot-clé / Phrase déclencheur', textColor),
+                  if (!widget.isCampaignPresetMode) ...[
+                    _buildLabel('Type de déclencheur', textColor),
                     const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _triggerController,
-                      decoration: _buildInputDecoration('ex. bonjour, tarifs, aide', isDark),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedTriggerType,
+                      decoration: _buildInputDecoration('', isDark),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: subtitleColor),
+                      items: widget.triggerTypes.entries.map((e) {
+                        return DropdownMenuItem<String>(
+                          value: e.key,
+                          child: Text(e.value['title'] ?? e.key),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedTriggerType = val);
+                      },
                     ),
-                    const SizedBox(height: 6),
-                    Text('La phrase ou le mot-clé exact qui déclenche cette réponse.', style: TextStyle(fontSize: 12, color: subtitleColor)),
+
+                    if (_selectedTriggerType != 'welcome') ...[
+                      const SizedBox(height: 24),
+                      _buildLabel('Mot-clé / Phrase déclencheur', textColor),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _triggerController,
+                        decoration: _buildInputDecoration('ex. bonjour, tarifs, aide', isDark),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('La phrase ou le mot-clé exact qui déclenche cette réponse.', style: TextStyle(fontSize: 12, color: subtitleColor)),
+                    ],
                   ],
                 ],
               ),
@@ -875,6 +932,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                 ],
               ),
             ),
+            if (!widget.isCampaignPresetMode) ...[
             const SizedBox(height: 16),
 
             // Section: Actions (bot_actions)
@@ -1096,6 +1154,7 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
                 ),
               ),
             ),
+            ],
             const SizedBox(height: 100), // Space for bottom buttons
           ],
         ),

@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _roleId = await ApiService().getUserRoleId();
       final data = await ApiService().fetchDashboardStats();
       final notifData = await ApiService().fetchNotifications();
-      
+
       if (mounted) {
         setState(() {
           _stats = data;
@@ -70,10 +70,12 @@ class _DashboardScreenState extends State<DashboardScreen>
           final vendorUserData = data?['vendorUserData'];
           if (vendorUserData != null) {
             String name = vendorUserData['first_name']?.toString() ?? '';
-            if (name.isEmpty) name = vendorUserData['full_name']?.toString() ?? '';
+            if (name.isEmpty)
+              name = vendorUserData['full_name']?.toString() ?? '';
             if (name.isEmpty && vendorUserData['profile'] != null) {
               name = vendorUserData['profile']['first_name']?.toString() ?? '';
-              if (name.isEmpty) name = vendorUserData['profile']['full_name']?.toString() ?? '';
+              if (name.isEmpty)
+                name = vendorUserData['profile']['full_name']?.toString() ?? '';
             }
             if (name.isEmpty) {
               name = vendorUserData['email']?.toString() ?? '';
@@ -99,18 +101,22 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (_togglingBot) return;
     setState(() => _togglingBot = true);
     try {
-      final success = await ApiService().toggleBotReply(); // Utilisation de toggleBotReply selon l'API
+      final success = await ApiService()
+          .toggleBotReply(); // Utilisation de toggleBotReply selon l'API
       if (success && mounted) {
         setState(() => _botActive = !_botActive);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_botActive ? 'IA activée avec succès' : 'IA désactivée avec succès'),
+            content: Text(_botActive
+                ? 'IA activée avec succès'
+                : 'IA désactivée avec succès'),
             backgroundColor: const Color(0xFF10B981),
           ),
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible de modifier le statut de l\'IA')),
+          const SnackBar(
+              content: Text('Impossible de modifier le statut de l\'IA')),
         );
       }
     } finally {
@@ -191,7 +197,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        _unreadNotificationsCount > 9 ? '9+' : _unreadNotificationsCount.toString(),
+                        _unreadNotificationsCount > 9
+                            ? '9+'
+                            : _unreadNotificationsCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -212,7 +220,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           GestureDetector(
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => ProfileScreen(userData: _stats?['vendorUserData'])),
+              MaterialPageRoute(
+                  builder: (_) =>
+                      ProfileScreen(userData: _stats?['vendorUserData'])),
             ),
             child: Container(
               margin: const EdgeInsets.only(right: 16, left: 4),
@@ -288,7 +298,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 'Aperçu de vos performances marketing WhatsApp',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? Colors.white54 : Colors.black54,
+                                  color:
+                                      isDark ? Colors.white54 : Colors.black54,
                                 ),
                               ),
                             ],
@@ -326,7 +337,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       : Colors.black.withValues(alpha: 0.04),
                                   borderRadius: BorderRadius.circular(22),
                                   border: Border.all(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0),
                                   ),
                                 ),
                                 child: TabBar(
@@ -336,7 +349,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     color: ThemeService.primaryColor,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: ThemeService.primaryColor.withValues(alpha: 0.3),
+                                        color: ThemeService.primaryColor
+                                            .withValues(alpha: 0.3),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -344,13 +358,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   ),
                                   indicatorSize: TabBarIndicatorSize.tab,
                                   labelColor: Colors.white,
-                                  unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+                                  unselectedLabelColor:
+                                      isDark ? Colors.white60 : Colors.black54,
                                   labelStyle: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                   dividerColor: Colors.transparent,
-                                  onTap: (i) => setState(() => _currentTabIndex = i),
+                                  onTap: (i) =>
+                                      setState(() => _currentTabIndex = i),
                                   tabs: const [
                                     Tab(text: 'Général'),
                                     Tab(text: 'Abonnement'),
@@ -364,38 +380,42 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ? _buildGeneralTab(isDark)
                                 : _buildSubscriptionTab(isDark),
 
-                      const SizedBox(height: 28),
+                            const SizedBox(height: 28),
 
-                      // 4. Section Statistiques des Campagnes (Hors onglets)
-                      _buildCampaignStatsSection(isDark),
-                      const SizedBox(height: 24),
+                            // 4. Section Statistiques des Campagnes (Hors onglets)
+                            _buildCampaignStatsSection(isDark),
+                            const SizedBox(height: 24),
 
-                      // 5. Section Statistiques des Modèles / Templates (Hors onglets)
-                      _buildTemplateStatsSection(isDark),
-                      const SizedBox(height: 24),
+                            // 5. Section Statistiques des Modèles / Templates (Hors onglets)
+                            _buildTemplateStatsSection(isDark),
+                            const SizedBox(height: 24),
 
-                      // 6. Section Statistiques des Ventes (Hors onglets)
-                      _buildOrderStatsSection(isDark),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                            // 6. Section Statistiques des Ventes (Hors onglets)
+                            _buildOrderStatsSection(isDark),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
     );
   }
 
   // ── 1. Carte Abonnement Style WAPI (Bordures Sombre + Jours Restants) ─────
   Widget _buildWapiSubscriptionCard(bool isDark) {
-    final sub = _stats?['current_subscription'] ?? _stats?['vendorUserData']?['current_subscription'];
+    final sub = _stats?['current_subscription'] ??
+        _stats?['vendorUserData']?['current_subscription'];
     final vendorInfo = _stats?['vendorInfo'] as Map?;
     final vendorUserData = _stats?['vendorUserData'] as Map?;
-    
+
     final isExpired = sub?['is_expired'] == true;
     final isFree = sub?['is_free'] == true;
-    
-    String companyName = vendorInfo?['title']?.toString() ?? vendorUserData?['name']?.toString() ?? vendorUserData?['full_name']?.toString() ?? 'Mon Entreprise';
+
+    String companyName = vendorInfo?['title']?.toString() ??
+        vendorUserData?['name']?.toString() ??
+        vendorUserData?['full_name']?.toString() ??
+        'Mon Entreprise';
     if (companyName.isEmpty || companyName == 'null') {
       companyName = _firstName.isNotEmpty ? _firstName : 'Mon Entreprise';
     }
@@ -411,8 +431,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     final endsAt = sub?['ends_at']?.toString() ?? '';
     final remainingDays = (sub?['remaining_days'] as num?)?.toInt() ?? 0;
     final totalDays = (sub?['total_days'] as num?)?.toInt() ?? 30;
-    final progress = (sub?['progress'] as num?)?.toDouble() ?? (totalDays > 0 ? (remainingDays / totalDays) : 1.0);
-    
+    final progress = (sub?['progress'] as num?)?.toDouble() ??
+        (totalDays > 0 ? (remainingDays / totalDays) : 1.0);
+
     final rawPrice = sub?['price']?.toString() ?? '0';
     String price = '0 CFA';
     if (rawPrice != '0' && !isFree) {
@@ -432,10 +453,17 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     }
 
-    final String cycleLabel = billingCycle.toLowerCase().contains('annuel') ? '/an' : '/mois';
-    final String billedLabel = isFree ? 'Aucun accès' : (billingCycle.toLowerCase().contains('annuel') ? 'Paiement annuel' : 'Paiement mensuel');
-    final Color statusColor = isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
-    final String statusText = isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
+    final String cycleLabel =
+        billingCycle.toLowerCase().contains('annuel') ? '/an' : '/mois';
+    final String billedLabel = isFree
+        ? 'Aucun accès'
+        : (billingCycle.toLowerCase().contains('annuel')
+            ? 'Paiement annuel'
+            : 'Paiement mensuel');
+    final Color statusColor =
+        isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
+    final String statusText =
+        isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
 
     Color progressColor = const Color(0xFF10B981);
     if (remainingDays <= 5 && !isFree) {
@@ -467,10 +495,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFFF97316).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF97316), width: 1.2),
+                  border:
+                      Border.all(color: const Color(0xFFF97316), width: 1.2),
                 ),
                 child: const Center(
-                  child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFF97316), size: 24),
+                  child: Icon(Icons.workspace_premium_rounded,
+                      color: Color(0xFFF97316), size: 24),
                 ),
               ),
               const SizedBox(width: 12),
@@ -505,7 +535,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -522,9 +553,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+          Divider(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+              thickness: 1.5),
           const SizedBox(height: 16),
 
           // ─── Row 2: Company info + AI toggle ────────────────────────────
@@ -552,12 +585,27 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Text(
                       () {
                         // Format registration date
-                        final vendorUserData = _stats?['vendorUserData'] as Map?;
-                        final createdAtRaw = vendorUserData?['created_at']?.toString() ?? '';
+                        final vendorUserData =
+                            _stats?['vendorUserData'] as Map?;
+                        final createdAtRaw =
+                            vendorUserData?['created_at']?.toString() ?? '';
                         if (createdAtRaw.isEmpty) return 'Membre';
                         try {
                           final dt = DateTime.parse(createdAtRaw);
-                          final months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+                          final months = [
+                            'jan',
+                            'fév',
+                            'mar',
+                            'avr',
+                            'mai',
+                            'juin',
+                            'juil',
+                            'aoû',
+                            'sep',
+                            'oct',
+                            'nov',
+                            'déc'
+                          ];
                           return 'Membre depuis le ${dt.day} ${months[dt.month - 1]}. ${dt.year}';
                         } catch (_) {
                           return 'Membre depuis le $createdAtRaw';
@@ -566,7 +614,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white54 : const Color(0xFF6B7280),
+                        color:
+                            isDark ? Colors.white54 : const Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -581,14 +630,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                     onTap: _togglingBot ? null : _toggleBot,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: _botActive
                             ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFF3F4F6)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _botActive ? const Color(0xFF10B981) : (isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB)),
+                          color: _botActive
+                              ? const Color(0xFF10B981)
+                              : (isDark
+                                  ? const Color(0xFF475569)
+                                  : const Color(0xFFD1D5DB)),
                           width: 1.2,
                         ),
                       ),
@@ -599,13 +655,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                             const SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Color(0xFF10B981)),
                             )
                           else
                             Icon(
-                              _botActive ? Icons.smart_toy_rounded : Icons.smart_toy_outlined,
+                              _botActive
+                                  ? Icons.smart_toy_rounded
+                                  : Icons.smart_toy_outlined,
                               size: 15,
-                              color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+                              color: _botActive
+                                  ? const Color(0xFF10B981)
+                                  : (isDark
+                                      ? Colors.white54
+                                      : const Color(0xFF6B7280)),
                             ),
                           const SizedBox(width: 5),
                           Text(
@@ -613,7 +676,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: _botActive ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF6B7280)),
+                              color: _botActive
+                                  ? const Color(0xFF10B981)
+                                  : (isDark
+                                      ? Colors.white54
+                                      : const Color(0xFF6B7280)),
                             ),
                           ),
                         ],
@@ -627,7 +694,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                        color:
+                            isDark ? Colors.white38 : const Color(0xFF9CA3AF),
                       ),
                     ),
                   ],
@@ -638,7 +706,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
           if (!isFree) ...[
             const SizedBox(height: 16),
-            Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+            Divider(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+                thickness: 1.5),
             const SizedBox(height: 16),
 
             // Row 3: Progress Bar
@@ -669,12 +740,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: LinearProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
                 minHeight: 10,
-                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+                backgroundColor:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
                 valueColor: AlwaysStoppedAnimation<Color>(progressColor),
               ),
             ),
           ],
-          
+
           const SizedBox(height: 24),
 
           // Action Button
@@ -695,12 +767,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                 backgroundColor: const Color(0xFF10B981), // Solid WAPI Green
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: Text(
                 isFree ? 'Choisir un abonnement' : 'Gérer mon abonnement',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
           ),
@@ -717,14 +791,19 @@ class _DashboardScreenState extends State<DashboardScreen>
     final phone = wabaSetup?['phone_number']?.toString().isNotEmpty == true
         ? wabaSetup!['phone_number'].toString()
         : vendorInfo?['whatsapp_phone_number']?.toString() ?? '';
-    
-    final phoneId = wabaSetup?['phone_number_id']?.toString() ?? vendorInfo?['whatsapp_phone_number_id']?.toString() ?? '';
-    final wabaId = wabaSetup?['waba_id']?.toString() ?? vendorInfo?['whatsapp_waba_id']?.toString() ?? '';
+
+    final phoneId = wabaSetup?['phone_number_id']?.toString() ??
+        vendorInfo?['whatsapp_phone_number_id']?.toString() ??
+        '';
+    final wabaId = wabaSetup?['waba_id']?.toString() ??
+        vendorInfo?['whatsapp_waba_id']?.toString() ??
+        '';
 
     final isConnected = wabaSetup?['is_connected'] == true || phone.isNotEmpty;
 
     // Status Colors
-    final Color statusColor = isConnected ? const Color(0xFF10B981) : const Color(0xFFDC2626);
+    final Color statusColor =
+        isConnected ? const Color(0xFF10B981) : const Color(0xFFDC2626);
     final String statusText = isConnected ? 'Connecté' : 'Déconnecté';
 
     return Container(
@@ -751,10 +830,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                 decoration: BoxDecoration(
                   color: Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                  border:
+                      Border.all(color: const Color(0xFF10B981), width: 1.5),
                 ),
                 child: const Center(
-                  child: Icon(Icons.security_rounded, color: Color(0xFF10B981), size: 26),
+                  child: Icon(Icons.security_rounded,
+                      color: Color(0xFF10B981), size: 26),
                 ),
               ),
               const SizedBox(width: 16),
@@ -772,7 +853,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : const Color(0xFF111827),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF111827),
                               height: 1.2,
                             ),
                           ),
@@ -780,7 +863,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         const SizedBox(width: 8),
                         // Status Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
@@ -799,11 +883,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isConnected ? 'VOTRE NUMÉRO WHATSAPP EST SÉCURISÉ' : 'VEUILLEZ CONNECTER VOTRE API WHATSAPP',
+                      isConnected
+                          ? 'VOTRE COMPTE WHATSAPP EST SÉCURISÉ'
+                          : 'VEUILLEZ CONNECTER VOTRE API WHATSAPP',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isConnected ? const Color(0xFF10B981) : const Color(0xFFDC2626),
+                        color: isConnected
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFDC2626),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -812,20 +900,25 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+          Divider(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+              thickness: 1.5),
           const SizedBox(height: 12),
 
           // Details section
           if (isConnected) ...[
-            _buildApiDetailRow('Numéro de Tél', '+$phone', isDark),
+            _buildApiDetailRow('Numéro', '+$phone', isDark),
             const SizedBox(height: 8),
             _buildApiDetailRow('ID du Numéro', phoneId, isDark),
             const SizedBox(height: 8),
             _buildApiDetailRow('WABA ID', wabaId, isDark),
             const SizedBox(height: 16),
-            Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6), thickness: 1.5),
+            Divider(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+                thickness: 1.5),
             const SizedBox(height: 16),
           ],
 
@@ -836,15 +929,19 @@ class _DashboardScreenState extends State<DashboardScreen>
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ManageWabaScreen(
-                    wabaData: Map<String, dynamic>.from(wabaSetup ?? vendorInfo ?? {}),
+                    wabaData: Map<String, dynamic>.from(
+                        wabaSetup ?? vendorInfo ?? {}),
                   ),
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isConnected ? const Color(0xFF10B981) : const Color(0xFFF97316),
+                backgroundColor: isConnected
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFF97316),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: const Text(
@@ -890,7 +987,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             Expanded(
               child: _buildStatCard(
-                'Contacts Totaux',
+                'Contacts',
                 Icons.contacts_rounded,
                 const Color(0xFF6C63FF),
                 _stats?['totalContacts']?.toString() ?? '0',
@@ -900,7 +997,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                'Messages Envoyés',
+                'Messages envoyés',
                 Icons.send_rounded,
                 Colors.green,
                 _stats?['totalMessagesProcessed']?.toString() ?? '0',
@@ -924,7 +1021,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                'Messages Non Lus',
+                'Messages non lus',
                 Icons.mark_chat_unread_rounded,
                 Colors.redAccent,
                 _stats?['unreadMessagesCount']?.toString() ?? '0',
@@ -938,7 +1035,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             Expanded(
               child: _buildStatCard(
-                'Contacts Actifs (24h)',
+                'Discussion ouvertes depuis 24h',
                 Icons.timer_rounded,
                 Colors.orange,
                 _stats?['activeContacts24hCount']?.toString() ?? '0',
@@ -948,10 +1045,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                'Agents Actifs',
+                'Agents',
                 Icons.support_agent_rounded,
                 Colors.blue,
-                _stats?['agents']?.length?.toString() ?? _stats?['activeTeamMembers']?.toString() ?? '0',
+                _stats?['agents']?.length?.toString() ??
+                    _stats?['activeTeamMembers']?.toString() ??
+                    '0',
                 isDark,
               ),
             ),
@@ -963,16 +1062,19 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // ── 3B. Onglet Abonnement ────────────────────────────────────────────────
   Widget _buildSubscriptionTab(bool isDark) {
-    final sub = _stats?['current_subscription'] ?? _stats?['vendorUserData']?['current_subscription'];
+    final sub = _stats?['current_subscription'] ??
+        _stats?['vendorUserData']?['current_subscription'];
     final limits = sub?['limits'] as Map? ?? {};
-    
+
     // Usage counts
     final cContacts = _stats?['totalContacts']?.toString() ?? '0';
     final cCampaigns = _stats?['totalCampaigns']?.toString() ?? '0';
     final cBotReplies = _stats?['totalBotReplies']?.toString() ?? '0';
     final cDrip = _stats?['totalDripCampaigns']?.toString() ?? '0';
     final cBotFlows = _stats?['totalBotFlows']?.toString() ?? '0';
-    final cAgents = _stats?['agents']?.length?.toString() ?? _stats?['activeTeamMembers']?.toString() ?? '0';
+    final cAgents = _stats?['agents']?.length?.toString() ??
+        _stats?['activeTeamMembers']?.toString() ??
+        '0';
 
     // Limits
     String getLimit(String key) {
@@ -987,11 +1089,21 @@ class _DashboardScreenState extends State<DashboardScreen>
         Row(
           children: [
             Expanded(
-              child: _buildStatCard('Contacts', Icons.contacts_rounded, const Color(0xFF6C63FF), '$cContacts / ${getLimit("contacts")}', isDark),
+              child: _buildStatCard(
+                  'Contacts',
+                  Icons.contacts_rounded,
+                  const Color(0xFF6C63FF),
+                  '$cContacts / ${getLimit("contacts")}',
+                  isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard('Campagnes', Icons.campaign_rounded, Colors.pinkAccent, '$cCampaigns / ${getLimit("campaigns")}', isDark),
+              child: _buildStatCard(
+                  'Campagnes',
+                  Icons.campaign_rounded,
+                  Colors.pinkAccent,
+                  '$cCampaigns / ${getLimit("campaigns")}',
+                  isDark),
             ),
           ],
         ),
@@ -999,11 +1111,21 @@ class _DashboardScreenState extends State<DashboardScreen>
         Row(
           children: [
             Expanded(
-              child: _buildStatCard('Rép. du Bot', Icons.smart_toy_rounded, Colors.green, '$cBotReplies / ${getLimit("bot_replies")}', isDark),
+              child: _buildStatCard(
+                  'Rép. du Bot',
+                  Icons.smart_toy_rounded,
+                  Colors.green,
+                  '$cBotReplies / ${getLimit("bot_replies")}',
+                  isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard('Drip Camp.', Icons.water_drop_rounded, Colors.teal, '$cDrip / ${getLimit("drip_campaigns")}', isDark),
+              child: _buildStatCard(
+                  'Drip Camp.',
+                  Icons.water_drop_rounded,
+                  Colors.teal,
+                  '$cDrip / ${getLimit("drip_campaigns")}',
+                  isDark),
             ),
           ],
         ),
@@ -1011,11 +1133,21 @@ class _DashboardScreenState extends State<DashboardScreen>
         Row(
           children: [
             Expanded(
-              child: _buildStatCard('Flux du Bot', Icons.account_tree_rounded, Colors.purple, '$cBotFlows / ${getLimit("bot_flows")}', isDark),
+              child: _buildStatCard(
+                  'Flux du Bot',
+                  Icons.account_tree_rounded,
+                  Colors.purple,
+                  '$cBotFlows / ${getLimit("bot_flows")}',
+                  isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard('Agents', Icons.support_agent_rounded, Colors.blue, '$cAgents / ${getLimit("system_users")}', isDark),
+              child: _buildStatCard(
+                  'Agents',
+                  Icons.support_agent_rounded,
+                  Colors.blue,
+                  '$cAgents / ${getLimit("system_users")}',
+                  isDark),
             ),
           ],
         ),
@@ -1029,19 +1161,50 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Statistiques des Campagnes', Icons.campaign_rounded, Colors.pinkAccent, isDark),
+        _buildSectionHeader('Statistiques des Campagnes',
+            Icons.campaign_rounded, Colors.pinkAccent, isDark),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
           child: Row(
             children: [
-              _buildScrollableCard('Campagnes', _stats?['totalCampaigns']?.toString() ?? '0', Icons.campaign_rounded, Colors.pinkAccent, isDark),
-              _buildScrollableCard('Terminé', cStats['completed']?.toString() ?? '0', Icons.check_circle_rounded, Colors.green, isDark),
-              _buildScrollableCard('En cours', cStats['processing']?.toString() ?? '0', Icons.sync_rounded, Colors.blue, isDark),
-              _buildScrollableCard('Programmé', cStats['scheduled']?.toString() ?? '0', Icons.schedule_rounded, Colors.orange, isDark),
-              _buildScrollableCard('Archivés', cStats['archived']?.toString() ?? '0', Icons.archive_rounded, Colors.grey, isDark),
-              _buildScrollableCard('Msg Envoyés', _stats?['totalMessagesProcessed']?.toString() ?? '0', Icons.send_rounded, Colors.teal, isDark),
+              _buildScrollableCard(
+                  'Campagnes',
+                  _stats?['totalCampaigns']?.toString() ?? '0',
+                  Icons.campaign_rounded,
+                  Colors.pinkAccent,
+                  isDark),
+              _buildScrollableCard(
+                  'Terminé',
+                  cStats['completed']?.toString() ?? '0',
+                  Icons.check_circle_rounded,
+                  Colors.green,
+                  isDark),
+              _buildScrollableCard(
+                  'En cours',
+                  cStats['processing']?.toString() ?? '0',
+                  Icons.sync_rounded,
+                  Colors.blue,
+                  isDark),
+              _buildScrollableCard(
+                  'Programmé',
+                  cStats['scheduled']?.toString() ?? '0',
+                  Icons.schedule_rounded,
+                  Colors.orange,
+                  isDark),
+              _buildScrollableCard(
+                  'Archivés',
+                  cStats['archived']?.toString() ?? '0',
+                  Icons.archive_rounded,
+                  Colors.grey,
+                  isDark),
+              _buildScrollableCard(
+                  'Msg Envoyés',
+                  _stats?['totalMessagesProcessed']?.toString() ?? '0',
+                  Icons.send_rounded,
+                  Colors.teal,
+                  isDark),
             ],
           ),
         ),
@@ -1061,19 +1224,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Statistiques des Modèles', Icons.grid_view_rounded, Colors.purple, isDark),
+        _buildSectionHeader('Statistiques des Modèles', Icons.grid_view_rounded,
+            Colors.purple, isDark),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
           child: Row(
             children: [
-              _buildScrollableCard('Modèles', _stats?['totalTemplates']?.toString() ?? '0', Icons.file_copy_rounded, Colors.purple, isDark),
-              _buildScrollableCard('Marketing', marketingCount, Icons.mark_email_read_rounded, Colors.pinkAccent, isDark),
-              _buildScrollableCard('Utilitaire', utilityCount, Icons.build_rounded, Colors.teal, isDark),
-              _buildScrollableCard('Approuvé', approved, Icons.check_circle_rounded, Colors.green, isDark),
-              _buildScrollableCard('En attente', pending, Icons.hourglass_top_rounded, Colors.amber, isDark),
-              _buildScrollableCard('Rejeté', rejected, Icons.cancel_rounded, Colors.red, isDark),
+              _buildScrollableCard(
+                  'Modèles',
+                  _stats?['totalTemplates']?.toString() ?? '0',
+                  Icons.file_copy_rounded,
+                  Colors.purple,
+                  isDark),
+              _buildScrollableCard('Marketing', marketingCount,
+                  Icons.mark_email_read_rounded, Colors.pinkAccent, isDark),
+              _buildScrollableCard('Utilitaire', utilityCount,
+                  Icons.build_rounded, Colors.teal, isDark),
+              _buildScrollableCard('Approuvé', approved,
+                  Icons.check_circle_rounded, Colors.green, isDark),
+              _buildScrollableCard('En attente', pending,
+                  Icons.hourglass_top_rounded, Colors.amber, isDark),
+              _buildScrollableCard(
+                  'Rejeté', rejected, Icons.cancel_rounded, Colors.red, isDark),
             ],
           ),
         ),
@@ -1082,7 +1256,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ── Helper UI Elements ───────────────────────────────────────────────────
-  Widget _buildSectionHeader(String title, IconData icon, Color color, bool isDark) {
+  Widget _buildSectionHeader(
+      String title, IconData icon, Color color, bool isDark) {
     return Row(
       children: [
         Container(
@@ -1106,7 +1281,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildStatCard(String title, IconData icon, Color color, String value, bool isDark) {
+  Widget _buildStatCard(
+      String title, IconData icon, Color color, String value, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -1161,7 +1337,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildFeatureRow(String label, bool enabled, bool isDark, {bool isLast = false}) {
+  Widget _buildFeatureRow(String label, bool enabled, bool isDark,
+      {bool isLast = false}) {
     return Column(
       children: [
         Padding(
@@ -1193,7 +1370,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildScrollableCard(String title, String value, IconData icon, Color color, bool isDark) {
+  Widget _buildScrollableCard(
+      String title, String value, IconData icon, Color color, bool isDark) {
     return Container(
       width: 120,
       margin: const EdgeInsets.only(right: 10),
@@ -1253,22 +1431,44 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── 6. Section Statistiques des Ventes ───────────────────────────────
   Widget _buildOrderStatsSection(bool isDark) {
     final oStats = _stats?['order_stats'] as Map? ?? {};
-    if (oStats.isEmpty) return const SizedBox.shrink(); // E-commerce non activé / pas dispo
+    if (oStats.isEmpty)
+      return const SizedBox.shrink(); // E-commerce non activé / pas dispo
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Statistiques des Ventes', Icons.shopping_cart_rounded, Colors.indigo, isDark),
+        _buildSectionHeader('Statistiques des Ventes',
+            Icons.shopping_cart_rounded, Colors.indigo, isDark),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
           child: Row(
             children: [
-              _buildScrollableCard('Commandes', _stats?['ordersCount']?.toString() ?? '0', Icons.shopping_cart_rounded, Colors.indigo, isDark),
-              _buildScrollableCard('Aujourd\'hui', _stats?['ordersTodayCount']?.toString() ?? '0', Icons.today_rounded, Colors.blue, isDark),
-              _buildScrollableCard('En attente', oStats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, Colors.amber, isDark),
-              _buildScrollableCard('Finalisé', oStats['completed']?.toString() ?? '0', Icons.check_circle_rounded, Colors.green, isDark),
+              _buildScrollableCard(
+                  'Commandes',
+                  _stats?['ordersCount']?.toString() ?? '0',
+                  Icons.shopping_cart_rounded,
+                  Colors.indigo,
+                  isDark),
+              _buildScrollableCard(
+                  'Aujourd\'hui',
+                  _stats?['ordersTodayCount']?.toString() ?? '0',
+                  Icons.today_rounded,
+                  Colors.blue,
+                  isDark),
+              _buildScrollableCard(
+                  'En attente',
+                  oStats['pending']?.toString() ?? '0',
+                  Icons.pending_actions_rounded,
+                  Colors.amber,
+                  isDark),
+              _buildScrollableCard(
+                  'Finalisé',
+                  oStats['completed']?.toString() ?? '0',
+                  Icons.check_circle_rounded,
+                  Colors.green,
+                  isDark),
             ],
           ),
         ),
@@ -1285,7 +1485,8 @@ class _Eligible24hCampaignCard extends StatefulWidget {
   const _Eligible24hCampaignCard();
 
   @override
-  State<_Eligible24hCampaignCard> createState() => _Eligible24hCampaignCardState();
+  State<_Eligible24hCampaignCard> createState() =>
+      _Eligible24hCampaignCardState();
 }
 
 class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
@@ -1306,9 +1507,15 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
     if (!mounted) return;
     setState(() {
       _count = (data?['count'] as num?)?.toInt() ?? 0;
-      _contacts = data != null ? List<Map<String, dynamic>>.from(data['contacts'] ?? []) : [];
-      _windowStart = data?['window_start'] != null ? DateTime.tryParse(data!['window_start'])?.toLocal() : null;
-      _windowEnd = data?['window_end'] != null ? DateTime.tryParse(data!['window_end'])?.toLocal() : null;
+      _contacts = data != null
+          ? List<Map<String, dynamic>>.from(data['contacts'] ?? [])
+          : [];
+      _windowStart = data?['window_start'] != null
+          ? DateTime.tryParse(data!['window_start'])?.toLocal()
+          : null;
+      _windowEnd = data?['window_end'] != null
+          ? DateTime.tryParse(data!['window_end'])?.toLocal()
+          : null;
       _isLoading = false;
     });
   }
@@ -1322,7 +1529,8 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
   }
 
-  String _hhmm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
+  String _hhmm(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
 
   Future<void> _openWizard() async {
     if (_windowStart == null || _windowEnd == null) return;
@@ -1344,14 +1552,16 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
     final isDark = ThemeService().isDark;
 
     if (_isLoading) return const SizedBox.shrink();
-    if (_count == 0 || _windowStart == null || _windowEnd == null) return const SizedBox.shrink();
+    if (_count == 0 || _windowStart == null || _windowEnd == null)
+      return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+            color: const Color(0xFF10B981).withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1366,7 +1576,8 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
                   color: const Color(0xFF10B981).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.bolt_rounded, color: Color(0xFF10B981), size: 24),
+                child: const Icon(Icons.bolt_rounded,
+                    color: Color(0xFF10B981), size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1374,7 +1585,7 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Envoi gratuit disponible',
+                      'Envoyer des messages en masse',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -1383,8 +1594,11 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$_count discussion(s) ouvertes depuis 24h — envoyez-leur une campagne sans frais, sans modèle Meta.',
-                      style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : Colors.black54, height: 1.4),
+                      'Vous avez $_count discussion(s) ouvertes depuis 24h',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          height: 1.4),
                     ),
                   ],
                 ),
@@ -1395,7 +1609,10 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
           Text(
             'Seuls ceux qui ont écrit depuis ${_dayLabel(_windowStart!)} à ${_hhmm(_windowStart!)} '
             'jusqu\'à ${_dayLabel(_windowEnd!)} à ${_hhmm(_windowEnd!)} recevront ce message.',
-            style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white54 : Colors.black45, fontStyle: FontStyle.italic),
+            style: TextStyle(
+                fontSize: 11.5,
+                color: isDark ? Colors.white54 : Colors.black45,
+                fontStyle: FontStyle.italic),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -1406,10 +1623,13 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-              child: const Text('Envoyer une campagne', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+              child: const Text('Envoyer une campagne',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
             ),
           ),
         ],

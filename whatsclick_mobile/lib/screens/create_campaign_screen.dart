@@ -645,6 +645,11 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: _titleController,
+          // campaigns.title and the temp group title derived from it are
+          // both varchar(255) — 200 leaves room for the "Audience: ... ()"
+          // wrapping the backend adds, so a long title can't overflow the
+          // column and crash with a raw SQL "Data too long" error.
+          maxLength: 200,
           style: TextStyle(color: isDark ? Colors.white : Colors.black87),
           decoration: InputDecoration(
             hintText: 'Ex: Promo Été 2024 - Offre Spéciale',

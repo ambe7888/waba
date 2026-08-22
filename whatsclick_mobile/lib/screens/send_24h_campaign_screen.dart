@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'create_bot_reply_screen.dart';
 
 /// 3-step wizard for sending a free (non-template) mass message to contacts
 /// within WhatsApp's active 24h customer-service window: pick or write the
@@ -26,12 +27,26 @@ class Send24hCampaignScreen extends StatefulWidget {
 class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
   int _step = 0;
 
-  // Step 1: message
-  bool _isLoadingPresets = true;
-  List<Map<String, dynamic>> _presets = [];
+  // Step 1: message. Two predefined sources — NT_CAMPAIGN_MESSAGE presets
+  // ("Récemment envoyé", since they only ever exist for one-off sends like
+  // this one) and the general saved auto-replies library ("Réponses auto
+  // enregistrées") — plus a "write one now" path that opens the same
+  // header/body/footer/button composer used for auto-replies.
+  bool _isLoadingCampaignPresets = true;
+  List<Map<String, dynamic>> _campaignPresets = [];
+  bool _isLoadingBotReplies = true;
+  List<Map<String, dynamic>> _botReplies = [];
+
+  String _messageSourceTab = 'predefined'; // 'predefined' | 'write'
   String? _selectedPresetUid;
-  bool _writingCustomMessage = false;
-  final _customMessageController = TextEditingController();
+  String? _selectedMessageName;
+  String? _selectedMessagePreview;
+  // True only when the selected preset was just created by _openComposer()
+  // in this session — an existing "récemment envoyé"/"réponse auto
+  // enregistrée" pick is the user's real content and must never be
+  // deleted. A freshly-composed one-off message that ends up unused
+  // because the send failed is just clutter — clean it up.
+  bool _isFreshlyComposedPreset = false;
 
   // Step 2: audience
   late Set<String> _excludedContactUids;
@@ -42,21 +57,26 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
   void initState() {
     super.initState();
     _excludedContactUids = {};
-    _loadPresets();
+    _loadCampaignPresets();
+    _loadBotReplies();
   }
 
-  @override
-  void dispose() {
-    _customMessageController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadPresets() async {
+  Future<void> _loadCampaignPresets() async {
     final presets = await ApiService().fetchNonTemplateMessagePresets();
     if (mounted) {
       setState(() {
-        _presets = presets;
-        _isLoadingPresets = false;
+        _campaignPresets = presets;
+        _isLoadingCampaignPresets = false;
+      });
+    }
+  }
+
+  Future<void> _loadBotReplies() async {
+    final data = await ApiService().fetchBotReplies();
+    if (mounted) {
+      setState(() {
+        _botReplies = data != null ? List<Map<String, dynamic>>.from(data['bot_replies'] ?? []) : [];
+        _isLoadingBotReplies = false;
       });
     }
   }
@@ -72,55 +92,41 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
 
   String _hhmm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
 
-  bool get _canGoNextFromStep1 {
-    if (_writingCustomMessage) return _customMessageController.text.trim().isNotEmpty;
-    return _selectedPresetUid != null;
-  }
+  bool get _canGoNextFromStep1 => _selectedPresetUid != null;
 
   int get _selectedContactsCount => widget.eligibleContacts.length - _excludedContactUids.length;
 
+  void _selectPreset(Map<String, dynamic> p, {bool freshlyComposed = false}) {
+    setState(() {
+      _selectedPresetUid = p['_uid']?.toString();
+      _selectedMessageName = p['name']?.toString();
+      _selectedMessagePreview = p['reply_text']?.toString();
+      _isFreshlyComposedPreset = freshlyComposed;
+    });
+  }
+
+  Future<void> _openComposer() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CreateBotReplyScreen(triggerTypes: {}, isCampaignPresetMode: true),
+      ),
+    );
+    if (result is Map && result['success'] == true) {
+      final name = result['name']?.toString();
+      // processBotReplyCreate() doesn't return the new record's uid — the
+      // name is unique (server-enforced) by the time this succeeds, so
+      // re-fetch and match on it to recover the uid.
+      final refreshed = await ApiService().fetchNonTemplateMessagePresets();
+      final match = refreshed.firstWhere((p) => p['name']?.toString() == name, orElse: () => {});
+      if (mounted && match.isNotEmpty) {
+        setState(() => _campaignPresets = refreshed);
+        _selectPreset(match, freshlyComposed: true);
+      }
+    }
+  }
+
   Future<void> _submit() async {
     setState(() => _isSubmitting = true);
-
-    String? presetUid = _selectedPresetUid;
-
-    if (_writingCustomMessage) {
-      final text = _customMessageController.text.trim();
-      final uniqueName = 'Campagne 24h ${DateTime.now().millisecondsSinceEpoch}';
-      final created = await ApiService().createBotReply(
-        name: uniqueName,
-        triggerType: 'NT_CAMPAIGN_MESSAGE',
-        replyText: text,
-        messageType: 'simple',
-        // processBotReplyCreate() defaults status to inactive (2) unless a
-        // truthy 'status' is sent — harmless for a one-off send since the
-        // preset lookup doesn't filter by status, but active is the
-        // correct state if the user ever revisits it.
-        advancedFields: const {'status': '1'},
-      );
-      // processBotReplyCreate() doesn't return the new record's uid in its
-      // response — re-fetch the preset list and match on the name we just
-      // used (guaranteed unique via the timestamp) to recover it.
-      final createdOk = created != null && (created['reaction'] == 1 || created['reaction'] == 21);
-      String? createdUid;
-      if (createdOk) {
-        final refreshed = await ApiService().fetchNonTemplateMessagePresets();
-        createdUid = refreshed.firstWhere(
-          (p) => p['name']?.toString() == uniqueName,
-          orElse: () => {},
-        )['_uid']?.toString();
-      }
-      if (createdUid == null) {
-        if (mounted) {
-          setState(() => _isSubmitting = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Échec de la création du message.'), backgroundColor: Colors.red),
-          );
-        }
-        return;
-      }
-      presetUid = createdUid;
-    }
 
     final selectedUids = widget.eligibleContacts
         .where((c) => !_excludedContactUids.contains(c['_uid']?.toString()))
@@ -129,21 +135,37 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
 
     final result = await ApiService().createCampaign(
       title: 'Message 24h ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-      presetMessageUid: presetUid,
+      presetMessageUid: _selectedPresetUid,
       audienceMode: 'specific',
       contactUids: selectedUids,
       sendImmediately: true,
     );
 
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
 
     if (result['reaction'] == 1) {
+      setState(() => _isSubmitting = false);
       Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Campagne envoyée !'), backgroundColor: Colors.green),
       );
     } else {
+      // The send failed — a freshly-composed one-off message that never
+      // actually got used is just clutter, not something the user will
+      // find again in "réponse auto enregistrée" and want to keep.
+      if (_isFreshlyComposedPreset && _selectedPresetUid != null) {
+        await ApiService().deleteBotReply(_selectedPresetUid!);
+        if (mounted) {
+          setState(() {
+            _selectedPresetUid = null;
+            _selectedMessageName = null;
+            _selectedMessagePreview = null;
+            _isFreshlyComposedPreset = false;
+          });
+        }
+      }
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message']?.toString() ?? "Erreur lors de l'envoi."),
@@ -228,7 +250,7 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
                       if (_step == 0) {
                         if (!_canGoNextFromStep1) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Choisissez ou écrivez un message.')),
+                            const SnackBar(content: Text('Choisissez ou composez un message.')),
                           );
                           return;
                         }
@@ -270,80 +292,144 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
         Row(
           children: [
             Expanded(
-              child: _buildToggleChip(isDark, 'Message prédéfini', !_writingCustomMessage,
-                  () => setState(() => _writingCustomMessage = false)),
+              child: _buildToggleChip(isDark, 'Message prédéfini', _messageSourceTab == 'predefined',
+                  () => setState(() => _messageSourceTab = 'predefined')),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _buildToggleChip(
-                  isDark, 'Écrire un message', _writingCustomMessage, () => setState(() => _writingCustomMessage = true)),
+                  isDark, 'Écrire un message', _messageSourceTab == 'write', () => setState(() => _messageSourceTab = 'write')),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        if (_writingCustomMessage)
-          TextField(
-            controller: _customMessageController,
-            maxLines: 5,
-            onChanged: (_) => setState(() {}),
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-            decoration: InputDecoration(
-              hintText: 'Tapez votre message...',
-              filled: true,
-              fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-              border: OutlineInputBorder(
+        if (_messageSourceTab == 'write') ...[
+          if (_selectedMessageName != null && _messageSourceTab == 'write') ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: ThemeService.primaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                border: Border.all(color: ThemeService.primaryColor, width: 1.5),
               ),
-            ),
-          )
-        else if (_isLoadingPresets)
-          const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
-        else if (_presets.isEmpty)
-          Text('Aucun message prédéfini. Écrivez-en un directement.',
-              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey))
-        else
-          ..._presets.map((p) {
-            final uid = p['_uid']?.toString() ?? '';
-            final selected = _selectedPresetUid == uid;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedPresetUid = uid),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? ThemeService.primaryColor.withValues(alpha: 0.08)
-                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: selected ? ThemeService.primaryColor : (isDark ? Colors.white10 : Colors.grey.shade200),
-                    width: selected ? 1.5 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p['name']?.toString() ?? 'Sans nom',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: ThemeService.primaryColor, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_selectedMessageName!,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                        if ((_selectedMessagePreview ?? '').isNotEmpty) ...[
                           const SizedBox(height: 4),
-                          Text(p['reply_text']?.toString() ?? '',
+                          Text(_selectedMessagePreview!,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54)),
                         ],
-                      ),
+                      ],
                     ),
-                    Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                        color: selected ? ThemeService.primaryColor : Colors.grey, size: 20),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          OutlinedButton.icon(
+            onPressed: _openComposer,
+            icon: const Icon(Icons.edit_note_rounded),
+            label: Text(_selectedMessageName != null ? 'Modifier le message' : 'Composer le message'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ThemeService.primaryColor,
+              side: BorderSide(color: ThemeService.primaryColor),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              minimumSize: const Size(double.infinity, 0),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'En-tête (texte ou média), corps, pied de page et boutons — comme pour une réponse auto.',
+            style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey),
+          ),
+        ] else ...[
+          _buildPresetSection(
+            isDark: isDark,
+            title: 'RÉCEMMENT ENVOYÉ',
+            isLoading: _isLoadingCampaignPresets,
+            items: _campaignPresets,
+          ),
+          const SizedBox(height: 20),
+          _buildPresetSection(
+            isDark: isDark,
+            title: 'RÉPONSES AUTO ENREGISTRÉES',
+            isLoading: _isLoadingBotReplies,
+            items: _botReplies,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPresetSection({
+    required bool isDark,
+    required String title,
+    required bool isLoading,
+    required List<Map<String, dynamic>> items,
+  }) {
+    if (isLoading) {
+      return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+    }
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+        const SizedBox(height: 8),
+        ...items.map((p) {
+          final uid = p['_uid']?.toString() ?? '';
+          final selected = _selectedPresetUid == uid;
+          return GestureDetector(
+            onTap: () => _selectPreset(p),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: selected
+                    ? ThemeService.primaryColor.withValues(alpha: 0.08)
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selected ? ThemeService.primaryColor : (isDark ? Colors.white10 : Colors.grey.shade200),
+                  width: selected ? 1.5 : 1,
                 ),
               ),
-            );
-          }),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p['name']?.toString() ?? 'Sans nom',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                        const SizedBox(height: 4),
+                        Text(p['reply_text']?.toString() ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54)),
+                      ],
+                    ),
+                  ),
+                  Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                      color: selected ? ThemeService.primaryColor : Colors.grey, size: 20),
+                ],
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -399,12 +485,6 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
   }
 
   Widget _buildStep3(bool isDark) {
-    final messagePreview = _writingCustomMessage
-        ? _customMessageController.text.trim()
-        : (_presets.firstWhere((p) => p['_uid']?.toString() == _selectedPresetUid, orElse: () => {})['reply_text']
-                ?.toString() ??
-            '');
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
       children: [
@@ -426,11 +506,12 @@ class _Send24hCampaignScreenState extends State<Send24hCampaignScreen> {
                 children: [
                   Icon(Icons.message_rounded, size: 16, color: ThemeService.primaryColor),
                   const SizedBox(width: 8),
-                  Text('Message', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  Text(_selectedMessageName ?? 'Message',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(messagePreview.isNotEmpty ? messagePreview : 'Pas de texte.',
+              Text((_selectedMessagePreview?.isNotEmpty ?? false) ? _selectedMessagePreview! : 'Pas de texte.',
                   style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, height: 1.4)),
               const SizedBox(height: 16),
               Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),

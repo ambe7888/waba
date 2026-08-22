@@ -864,15 +864,23 @@ Route::group([
         Route::post('/whatsapp/campaign/schedule', function (Illuminate\Http\Request $request) {
             validateVendorAccess('manage_campaigns');
             $contactUids = $request->get('contact_uids');
+            $tempGroup = null;
             if ($contactUids && is_array($contactUids)) {
                 $vendorId = getVendorId();
+                // contact_groups.title is varchar(255) and this wraps the
+                // user-supplied campaign title in "Audience: ... (date)" —
+                // truncate defensively so a long title can't overflow the
+                // column and crash with a raw SQL "Data too long" error
+                // (the mobile title field also caps at 200 now, but a
+                // request isn't guaranteed to come from that exact client).
+                $safeTitle = \Str::limit((string) $request->get('title'), 200, '');
                 // ContactGroupModel has an empty $fillable, so plain create()
                 // always throws MassAssignmentException — forceCreate() is
                 // the standard Eloquent escape hatch for server-generated,
                 // fully-trusted input like this.
-                $newGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::forceCreate([
+                $tempGroup = \App\Yantrana\Components\Contact\Models\ContactGroupModel::forceCreate([
                     '_uid' => (string) \Str::uuid(),
-                    'title' => 'Audience: ' . $request->get('title') . ' (' . now()->format('d-m-Y H:i') . ')',
+                    'title' => 'Audience: ' . $safeTitle . ' (' . now()->format('d-m-Y H:i') . ')',
                     'description' => 'Groupe temporaire créé pour envoi direct',
                     'vendors__id' => $vendorId,
                     'status' => 1
@@ -885,7 +893,7 @@ Route::group([
                 foreach ($contacts as $contact) {
                     $insertData[] = [
                         '_uid' => (string) \Str::uuid(),
-                        'contact_groups__id' => $newGroup->_id,
+                        'contact_groups__id' => $tempGroup->_id,
                         'contacts__id' => $contact->_id,
                         'created_at' => now(),
                         'updated_at' => now()
@@ -900,10 +908,38 @@ Route::group([
                 // numeric _id, not its _uid, or the lookup matches nothing
                 // and the campaign fails with "Invalid Group".
                 $request->merge([
-                    'contact_group' => [(string) $newGroup->_id]
+                    'contact_group' => [(string) $tempGroup->_id]
                 ]);
             }
-            return app(WhatsAppServiceController::class)->scheduleCampaign($request);
+            // The temp group above is only ever useful as this campaign's
+            // audience — if the campaign creation itself failed (plan
+            // limit, no eligible contacts, invalid template, etc.) or threw
+            // outright (an aborted request, a DB error), leaving it behind
+            // is pure orphaned clutter that accumulates on every retry.
+            // The try/catch (not just checking the response) matters
+            // because a thrown exception — abort_if()'s "Template not
+            // found", a validation failure, ... — skips straight past a
+            // plain post-call check.
+            try {
+                $response = app(WhatsAppServiceController::class)->scheduleCampaign($request);
+            } catch (\Throwable $e) {
+                if ($tempGroup) {
+                    \DB::table('group_contacts')->where('contact_groups__id', $tempGroup->_id)->delete();
+                    $tempGroup->delete();
+                }
+                throw $e;
+            }
+            if ($tempGroup) {
+                $reaction = null;
+                if (method_exists($response, 'getData')) {
+                    $reaction = $response->getData(true)['reaction'] ?? null;
+                }
+                if ($reaction !== 1) {
+                    \DB::table('group_contacts')->where('contact_groups__id', $tempGroup->_id)->delete();
+                    $tempGroup->delete();
+                }
+            }
+            return $response;
         })->name('app_api.vendor.campaign.schedule.process');
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
