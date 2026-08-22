@@ -881,8 +881,12 @@ return [
                 'key' => 'gemini_api_key',
                 'data_type' => 1,     // string
                 'default' => '',
-                'hide_value' => false,
-                'ignore_empty' => false,
+                // Encrypted at rest, matching the convention already used for
+                // vendor-level secrets (flowise_url, flowise_access_token,
+                // open_ai_organization_id in config/__vendor-settings.php) —
+                // this platform-wide key was previously stored in plaintext.
+                'hide_value' => true,
+                'ignore_empty' => true,
                 'validation_rules' => [
                     'nullable',
                 ],
@@ -891,8 +895,8 @@ return [
                 'key' => 'openai_api_key',
                 'data_type' => 1,     // string
                 'default' => '',
-                'hide_value' => false,
-                'ignore_empty' => false,
+                'hide_value' => true,
+                'ignore_empty' => true,
                 'validation_rules' => [
                     'nullable',
                 ],

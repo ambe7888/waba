@@ -18,13 +18,13 @@
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <x-lw.input-field type="text" :label="__tr('Clé API Google Gemini')" name="gemini_api_key" value="{{ getAppSettings('gemini_api_key') }}" />
+                    <x-lw.input-field type="password" :label="__tr('Clé API Google Gemini')" name="gemini_api_key" value="{{ getAppSettings('gemini_api_key') }}" />
                     <div class="text-sm text-info mt-1">
                         {{ __tr('Obtenez votre clé API gratuite sur Google AI Studio (aistudio.google.com).') }}
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <x-lw.input-field type="text" :label="__tr('OpenAI API Key (ChatGPT)')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" />
+                    <x-lw.input-field type="password" :label="__tr('OpenAI API Key (ChatGPT)')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" />
                     <div class="text-sm text-info mt-1">
                         {{ __tr('Clé OpenAI facultative si Gemini est activé.') }}
                     </div>
