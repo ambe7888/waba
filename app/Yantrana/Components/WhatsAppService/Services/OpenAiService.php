@@ -445,6 +445,22 @@ class OpenAiService extends BaseEngine
             \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Skipped Gemini, falling through to OpenAI for vendor ' . $vendorId);
         }
 
+        // initConfiguration() sets 'gemini-mode-placeholder' as the OpenAI SDK's
+        // api_key when no real OpenAI key exists anywhere (vendor or platform) —
+        // it exists only so a Gemini-only setup doesn't hit the "no AI key at all"
+        // exception earlier. Without this guard, any transient Gemini failure or
+        // empty response above falls through to here and the OpenAI SDK rejects
+        // the placeholder with its own "Incorrect API key provided:
+        // gemini-mode-placeholder" error — a guaranteed failure that both wastes
+        // an HTTP round-trip and produces a misleading log (this is exactly what
+        // was happening in production for Gemini-only vendors whenever Gemini
+        // hiccuped, with no indication the real cause was "no OpenAI key", not a
+        // bad key).
+        if (config('openai.api_key') === 'gemini-mode-placeholder') {
+            \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] No real OpenAI key configured (vendor or platform) and Gemini failed/returned empty for vendor ' . $vendorId . ' — skipping the doomed OpenAI fallback.');
+            return null;
+        }
+
         // Step 2: Use OpenAI completion API as fallback or primary
         try {
             $response = OpenAI::chat()->create([
@@ -611,6 +627,20 @@ class OpenAiService extends BaseEngine
             return isset($msg['content']) && trim($msg['content']) !== '';
         });
 
+        // This summarization call is OpenAI-only (no Gemini equivalent) and, unlike
+        // generateAnswerFromMultipleSections()'s own OpenAI step, isn't essential to
+        // answering the current message — it only refreshes past_ai_summary for
+        // *future* replies. For a Gemini-only vendor (no real OpenAI key anywhere),
+        // initConfiguration() already configured the SDK with the
+        // 'gemini-mode-placeholder' sentinel, and calling it here would throw before
+        // the caller ever gets a chance to try Gemini at all — i.e. history-context
+        // being enabled would silently break every AI reply, not just skip a
+        // refreshed summary. Skip the refresh and return what's already available.
+        if (config('openai.api_key') === 'gemini-mode-placeholder') {
+            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] No real OpenAI key configured — skipping chat summary refresh for vendor ' . $vendorId . ', using existing summary/history as-is.');
+            return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
+        }
+
         // Step 2: Use OpenAI completion API to generate a refined answer
         try {
             $response = OpenAI::chat()->create([
@@ -622,7 +652,7 @@ class OpenAiService extends BaseEngine
         } catch (\Throwable $th) {
             throw $th;
         }
-        
+
         $newNewSummary = trim($response['choices'][0]['message']['content']);
 
         $contactRepository = new ContactRepository();

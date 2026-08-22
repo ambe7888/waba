@@ -711,9 +711,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? Colors.white38
-                              : const Color(0xFF9CA3AF),
+                          color:
+                              isDark ? Colors.white38 : const Color(0xFF9CA3AF),
                         ),
                       ),
                     ],
@@ -1193,9 +1192,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(
-            'Statistiques des Campagnes', Icons.campaign_rounded,
-            Colors.pinkAccent, isDark,
+        _buildSectionHeader('Statistiques des Campagnes',
+            Icons.campaign_rounded, Colors.pinkAccent, isDark,
             onTap: widget.onOpenCampaigns),
         const SizedBox(height: 12),
         SingleChildScrollView(
@@ -1689,14 +1687,14 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
             child: ElevatedButton(
               onPressed: _openWizard,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: const Color.fromARGB(255, 16, 89, 185),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-              child: const Text('Envoyer une campagne',
+              child: const Text('Lancer une campagne',
                   style:
                       TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
             ),
