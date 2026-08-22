@@ -10,9 +10,22 @@ import 'chat_box_screen.dart';
 import 'notifications_screen.dart';
 import '../config/app_config.dart';
 
+/// A one-off request to switch this screen's segment filter, sent from
+/// outside (e.g. a dashboard card). Wrapped in its own class rather than
+/// passing the filter string directly through a ValueNotifier, since
+/// ValueNotifier only fires listeners when the value actually *changes* —
+/// tapping the same dashboard card twice in a row with a plain string would
+/// silently do nothing the second time. A fresh instance is never `==` to
+/// the previous one, so the listener always fires.
+class PendingHomeFilterRequest {
+  final String filter;
+  const PendingHomeFilterRequest(this.filter);
+}
+
 class HomeScreen extends StatefulWidget {
   final Function(int)? onUnreadCountChanged;
-  const HomeScreen({super.key, this.onUnreadCountChanged});
+  final ValueNotifier<PendingHomeFilterRequest?>? pendingFilterNotifier;
+  const HomeScreen({super.key, this.onUnreadCountChanged, this.pendingFilterNotifier});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -65,6 +78,12 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    widget.pendingFilterNotifier?.addListener(_onPendingFilterRequest);
+    final initialRequest = widget.pendingFilterNotifier?.value;
+    if (initialRequest != null) {
+      _assignedFilter = initialRequest.filter;
+      widget.pendingFilterNotifier!.value = null;
+    }
     _loadContacts();
     _checkUpdate();
     _searchController.addListener(_onSearchChanged);
@@ -235,9 +254,10 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: 1,
-        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread' || _assignedFilter == 'active-24h') ? null : _assignedFilter,
         search: _searchController.text,
         unreadOnly: _assignedFilter == 'unread',
+        active24hOnly: _assignedFilter == 'active-24h',
       );
       final data = result;
       if (data['error'] == true) {
@@ -327,9 +347,10 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: _nextPage,
-        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread') ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread' || _assignedFilter == 'active-24h') ? null : _assignedFilter,
         search: _searchController.text,
         unreadOnly: _assignedFilter == 'unread',
+        active24hOnly: _assignedFilter == 'active-24h',
       );
 
       if (result['error'] == true) {
@@ -857,6 +878,28 @@ class _HomeScreenState extends State<HomeScreen>
     _loadContacts(reset: true);
   }
 
+  // Triggered from outside (a dashboard card tap) via pendingFilterNotifier.
+  // Always re-applies the filter — unlike _selectAssignedFilter's tap
+  // handler, tapping the same dashboard card again while already on this
+  // tab/filter should still feel like it did something (a fresh reload),
+  // not silently no-op.
+  void _onPendingFilterRequest() {
+    final request = widget.pendingFilterNotifier?.value;
+    if (request == null) return;
+    widget.pendingFilterNotifier!.value = null;
+    setState(() {
+      _assignedFilter = request.filter;
+      if (request.filter == 'unread') {
+        if (!_selectedLabelFilters.contains('__unread')) {
+          _selectedLabelFilters.add('__unread');
+        }
+      } else {
+        _selectedLabelFilters.remove('__unread');
+      }
+    });
+    _loadContacts(reset: true);
+  }
+
   // Fetch global unread counts for badge display
   Future<void> _refreshBadgeCounts() async {
     try {
@@ -970,6 +1013,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.pendingFilterNotifier?.removeListener(_onPendingFilterRequest);
     _fcmSubscription.cancel();
     _pollingTimer?.cancel();
     _searchDebouncer?.cancel();
@@ -1200,6 +1244,8 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildSegmentButton('Moi', 'to-me'),
                 const SizedBox(width: 8),
                 _buildSegmentButton('Non assigné', 'unassigned'),
+                const SizedBox(width: 8),
+                _buildSegmentButton('Ouvert depuis 24h', 'active-24h'),
               ],
             ),
           ),

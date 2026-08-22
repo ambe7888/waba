@@ -24,13 +24,33 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   StreamSubscription<String>? _notificationTapSubscription;
   int _unreadConversations = 0;
   late final List<Widget> _screens;
+  // Lets DashboardScreen (or anything else) request that the Discussions
+  // tab apply a specific segment filter once it becomes visible. Wrapped
+  // request object so re-requesting the same filter still fires the
+  // listener — see PendingHomeFilterRequest in home_screen.dart.
+  final ValueNotifier<PendingHomeFilterRequest?> _pendingHomeFilter =
+      ValueNotifier(null);
+
+  void navigateToTab(int index) {
+    if (mounted) setState(() => _currentIndex = index);
+  }
+
+  void navigateToDiscussions({String filter = 'all'}) {
+    _pendingHomeFilter.value = PendingHomeFilterRequest(filter);
+    navigateToTab(1);
+  }
 
   @override
   void initState() {
     super.initState();
     _screens = [
-      const DashboardScreen(),
+      DashboardScreen(
+        onOpenContacts: () => navigateToTab(2),
+        onOpenDiscussions: (filter) => navigateToDiscussions(filter: filter),
+        onOpenCampaigns: () => navigateToTab(3),
+      ),
       HomeScreen(
+        pendingFilterNotifier: _pendingHomeFilter,
         onUnreadCountChanged: (count) {
           if (mounted && _unreadConversations != count) {
             setState(() {
@@ -54,6 +74,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   @override
   void dispose() {
     _notificationTapSubscription?.cancel();
+    _pendingHomeFilter.dispose();
     super.dispose();
   }
 

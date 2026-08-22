@@ -8,9 +8,23 @@ import 'notifications_screen.dart';
 import 'account_screen.dart';
 import 'profile_screen.dart';
 import 'send_24h_campaign_screen.dart';
+import 'agents_screen.dart';
+import 'templates_admin_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  // Tab switches are delegated up to MainLayoutScreen, which owns the
+  // IndexedStack these screens live in — DashboardScreen itself has no way
+  // to change which tab is showing.
+  final VoidCallback? onOpenContacts;
+  final void Function(String filter)? onOpenDiscussions;
+  final VoidCallback? onOpenCampaigns;
+
+  const DashboardScreen({
+    super.key,
+    this.onOpenContacts,
+    this.onOpenDiscussions,
+    this.onOpenCampaigns,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -992,6 +1006,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 const Color(0xFF6C63FF),
                 _stats?['totalContacts']?.toString() ?? '0',
                 isDark,
+                onTap: widget.onOpenContacts,
               ),
             ),
             const SizedBox(width: 12),
@@ -1016,6 +1031,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Colors.teal,
                 _stats?['messagesReceivedTodayCount']?.toString() ?? '0',
                 isDark,
+                onTap: widget.onOpenDiscussions == null
+                    ? null
+                    : () => widget.onOpenDiscussions!('all'),
               ),
             ),
             const SizedBox(width: 12),
@@ -1026,6 +1044,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Colors.redAccent,
                 _stats?['unreadMessagesCount']?.toString() ?? '0',
                 isDark,
+                onTap: widget.onOpenDiscussions == null
+                    ? null
+                    : () => widget.onOpenDiscussions!('unread'),
               ),
             ),
           ],
@@ -1040,6 +1061,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Colors.orange,
                 _stats?['activeContacts24hCount']?.toString() ?? '0',
                 isDark,
+                onTap: widget.onOpenDiscussions == null
+                    ? null
+                    : () => widget.onOpenDiscussions!('active-24h'),
               ),
             ),
             const SizedBox(width: 12),
@@ -1052,6 +1076,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     _stats?['activeTeamMembers']?.toString() ??
                     '0',
                 isDark,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AgentsScreen()),
+                ),
               ),
             ),
           ],
@@ -1161,8 +1188,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Statistiques des Campagnes',
-            Icons.campaign_rounded, Colors.pinkAccent, isDark),
+        _buildSectionHeader(
+            'Statistiques des Campagnes', Icons.campaign_rounded,
+            Colors.pinkAccent, isDark,
+            onTap: widget.onOpenCampaigns),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1225,7 +1254,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Statistiques des Modèles', Icons.grid_view_rounded,
-            Colors.purple, isDark),
+            Colors.purple, isDark,
+            onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const TemplatesAdminScreen()),
+                )),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1257,8 +1290,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // ── Helper UI Elements ───────────────────────────────────────────────────
   Widget _buildSectionHeader(
-      String title, IconData icon, Color color, bool isDark) {
-    return Row(
+      String title, IconData icon, Color color, bool isDark,
+      {VoidCallback? onTap}) {
+    final header = Row(
       children: [
         Container(
           padding: const EdgeInsets.all(6),
@@ -1269,21 +1303,37 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 10),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : Colors.black87,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ),
+        if (onTap != null)
+          Icon(
+            Icons.north_east_rounded,
+            color: color.withValues(alpha: 0.7),
+            size: 16,
+          ),
       ],
+    );
+
+    if (onTap == null) return header;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: header,
     );
   }
 
   Widget _buildStatCard(
-      String title, IconData icon, Color color, String value, bool isDark) {
-    return Container(
+      String title, IconData icon, Color color, String value, bool isDark,
+      {VoidCallback? onTap}) {
+    final card = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
@@ -1319,6 +1369,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: (isDark ? Colors.white : Colors.black87)
+                      .withValues(alpha: 0.35),
+                  size: 18,
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -1334,6 +1391,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ],
       ),
+    );
+
+    if (onTap == null) return card;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: card,
     );
   }
 

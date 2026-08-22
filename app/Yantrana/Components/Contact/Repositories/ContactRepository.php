@@ -419,6 +419,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
 
         $searchQuery = trim(strip_tags(request()->search));
         $unreadOnly  = filter_var(request()->unread_only, FILTER_VALIDATE_BOOLEAN);
+        $active24hOnly = filter_var(request()->active_24h_only, FILTER_VALIDATE_BOOLEAN);
         $assigned    = trim(strip_tags($assigned ?: request()->assigned));
         $selectedLabel = request()->selected_labels;
         $requestContactUid = trim(strip_tags(request()->request_contact));
@@ -538,6 +539,18 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // -----------------------------------------
         if ($unreadOnly) {
             $query->whereNotNull('unread_counts.unread_messages_count');
+        }
+
+        // -----------------------------------------
+        // ACTIVE 24H WINDOW FILTER
+        // -----------------------------------------
+        // Matches DashboardEngine's activeContacts24hCount exactly (last
+        // INCOMING message within 24h, not just any message) so the count
+        // shown on the dashboard card and this filtered list always agree.
+        if ($active24hOnly) {
+            $query->whereHas('lastIncomingMessage', function ($q) {
+                $q->where('messaged_at', '>', now()->subHours(24));
+            });
         }
 
         // -----------------------------------------

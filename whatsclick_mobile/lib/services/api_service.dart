@@ -274,6 +274,7 @@ class ApiService {
     String? assigned,
     String? search,
     bool unreadOnly = false,
+    bool active24hOnly = false,
   }) async {
     final List<String> params = ['page=$page'];
     if (search != null && search.isNotEmpty) params.add('search=$search');
@@ -285,6 +286,7 @@ class ApiService {
     if (endDate != null) params.add('end_date=$endDate');
     if (assigned != null) params.add('assigned=$assigned');
     if (unreadOnly) params.add('unread_only=true');
+    if (active24hOnly) params.add('active_24h_only=true');
 
     final url = Uri.parse(
         '${baseApiUrl}vendor/contact/contacts-data?${params.join('&')}');
