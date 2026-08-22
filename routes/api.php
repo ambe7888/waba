@@ -921,7 +921,17 @@ Route::group([
             // found", a validation failure, ... — skips straight past a
             // plain post-call check.
             try {
-                $response = app(WhatsAppServiceController::class)->scheduleCampaign($request);
+                // scheduleCampaign() is type-hinted to the FormRequest subclass
+                // BaseRequestTwo, not the plain Illuminate\Http\Request this
+                // closure receives — calling it with $request directly throws
+                // a TypeError before any validation runs, failing every single
+                // campaign send from this route. createFrom() converts it,
+                // copying over all query/POST/files/headers/session data (the
+                // same mechanism Laravel's own router uses for FormRequest
+                // injection); no extra rules fire since BaseRequestTwo::rules()
+                // is empty and scheduleCampaign() validates explicitly itself.
+                $formRequest = \App\Yantrana\Base\BaseRequestTwo::createFrom($request);
+                $response = app(WhatsAppServiceController::class)->scheduleCampaign($formRequest);
             } catch (\Throwable $e) {
                 if ($tempGroup) {
                     \DB::table('group_contacts')->where('contact_groups__id', $tempGroup->_id)->delete();

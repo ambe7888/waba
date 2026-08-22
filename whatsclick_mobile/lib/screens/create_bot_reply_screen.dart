@@ -339,7 +339,16 @@ class _CreateBotReplyScreenState extends State<CreateBotReplyScreen> {
     final trigger = _triggerController.text.trim();
     final text = _replyController.text.trim();
 
-    if (name.isEmpty || text.isEmpty || (_selectedTriggerType != 'welcome' && trigger.isEmpty)) {
+    // In campaign preset mode the trigger-type/keyword fields aren't shown
+    // at all (see the `!widget.isCampaignPresetMode` guard around them
+    // below) — _selectedTriggerType is forced to 'NT_CAMPAIGN_MESSAGE' and
+    // trigger stays empty by design, so requiring it here always failed
+    // validation even when every visible field was filled in.
+    if (name.isEmpty ||
+        text.isEmpty ||
+        (!widget.isCampaignPresetMode &&
+            _selectedTriggerType != 'welcome' &&
+            trigger.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires')),
       );

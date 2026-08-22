@@ -804,7 +804,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $whatsAppTemplate = null;
         if (!$presetMessageUid) {
             $whatsAppTemplate = $this->whatsAppTemplateRepository->fetchIt($request->template_uid);
-            abortIf(__isEmpty($whatsAppTemplate), null, __tr('Template not found in the system'));
+            abortIf(__isEmpty($whatsAppTemplate), 404, __tr('Template not found in the system'));
         }
         $presetMessage = null;
         if ($presetMessageUid) {
