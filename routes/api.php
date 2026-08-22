@@ -954,7 +954,7 @@ Route::group([
         // config/__vendor-settings.php) are never sent back in plaintext, only
         // whether one is already configured — same convention the web UI uses
         // ("Paramètres configurés / Modifier" instead of re-showing the secret).
-        Route::get('/vendor/ai-settings', function () {
+        Route::get('/ai-settings', function () {
             $vendorId = getVendorId();
             $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
             $planCredits = $vendor->plan_ai_credits ?? 0;
@@ -993,7 +993,7 @@ Route::group([
         // config-driven VendorSettingsController::update() the web settings pages
         // use — an unrestricted pageType here would let a mobile client touch any
         // vendor setting (payment keys, etc.), not just AI ones.
-        Route::post('/vendor/ai-settings', function (Illuminate\Http\Request $request) {
+        Route::post('/ai-settings', function (Illuminate\Http\Request $request) {
             validateVendorAccess('administrative');
             $allowedPageTypes = [
                 'open_ai_bot_setup',
