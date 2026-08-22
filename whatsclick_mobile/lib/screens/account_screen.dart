@@ -13,6 +13,7 @@ import 'bot_replies_screen.dart';
 import 'drip_campaigns_settings_screen.dart';
 import 'profile_screen.dart';
 import 'agents_screen.dart';
+import 'ai_settings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -504,6 +505,18 @@ class _AccountScreenState extends State<AccountScreen> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (_) => const BotRepliesScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin || _canManageBot)
+                    _buildSettingsTile(
+                      icon: Icons.psychology_alt_rounded,
+                      title: 'Paramètres IA',
+                      iconColor: const Color(0xFF6366F1),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
                         );
                       },
                       isDark: isDark,

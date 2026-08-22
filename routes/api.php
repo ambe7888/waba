@@ -949,6 +949,64 @@ Route::group([
             }
             return $response;
         })->name('app_api.vendor.campaign.schedule.process');
+        // AI bot settings (mobile "Paramètres IA" screen) — read current values
+        // for pre-fill. Secrets (flowise_url/flowise_access_token, hide_value in
+        // config/__vendor-settings.php) are never sent back in plaintext, only
+        // whether one is already configured — same convention the web UI uses
+        // ("Paramètres configurés / Modifier" instead of re-showing the secret).
+        Route::get('/vendor/ai-settings', function () {
+            $vendorId = getVendorId();
+            $vendor = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+            $planCredits = $vendor->plan_ai_credits ?? 0;
+            $extraCredits = $vendor->extra_ai_credits ?? 0;
+
+            return response()->json([
+                'is_feature_available' => (bool) (vendorPlanDetails('ai_chat_bot', 1, $vendorId)['is_limit_available'] ?? false),
+                'ai_credits' => [
+                    'plan_credits' => $planCredits,
+                    'extra_credits' => $extraCredits,
+                    'total_credits' => $planCredits + $extraCredits,
+                    'display_credits' => $planCredits >= 99999999 ? 'Illimité' : (string) ($planCredits + $extraCredits),
+                ],
+                // "open_ai_bot_setup" section
+                'enable_open_ai_bot' => (bool) getVendorSettings('enable_open_ai_bot'),
+                'use_existing_chat_history' => (bool) getVendorSettings('use_existing_chat_history'),
+                'open_ai_bot_name' => getVendorSettings('open_ai_bot_name') ?: '',
+                'open_ai_input_training_data' => getVendorSettings('open_ai_input_training_data') ?: '',
+                // "ai_bot_settings" section
+                'default_enable_flowise_ai_bot_for_users' => (bool) getVendorSettings('default_enable_flowise_ai_bot_for_users'),
+                'flowise_failed_message' => getVendorSettings('flowise_failed_message') ?: '',
+                // "bot_timing_settings" section
+                'enable_bot_timing_restrictions' => (bool) getVendorSettings('enable_bot_timing_restrictions'),
+                'bot_start_timing' => getVendorSettings('bot_start_timing') ?: '',
+                'bot_end_timing' => getVendorSettings('bot_end_timing') ?: '',
+                'bot_timing_timezone' => getVendorSettings('bot_timing_timezone') ?: 'UTC',
+                'enable_ai_bot_timing_restrictions' => (bool) getVendorSettings('enable_ai_bot_timing_restrictions'),
+                // "flowise_ai_bot_setup" section — advanced/optional
+                'enable_flowise_ai_bot' => (bool) getVendorSettings('enable_flowise_ai_bot'),
+                'flowise_url_configured' => (bool) getVendorSettings('flowise_url'),
+            ]);
+        })->name('app_api.vendor.ai_settings.read');
+
+        // AI bot settings — save. Whitelisted to only the AI-related pageTypes
+        // this screen manages, since it forwards straight into the same generic,
+        // config-driven VendorSettingsController::update() the web settings pages
+        // use — an unrestricted pageType here would let a mobile client touch any
+        // vendor setting (payment keys, etc.), not just AI ones.
+        Route::post('/vendor/ai-settings', function (Illuminate\Http\Request $request) {
+            validateVendorAccess('administrative');
+            $allowedPageTypes = [
+                'open_ai_bot_setup',
+                'ai_bot_settings',
+                'bot_timing_settings',
+                'flowise_ai_bot_setup',
+            ];
+            abortIf(!in_array($request->pageType, $allowedPageTypes), 422, __tr('Invalid page type.'));
+
+            $formRequest = \App\Yantrana\Components\Vendor\Requests\VendorSettingsRequest::createFrom($request);
+            return app(\App\Yantrana\Components\Vendor\Controllers\VendorSettingsController::class)->update($formRequest);
+        })->name('app_api.vendor.ai_settings.write');
+
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
             CampaignController::class,

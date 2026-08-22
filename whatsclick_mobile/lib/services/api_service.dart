@@ -389,6 +389,58 @@ class ApiService {
     }
   }
 
+  /// Fetch current AI bot settings (for the "Paramètres IA" screen pre-fill).
+  /// Returns the flat JSON object as-is, or null on failure.
+  Future<Map<String, dynamic>?> fetchAiSettings() async {
+    final url = Uri.parse('${baseApiUrl}vendor/ai-settings');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch AI Settings Error: $e');
+      return null;
+    }
+  }
+
+  /// Save one AI settings section. [pageType] must be one of the values the
+  /// backend whitelists: open_ai_bot_setup, ai_bot_settings,
+  /// bot_timing_settings, flowise_ai_bot_setup — each maps to the matching
+  /// section of config/__vendor-settings.php, same as the web settings page.
+  Future<Map<String, dynamic>> saveAiSettings(String pageType, Map<String, dynamic> fields) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ai-settings');
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'pageType': pageType, ...fields}),
+          )
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      // VendorSettingsEngine::updateProcess() returns reaction 21 (not the
+      // generic 1) on success — a web-specific "saved, reload the page"
+      // signal (confirmed against the actual engine code), not an error.
+      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21)) {
+        return {'success': true, 'message': body['message']?.toString()};
+      }
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else {
+        message = body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      if (debug) debugPrint('Save AI Settings Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   /// Toggle OpenAI Bot replies status
   Future<bool> toggleBotReply() async {
     final url = Uri.parse('${baseApiUrl}vendor/settings/toggle-bot');
