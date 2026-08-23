@@ -4,6 +4,7 @@ namespace App\Yantrana\Components\ECommerce\Controllers;
 use App\Yantrana\Base\BaseController;
 use App\Yantrana\Components\ECommerce\ECommerceEngine;
 use App\Yantrana\Components\ECommerce\Models\ProductModel;
+use App\Yantrana\Components\ECommerce\Models\ProductCategoryModel;
 use Illuminate\Http\Request;
 
 class ECommerceController extends BaseController
@@ -36,8 +37,8 @@ class ECommerceController extends BaseController
     public function getProducts(Request $request)
     {
         $vendorId = getVendorId();
-        
-        $query = ProductModel::where('vendors__id', $vendorId);
+
+        $query = ProductModel::with('category')->where('vendors__id', $vendorId);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -51,10 +52,107 @@ class ECommerceController extends BaseController
             $query->where('source', $request->source);
         }
 
+        if ($request->filled('category_uid')) {
+            if ($request->category_uid === 'uncategorized') {
+                $query->whereNull('product_categories__id');
+            } else {
+                $category = ProductCategoryModel::where([
+                    'vendors__id' => $vendorId,
+                    '_uid' => $request->category_uid,
+                ])->first();
+                $query->where('product_categories__id', $category->_id ?? 0);
+            }
+        }
+
         $products = $query->latest()->get();
 
         return $this->processResponse(1, [], [
             'products' => $products
+        ]);
+    }
+
+    /**
+     * List product categories for the vendor
+     */
+    public function getCategories()
+    {
+        $vendorId = getVendorId();
+
+        $categories = ProductCategoryModel::where('vendors__id', $vendorId)
+            ->withCount(['products' => function ($q) use ($vendorId) {
+                $q->where('vendors__id', $vendorId);
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return $this->processResponse(1, [], [
+            'categories' => $categories
+        ]);
+    }
+
+    /**
+     * Create a product category
+     */
+    public function addCategory(Request $request)
+    {
+        $vendorId = getVendorId();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $name = trim($request->name);
+
+        $existing = ProductCategoryModel::where([
+            'vendors__id' => $vendorId,
+        ])->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
+
+        if ($existing) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Cette catégorie existe déjà.')
+            ]);
+        }
+
+        $category = ProductCategoryModel::create([
+            '_uid' => \Str::uuid()->toString(),
+            'vendors__id' => $vendorId,
+            'name' => $name,
+        ]);
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Catégorie ajoutée avec succès.'),
+            'category' => $category,
+        ]);
+    }
+
+    /**
+     * Delete a product category. Products in it become uncategorized rather
+     * than being deleted along with it.
+     */
+    public function deleteCategory($categoryUid)
+    {
+        $vendorId = getVendorId();
+
+        $category = ProductCategoryModel::where([
+            'vendors__id' => $vendorId,
+            '_uid' => $categoryUid,
+        ])->first();
+
+        if (empty($category)) {
+            return $this->processResponse(2, [], [
+                'message' => __tr('Catégorie introuvable.')
+            ]);
+        }
+
+        ProductModel::where([
+            'vendors__id' => $vendorId,
+            'product_categories__id' => $category->_id,
+        ])->update(['product_categories__id' => null]);
+
+        $category->delete();
+
+        return $this->processResponse(1, [], [
+            'message' => __tr('Catégorie supprimée avec succès.')
         ]);
     }
 
@@ -145,6 +243,7 @@ class ECommerceController extends BaseController
             'direct_link' => 'nullable|url|max:1000',
             'image_url' => 'nullable|url|max:1000',
             'image_file' => 'nullable|image|max:5120', // Max 5MB
+            'category_uid' => 'nullable|string',
         ]);
 
         $imageUrl = $request->image_url;
@@ -160,9 +259,19 @@ class ECommerceController extends BaseController
             $imageUrl = asset('media/products/' . $filename);
         }
 
+        $categoryId = null;
+        if ($request->filled('category_uid')) {
+            $category = ProductCategoryModel::where([
+                'vendors__id' => $vendorId,
+                '_uid' => $request->category_uid,
+            ])->first();
+            $categoryId = $category->_id ?? null;
+        }
+
         ProductModel::create([
             '_uid' => \Str::uuid()->toString(),
             'vendors__id' => $vendorId,
+            'product_categories__id' => $categoryId,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,

@@ -3,12 +3,12 @@ namespace App\Yantrana\Components\ECommerce\Models;
 
 use App\Yantrana\Base\BaseModel;
 
-class ProductModel extends BaseModel
+class ProductCategoryModel extends BaseModel
 {
     /**
      * @var string - The database table used by the model.
      */
-    protected $table = 'products';
+    protected $table = 'product_categories';
 
     /**
      * @var string - Primary Key
@@ -21,8 +21,6 @@ class ProductModel extends BaseModel
     protected $casts = [
         '_id' => 'integer',
         'vendors__id' => 'integer',
-        'product_categories__id' => 'integer',
-        'price' => 'float',
     ];
 
     /**
@@ -31,21 +29,14 @@ class ProductModel extends BaseModel
     protected $fillable = [
         '_uid',
         'vendors__id',
-        'product_categories__id',
         'name',
-        'description',
-        'price',
-        'image_url',
-        'retailer_id',
-        'direct_link',
-        'source',
     ];
 
     /**
-     * Category this product belongs to, if any.
+     * Products assigned to this category.
      */
-    public function category()
+    public function products()
     {
-        return $this->belongsTo(ProductCategoryModel::class, 'product_categories__id', '_id');
+        return $this->hasMany(ProductModel::class, 'product_categories__id', '_id');
     }
 }

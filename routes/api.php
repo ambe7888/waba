@@ -1052,6 +1052,20 @@ Route::group([
             'syncProducts',
         ])->name('app_api.vendor.ecommerce.sync');
 
+        // Product categories (mobile "Paramètres boutique" screen)
+        Route::get('/ecommerce/categories', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'getCategories',
+        ])->name('app_api.vendor.ecommerce.categories');
+        Route::post('/ecommerce/categories/add', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'addCategory',
+        ])->name('app_api.vendor.ecommerce.categories.add');
+        Route::post('/ecommerce/categories/delete/{categoryUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'deleteCategory',
+        ])->name('app_api.vendor.ecommerce.categories.delete');
+
         // All orders (mobile "Gestion des commandes" screen) — the web
         // orders.blade.php page queries this directly server-side (Blade
         // renders the table in PHP) so no JSON API for the *full* order
