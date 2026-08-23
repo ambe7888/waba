@@ -13,17 +13,21 @@
     'description' => __tr('Gérez et suivez vos envois de messages massifs sur WhatsApp.'),
 ])
 
-<?php $status = request()->status ?? 'active'; ?>
+<?php
+$status = request()->status ?? 'active';
+$type = request()->type === 'simple' ? 'simple' : 'meta';
+$listRoute = $type === 'meta' ? 'vendor.campaign.read.list' : 'vendor.campaign.read.non_template_list';
+?>
 <div class="container-fluid pt-4 pb-4">
     <!-- Barre d'action avec boutons bien visibles -->
     <div class="row mb-3 align-items-center">
         <div class="col-md-5 mb-2 mb-md-0">
             @if($status == 'archived')
-                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'active']) }}" class="btn btn-success font-weight-bold btn-sm text-white shadow-sm" style="border-radius: 8px;">
+                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'active', 'type' => $type]) }}" class="btn btn-success font-weight-bold btn-sm text-white shadow-sm" style="border-radius: 8px;">
                     <i class="fas fa-arrow-left mr-1"></i> {{ __tr('Retour aux Campagnes Actives') }}
                 </a>
             @else
-                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'archived']) }}" class="btn btn-warning text-white font-weight-bold btn-sm shadow-sm" style="border-radius: 8px;">
+                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'archived', 'type' => $type]) }}" class="btn btn-warning text-white font-weight-bold btn-sm shadow-sm" style="border-radius: 8px;">
                     <i class="fas fa-archive mr-1"></i> {{ __tr('Voir les Archives') }}
                 </a>
             @endif
@@ -43,6 +47,20 @@
         </div>
     </div>
 
+    <!-- Onglets : Campagnes Meta (modèle approuvé) vs Campagnes Simples (message libre / 24h) -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {{ $type === 'meta' ? 'active' : '' }}" href="{{ route('vendor.campaign.read.list_view', ['status' => $status, 'type' => 'meta']) }}">
+                <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Campagnes Meta') }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ $type === 'simple' ? 'active' : '' }}" href="{{ route('vendor.campaign.read.list_view', ['status' => $status, 'type' => 'simple']) }}">
+                <i class="fas fa-bolt mr-1"></i> {{ __tr('Campagnes Simples') }}
+            </a>
+        </li>
+    </ul>
+
     <!-- Carte Principale Léger et Ultra-Rapide -->
     <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
         <div class="card-header border-0 bg-white py-3">
@@ -51,7 +69,7 @@
             </h3>
         </div>
         <div class="card-body p-0">
-            <x-lw.datatable data-page-length="100" id="lwCampaignList" :url="route('vendor.campaign.read.list', ['status' => $status])">
+            <x-lw.datatable data-page-length="100" id="lwCampaignList" :url="route($listRoute, ['status' => $status])">
                 <th data-orderable="true" data-name="title" style="border-top: none; font-weight: 700;">{{ __tr('Titre') }}</th>
                 <th data-orderable="true" data-name="template_name" style="border-top: none; font-weight: 700;">{{ __tr('Modèle / Message') }}</th>
                 <th data-name="contacts_count" style="border-top: none; font-weight: 700;">{{ __tr('Contacts') }}</th>

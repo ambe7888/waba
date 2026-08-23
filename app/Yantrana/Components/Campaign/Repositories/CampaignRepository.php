@@ -47,7 +47,7 @@ class CampaignRepository extends BaseRepository implements CampaignRepositoryInt
      *
      * @return mixed
      *---------------------------------------------------------------- */
-    public function fetchCampaignDataTableSource($status)
+    public function fetchCampaignDataTableSource($status, $isTemplate = true)
     {
         if ($status == "archived") {
             $status = [5];
@@ -72,6 +72,18 @@ class CampaignRepository extends BaseRepository implements CampaignRepositoryInt
         return $this->primaryModel::query()
             ->where('vendors__id', $vendorId)
             ->whereIn('status', $status)
+            // Meta campaigns use an approved WhatsApp template (template_name
+            // set); simple/24h campaigns send a preset/free-form message
+            // instead and leave it empty - same split the "Modèle / Message"
+            // column already uses to decide what to display.
+            ->when($isTemplate, function ($query) {
+                $query->whereNotNull('template_name')->where('template_name', '!=', '');
+            })
+            ->when(!$isTemplate, function ($query) {
+                $query->where(function ($query) {
+                    $query->whereNull('template_name')->orWhere('template_name', '');
+                });
+            })
             ->withExists([
                 'messageLog as message_log_count',
                 'queuePendingMessages as queue_pending_messages_count',

@@ -70,9 +70,9 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
      *
      * @return array
      *---------------------------------------------------------------- */
-    public function prepareCampaignDataTableSource($status)
+    public function prepareCampaignDataTableSource($status, $isTemplate = true)
     {
-        $campaignCollection = $this->campaignRepository->fetchCampaignDataTableSource($status);
+        $campaignCollection = $this->campaignRepository->fetchCampaignDataTableSource($status, $isTemplate);
         $timeNow = now();
         $currentItemStatus = 'NA';
         // required columns for DataTables

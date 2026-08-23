@@ -108,7 +108,7 @@ class CampaignController extends BaseController
     {
         validateVendorAccess('manage_campaigns');
         // respond with dataTables preparations
-        return $this->campaignEngine->prepareCampaignDataTableSource($status);
+        return $this->campaignEngine->prepareCampaignDataTableSource($status, true);
     }
     /**
      * Non template list of Campaign
@@ -132,7 +132,7 @@ class CampaignController extends BaseController
     {
         validateVendorAccess('manage_campaigns');
         // respond with dataTables preparations
-        return $this->campaignEngine->prepareCampaignDataTableSource($status);
+        return $this->campaignEngine->prepareCampaignDataTableSource($status, false);
     }
 
     /**
