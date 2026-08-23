@@ -307,6 +307,29 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalContacts' => $this->contactRepository->totalContactsCountForVendor($vendorId),
             'totalGroups' => $this->contactGroupRepository->countIt($vendorWhereClause),
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),
+            // The mobile "Campagnes" screen's header stats (envoyés/livrés/lus)
+            // read these three keys, which never existed on this endpoint —
+            // they always fell back to 0 client-side. A campaign message's
+            // whatsapp_message_logs row is only ever created once it's really
+            // been sent (see sendActualWhatsAppTemplateMessage()), so a plain
+            // count of campaign-linked outgoing rows is "envoyés"; `status`
+            // holds the latest known webhook stage in that linear
+            // sent -> delivered -> read lifecycle, so delivered/read are each
+            // "reached at least this stage".
+            'totalMessagesSent' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 0)
+                ->whereNotNull('campaigns__id')
+                ->count(),
+            'totalDeliveredMessages' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 0)
+                ->whereNotNull('campaigns__id')
+                ->whereIn('status', ['delivered', 'read', 'played'])
+                ->count(),
+            'totalMessagesRead' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+                ->where('is_incoming_message', 0)
+                ->whereNotNull('campaigns__id')
+                ->whereIn('status', ['read', 'played'])
+                ->count(),
             'totalTemplates' => $this->whatsAppTemplateRepository->countIt($vendorWhereClause),
             'totalBotReplies' => $this->botReplyRepository->fetchBotReplyCountForDashboard($vendorId),
             'totalBotFlows' => $this->botFlowRepository->countIt($vendorWhereClause),
