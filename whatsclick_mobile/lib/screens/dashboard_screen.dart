@@ -11,6 +11,7 @@ import 'send_24h_campaign_screen.dart';
 import 'agents_screen.dart';
 import 'templates_admin_screen.dart';
 import 'orders_management_screen.dart';
+import '../utils/number_format_utils.dart';
 
 class DashboardScreen extends StatefulWidget {
   // Tab switches are delegated up to MainLayoutScreen, which owns the
@@ -1313,22 +1314,23 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : Colors.black87,
           ),
         ),
-        if (onTap != null)
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
           Icon(
             Icons.north_east_rounded,
             color: color.withValues(alpha: 0.7),
             size: 16,
           ),
+        ],
+        const Spacer(),
       ],
     );
 
@@ -1369,7 +1371,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  value,
+                  // "usage / limit" values (e.g. "5 / 100") aren't plain
+                  // numbers and pass through unchanged; a plain count gets
+                  // compacted (1,2K, 3M...) so it can't overflow the card.
+                  num.tryParse(value) != null ? formatCompactNumber(num.parse(value)) : value,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -1474,7 +1479,12 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  value,
+                  // Callers always pass a plain integer string ("1234"); a
+                  // growing totals card shouldn't force the card wider or
+                  // truncate as usage scales up, so compact it (1,2K, 3M...)
+                  // when it parses as a number, and fall back to the raw
+                  // string otherwise.
+                  num.tryParse(value) != null ? formatCompactNumber(num.parse(value)) : value,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,

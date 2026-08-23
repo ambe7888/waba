@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/contact.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/number_format_utils.dart';
 import 'order_creation_sheet.dart';
 
 /// Thousands separator without pulling in intl's NumberFormat, whose
@@ -274,12 +275,12 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('Total commandes', _totalOrders.toString(), Icons.receipt_long_rounded,
+              child: _statCard('Total commandes', formatCompactNumber(_totalOrders), Icons.receipt_long_rounded,
                   const Color(0xFF6C63FF), isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _statCard('Chiffre d\'affaires', '${_formatAmount(_totalRevenue)} CFA',
+              child: _statCard('Chiffre d\'affaires', '${formatCompactNumber(_totalRevenue)} CFA',
                   Icons.payments_rounded, const Color(0xFF10B981), isDark),
             ),
           ],
@@ -288,12 +289,12 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('Montant livré', '${_formatAmount(_deliveredAmount)} CFA',
+              child: _statCard('Montant livré', '${formatCompactNumber(_deliveredAmount)} CFA',
                   Icons.local_shipping_rounded, const Color(0xFF06B6D4), isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _statCard('Montant des frais', '${_formatAmount(_totalFees)} CFA',
+              child: _statCard('Montant des frais', '${formatCompactNumber(_totalFees)} CFA',
                   Icons.request_quote_rounded, const Color(0xFF8B5CF6), isDark),
             ),
           ],
@@ -302,12 +303,12 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('En cours', _inProgressCount.toString(), Icons.pending_actions_rounded,
+              child: _statCard('En cours', formatCompactNumber(_inProgressCount), Icons.pending_actions_rounded,
                   const Color(0xFFF59E0B), isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _statCard('Livrées', _deliveredCount.toString(), Icons.check_circle_rounded,
+              child: _statCard('Livrées', formatCompactNumber(_deliveredCount), Icons.check_circle_rounded,
                   const Color(0xFF10B981), isDark),
             ),
           ],

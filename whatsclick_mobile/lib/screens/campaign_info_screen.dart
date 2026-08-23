@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../utils/date_format_utils.dart';
+import '../utils/number_format_utils.dart';
 
 class CampaignInfoScreen extends StatefulWidget {
   final Map<String, dynamic> campaign;
@@ -271,10 +272,10 @@ class _CampaignInfoScreenState extends State<CampaignInfoScreen>
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildFunnelCard('ENVOYÉS', '$sent', Colors.blue, surfaceCard, onSurface),
-              _buildFunnelCard('LIVRÉS', '$delivered', Colors.green, surfaceCard, onSurface),
-              _buildFunnelCard('LUS', '$read', Colors.purple, surfaceCard, onSurface),
-              _buildFunnelCard('ÉCHOUÉS', '$failed', Colors.red, surfaceCard, onSurface),
+              _buildFunnelCard('ENVOYÉS', formatCompactNumber(sent), Colors.blue, surfaceCard, onSurface),
+              _buildFunnelCard('LIVRÉS', formatCompactNumber(delivered), Colors.green, surfaceCard, onSurface),
+              _buildFunnelCard('LUS', formatCompactNumber(read), Colors.purple, surfaceCard, onSurface),
+              _buildFunnelCard('ÉCHOUÉS', formatCompactNumber(failed), Colors.red, surfaceCard, onSurface),
             ],
           ),
           const SizedBox(height: 24),

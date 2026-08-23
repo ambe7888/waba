@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/number_format_utils.dart';
 
 class CampaignsAdminScreen extends StatefulWidget {
   const CampaignsAdminScreen({super.key});
@@ -474,7 +475,7 @@ class _CampaignDashboardScreenState extends State<CampaignDashboardScreen> {
             ),
             const Spacer(),
             Text(
-              '${value ?? 0}',
+              value is num ? formatCompactNumber(value) : '${value ?? 0}',
               style: TextStyle(
                   fontSize: 28, fontWeight: FontWeight.bold, color: color),
             ),

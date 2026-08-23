@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import '../utils/number_format_utils.dart';
 import 'campaign_info_screen.dart';
 import 'create_campaign_screen.dart';
 
@@ -407,7 +408,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         children: [
           _statCardUI(
               title: 'CAMPAGNES\nLANCÉES',
-              value: '$launched',
+              value: formatCompactNumber(launched),
               subtitle: 'Total des campagnes',
               icon: Icons.campaign_rounded,
               color: Colors.orange,
@@ -415,7 +416,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               onSurface: onSurface),
           _statCardUI(
               title: 'MESSAGES\nENVOYÉS',
-              value: '$sent',
+              value: formatCompactNumber(sent),
               subtitle: 'Total sortant',
               icon: Icons.send_outlined,
               color: Colors.blue,
@@ -423,7 +424,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               onSurface: onSurface),
           _statCardUI(
               title: 'MESSAGES\nLIVRÉS',
-              value: '$delivered',
+              value: formatCompactNumber(delivered),
               subtitle: 'Livrés avec succès',
               icon: Icons.check_circle_outline,
               color: Colors.green,
@@ -431,7 +432,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
               onSurface: onSurface),
           _statCardUI(
               title: 'MESSAGES\nLUS',
-              value: '$read',
+              value: formatCompactNumber(read),
               subtitle: 'Lus par les destinataires',
               icon: Icons.visibility_outlined,
               color: Colors.purple,
