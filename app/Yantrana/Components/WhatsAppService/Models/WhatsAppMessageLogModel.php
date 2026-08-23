@@ -37,9 +37,13 @@ class WhatsAppMessageLogModel extends BaseModel
      */
     protected static function booted()
     {
-        static::saved(function ($model) {
-            \App\Jobs\SyncMessageToFirestoreJob::dispatch($model->_id);
-        });
+        // SyncMessageToFirestoreJob dispatch removed: nothing in the mobile
+        // app reads from Firestore (no cloud_firestore usage anywhere in
+        // whatsclick_mobile), and the Firestore API is disabled for this
+        // Google Cloud project, so every single message log write - every
+        // incoming/outgoing message on the whole platform - was silently
+        // failing and logging a multi-line error, flooding storage/logs
+        // with hundreds of MB for a sync nobody consumes.
     }
 
     /**
