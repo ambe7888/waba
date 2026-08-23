@@ -286,6 +286,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             $agents = \DB::table('users')
                 ->where('vendors__id', $vendorId)
                 ->where('status', 1)
+                ->where('user_roles__id', 3) // agents/team members only, not the vendor admin (2)
                 ->select('_id', '_uid', 'first_name', 'last_name', 'email')
                 ->get();
         }

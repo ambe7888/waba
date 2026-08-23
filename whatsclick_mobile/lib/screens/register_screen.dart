@@ -31,6 +31,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // State Step 3
   bool _agreeTerms = false;
 
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
   @override
   void dispose() {
     _vendorTitleController.dispose();
@@ -285,9 +288,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const SizedBox(height: 16),
                           _buildTextField(_emailController, 'Email', Icons.email_outlined, isDark, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.email]),
                           const SizedBox(height: 16),
-                          _buildTextField(_passwordController, 'Mot de passe', Icons.lock_outline, isDark, isPassword: true, autofillHints: const [AutofillHints.newPassword]),
+                          _buildTextField(_passwordController, 'Mot de passe', Icons.lock_outline, isDark, isPassword: true, obscureText: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword), autofillHints: const [AutofillHints.newPassword]),
                           const SizedBox(height: 16),
-                          _buildTextField(_confirmPasswordController, 'Confirmer Mot de passe', Icons.lock_outline, isDark, isPassword: true, autofillHints: const [AutofillHints.newPassword]),
+                          _buildTextField(_confirmPasswordController, 'Confirmer Mot de passe', Icons.lock_outline, isDark, isPassword: true, obscureText: _obscureConfirmPassword, onToggleObscure: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword), autofillHints: const [AutofillHints.newPassword]),
                         ],
                       ),
                     ),
@@ -356,15 +359,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool isDark, {bool isPassword = false, TextInputType? keyboardType, Iterable<String>? autofillHints}) {
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool isDark, {bool isPassword = false, bool obscureText = false, VoidCallback? onToggleObscure, TextInputType? keyboardType, Iterable<String>? autofillHints}) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? obscureText : false,
       keyboardType: keyboardType,
       autofillHints: autofillHints,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                onPressed: onToggleObscure,
+              )
+            : null,
         filled: true,
         fillColor: isDark ? Colors.white10 : Colors.white,
         border: OutlineInputBorder(
