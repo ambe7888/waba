@@ -26,6 +26,10 @@
 namespace App\Yantrana\Components\WhatsAppService\Controllers;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Yantrana\Base\BaseController;
 use App\Yantrana\Base\BaseRequestTwo;
@@ -1004,6 +1008,67 @@ class WhatsAppServiceController extends BaseController
             ], true);
         }
         return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+     * Mobile bridge for WhatsApp Embedded Signup.
+     *
+     * The Embedded Signup flow (Meta's Facebook JS SDK popup) only runs in a
+     * browser context, and the mobile app authenticates via a Sanctum bearer
+     * token rather than the web session this whole component otherwise
+     * assumes. These three endpoints let the app open a plain WebView on a
+     * short-lived, single-purpose signed token instead of a real login
+     * session: mobileEmbeddedSignupUrl() (Sanctum-protected, called from the
+     * app) mints the token, mobileEmbeddedSignupShow()/Complete() (public,
+     * reached only via that token) resolve it back to a vendor user for the
+     * duration of one request via Auth::onceUsingId() - never persisted to
+     * a session - then hand off to the existing embeddedSignUpProcess()
+     * logic above unchanged.
+     */
+    public function mobileEmbeddedSignupUrl()
+    {
+        $token = Str::random(48);
+        Cache::put('mobile_embedded_signup_' . $token, [
+            'users__id' => getUserID(),
+        ], now()->addMinutes(15));
+
+        return $this->processResponse(1, [], [
+            'url' => route('vendor.whatsapp_setup.embedded_signup.mobile.show', ['token' => $token]),
+        ]);
+    }
+
+    private function resolveMobileEmbeddedSignupToken($token)
+    {
+        return Cache::get('mobile_embedded_signup_' . $token);
+    }
+
+    public function mobileEmbeddedSignupShow($token)
+    {
+        $tokenData = $this->resolveMobileEmbeddedSignupToken($token);
+        if (!$tokenData) {
+            return response()->view('whatsapp.embedded-signup-mobile-expired', [], 410);
+        }
+        return view('whatsapp.embedded-signup-mobile', ['token' => $token]);
+    }
+
+    public function mobileEmbeddedSignupComplete($token, Request $request)
+    {
+        $tokenData = $this->resolveMobileEmbeddedSignupToken($token);
+        if (!$tokenData) {
+            return response()->json([
+                'reaction_code' => 2,
+                'message' => __tr('Session expirée, veuillez réessayer.'),
+            ], 410);
+        }
+        Auth::onceUsingId($tokenData['users__id']);
+        $response = $this->embeddedSignUpProcess(BaseRequestTwo::createFrom($request));
+        Cache::forget('mobile_embedded_signup_' . $token);
+        return $response;
+    }
+
+    public function mobileEmbeddedSignupDone($token)
+    {
+        return view('whatsapp.embedded-signup-mobile-done');
     }
 
     /**

@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription/*',
             'whatsapp-webhook/*',
             'webhook/external-order/*',
+            'whatsapp-embedded-signup-mobile/*',
         ]);
 
         $middleware->append([

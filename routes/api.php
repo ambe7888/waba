@@ -870,6 +870,11 @@ Route::group([
             WhatsAppTemplateController::class,
             'deleteTemplate',
         ])->name('app_api.vendor.whatsapp.templates.delete');
+        // Mint a short-lived signed URL for the mobile Embedded Signup WebView
+        Route::get('/whatsapp/embedded-signup-url', [
+            WhatsAppServiceController::class,
+            'mobileEmbeddedSignupUrl',
+        ])->name('app_api.vendor.whatsapp.embedded_signup_url');
         // Create and schedule campaign (supports contact_uids)
         Route::post('/whatsapp/campaign/schedule', function (Illuminate\Http\Request $request) {
             validateVendorAccess('manage_campaigns');

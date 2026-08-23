@@ -1811,6 +1811,22 @@ Route::any('whatsapp-webhook/{vendorUid}', [
     'webhook',
 ])->name('vendor.whatsapp_webhook');
 
+// Mobile WhatsApp Embedded Signup bridge — reached from a plain WebView in
+// the app on a short-lived signed token, not a logged-in web session.
+// DO NOT CHANGE THE PATH prefix as it's described in CSRF protection.
+Route::get('whatsapp-embedded-signup-mobile/{token}', [
+    WhatsAppServiceController::class,
+    'mobileEmbeddedSignupShow',
+])->name('vendor.whatsapp_setup.embedded_signup.mobile.show');
+Route::post('whatsapp-embedded-signup-mobile/{token}/complete', [
+    WhatsAppServiceController::class,
+    'mobileEmbeddedSignupComplete',
+])->name('vendor.whatsapp_setup.embedded_signup.mobile.complete');
+Route::get('whatsapp-embedded-signup-mobile/{token}/done', [
+    WhatsAppServiceController::class,
+    'mobileEmbeddedSignupDone',
+])->name('vendor.whatsapp_setup.embedded_signup.mobile.done');
+
 // for cron job to run schedule
 Route::get('/run-cron-schedule/{token?}', [
     WhatsAppServiceController::class,
