@@ -207,7 +207,10 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    // Extra bottom padding so the "Nouvelle commande" FAB
+                    // doesn't sit on top of the last order card's status
+                    // dropdown / delete button.
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                     children: [
                       _buildStatsGrid(isDark),
                       const SizedBox(height: 16),
