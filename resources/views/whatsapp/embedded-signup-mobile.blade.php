@@ -31,7 +31,7 @@
         h1 { font-size: 20px; color: #0f172a; margin: 0 0 8px; }
         p { font-size: 14px; color: #64748b; margin: 0 0 28px; max-width: 320px; line-height: 1.5; }
         button {
-            background: #10b981;
+            background: #1877f2;
             color: #fff;
             border: none;
             border-radius: 12px;
