@@ -309,13 +309,17 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),
             // The mobile "Campagnes" screen's header stats (envoyés/livrés/lus)
             // read these three keys, which never existed on this endpoint —
-            // they always fell back to 0 client-side. A campaign message's
-            // whatsapp_message_logs row is only ever created once it's really
-            // been sent (see sendActualWhatsAppTemplateMessage()), so a plain
-            // count of campaign-linked outgoing rows is "envoyés"; `status`
-            // holds the latest known webhook stage in that linear
-            // sent -> delivered -> read lifecycle, so delivered/read are each
-            // "reached at least this stage".
+            // they always fell back to 0 client-side. These are meant to be
+            // the literal sum, across every campaign, of the same three
+            // numbers each campaign's own detail screen shows (executedCount/
+            // totalDelivered/totalRead in CampaignEngine::prepareCampaignData()),
+            // so the definitions here are kept identical on purpose: sent =
+            // every campaign-linked outgoing log row regardless of status (a
+            // row only exists once a send actually went through), delivered =
+            // status is exactly 'delivered' or 'read', read = status is
+            // exactly 'read'. ('played', voice-note-listened, is a chat status
+            // that doesn't apply to template campaign sends and is excluded
+            // there too, so it's excluded here for the totals to actually add up.)
             'totalMessagesSent' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 0)
                 ->whereNotNull('campaigns__id')
@@ -323,12 +327,12 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalDeliveredMessages' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 0)
                 ->whereNotNull('campaigns__id')
-                ->whereIn('status', ['delivered', 'read', 'played'])
+                ->whereIn('status', ['delivered', 'read'])
                 ->count(),
             'totalMessagesRead' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 0)
                 ->whereNotNull('campaigns__id')
-                ->whereIn('status', ['read', 'played'])
+                ->where('status', 'read')
                 ->count(),
             'totalTemplates' => $this->whatsAppTemplateRepository->countIt($vendorWhereClause),
             'totalBotReplies' => $this->botReplyRepository->fetchBotReplyCountForDashboard($vendorId),
