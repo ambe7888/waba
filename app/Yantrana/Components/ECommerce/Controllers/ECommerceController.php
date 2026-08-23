@@ -319,7 +319,17 @@ class ECommerceController extends BaseController
         
         $request->validate([
             'file' => 'required|file|mimes:csv,txt|max:10240', // Max 10MB
+            'category_uid' => 'nullable|string',
         ]);
+
+        $categoryId = null;
+        if ($request->filled('category_uid')) {
+            $category = ProductCategoryModel::where([
+                'vendors__id' => $vendorId,
+                '_uid' => $request->category_uid,
+            ])->first();
+            $categoryId = $category->_id ?? null;
+        }
 
         $file = $request->file('file');
         $importedCount = 0;
@@ -363,6 +373,7 @@ class ECommerceController extends BaseController
                     ProductModel::create([
                         '_uid' => \Str::uuid()->toString(),
                         'vendors__id' => $vendorId,
+                        'product_categories__id' => $categoryId,
                         'name' => $name,
                         'description' => $description,
                         'price' => $price,

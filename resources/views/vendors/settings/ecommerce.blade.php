@@ -1,7 +1,7 @@
 @php
 $vendorId = getVendorId();
 $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
-$manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)
+$manualProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::with('category')->where('vendors__id', $vendorId)
     ->latest()
     ->get();
 $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
@@ -9,6 +9,12 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->latest()
     ->get();
 $allContacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
+$categories = \App\Yantrana\Components\ECommerce\Models\ProductCategoryModel::where('vendors__id', $vendorId)
+    ->withCount(['products' => function ($q) use ($vendorId) {
+        $q->where('vendors__id', $vendorId);
+    }])
+    ->orderBy('name')
+    ->get();
 $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'manual';
 
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
@@ -120,8 +126,12 @@ $isManualConnected = true;
     manualTab: 'add',
     allProducts: {{ json_encode($manualProducts) }},
     allOrders: {{ json_encode($orders) }},
+    allCategories: {{ json_encode($categories) }},
+    newCategoryName: '',
+    isAddingCategory: false,
     catalogSearch: '',
     catalogSourceFilter: '',
+    catalogCategoryFilter: '',
     orderSearch: '',
     orderStatusFilter: '',
     orderDateSort: 'desc',
@@ -130,7 +140,42 @@ $isManualConnected = true;
         return this.allProducts.filter(p => {
             var matchesSearch = !this.catalogSearch || (p.name && p.name.toLowerCase().includes(this.catalogSearch.toLowerCase())) || (p.description && p.description.toLowerCase().includes(this.catalogSearch.toLowerCase()));
             var matchesSource = !this.catalogSourceFilter || p.source === this.catalogSourceFilter;
-            return matchesSearch && matchesSource;
+            var matchesCategory = !this.catalogCategoryFilter
+                || (this.catalogCategoryFilter === 'uncategorized' ? !p.product_categories__id : (p.product_categories__id == this.catalogCategoryFilter));
+            return matchesSearch && matchesSource && matchesCategory;
+        });
+    },
+    addCategory() {
+        var name = this.newCategoryName.trim();
+        if (!name) return;
+        this.isAddingCategory = true;
+        var self = this;
+        __DataRequest.post('{{ route('vendor.ecommerce.categories.add') }}', { name: name }, function(response) {
+            self.isAddingCategory = false;
+            if (response.reaction_code == 1) {
+                self.allCategories.push(response.data.category);
+                self.allCategories.sort((a, b) => a.name.localeCompare(b.name));
+                self.newCategoryName = '';
+                showSuccessMessage(response.message);
+            } else {
+                showErrorMessage(response.message || 'Erreur lors de l\'ajout de la catégorie.');
+            }
+        });
+    },
+    deleteCategory(categoryUid) {
+        if (!confirm('{{ __tr("Supprimer cette catégorie ? Ses produits deviendront non catégorisés.") }}')) return;
+        var self = this;
+        __DataRequest.post('{{ route("vendor.ecommerce.categories.delete", ["categoryUid" => "CATEGORY_UID"]) }}'.replace('CATEGORY_UID', categoryUid), {}, function(response) {
+            if (response.reaction_code == 1) {
+                self.allCategories = self.allCategories.filter(c => c._uid !== categoryUid);
+                self.allProducts.forEach(p => {
+                    if (p.category && p.category._uid === categoryUid) { p.category = null; p.product_categories__id = null; }
+                });
+                if (self.catalogCategoryFilter === categoryUid) { self.catalogCategoryFilter = ''; }
+                showSuccessMessage(response.message);
+            } else {
+                showErrorMessage(response.message || 'Erreur lors de la suppression.');
+            }
         });
     },
     filteredOrders() {
@@ -558,6 +603,28 @@ $isManualConnected = true;
 
                 <!-- Local Manual / Excel Catalog Panel -->
                 <div x-show="integration === 'manual'" x-cloak>
+                    <!-- Categories -->
+                    <div class="p-3 mb-4 shadow-sm" style="background: #ffffff !important; border: 2px solid #cbd5e1; border-radius: 12px;">
+                        <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-tags text-emerald mr-1"></i> {{ __tr('Catégories de produits') }}</h6>
+                        <div class="d-flex mb-3" style="gap: 8px; max-width: 420px;">
+                            <input type="text" class="form-control custom-input-white" placeholder="{{ __tr('Nouvelle catégorie...') }}" x-model="newCategoryName" @keyup.enter="addCategory()">
+                            <button type="button" class="btn btn-emerald font-weight-bold text-white px-3" style="background: #10b981; border: none; border-radius: 8px;" :disabled="isAddingCategory" @click="addCategory()">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                        <template x-if="allCategories.length === 0">
+                            <p class="text-muted small mb-0">{{ __tr('Aucune catégorie pour le moment.') }}</p>
+                        </template>
+                        <div class="d-flex flex-wrap" style="gap: 8px;">
+                            <template x-for="cat in allCategories" :key="cat._uid">
+                                <span class="badge px-3 py-2" style="background: #f1f5f9; color: #0f172a; border-radius: 20px; font-size: 0.85rem;">
+                                    <span x-text="cat.name + ' (' + cat.products_count + ')'"></span>
+                                    <i class="fa fa-times ml-2" style="cursor: pointer; color: #ef4444;" @click="deleteCategory(cat._uid)"></i>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+
                     <!-- Sub-Tabs -->
                     <div class="d-flex border-bottom mb-4">
                         <button type="button" @click="manualTab = 'add'" class="btn btn-link nav-link font-weight-bold px-4 py-2" :class="manualTab === 'add' ? 'active border-bottom border-emerald text-emerald' : 'text-muted'" style="text-decoration: none; color: #10b981;">
@@ -598,9 +665,20 @@ $isManualConnected = true;
                                 </div>
                             </div>
 
-                            <div class="form-group mb-3">
-                                <label class="font-weight-bold text-dark" for="prod_link">{{ __tr('Lien direct d\'achat / Détails') }}</label>
-                                <input type="url" class="form-control p-3 custom-input-white" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/1">
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_link">{{ __tr('Lien direct d\'achat / Détails') }}</label>
+                                    <input type="url" class="form-control p-3 custom-input-white" id="prod_link" name="direct_link" placeholder="https://maboutique.com/produit/1">
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_category">{{ __tr('Catégorie (facultatif)') }}</label>
+                                    <select class="form-control custom-input-white" id="prod_category" name="category_uid">
+                                        <option value="">{{ __tr('Aucune') }}</option>
+                                        <template x-for="cat in allCategories" :key="cat._uid">
+                                            <option :value="cat._uid" x-text="cat.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="form-group mb-0">
@@ -627,6 +705,17 @@ $isManualConnected = true;
                             <form id="importProductForm" @submit.prevent="submitImportForm()" enctype="multipart/form-data">
                                 <div class="form-group mb-3">
                                     <input type="file" class="form-control-file" id="csv_file" name="file" accept=".csv,.txt" required>
+                                </div>
+
+                                <div class="form-group mb-3" style="max-width: 420px;">
+                                    <label class="font-weight-bold text-dark" for="import_category">{{ __tr('Importer dans la catégorie (facultatif)') }}</label>
+                                    <select class="form-control custom-input-white" id="import_category" name="category_uid">
+                                        <option value="">{{ __tr('Aucune') }}</option>
+                                        <template x-for="cat in allCategories" :key="cat._uid">
+                                            <option :value="cat._uid" x-text="cat.name"></option>
+                                        </template>
+                                    </select>
+                                    <small class="text-muted">{{ __tr('Tous les produits de ce fichier seront assignés à cette catégorie.') }}</small>
                                 </div>
 
                                 <div class="form-group mb-0">
@@ -693,7 +782,7 @@ $isManualConnected = true;
             <div class="card-body p-4">
                 <!-- Filters & Search -->
                 <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher un produit') }}</label>
                         <div class="input-group">
                             <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom ou description...') }}" x-model="catalogSearch">
@@ -702,7 +791,7 @@ $isManualConnected = true;
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par source') }}</label>
                         <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="catalogSourceFilter">
                             <option value="">{{ __tr('Toutes les sources') }}</option>
@@ -710,6 +799,16 @@ $isManualConnected = true;
                             <option value="shopify">Shopify</option>
                             <option value="woocommerce">WooCommerce</option>
                             <option value="whatsapp_catalog">{{ __tr('WhatsApp Meta Catalog') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par catégorie') }}</label>
+                        <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="catalogCategoryFilter">
+                            <option value="">{{ __tr('Toutes les catégories') }}</option>
+                            <option value="uncategorized">{{ __tr('Sans catégorie') }}</option>
+                            <template x-for="cat in allCategories" :key="cat._uid">
+                                <option :value="cat._uid" x-text="cat.name"></option>
+                            </template>
                         </select>
                     </div>
                 </div>
@@ -743,6 +842,9 @@ $isManualConnected = true;
                                     </td>
                                     <td class="align-middle">
                                         <h6 class="font-weight-bold text-dark mb-0" x-text="product.name"></h6>
+                                        <template x-if="product.category">
+                                            <span class="badge px-2 py-1 mt-1" style="background: #ecfdf5; color: #10b981; border-radius: 8px; font-size: 0.72rem;" x-text="product.category.name"></span>
+                                        </template>
                                     </td>
                                     <td class="align-middle">
                                         <span class="badge border px-3 py-1 font-weight-bold" 

@@ -1240,6 +1240,21 @@ Route::middleware([
                 'importProducts',
             ])->name('vendor.ecommerce.products.import');
 
+            Route::get('/ecommerce/categories', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'getCategories',
+            ])->name('vendor.ecommerce.categories');
+
+            Route::post('/ecommerce/categories/add', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'addCategory',
+            ])->name('vendor.ecommerce.categories.add');
+
+            Route::post('/ecommerce/categories/delete/{categoryUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'deleteCategory',
+            ])->name('vendor.ecommerce.categories.delete');
+
             Route::post('/ecommerce/products/clear', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'clearProducts',
