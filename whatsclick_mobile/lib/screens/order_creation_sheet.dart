@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
@@ -80,6 +81,22 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
         }
       });
     }
+  }
+
+  Future<Map<String, dynamic>?> _openProductGridPicker() {
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          builder: (_, controller) => _OrderProductGridPicker(scrollController: controller),
+        );
+      },
+    );
   }
 
   double _calculateTotal() {
@@ -290,58 +307,78 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
                 const SizedBox(height: 16),
               ],
 
-              // Product Picker Dropdown
+              // Product Picker — opens the same image-grid picker used to
+              // send a product in the chat, instead of a plain text dropdown.
               if (!_useCustomProduct && _catalogProducts.isNotEmpty) ...[
-                DropdownButtonFormField<Map<String, dynamic>>(
+                FormField<Map<String, dynamic>>(
                   initialValue: _selectedProduct,
-                  decoration: InputDecoration(
-                    labelText: 'Sélectionner un produit',
-                    prefixIcon: const Icon(Icons.inventory_2_rounded),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  isExpanded: true,
-                  items: _catalogProducts.map((p) {
-                    final img = p['image_url'];
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: p,
-                      child: Row(
-                        children: [
-                          if (img != null && img.toString().isNotEmpty) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Image.network(img, width: 30, height: 30, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.image, size: 30, color: Colors.grey)),
-                            ),
-                            const SizedBox(width: 10),
-                          ],
-                          Expanded(
-                            child: Text(
-                              p['name'] ?? '',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                            ),
-                          ),
-                          Text(
-                            '${double.tryParse(p['price']?.toString() ?? '0')?.toStringAsFixed(0) ?? 0} CFA',
-                            style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedProduct = val;
-                      if (val != null && val['price'] != null) {
-                        _priceController.text = val['price'].toString();
-                      }
-                    });
-                  },
                   validator: (val) {
                     if (!_useCustomProduct && val == null) {
                       return 'Veuillez sélectionner un produit';
                     }
                     return null;
+                  },
+                  builder: (field) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            final picked = await _openProductGridPicker();
+                            if (picked == null) return;
+                            setState(() {
+                              _selectedProduct = picked;
+                              if (picked['price'] != null) {
+                                _priceController.text = picked['price'].toString();
+                              }
+                            });
+                            field.didChange(picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: field.hasError ? Colors.red : (isDark ? Colors.white24 : Colors.grey.shade400)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _selectedProduct == null
+                                ? Row(
+                                    children: [
+                                      Icon(Icons.inventory_2_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                                      const SizedBox(width: 10),
+                                      Text('Choisir un produit dans le catalogue', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: (_selectedProduct!['image_url'] != null && _selectedProduct!['image_url'].toString().isNotEmpty)
+                                            ? Image.network(_selectedProduct!['image_url'], width: 40, height: 40, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 40, color: Colors.grey))
+                                            : Container(width: 40, height: 40, color: Colors.black12, child: const Icon(Icons.image, size: 20, color: Colors.grey)),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(_selectedProduct!['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
+                                            Text('${double.tryParse(_selectedProduct!['price']?.toString() ?? '0')?.toStringAsFixed(0) ?? 0} CFA', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 12.5)),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.swap_horiz_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        if (field.hasError)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: Text(field.errorText ?? '', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                          ),
+                      ],
+                    );
                   },
                 ),
                 const SizedBox(height: 14),
@@ -492,6 +529,201 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Image-grid product picker for order creation — mirrors the "Sélectionner
+/// un produit" grid used to send a product in chat, but selects instead of
+/// sending: tapping a card pops this sheet with that product as the result.
+class _OrderProductGridPicker extends StatefulWidget {
+  final ScrollController scrollController;
+
+  const _OrderProductGridPicker({required this.scrollController});
+
+  @override
+  State<_OrderProductGridPicker> createState() => _OrderProductGridPickerState();
+}
+
+class _OrderProductGridPickerState extends State<_OrderProductGridPicker> {
+  final _searchController = TextEditingController();
+  List<Map<String, dynamic>> _products = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    final products = await ApiService().fetchProducts(search: _searchQuery);
+    if (mounted) {
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _searchQuery = query);
+        _loadProducts();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06))),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.shopping_bag_rounded, color: Color(0xFF10B981), size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Sélectionner un produit',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.47)),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un produit...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
+                : _products.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.shopping_bag_outlined, size: 56, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.16)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aucun produit trouvé',
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.39), fontSize: 15),
+                            ),
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        controller: widget.scrollController,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.78,
+                        ),
+                        itemCount: _products.length,
+                        itemBuilder: (context, index) {
+                          final product = _products[index];
+                          final String? imageUrl = product['image_url'];
+                          final double price = double.tryParse(product['price']?.toString() ?? '0') ?? 0;
+
+                          return GestureDetector(
+                            onTap: () => Navigator.pop(context, product),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      width: double.infinity,
+                                      color: Colors.black12,
+                                      child: (imageUrl != null && imageUrl.isNotEmpty)
+                                          ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (context, err, stack) => const Icon(Icons.shopping_cart, color: Colors.grey, size: 40))
+                                          : const Icon(Icons.shopping_cart, color: Colors.grey, size: 40),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product['name'] ?? 'Produit sans nom',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface, fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${price.toStringAsFixed(0)} CFA',
+                                          style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }
