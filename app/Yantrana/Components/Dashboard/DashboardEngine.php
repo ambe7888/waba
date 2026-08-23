@@ -454,6 +454,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 'display_credits' => $displayCredits,
             ],
             'current_subscription' => (function() use ($vendorId) {
+                // Same helper the web "subscription expiring/expired" banner
+                // (layouts/app.blade.php) reads from - reused here so the app
+                // gets the identical status/message/expiry signals, including
+                // for a vendor currently on their post-signup trial.
+                $vendorPlanDetails = vendorPlanDetails(null, null, $vendorId);
                 $sub = getVendorCurrentActiveSubscription($vendorId);
                 $title = 'Plan Gratuit';
                 $endsAt = null;
@@ -465,7 +470,19 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 $price = 0;
                 $billingCycle = 'Mensuel';
 
-                if (!empty($sub)) {
+                if (empty($sub) and $vendorPlanDetails->planType() === 'trial') {
+                    $title = $vendorPlanDetails['plan_title'] . ' (' . __tr('Essai') . ')';
+                    $isFree = false;
+                    $trialEndsAt = $vendorPlanDetails['ends_at'];
+                    if ($trialEndsAt) {
+                        $parsedEndsAt = \Carbon\Carbon::parse($trialEndsAt);
+                        $endsAt = $parsedEndsAt;
+                        $isExpired = $parsedEndsAt->isPast();
+                        $remainingDays = max(0, \Carbon\Carbon::now()->diffInDays($parsedEndsAt, false));
+                        $totalDays = 7;
+                        $progress = min(1.0, max(0.0, $remainingDays / $totalDays));
+                    }
+                } elseif (!empty($sub)) {
                     $planId = $sub->plan_id ?? $sub->type ?? null;
                     $title = getPaidPlans("{$planId}.title");
                     if (empty($title)) {
@@ -523,7 +540,20 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                         'system_users' => vendorPlanDetails('system_users', 0, $vendorId)->plan_feature_limit ?? 0,
                         'drip_campaigns' => vendorPlanDetails('drip_campaigns', 0, $vendorId)->plan_feature_limit ?? 0,
                         'bot_flows' => vendorPlanDetails('bot_flows', 0, $vendorId)->plan_feature_limit ?? 0,
-                    ]
+                    ],
+                    // Mirrors the alert banner in layouts/app.blade.php (web) so the
+                    // app can show the same red/orange plan-status alert.
+                    'alert' => (function () use ($vendorPlanDetails) {
+                        if (!$vendorPlanDetails->hasActivePlan()) {
+                            return ['level' => 'danger', 'message' => $vendorPlanDetails->message()];
+                        }
+                        if ($vendorPlanDetails['is_expiring']) {
+                            return ['level' => 'warning', 'message' => __tr('Your subscription plan is expiring on __endAt__', [
+                                '__endAt__' => formatDate($vendorPlanDetails['ends_at']),
+                            ])];
+                        }
+                        return null;
+                    })(),
                 ];
             })(),
         ]);
