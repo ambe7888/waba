@@ -24,6 +24,7 @@
     scheduleAt: '',
     expireAt: '',
     contactCount: 0,
+    isLoadingContactCount: false,
     restrictByLanguageChange: function() {
 
         const el = this.$refs.lwRestrictLanguageSwitch;
@@ -40,12 +41,21 @@
         }
 
         var self = this;
+        self.isLoadingContactCount = true;
+        // Safety net: if the request ever fails silently (no error
+        // callback is wired below), don't leave the loading indicator
+        // spinning forever.
+        var loadingTimeoutId = setTimeout(function() {
+            self.isLoadingContactCount = false;
+        }, 10000);
         __DataRequest.post('{{ route('vendor.campaign.read.targeted_contact_count') }}', {
                 'audience_uid': this.audienceUid,
                 'restrict_by_language': this.restrictByTemplatedContactLanguage,
                 'template_id': this.selectedTemplate
             }, function(responseData) {
+                clearTimeout(loadingTimeoutId);
                 self.contactCount = responseData.data.totalContacts;
+                self.isLoadingContactCount = false;
             }
         );
     },
@@ -255,6 +265,28 @@
                                             </x-slot>
                                         </x-lw.input-field>
                                         <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
+                                        <script>
+                                            // A plain native "change" listener on the underlying <select>,
+                                            // not selectize's own .on('change') API — that one only worked
+                                            // once selectize had actually finished initializing on this
+                                            // field, which depended on timing that didn't hold up in
+                                            // practice (the contact count stayed frozen at 0 no matter
+                                            // which audience was picked). Selectize is documented to keep
+                                            // this element's value in sync and fire a real "change" event
+                                            // on it on every selection, so this fires reliably regardless
+                                            // of when/whether selectize has wrapped the field yet.
+                                            (function() {
+                                                var el = document.getElementById('lwSelectAudiencesField');
+                                                if (!el) return;
+                                                el.addEventListener('change', function() {
+                                                    var container = document.getElementById('lwCreateNewCampaignContainer');
+                                                    if (!container) return;
+                                                    var campaignData = Alpine.$data(container);
+                                                    campaignData.audienceUid = this.value;
+                                                    campaignData.getTargetedContactCount();
+                                                });
+                                            })();
+                                        </script>
                                         {{-- /select audience --}}
                                         
                                         <!-- Restrict by Template Language field -->
@@ -267,7 +299,11 @@
                                     </div>
                                     @if(!$isNonTemplateCampaign)
                                     <strong class="m-2">
-                                        {{ __tr('Total Targeted Contacts: ') }} <span x-text="contactCount"></span>
+                                        {{ __tr('Total Targeted Contacts: ') }}
+                                        <span x-show="!isLoadingContactCount" x-text="contactCount"></span>
+                                        <span x-show="isLoadingContactCount" x-cloak>
+                                            <i class="fa fa-spinner fa-spin"></i> {{ __tr('Calcul en cours...') }}
+                                        </span>
                                     </strong>
                                     @endif
                                  </fieldset>
