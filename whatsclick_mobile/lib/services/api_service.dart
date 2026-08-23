@@ -1343,20 +1343,22 @@ class ApiService {
   /// Mints a short-lived signed URL for the WhatsApp Embedded Signup
   /// WebView bridge (see WhatsAppServiceController::mobileEmbeddedSignupUrl).
   /// Returns null on failure.
-  Future<String?> fetchWhatsAppEmbeddedSignupUrl() async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/embedded-signup-url');
+  /// Returns the signed WebView bridge URL, or (on failure) whatever
+  /// vendor-facing message the backend sent — e.g. "no active api_access
+  /// plan" — so the caller can show the real reason instead of a generic one.
+  Future<({String? url, String? message})> fetchWhatsAppEmbeddedSignupUrl() async {
+    final endpoint = Uri.parse('${baseApiUrl}vendor/whatsapp/embedded-signup-url');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        if (body['reaction'] == 1) {
-          return body['data']?['url']?.toString();
-        }
+      final response = await http.get(endpoint, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return (url: body['data']?['url']?.toString(), message: null);
       }
-      return null;
+      final message = body['data']?['message']?.toString() ?? body['message']?.toString();
+      return (url: null, message: (message != null && message.isNotEmpty) ? message : null);
     } catch (e) {
       if (debug) debugPrint('Fetch Embedded Signup URL Error: $e');
-      return null;
+      return (url: null, message: null);
     }
   }
 

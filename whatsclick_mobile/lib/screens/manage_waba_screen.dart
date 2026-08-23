@@ -27,18 +27,21 @@ class _ManageWabaScreenState extends State<ManageWabaScreen> {
 
   Future<void> _connectWhatsApp() async {
     setState(() => _isConnecting = true);
-    final url = await ApiService().fetchWhatsAppEmbeddedSignupUrl();
+    final result = await ApiService().fetchWhatsAppEmbeddedSignupUrl();
     if (!mounted) return;
-    if (url == null) {
+    if (result.url == null) {
       setState(() => _isConnecting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de démarrer la connexion. Réessayez.'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(result.message ?? 'Impossible de démarrer la connexion. Réessayez.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
     final success = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => WhatsAppEmbeddedSignupScreen(signupUrl: url)),
+      MaterialPageRoute(builder: (_) => WhatsAppEmbeddedSignupScreen(signupUrl: result.url!)),
     );
 
     if (!mounted) return;
@@ -156,8 +159,8 @@ class _ManageWabaScreenState extends State<ManageWabaScreen> {
                     onPressed: _isConnecting ? null : _connectWhatsApp,
                     icon: _isConnecting
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.link_rounded),
-                    label: Text(_isConnecting ? 'Connexion en cours...' : 'Connecter mon WhatsApp Business'),
+                        : const Icon(Icons.facebook_rounded),
+                    label: Text(_isConnecting ? 'Connexion en cours...' : 'Activer mon compte WhatsApp API'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,

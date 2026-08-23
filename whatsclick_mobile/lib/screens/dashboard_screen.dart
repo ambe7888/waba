@@ -44,6 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _unreadNotificationsCount = 0;
   bool _botActive = false; // AI toggle state
   bool _togglingBot = false; // Loading state for AI toggle
+  bool _planAlertDismissed = false;
   final GlobalKey<_Eligible24hCampaignCardState> _eligible24hCardKey = GlobalKey();
 
   // Filter for template category
@@ -340,6 +341,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                     ),
+                    _buildPlanAlertBanner(isDark),
                     Expanded(
                       child: RefreshIndicator(
                         onRefresh: _fetchDashboardStats,
@@ -438,6 +440,63 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ],
                 ),
+    );
+  }
+
+  // Mirrors the red/orange plan-status banner already shown on the web
+  // dashboard (layouts/app.blade.php) — same backend signal
+  // (current_subscription.alert), so trial/expiring/expired vendors get the
+  // same warning here, not just on web.
+  Widget _buildPlanAlertBanner(bool isDark) {
+    if (_planAlertDismissed) return const SizedBox.shrink();
+    final alert = _stats?['current_subscription']?['alert'] as Map?;
+    if (alert == null) return const SizedBox.shrink();
+
+    final isDanger = alert['level'] == 'danger';
+    final Color bgColor = isDanger ? const Color(0xFFDC2626) : const Color(0xFFF97316);
+    final String message = alert['message']?.toString() ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ManageSubscriptionScreen(
+                subscriptionData: (_stats?['current_subscription'] is Map)
+                    ? Map<String, dynamic>.from(_stats!['current_subscription'] as Map)
+                    : {},
+                statsData: _stats ?? {},
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => setState(() => _planAlertDismissed = true),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
