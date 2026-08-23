@@ -1165,8 +1165,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if ($queuedMessage->updated_at < now()->subSeconds(5)) {
                 $queuedMessage = $this->whatsAppMessageQueueRepository->fetchIt($queuedMessage->_id);
             }
-            // if record not found or if its already in process
-            if (__isEmpty($queuedMessage) || ($queuedMessage->status == 3)) {
+            // getQueueItemsForProcess() now claims rows atomically (see its
+            // own comment) - it flips them to status=3 itself before
+            // returning them, so every item reaching this point is *already*
+            // status 3 by design, not a sign another run has it. The old
+            // "status == 3 means someone else is on it, skip" check used to
+            // guard a real race before that fix, but against the new
+            // claiming design it discarded every single claimed item,
+            // silently dropping 100% of queued sends into the 5-minute
+            // stuck-processing timeout instead of ever sending them.
+            if (__isEmpty($queuedMessage)) {
                 continue;
             }
             $contactsData = $queuedMessage->__data['contact_data'];
