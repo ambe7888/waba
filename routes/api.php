@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.7',
+        'version' => '1.0.15',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Correction de bugs : envoi de campagnes, message sans modèle, et navigation du tableau de bord.",
+        'change_log' => "Correction majeure : les campagnes qui restaient bloquées sans jamais s'envoyer. Notifications désormais reçues sur le téléphone. Connexion du compte WhatsApp API plus fiable. Compteurs corrigés (campagnes du mois, agents, réponses auto). Mot de passe visible à l'inscription.",
     ]);
 })->name('api.app_version');
 // Mobile app apis
