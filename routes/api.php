@@ -42,17 +42,6 @@ Route::group([
     'middleware' => 'api.vendor.authenticate',
     'prefix' => '{vendorUid}/',
 ], function () {
-    // Vendor Notifications
-    Route::get('/notifications', [
-        VendorNotificationController::class,
-        'getNotifications',
-    ])->name('api.vendor.notifications.list');
-    
-    Route::post('/notifications/mark-read', [
-        VendorNotificationController::class,
-        'markAsRead',
-    ])->name('api.vendor.notifications.mark_read');
-
     Route::post('/contact/send-message', [
         WhatsAppServiceController::class,
         'apiSendChatMessage',
@@ -234,6 +223,29 @@ Route::group([
 ], function () {
     // broadcast private channel check
     Broadcast::routes([]);
+
+    // Vendor Notifications - lives under the mobile app's own auth (the
+    // {vendorUid}/ path is kept only so the already-shipped app's existing
+    // calls keep working; VendorNotificationController::getVendorId()
+    // already prefers the authenticated user over that URL param, so no
+    // app changes are needed). This used to sit in the api.vendor.authenticate
+    // group above, which expects a vendor's static developer API key
+    // (vendor_api_access_token) instead of the app's session token, so
+    // every mobile call was silently rejected as "Invalid Token" before
+    // ever reaching the controller.
+    Route::group([
+        'prefix' => '{vendorUid}/',
+    ], function () {
+        Route::get('/notifications', [
+            VendorNotificationController::class,
+            'getNotifications',
+        ])->name('api.vendor.notifications.list');
+
+        Route::post('/notifications/mark-read', [
+            VendorNotificationController::class,
+            'markAsRead',
+        ])->name('api.vendor.notifications.mark_read');
+    });
 
     /*
     Media Component Routes Start from here
