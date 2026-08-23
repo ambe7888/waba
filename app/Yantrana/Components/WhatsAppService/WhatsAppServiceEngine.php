@@ -1472,12 +1472,28 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if (!$campaign || data_get($campaign->__data, 'completion_notified')) {
                 continue;
             }
-            \App\Models\VendorNotification::create([
-                'title' => 'Campagne terminée',
-                'message' => 'Votre campagne "' . $campaign->title . '" a été entièrement envoyée.',
+            $notificationTitle = 'Campagne terminée';
+            $notificationMessage = 'Votre campagne "' . $campaign->title . '" a été entièrement envoyée.';
+            $notification = \App\Models\VendorNotification::create([
+                'title' => $notificationTitle,
+                'message' => $notificationMessage,
                 'type' => 'success',
                 'vendors__id' => $campaign->vendors__id,
             ]);
+            // Creating the row alone only logs it for the admin notifications
+            // list - it was never actually pushed to the vendor's device,
+            // unlike admin-sent notifications (NotificationController::store()),
+            // which already call this same helper.
+            if (function_exists('sendFCMNotification')) {
+                try {
+                    sendFCMNotification($campaign->vendors__id, $notificationTitle, $notificationMessage, [
+                        'notification_id' => (string) $notification->_id,
+                        'type' => 'success',
+                    ]);
+                } catch (\Throwable $th) {
+                    \Log::error('Campaign completion FCM notification failed: ' . $th->getMessage());
+                }
+            }
             $this->campaignRepository->updateIt($campaign, [
                 '__data' => ['completion_notified' => true],
             ]);
