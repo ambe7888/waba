@@ -28,6 +28,7 @@ namespace App\Yantrana\Components\WhatsAppService\Repositories;
 use App\Yantrana\Base\BaseRepository;
 use App\Yantrana\Components\WhatsAppService\Interfaces\WhatsAppMessageQueueRepositoryInterface;
 use App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageQueueModel;
+use Illuminate\Support\Facades\DB;
 
 class WhatsAppMessageQueueRepository extends BaseRepository implements WhatsAppMessageQueueRepositoryInterface
 {
@@ -93,7 +94,48 @@ class WhatsAppMessageQueueRepository extends BaseRepository implements WhatsAppM
             ]
         ]);
 
-        // go grab queue records for processing
+        // go grab queue records for processing.
+        //
+        // This used to be a plain SELECT: whatsapp:campaign:process runs
+        // every 5 seconds, and if a run ever takes longer than 5 seconds
+        // (large campaign, slow WhatsApp API response) — or a second trigger
+        // reaches this code (e.g. a stuck scheduler lock, schedule:work and
+        // crontab schedule:run both active) — a concurrent call could SELECT
+        // the exact same status=1 rows before the first call gets around to
+        // marking them status=3 a few lines later in processCampaignSchedule(),
+        // and every message in the overlap gets sent twice. Confirmed this
+        // is possible: nothing between the SELECT here and the later UPDATE
+        // stopped a second reader from seeing the same "waiting" rows.
+        //
+        // Claim the rows atomically instead: lock the candidate rows with a
+        // real row lock inside a transaction, flip them to status=3
+        // (processing) before releasing the lock, and only then read them
+        // back. A concurrent call's SELECT ... FOR UPDATE on the same rows
+        // blocks until this transaction commits, and by then those rows no
+        // longer match status=1, so the second call correctly gets nothing.
+        $claimedIds = DB::transaction(function () {
+            $ids = $this->primaryModel::where([
+                    'status' => 1,
+                    [
+                        'scheduled_at', '<=', now()
+                    ],
+                ])
+                ->take((getAppSettings('cron_process_messages_per_lot') ?: 60))
+                ->inRandomOrder()
+                ->lockForUpdate()
+                ->pluck('_id');
+
+            if ($ids->isNotEmpty()) {
+                $this->primaryModel::whereIn('_id', $ids)->update(['status' => 3]);
+            }
+
+            return $ids;
+        });
+
+        if ($claimedIds->isEmpty()) {
+            return collect();
+        }
+
         return $this->primaryModel::select([
             '_id',
             '_uid',
@@ -107,16 +149,7 @@ class WhatsAppMessageQueueRepository extends BaseRepository implements WhatsAppM
             'retries',
             '__data',
             'updated_at',
-        ])->where([
-            // waiting for processing
-            'status' => 1,
-            [
-                // time has passed on
-                'scheduled_at', '<=', now()
-            ],
-        ])
-        // ->oldest()
-        ->take((getAppSettings('cron_process_messages_per_lot') ?: 60))->inRandomOrder()->get();
+        ])->whereIn('_id', $claimedIds)->get();
     }
     /**
      * Queued messages count

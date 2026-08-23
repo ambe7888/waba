@@ -927,7 +927,20 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $contact = $this->contactRepository->fetchIt(['vendors__id' => $vendorId]);
         }
         $isTestMessageProcessed = null;
-        if (!$presetMessageUid && $contact) {
+        // This upfront "test send" is a REAL WhatsApp API call (see sendTemplateMessageProcess
+        // with $isForCampaign=false), not a simulation — deleting its log entry below only
+        // hides it from the app's history, it does not un-send the message. WhatsApp delivers
+        // by phone number, not by internal contact id, so match on wa_id: a vendor can have two
+        // separate contact records pointing at the same phone (e.g. a "Test Contact" entry and
+        // the real contact), and the person on that number would still get the same template
+        // twice — once right now, once again when the queued campaign reaches its real target
+        // at scheduled_at. Skip the test send when that phone number is already in the audience.
+        $testContactInAudience = ($contact && $contact->wa_id) ? ($this->contactRepository->countContactsForCampaign(
+            array_merge($contactsWhereClause, [['contacts.wa_id', '=', $contact->wa_id]]),
+            $groupContactIds,
+            $labelIds
+        ) > 0) : false;
+        if (!$presetMessageUid && $contact && !$testContactInAudience) {
             try {
                 // send test message (fail-soft: test failure will not block campaign creation)
                 $isTestMessageProcessed = $this->sendTemplateMessageProcess($request, $contact, false, null, $vendorId, $whatsAppTemplate);
