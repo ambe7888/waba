@@ -1249,7 +1249,14 @@ class ApiService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchTemplates() async {
+  // A transient failure here used to come back as the exact same [] as
+  // "you genuinely have zero approved templates" — the send-template and
+  // campaign wizards took that at face value and showed "Aucun modèle
+  // approuvé" with no way to recover short of restarting the app. Retry
+  // a couple of times on an actual failure (bad status, exception, missing
+  // data) before giving up; a real empty templates list from a successful
+  // response is returned immediately, untouched.
+  Future<List<Map<String, dynamic>>> fetchTemplates({int retriesLeft = 2}) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates');
     try {
       final response = await http.get(url, headers: _getHeaders());
@@ -1262,9 +1269,17 @@ class ApiService {
           }
         }
       }
+      if (retriesLeft > 0) {
+        await Future.delayed(const Duration(seconds: 2));
+        return fetchTemplates(retriesLeft: retriesLeft - 1);
+      }
       return [];
     } catch (e) {
       if (debug) debugPrint('Fetch Templates Error: $e');
+      if (retriesLeft > 0) {
+        await Future.delayed(const Duration(seconds: 2));
+        return fetchTemplates(retriesLeft: retriesLeft - 1);
+      }
       return [];
     }
   }
