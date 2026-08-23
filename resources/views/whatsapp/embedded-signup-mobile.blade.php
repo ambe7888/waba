@@ -104,7 +104,8 @@
                                 fetch('{{ route('vendor.whatsapp_setup.embedded_signup.mobile.complete', ['token' => $token]) }}', {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json'
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
                                     },
                                     body: JSON.stringify({
                                         request_code: tempAccessCode,
