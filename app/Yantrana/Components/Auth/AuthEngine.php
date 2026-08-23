@@ -322,6 +322,10 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
                 'status' => 1, // Active
                 'type' => 1, // types of vendor restaurant etc
                 'plan_ai_credits' => $planAiCredits,
+                // 7-day trial of the first paid plan (see vendorPlanDetails()
+                // in app-helpers.php) so new vendors get real access without
+                // needing to pay upfront, before being required to subscribe.
+                'trial_ends_at' => now()->addDays(7),
             ]);
             if (! $vendor) {
                 return $this->authRepository->transactionResponse(2, ['show_message' => true], __tr('Failed to register user'));

@@ -1029,15 +1029,15 @@ class WhatsAppServiceController extends BaseController
     {
         // Checked again inside setupWhatsAppEmbeddedSignUpProcess() once the
         // WebView actually completes - that's the real gate. This one is
-        // just so a vendor without api_access (e.g. still on the free plan)
+        // just so a vendor with no active plan (and no signup trial left)
         // doesn't get sent through the whole Facebook login flow first,
-        // only to be rejected at the very end. See the longer comment on
-        // setupWhatsAppEmbeddedSignUpProcess() for why it's api_access and
-        // not the more permissive hasActivePlan().
-        $vendorPlanDetails = vendorPlanDetails('api_access', 1, getVendorId());
-        if (!$vendorPlanDetails['is_limit_available']) {
+        // only to be rejected at the very end. 'api_access' is a different,
+        // narrower feature (WhatsAppServiceController's own developer
+        // API/webhook endpoints for third-party integrations) - not this.
+        $vendorPlanDetails = vendorPlanDetails(null, null, getVendorId());
+        if (!$vendorPlanDetails->hasActivePlan()) {
             return $this->processResponse(22, [
-                22 => __tr('L\'accès à l\'API n\'est pas disponible dans votre forfait actuel, veuillez souscrire à un abonnement.'),
+                22 => $vendorPlanDetails['message'],
             ], [], true);
         }
 

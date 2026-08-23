@@ -5058,18 +5058,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
     public function setupWhatsAppEmbeddedSignUpProcess($request)
     {
-        // hasActivePlan() alone isn't enough here: it's also true for the
-        // free plan (a real, intentionally-permissive tier used to gate
-        // things like sendTemplateMessageProcess() elsewhere), and the free
-        // plan explicitly sets api_access's limit to 0 - it's not meant to
-        // include connecting a real WhatsApp Business account. Same
-        // 'api_access' feature flag apiAccessAllowedOrAbort() already gates
-        // the API/webhook access page with, checked the same way
-        // (WhatsAppServiceController.php's own established pattern, usage=1
-        // for a switch-type feature since 0 > 0 never trips the limit).
-        $vendorPlanDetails = vendorPlanDetails('api_access', 1, getVendorId());
-        if (!$vendorPlanDetails['is_limit_available']) {
-            return $this->engineResponse(22, null, __tr('L\'accès à l\'API n\'est pas disponible dans votre forfait actuel, veuillez souscrire à un abonnement.'));
+        // 'api_access' is a different feature (it gates apiSendChatMessage()
+        // etc. in WhatsAppServiceController - the vendor's own developer
+        // API/webhooks for third-party integrations), not "may this vendor
+        // connect a real WhatsApp Business account at all". Connecting an
+        // account is the base product, so this uses the same
+        // hasActivePlan() check as sendTemplateMessageProcess() and the
+        // other message-sending gates in this file.
+        $vendorPlanDetails = vendorPlanDetails(null, null, getVendorId());
+        if (!$vendorPlanDetails->hasActivePlan()) {
+            return $this->engineResponse(22, null, $vendorPlanDetails['message']);
         }
 
         $processedResponse = $this->whatsAppConnectApiService->processEmbeddedSignUp($request);

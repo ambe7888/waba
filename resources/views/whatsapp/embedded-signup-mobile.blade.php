@@ -61,11 +61,13 @@
 </head>
 <body>
     <div class="icon">📱</div>
-    <h1>Connecter votre WhatsApp Business</h1>
-    <p>Connectez votre compte WhatsApp Business en toute sécurité via Meta. Aucune clé technique à saisir.</p>
+    <h1>Activer votre compte WhatsApp API</h1>
+    <p>Activez votre compte WhatsApp API en toute sécurité via Meta. Aucune clé technique à saisir.</p>
 
     @if(getAppSettings('enable_embedded_signup'))
-        <button id="launchBtn" onclick="launchWhatsAppSignup()">Connecter avec Facebook</button>
+        <button id="launchBtn" onclick="launchWhatsAppSignup()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" style="vertical-align:-4px;margin-right:8px;" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>Connecter avec Facebook
+        </button>
         <div class="spinner" id="spinner">Connexion en cours, veuillez patienter...</div>
         <div class="error" id="errorBox"></div>
 

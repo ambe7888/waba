@@ -1343,6 +1343,11 @@ if (! function_exists('vendorPlanDetails')) {
         }
 
         $subscription = getVendorCurrentActiveSubscription($vendor);
+        $trialEndsAt = null;
+        // New signups get a 7-day trial of this plan (see AuthEngine::processRegistration())
+        // before they're required to subscribe. Change here if the trial should mirror a
+        // different plan.
+        $trialPlanId = 'plan_1';
         if (__isEmpty($subscription) and !$options['plan_id']) {
             $getFreePlan = getFreePlan();
             if (! __isEmpty($getFreePlan) and $getFreePlan['enabled']) {
@@ -1353,7 +1358,19 @@ if (! function_exists('vendorPlanDetails')) {
                 $detailsContainer['plan_type'] = 'free';
                 $detailsContainer['plan_title'] = getFreePlan("title");
             } else {
-                $isAvailable = 0;
+                $trialEndsAt = viaFlashCache('vendor_trial_ends_at_' . $vendor, function () use (&$vendor) {
+                    return \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendor)?->trial_ends_at;
+                });
+                if ($trialEndsAt and $trialEndsAt->isFuture()) {
+                    $featureLimitCount = (int) getPaidPlans("{$trialPlanId}.features.$feature.limit");
+                    $limitDuration = getPaidPlans("{$trialPlanId}.features.$feature.limit_duration");
+                    $featureDescription = getPaidPlans("{$trialPlanId}.features.$feature.description");
+                    $detailsContainer['has_active_plan'] = true;
+                    $detailsContainer['plan_type'] = 'trial';
+                    $detailsContainer['plan_title'] = getPaidPlans("{$trialPlanId}.title");
+                } else {
+                    $isAvailable = 0;
+                }
             }
         } else {
             $detailsContainer['subscription_type'] = 'auto';
@@ -1416,12 +1433,13 @@ if (! function_exists('vendorPlanDetails')) {
 
         $detailsContainer['is_limit_available'] = (int) $isAvailable > 0 ? true : false;
         $detailsContainer['plan_feature_limit'] = $featureLimitCount;
-        $detailsContainer['ends_at'] = $subscription->ends_at ?? null;
+        $detailsContainer['ends_at'] = $subscription->ends_at ?? $trialEndsAt ?? null;
         $detailsContainer['is_expired'] = $detailsContainer['ends_at'] ? ($detailsContainer['ends_at'] < now()) : null;
         $detailsContainer['is_expiring'] = (($detailsContainer['plan_type'] != 'free') and !$detailsContainer['is_expired'] and ($detailsContainer['ends_at'] ? ($detailsContainer['ends_at'] < now()->addDays(7)) : null));
-        $detailsContainer['plan_id'] = $options['plan_id'] ?? $subscription->type ?? $subscription->plan_id ??  null;
+        $detailsContainer['plan_id'] = $options['plan_id'] ?? $subscription->type ?? $subscription->plan_id ?? ($detailsContainer['plan_type'] === 'trial' ? $trialPlanId : null);
         $detailsContainer['plan_key'] = $detailsContainer['plan_id'] . '___' . $detailsContainer['frequency'];
-        // restrict everything if plan has expired
+        // restrict everything if plan has expired (also covers a lapsed signup trial,
+        // since plan_type is 'trial' there, not 'free')
         if (($detailsContainer['plan_type'] != 'free') and ($options['expiry_check'] and $detailsContainer['is_expired'])) {
             $detailsContainer['is_limit_available'] = false;
             $detailsContainer['has_active_plan'] = false;
