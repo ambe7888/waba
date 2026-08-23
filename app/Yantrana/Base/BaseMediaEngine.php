@@ -362,7 +362,13 @@ class BaseMediaEngine extends BaseEngine
             File::makeDirectory($path, $mode = 0777, true, true);
         }
 
-        if ($uploadedFile->move($path, $fileName)) {
+        // copy() rather than move(): a template with a media header gets processed
+        // more than once per request (an upfront test send, then again per contact
+        // in the actual campaign) using this same source reference. move() renamed
+        // the source file away on the first call, so every later call for the same
+        // upload failed with "File not found" — cascading one bad upload into every
+        // contact in a campaign. Copying leaves the source in place for reuse/retries.
+        if (File::copy($uploadedFile->getPathname(), $path.DIRECTORY_SEPARATOR.$fileName)) {
             return $this->engineSuccessResponse([
                 'fileExtension' => $fileExtension,
                 'fileMimeType' => $fileMimeType,
