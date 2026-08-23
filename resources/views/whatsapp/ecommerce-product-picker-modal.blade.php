@@ -1,19 +1,30 @@
 <x-lw.modal id="lwECommerceProductPicker" :header="__tr('Produits & Catalogues')" :hasForm="false">
     <div class="p-3" x-data="{
         products: [],
+        categories: [],
         search: '',
         source: '',
+        categoryFilter: '',
         page: 1,
         lastPage: 1,
         isLoading: false,
         selectedProductUid: null,
         isSending: false,
+        fetchCategories() {
+            var self = this;
+            __DataRequest.get('{{ route('vendor.ecommerce.categories') }}', {}, function(response) {
+                if (response.reaction == 1 || response.reaction_code == 1) {
+                    self.categories = response.data.categories || [];
+                }
+            });
+        },
         fetchProducts() {
             this.isLoading = true;
             var self = this;
             __DataRequest.get('{{ route('vendor.ecommerce.products') }}', {
                 search: this.search,
                 source: this.source,
+                category_uid: this.categoryFilter,
                 page: this.page
             }, function(response) {
                 self.isLoading = false;
@@ -82,20 +93,29 @@
                 self.isSending = false;
             });
         }
-    }" x-init="fetchProducts()">
-        
+    }" x-init="fetchProducts(); fetchCategories()">
+
         <div class="alert alert-warning py-2 mb-3 text-center small">
             <i class="fas fa-info-circle mr-1"></i> {{ __tr('Send interactive product cards with direct store checkout links.') }}
         </div>
 
         <div class="row mb-3">
-            <div class="col-md-12">
+            <div class="col-md-6">
                 <select class="form-control form-control-sm" x-model="source" @change="searchProducts()" style="border-radius: 8px;">
                     <option value="">{{ __tr('Toutes les sources de produits') }}</option>
                     <option value="manual">{{ __tr('Catalogue Manuel') }}</option>
                     <option value="shopify">Shopify</option>
                     <option value="woocommerce">WooCommerce</option>
                     <option value="whatsapp_catalog">WhatsApp Catalog</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <select class="form-control form-control-sm" x-model="categoryFilter" @change="searchProducts()" style="border-radius: 8px;" x-show="categories.length > 0">
+                    <option value="">{{ __tr('Toutes les catégories') }}</option>
+                    <option value="uncategorized">{{ __tr('Sans catégorie') }}</option>
+                    <template x-for="cat in categories" :key="cat._uid">
+                        <option :value="cat._uid" x-text="cat.name"></option>
+                    </template>
                 </select>
             </div>
         </div>

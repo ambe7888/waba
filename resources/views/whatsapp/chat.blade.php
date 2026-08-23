@@ -1319,6 +1319,8 @@
                                     },
                                     productsList: [],
                                     productSearchTerm: '',
+                                    categoriesList: [],
+                                    categoryFilter: '',
                                     isCreatingOrder: false,
                                     showCreateOrderForm: false,
                                     orderItems: [
@@ -1342,14 +1344,31 @@
                                         });
                                     },
                                     filteredProductsList() {
-                                        if (!this.productSearchTerm) return this.productsList;
-                                        var term = this.productSearchTerm.toLowerCase();
-                                        return this.productsList.filter(p => p.name && p.name.toLowerCase().includes(term));
+                                        var list = this.productsList;
+                                        if (this.productSearchTerm) {
+                                            var term = this.productSearchTerm.toLowerCase();
+                                            list = list.filter(p => p.name && p.name.toLowerCase().includes(term));
+                                        }
+                                        if (this.categoryFilter) {
+                                            list = list.filter(p => this.categoryFilter === 'uncategorized'
+                                                ? !p.category
+                                                : (p.category && p.category._uid === this.categoryFilter));
+                                        }
+                                        return list;
+                                    },
+                                    fetchCategories() {
+                                        var self = this;
+                                        __DataRequest.get('<?= route("vendor.ecommerce.categories") ?>', {}, function(response) {
+                                            if (response.reaction == 1 || response.reaction_code == 1) {
+                                                self.categoriesList = response.data.categories || [];
+                                            }
+                                        });
                                     },
                                     openCreateOrderForm() {
                                         this.showCreateOrderForm = !this.showCreateOrderForm;
                                         if(this.showCreateOrderForm) {
                                             this.fetchProducts();
+                                            this.fetchCategories();
                                         }
                                     },
                                     addOrderItem() {
@@ -1451,13 +1470,21 @@
                                                 <label class="text-xs font-weight-bold text-dark mb-0">{{ __tr('Produit(s) *') }}</label>
                                                 <button type="button" class="btn btn-xs btn-outline-success py-0 px-1 font-weight-bold text-xs" style="border-radius: 4px; font-size: 0.75rem;" @click="addOrderItem()">+ Ajouter un produit</button>
                                             </div>
-                                            
+
+                                            <select class="form-control form-control-sm text-xs mb-2" style="height: 26px; border-radius: 4px;" x-model="categoryFilter" x-show="categoriesList.length > 0">
+                                                <option value="">{{ __tr('Toutes les catégories') }}</option>
+                                                <option value="uncategorized">{{ __tr('Sans catégorie') }}</option>
+                                                <template x-for="cat in categoriesList" :key="cat._uid">
+                                                    <option :value="cat._uid" x-text="cat.name"></option>
+                                                </template>
+                                            </select>
+
                                             <template x-for="(item, idx) in orderItems" :key="idx">
                                                 <div class="mb-2 p-1 border rounded bg-light">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                                         <select class="form-control form-control-sm text-xs font-weight-bold" style="height: 26px; border-radius: 4px;" x-model="item.product_id" @change="onItemProductChange(idx)">
                                                             <option value="">-- {{ __tr('Choisir Produit') }} --</option>
-                                                            <template x-for="prod in productsList" :key="prod._id">
+                                                            <template x-for="prod in filteredProductsList()" :key="prod._id">
                                                                 <option :value="prod._id" x-text="formatProductOptionLabel(prod)"></option>
                                                             </template>
                                                         </select>
