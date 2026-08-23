@@ -553,10 +553,15 @@ class _OrderProductGridPickerState extends State<_OrderProductGridPicker> {
   String _searchQuery = '';
   Timer? _debounce;
 
+  List<Map<String, dynamic>> _categories = [];
+  // null = "Toutes", 'uncategorized' = sans catégorie, else a category _uid.
+  String? _categoryFilter;
+
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadCategories();
   }
 
   @override
@@ -568,13 +573,44 @@ class _OrderProductGridPickerState extends State<_OrderProductGridPicker> {
 
   Future<void> _loadProducts() async {
     setState(() => _isLoading = true);
-    final products = await ApiService().fetchProducts(search: _searchQuery);
+    final products = await ApiService().fetchProducts(search: _searchQuery, categoryUid: _categoryFilter);
     if (mounted) {
       setState(() {
         _products = products;
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await ApiService().fetchCategories();
+    if (mounted) setState(() => _categories = categories);
+  }
+
+  Widget _categoryFilterChip({required String label, required String? value}) {
+    final selected = _categoryFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _categoryFilter = value);
+        _loadProducts();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+      ),
+    );
   }
 
   void _onSearchChanged(String query) {
@@ -642,6 +678,25 @@ class _OrderProductGridPickerState extends State<_OrderProductGridPicker> {
               ),
             ),
           ),
+          if (_categories.isNotEmpty)
+            SizedBox(
+              height: 36,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _categoryFilterChip(label: 'Toutes', value: null),
+                  const SizedBox(width: 6),
+                  _categoryFilterChip(label: 'Sans catégorie', value: 'uncategorized'),
+                  const SizedBox(width: 6),
+                  for (final c in _categories) ...[
+                    _categoryFilterChip(label: c['name']?.toString() ?? '', value: c['_uid']?.toString()),
+                    const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
