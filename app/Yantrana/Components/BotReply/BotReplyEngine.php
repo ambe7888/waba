@@ -285,9 +285,16 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
         // as there no limit for flows
         if (!$botReply->bot_flows__id) {
             // check the feature limit
+            // NT_CAMPAIGN_MESSAGE entries are one-off 24h-campaign message
+            // presets (composed via the "Composer le message" flow), not
+            // reusable automated replies - they shouldn't consume the same
+            // limit as real bot replies (matches
+            // BotReplyRepository::fetchBotReplyCountForDashboard(), which
+            // already excludes them from the number shown on the dashboard).
             $vendorPlanDetails = vendorPlanDetails('bot_replies', $this->botReplyRepository->countIt([
                 'vendors__id' => $vendorId,
                 'bot_flows__id' => null,
+                ['trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE'],
             ]), $vendorId);
             if (!$vendorPlanDetails['is_limit_available']) {
                 return $this->engineResponse(22, null, $vendorPlanDetails['message']);
@@ -371,9 +378,16 @@ class BotReplyEngine extends BaseEngine implements BotReplyEngineInterface
         // as there no limit for flows
         if (!isset($inputData['bot_flow_uid']) or !$inputData['bot_flow_uid']) {
             // check the feature limit
+            // NT_CAMPAIGN_MESSAGE entries are one-off 24h-campaign message
+            // presets (composed via the "Composer le message" flow), not
+            // reusable automated replies - they shouldn't consume the same
+            // limit as real bot replies (matches
+            // BotReplyRepository::fetchBotReplyCountForDashboard(), which
+            // already excludes them from the number shown on the dashboard).
             $vendorPlanDetails = vendorPlanDetails('bot_replies', $this->botReplyRepository->countIt([
                 'vendors__id' => $vendorId,
                 'bot_flows__id' => null,
+                ['trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE'],
             ]), $vendorId);
             if (!$vendorPlanDetails['is_limit_available']) {
                 return $this->engineResponse(22, null, $vendorPlanDetails['message']);

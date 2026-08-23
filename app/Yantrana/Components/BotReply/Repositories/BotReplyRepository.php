@@ -116,6 +116,10 @@ class BotReplyRepository extends BaseRepository implements BotReplyRepositoryInt
         return BotReplyModel::query()
             ->where('vendors__id', $vendorId)
             ->whereNull('bot_flows__id')
+            // one-off 24h-campaign presets, not real reusable auto-replies -
+            // matches fetchBotReplyCountForDashboard() and the bot_replies
+            // limit check in BotReplyEngine.
+            ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
             ->count();
     }
 
