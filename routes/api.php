@@ -1052,6 +1052,23 @@ Route::group([
             'syncProducts',
         ])->name('app_api.vendor.ecommerce.sync');
 
+        // All orders (mobile "Gestion des commandes" screen) — the web
+        // orders.blade.php page queries this directly server-side (Blade
+        // renders the table in PHP) so no JSON API for the *full* order
+        // list existed yet; only per-contact (getContactOrders) did. Same
+        // query the web page uses: OrderModel::with('contact')->where(...)->latest().
+        Route::get('/ecommerce/orders', function () {
+            $vendorId = getVendorId();
+            $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
+                ->where('vendors__id', $vendorId)
+                ->latest()
+                ->get();
+            return response()->json([
+                'is_feature_available' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? false),
+                'orders' => $orders,
+            ]);
+        })->name('app_api.vendor.ecommerce.orders.read');
+
         // Get list of non template message preset
         Route::get('/whatsapp/campaign/non-template-message-presets/{status}/list-data', [
             CampaignController::class,

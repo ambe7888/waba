@@ -1,12 +1,14 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 
 /// "Paramètres boutique" — catalog ID / Shopify / WooCommerce integration,
 /// plus a lightweight product catalog manager (list, add, delete). Order
-/// management (a global sales dashboard across all contacts) is a separate,
-/// larger feature and intentionally out of scope here — this screen is
-/// shop *settings* and the product catalog specifically.
+/// management now lives in its own screen (OrdersManagementScreen) reached
+/// from the Boutique section in Account, not here — this screen stays shop
+/// *settings* and the product catalog specifically.
 class ShopSettingsScreen extends StatefulWidget {
   const ShopSettingsScreen({super.key});
 
@@ -156,8 +158,8 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
     final descController = TextEditingController();
-    final imageUrlController = TextEditingController();
     final linkController = TextEditingController();
+    File? pickedImage;
     bool submitting = false;
 
     final isDark = ThemeService().isDark;
@@ -195,9 +197,46 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
                     decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: imageUrlController,
-                    decoration: const InputDecoration(labelText: 'URL de l\'image (facultatif)', border: OutlineInputBorder()),
+                  // A URL text field forced people to already have a hosted
+                  // image somewhere else first — most vendors just have the
+                  // photo on their phone. Pick an actual file instead.
+                  InkWell(
+                    onTap: () async {
+                      final result = await FilePicker.platform.pickFiles(type: FileType.image);
+                      final path = result?.files.single.path;
+                      if (path != null) setSheetState(() => pickedImage = File(path));
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          if (pickedImage != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.file(pickedImage!, width: 40, height: 40, fit: BoxFit.cover),
+                            )
+                          else
+                            Icon(Icons.add_photo_alternate_outlined, color: isDark ? Colors.white54 : Colors.black54),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              pickedImage != null ? 'Image sélectionnée' : 'Choisir une image (facultatif)',
+                              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 13),
+                            ),
+                          ),
+                          if (pickedImage != null)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              onPressed: () => setSheetState(() => pickedImage = null),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -224,7 +263,7 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
                                 name: name,
                                 price: price,
                                 description: descController.text.trim(),
-                                imageUrl: imageUrlController.text.trim(),
+                                imageFile: pickedImage,
                                 directLink: linkController.text.trim(),
                               );
                               if (!sheetContext.mounted) return;
@@ -366,13 +405,14 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
           ),
           const SizedBox(height: 16),
           Text('Source des produits', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
+          const SizedBox(height: 10),
+          Row(
             children: [
-              _integrationChip('Aucune (manuel)', 'none', isDark),
-              _integrationChip('Shopify', 'shopify', isDark),
-              _integrationChip('WooCommerce', 'woocommerce', isDark),
+              Expanded(child: _integrationCard('Manuel', 'none', Icons.edit_note_rounded, const Color(0xFF64748B), isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _integrationCard('Shopify', 'shopify', Icons.shopping_bag_rounded, const Color(0xFF95BF47), isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _integrationCard('WooCommerce', 'woocommerce', Icons.storefront_rounded, const Color(0xFF7F54B3), isDark)),
             ],
           ),
           if (_integration == 'shopify') ...[
@@ -439,18 +479,35 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
     );
   }
 
-  Widget _integrationChip(String label, String value, bool isDark) {
+  Widget _integrationCard(String label, String value, IconData icon, Color brandColor, bool isDark) {
     final selected = _integration == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() => _integration = value),
-      selectedColor: ThemeService.primaryColor.withValues(alpha: 0.15),
-      labelStyle: TextStyle(
-        color: selected ? ThemeService.primaryColor : (isDark ? Colors.white70 : Colors.black87),
-        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+    return InkWell(
+      onTap: () => setState(() => _integration = value),
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? brandColor.withValues(alpha: isDark ? 0.18 : 0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? brandColor : (isDark ? Colors.white12 : Colors.grey.shade300), width: selected ? 1.6 : 1),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: selected ? brandColor : (isDark ? Colors.white54 : Colors.black45), size: 26),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? brandColor : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ],
+        ),
       ),
-      side: BorderSide(color: selected ? ThemeService.primaryColor : (isDark ? Colors.white24 : Colors.grey.shade400)),
     );
   }
 

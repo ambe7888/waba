@@ -15,6 +15,7 @@ import 'profile_screen.dart';
 import 'agents_screen.dart';
 import 'ai_settings_screen.dart';
 import 'shop_settings_screen.dart';
+import 'orders_management_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -436,6 +437,123 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
 
+          // ── Outils ────────────────────────────────────────────────
+          if (isAdmin || _canManageBot || _canManageTemplates || _canManageTeam) ...[
+            _buildSectionTitle('Outils'),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  if (isAdmin || _canManageTeam)
+                    _buildSettingsTile(
+                      icon: Icons.groups_rounded,
+                      title: 'Agents',
+                      iconColor: const Color(0xFF7C3AED),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AgentsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin || _canManageBot)
+                    _buildSettingsTile(
+                      icon: Icons.psychology_alt_rounded,
+                      title: 'Paramètres IA',
+                      iconColor: const Color(0xFF6366F1),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin || _canManageBot)
+                    _buildSettingsTile(
+                      icon: Icons.smart_toy_rounded,
+                      title: 'Réponses Automatiques',
+                      iconColor: const Color(0xFF10B981),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const BotRepliesScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin || _canManageTemplates)
+                    _buildSettingsTile(
+                      icon: Icons.message_rounded,
+                      title: 'Modèles de messages',
+                      iconColor: const Color(0xFFEC4899),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const TemplatesAdminScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                  if (isAdmin)
+                    _buildSettingsTile(
+                      icon: Icons.water_drop_rounded,
+                      title: 'Campagnes Goutte à Goutte',
+                      iconColor: const Color(0xFF0EA5E9),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const DripCampaignsSettingsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
+                ],
+              ),
+            ),
+          ],
+
+          // ── Boutique ────────────────────────────────────────────────
+          if (isAdmin) ...[
+            _buildSectionTitle('Boutique'),
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  _buildSettingsTile(
+                    icon: Icons.storefront_rounded,
+                    title: 'Paramètres boutique',
+                    iconColor: const Color(0xFFF59E0B),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
+                      );
+                    },
+                    isDark: isDark,
+                  ),
+                  _buildSettingsTile(
+                    icon: Icons.receipt_long_rounded,
+                    title: 'Gestion des commandes',
+                    iconColor: const Color(0xFF059669),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const OrdersManagementScreen()),
+                      );
+                    },
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // ── Aide ────────────────────────────────────────────────
           _buildSectionTitle('Aide'),
           Container(
@@ -473,97 +591,6 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
           ),
-
-          // ── Outils ────────────────────────────────────────────────
-          if (isAdmin || _canManageBot || _canManageTemplates || _canManageTeam) ...[
-            _buildSectionTitle('Outils'),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  if (isAdmin || _canManageTeam)
-                    _buildSettingsTile(
-                      icon: Icons.groups_rounded,
-                      title: 'Agents',
-                      iconColor: const Color(0xFF7C3AED),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AgentsScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                  if (isAdmin || _canManageBot)
-                    _buildSettingsTile(
-                      icon: Icons.smart_toy_rounded,
-                      title: 'Réponses Automatiques',
-                      iconColor: const Color(0xFF10B981),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const BotRepliesScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                  if (isAdmin || _canManageBot)
-                    _buildSettingsTile(
-                      icon: Icons.psychology_alt_rounded,
-                      title: 'Paramètres IA',
-                      iconColor: const Color(0xFF6366F1),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                  if (isAdmin)
-                    _buildSettingsTile(
-                      icon: Icons.storefront_rounded,
-                      title: 'Paramètres boutique',
-                      iconColor: const Color(0xFFF59E0B),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                  if (isAdmin || _canManageTemplates)
-                    _buildSettingsTile(
-                      icon: Icons.message_rounded,
-                      title: 'Modèles de messages',
-                      iconColor: const Color(0xFFEC4899),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const TemplatesAdminScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                  if (isAdmin)
-                    _buildSettingsTile(
-                      icon: Icons.water_drop_rounded,
-                      title: 'Campagnes Goutte à Goutte',
-                      iconColor: const Color(0xFF0EA5E9),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const DripCampaignsSettingsScreen()),
-                        );
-                      },
-                      isDark: isDark,
-                    ),
-                ],
-              ),
-            ),
-          ],
 
           // ── Application ────────────────────────────────────────────────
           _buildSectionTitle('Application'),

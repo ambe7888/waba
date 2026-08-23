@@ -496,22 +496,44 @@ class ApiService {
     String? description,
     String? directLink,
     String? imageUrl,
+    File? imageFile,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/add');
     try {
-      final response = await http
-          .post(
-            url,
-            headers: _getHeaders(),
-            body: jsonEncode({
-              'name': name,
-              'price': price,
-              if (description != null && description.isNotEmpty) 'description': description,
-              if (directLink != null && directLink.isNotEmpty) 'direct_link': directLink,
-              if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
-            }),
-          )
-          .timeout(const Duration(seconds: 20));
+      final http.Response response;
+      if (imageFile != null) {
+        // ECommerceController::addProduct() reads a real uploaded file under
+        // 'image_file' (not a separate temp-upload-then-reference step like
+        // template/bot-reply media) -- has to go in the same multipart POST.
+        final request = http.MultipartRequest('POST', url);
+        request.headers.addAll(_getHeaders());
+        request.fields['name'] = name;
+        request.fields['price'] = price;
+        if (description != null && description.isNotEmpty) request.fields['description'] = description;
+        if (directLink != null && directLink.isNotEmpty) request.fields['direct_link'] = directLink;
+        final mimeType = lookupMimeType(imageFile.path)?.split('/');
+        request.files.add(await http.MultipartFile.fromPath(
+          'image_file',
+          imageFile.path,
+          contentType: mimeType != null ? MediaType(mimeType[0], mimeType[1]) : null,
+        ));
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+        response = await http.Response.fromStream(streamedResponse);
+      } else {
+        response = await http
+            .post(
+              url,
+              headers: _getHeaders(),
+              body: jsonEncode({
+                'name': name,
+                'price': price,
+                if (description != null && description.isNotEmpty) 'description': description,
+                if (directLink != null && directLink.isNotEmpty) 'direct_link': directLink,
+                if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+              }),
+            )
+            .timeout(const Duration(seconds: 20));
+      }
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
         return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
@@ -1657,6 +1679,28 @@ class ApiService {
         'success': false,
         'message': 'Erreur réseau: $e',
       };
+    }
+  }
+
+  /// Fetch all orders for the vendor ("Gestion des commandes" screen).
+  /// Returns a flat map with 'is_feature_available' and 'orders', unlike
+  /// fetchContactOrders() below which is the reaction/data-wrapped shape.
+  Future<Map<String, dynamic>> fetchAllOrders() async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final orders = body['orders'] as List?;
+        return {
+          'is_feature_available': body['is_feature_available'] == true,
+          'orders': orders != null ? List<Map<String, dynamic>>.from(orders) : <Map<String, dynamic>>[],
+        };
+      }
+      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[]};
+    } catch (e) {
+      if (debug) debugPrint('Fetch All Orders Error: $e');
+      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[]};
     }
   }
 

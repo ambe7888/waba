@@ -42,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _unreadNotificationsCount = 0;
   bool _botActive = false; // AI toggle state
   bool _togglingBot = false; // Loading state for AI toggle
+  final GlobalKey<_Eligible24hCampaignCardState> _eligible24hCardKey = GlobalKey();
 
   // Filter for template category
   final String _selectedTemplateCategory = 'TOUS';
@@ -99,6 +100,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           }
           _isLoading = false;
         });
+        // The 24h-campaign card is a self-contained State that a parent
+        // rebuild alone doesn't reach (see its own comment) — pull-to-
+        // refresh needs to explicitly ask it to retry too. No-op on the
+        // very first call, before the child has mounted.
+        _eligible24hCardKey.currentState?.reload();
       }
     } catch (e) {
       if (mounted) {
@@ -348,7 +354,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             const SizedBox(height: 16),
 
                             // 2b. Carte envoi gratuit (fenêtre 24h)
-                            const _Eligible24hCampaignCard(),
+                            _Eligible24hCampaignCard(key: _eligible24hCardKey),
                             const SizedBox(height: 24),
 
                             // 3. Onglets : Général à gauche, Abonnement à droite
@@ -1549,7 +1555,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 /// its own data independently of the main dashboard stats so a slow/failed
 /// call here never blocks the rest of the dashboard from loading.
 class _Eligible24hCampaignCard extends StatefulWidget {
-  const _Eligible24hCampaignCard();
+  const _Eligible24hCampaignCard({super.key});
 
   @override
   State<_Eligible24hCampaignCard> createState() =>
@@ -1562,6 +1568,7 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
   List<Map<String, dynamic>> _contacts = [];
   DateTime? _windowStart;
   DateTime? _windowEnd;
+  int _retriesLeft = 2;
 
   @override
   void initState() {
@@ -1569,9 +1576,24 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
     _load();
   }
 
+  // fetchEligible24hContacts() only ever returns null when the request
+  // itself failed (network hiccup, timeout, non-200) — the backend always
+  // responds with reaction:1 and a real count (possibly 0) on success, it
+  // never uses null/failure to mean "nothing eligible". Since this card is
+  // built once (DashboardScreen lives inside an IndexedStack tab that's
+  // never rebuilt) and pull-to-refresh on the dashboard didn't reach this
+  // independent State at all, a single cold-start network blip used to hide
+  // the card for the rest of the app session — the user had to force-close
+  // and reopen the app to get it back. Retry automatically instead.
   Future<void> _load() async {
     final data = await ApiService().fetchEligible24hContacts();
     if (!mounted) return;
+    if (data == null && _retriesLeft > 0) {
+      _retriesLeft--;
+      await Future.delayed(const Duration(seconds: 3));
+      if (!mounted) return;
+      return _load();
+    }
     setState(() {
       _count = (data?['count'] as num?)?.toInt() ?? 0;
       _contacts = data != null
@@ -1585,6 +1607,13 @@ class _Eligible24hCampaignCardState extends State<_Eligible24hCampaignCard> {
           : null;
       _isLoading = false;
     });
+  }
+
+  /// Lets the parent's pull-to-refresh also refresh this card, since it's
+  /// otherwise a self-contained State that a parent rebuild doesn't touch.
+  Future<void> reload() {
+    _retriesLeft = 2;
+    return _load();
   }
 
   String _dayLabel(DateTime d) {
