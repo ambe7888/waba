@@ -401,6 +401,42 @@
                 $('#lwTemplateStructureContainer').text('');
                 return inputData;
             };
+
+            // Wires the audience selectize's change event to the Alpine
+            // component so getTargetedContactCount() actually re-runs when
+            // an audience is picked. This used to only be attached inside
+            // onTemplateChangeProcess (below), i.e. only after a template
+            // selection had already round-tripped — pick an audience first
+            // (or re-select an already-selected template, which doesn't
+            // fire a fresh change event) and audienceUid never left its
+            // initial empty string, so the contact count stayed frozen at
+            // 0 no matter what audience was visibly selected. .off() first
+            // so repeated calls (e.g. once at page load, again on every
+            // template change) never stack duplicate handlers.
+            window.bindAudienceSelectizeChange = function() {
+                const lwCreateNewCampaignContainer = document.getElementById('lwCreateNewCampaignContainer');
+                if (!lwCreateNewCampaignContainer || _.isUndefined($('#lwSelectAudiencesField')[0])) {
+                    return;
+                }
+                const audienceSelectize = $('#lwSelectAudiencesField')[0].selectize;
+                if (!audienceSelectize) {
+                    return;
+                }
+                var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
+                audienceSelectize.off('change').on('change', function(value) {
+                    campaignData.audienceUid = value;
+                    campaignData.getTargetedContactCount();
+                });
+                // Pick up a value that was already selected before this
+                // ran (e.g. restored form state), not just future changes.
+                campaignData.audienceUid = audienceSelectize.getValue();
+            };
+            $(function() {
+                _.defer(function() {
+                    window.bindAudienceSelectizeChange();
+                });
+            });
+
             window.onTemplateChangeProcess = function(responseData) {
                 if (responseData.reaction == 1) {
                     _.defer(function() {
@@ -415,13 +451,8 @@
                         var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
 
                         // Track change event on audience selectize
-                        if (!_.isUndefined($('#lwSelectAudiencesField')[0])) {
-                            const audienceSelectize = $('#lwSelectAudiencesField')[0].selectize;
-                            audienceSelectize.on('change', function(value) {
-                                campaignData.audienceUid = value;
-                            });
-                        }
-                        
+                        window.bindAudienceSelectizeChange();
+
                         // Track change event on timezone selectize
                         if (!_.isUndefined($('#lwCampaignTimezone')[0])) {
                             const lwCampaignTimezone = $('#lwCampaignTimezone')[0].selectize;
