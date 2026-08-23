@@ -2,9 +2,22 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 
-/// "Gestion des commandes" — a global order list across all contacts,
-/// mirroring the web's orders.blade.php page (which renders server-side;
-/// this screen is the first mobile-native equivalent).
+/// Thousands separator without pulling in intl's NumberFormat, whose
+/// non-default locale patterns need initializeDateFormatting() first —
+/// this avoids that setup entirely for a plain "15 000" style grouping.
+String _formatAmount(num value) {
+  final rounded = value.round().toString();
+  final buffer = StringBuffer();
+  for (int i = 0; i < rounded.length; i++) {
+    if (i > 0 && (rounded.length - i) % 3 == 0) buffer.write(' ');
+    buffer.write(rounded[i]);
+  }
+  return buffer.toString();
+}
+
+/// "Gestion des commandes" — a real management center: KPI cards (total,
+/// revenue, in-progress, delivered), status filters, and the order list
+/// itself (status update, delete) across all contacts.
 class OrdersManagementScreen extends StatefulWidget {
   const OrdersManagementScreen({super.key});
 
@@ -17,6 +30,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
   bool _isFeatureAvailable = true;
   List<Map<String, dynamic>> _orders = [];
   final Set<String> _updatingUids = {};
+  String _statusFilter = 'all';
 
   static const _statusLabels = {
     'validated': 'Nouvelle / Validée',
@@ -36,6 +50,8 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     'cancelled': Color(0xFFEF4444),
   };
 
+  static const _inProgressStatuses = {'validated', 'confirmed', 'processing', 'shipped'};
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +68,29 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
       _isLoading = false;
     });
   }
+
+  double _orderTotal(Map<String, dynamic> order) {
+    final details = order['order_details'] as Map? ?? {};
+    return double.tryParse(details['total_price']?.toString() ?? '') ?? 0;
+  }
+
+  List<Map<String, dynamic>> get _filteredOrders {
+    if (_statusFilter == 'all') return _orders;
+    return _orders.where((o) => o['status']?.toString() == _statusFilter).toList();
+  }
+
+  int get _totalOrders => _orders.length;
+
+  double get _totalRevenue => _orders
+      .where((o) => o['status']?.toString() != 'cancelled')
+      .fold(0.0, (sum, o) => sum + _orderTotal(o));
+
+  int get _inProgressCount =>
+      _orders.where((o) => _inProgressStatuses.contains(o['status']?.toString())).length;
+
+  int get _deliveredCount => _orders.where((o) => o['status']?.toString() == 'delivered').length;
+
+  int _countForStatus(String status) => _orders.where((o) => o['status']?.toString() == status).length;
 
   Future<void> _changeStatus(Map<String, dynamic> order, String newStatus) async {
     final uid = order['_uid']?.toString();
@@ -119,27 +158,33 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               ? _buildUpgradeNotice(isDark)
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: _orders.isEmpty
-                      ? ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            const SizedBox(height: 80),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Icon(Icons.receipt_long_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
-                                  const SizedBox(height: 12),
-                                  Text('Aucune commande pour le moment.', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
-                                ],
-                              ),
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildStatsGrid(isDark),
+                      const SizedBox(height: 16),
+                      _buildStatusFilterRow(isDark),
+                      const SizedBox(height: 12),
+                      if (_filteredOrders.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 60),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.receipt_long_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _orders.isEmpty ? 'Aucune commande pour le moment.' : 'Aucune commande dans ce statut.',
+                                  style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _orders.length,
-                          itemBuilder: (context, index) => _buildOrderCard(_orders[index], isDark),
-                        ),
+                      else
+                        ..._filteredOrders.map((order) => _buildOrderCard(order, isDark)),
+                    ],
+                  ),
                 ),
     );
   }
@@ -166,6 +211,124 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid(bool isDark) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _statCard('Total commandes', _totalOrders.toString(), Icons.receipt_long_rounded,
+                  const Color(0xFF6C63FF), isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statCard('Chiffre d\'affaires', '${_formatAmount(_totalRevenue)} CFA',
+                  Icons.payments_rounded, const Color(0xFF10B981), isDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard('En cours', _inProgressCount.toString(), Icons.local_shipping_rounded,
+                  const Color(0xFFF59E0B), isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statCard('Livrées', _deliveredCount.toString(), Icons.check_circle_rounded,
+                  const Color(0xFF06B6D4), isDark),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(String title, String value, IconData icon, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkCard : ThemeService.lightCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: isDark ? 0.4 : 0.25), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : Colors.black87),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white60 : Colors.black54),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusFilterRow(bool isDark) {
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _filterChip('Toutes', 'all', _totalOrders, isDark),
+          const SizedBox(width: 8),
+          ..._statusLabels.entries.expand((e) => [
+                _filterChip(e.value, e.key, _countForStatus(e.key), isDark),
+                const SizedBox(width: 8),
+              ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, String value, int count, bool isDark) {
+    final selected = _statusFilter == value;
+    return InkWell(
+      onTap: () => setState(() => _statusFilter = value),
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? ThemeService.primaryColor : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Text(
+            '$label ($count)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+            ),
           ),
         ),
       ),
@@ -240,7 +403,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           Row(
             children: [
               Text(
-                totalPrice != null ? '${_formatPrice(totalPrice)} $currency' : '',
+                totalPrice != null ? '${_formatAmount(double.tryParse(totalPrice.toString()) ?? 0)} $currency' : '',
                 style: TextStyle(fontWeight: FontWeight.w800, color: ThemeService.primaryColor, fontSize: 14),
               ),
               const Spacer(),
@@ -269,11 +432,6 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         ],
       ),
     );
-  }
-
-  String _formatPrice(dynamic price) {
-    final value = double.tryParse(price.toString()) ?? 0;
-    return value.toStringAsFixed(0);
   }
 
   String _formatDate(String raw) {
