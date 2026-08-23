@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../models/contact.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
+import 'order_creation_sheet.dart';
 
 /// Thousands separator without pulling in intl's NumberFormat, whose
 /// non-default locale patterns need initializeDateFormatting() first —
@@ -90,7 +93,44 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
 
   int get _deliveredCount => _orders.where((o) => o['status']?.toString() == 'delivered').length;
 
+  double get _deliveredAmount => _orders
+      .where((o) => o['status']?.toString() == 'delivered')
+      .fold(0.0, (sum, o) => sum + _orderTotal(o));
+
+  double get _totalFees => _orders
+      .where((o) => o['status']?.toString() != 'cancelled')
+      .fold(0.0, (sum, o) {
+        final details = o['order_details'] as Map? ?? {};
+        return sum + (double.tryParse(details['additional_fee']?.toString() ?? '') ?? 0);
+      });
+
   int _countForStatus(String status) => _orders.where((o) => o['status']?.toString() == status).length;
+
+  Future<void> _openCreateOrder() async {
+    final contact = await showModalBottomSheet<Contact>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (_, controller) => _ContactPickerSheet(scrollController: controller),
+      ),
+    );
+    if (contact == null || !mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => OrderCreationSheet(
+        contactUid: contact.uid,
+        contactName: contact.name.isNotEmpty ? contact.name : contact.phoneNumber,
+        onOrderCreated: _load,
+      ),
+    );
+  }
 
   Future<void> _changeStatus(Map<String, dynamic> order, String newStatus) async {
     final uid = order['_uid']?.toString();
@@ -152,6 +192,14 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
+      floatingActionButton: (!_isLoading && _isFeatureAvailable)
+          ? FloatingActionButton.extended(
+              onPressed: _openCreateOrder,
+              backgroundColor: ThemeService.primaryColor,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Nouvelle commande', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          : null,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : !_isFeatureAvailable
@@ -237,13 +285,27 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('En cours', _inProgressCount.toString(), Icons.local_shipping_rounded,
+              child: _statCard('Montant livré', '${_formatAmount(_deliveredAmount)} CFA',
+                  Icons.local_shipping_rounded, const Color(0xFF06B6D4), isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statCard('Montant des frais', '${_formatAmount(_totalFees)} CFA',
+                  Icons.request_quote_rounded, const Color(0xFF8B5CF6), isDark),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard('En cours', _inProgressCount.toString(), Icons.pending_actions_rounded,
                   const Color(0xFFF59E0B), isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _statCard('Livrées', _deliveredCount.toString(), Icons.check_circle_rounded,
-                  const Color(0xFF06B6D4), isDark),
+                  const Color(0xFF10B981), isDark),
             ),
           ],
         ),
@@ -441,5 +503,135 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     } catch (_) {
       return raw;
     }
+  }
+}
+
+/// Contact picker used to start a manual order from the management screen
+/// (rather than from an existing chat, which already knows the contact).
+class _ContactPickerSheet extends StatefulWidget {
+  final ScrollController scrollController;
+
+  const _ContactPickerSheet({required this.scrollController});
+
+  @override
+  State<_ContactPickerSheet> createState() => _ContactPickerSheetState();
+}
+
+class _ContactPickerSheetState extends State<_ContactPickerSheet> {
+  final _searchController = TextEditingController();
+  List<Contact> _allContacts = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final contacts = await ApiService().fetchAllContactsSimple();
+    if (mounted) {
+      setState(() {
+        _allContacts = contacts;
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<Contact> get _filteredContacts {
+    if (_searchQuery.trim().isEmpty) return _allContacts;
+    final q = _searchQuery.toLowerCase();
+    return _allContacts.where((c) => c.name.toLowerCase().contains(q) || c.phoneNumber.contains(q)).toList();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _searchQuery = query);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeService().isDark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? ThemeService.darkSurface : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person_search_rounded, color: Color(0xFF10B981), size: 22),
+                const SizedBox(width: 8),
+                Text('Choisir un client',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un contact...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredContacts.isEmpty
+                    ? Center(
+                        child: Text('Aucun contact trouvé', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                      )
+                    : ListView.builder(
+                        controller: widget.scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        itemCount: _filteredContacts.length,
+                        itemBuilder: (context, index) {
+                          final contact = _filteredContacts[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: ThemeService.primaryColor.withValues(alpha: 0.15),
+                              child: Text(
+                                contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: ThemeService.primaryColor, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(contact.name, style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87)),
+                            subtitle: Text(contact.phoneNumber, style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                            onTap: () => Navigator.pop(context, contact),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
   }
 }

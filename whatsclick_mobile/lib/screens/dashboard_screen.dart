@@ -10,6 +10,7 @@ import 'profile_screen.dart';
 import 'send_24h_campaign_screen.dart';
 import 'agents_screen.dart';
 import 'templates_admin_screen.dart';
+import 'orders_management_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   // Tab switches are delegated up to MainLayoutScreen, which owns the
@@ -1511,7 +1512,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Statistiques des Ventes',
-            Icons.shopping_cart_rounded, Colors.indigo, isDark),
+            Icons.shopping_cart_rounded, Colors.indigo, isDark,
+            onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const OrdersManagementScreen()),
+                )),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,

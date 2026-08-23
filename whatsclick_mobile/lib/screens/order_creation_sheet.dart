@@ -21,22 +21,46 @@ class OrderCreationSheet extends StatefulWidget {
   State<OrderCreationSheet> createState() => _OrderCreationSheetState();
 }
 
+/// One line item in the order — either a catalog product or a free-typed
+/// name/price. Mirrors the web conversation page's multi-item order form
+/// (orderItems array), which the mobile form didn't have: it only ever
+/// supported a single product per order.
+class _OrderItem {
+  Map<String, dynamic>? product;
+  bool useCustom;
+  final TextEditingController nameController;
+  final TextEditingController priceController;
+  final TextEditingController quantityController;
+
+  _OrderItem({
+    this.useCustom = false,
+    String name = '',
+    String price = '',
+    String quantity = '1',
+  })  : nameController = TextEditingController(text: name),
+        priceController = TextEditingController(text: price),
+        quantityController = TextEditingController(text: quantity);
+
+  void dispose() {
+    nameController.dispose();
+    priceController.dispose();
+    quantityController.dispose();
+  }
+}
+
 class _OrderCreationSheetState extends State<OrderCreationSheet> {
   final _formKey = GlobalKey<FormState>();
 
   List<Map<String, dynamic>> _catalogProducts = [];
   bool _isLoadingProducts = true;
-  Map<String, dynamic>? _selectedProduct;
 
-  final _customNameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _quantityController = TextEditingController(text: '1');
+  final List<_OrderItem> _items = [];
+
   final _feeController = TextEditingController(text: '0');
   final _addressController = TextEditingController();
   final _dateController = TextEditingController();
 
   bool _isSubmitting = false;
-  bool _useCustomProduct = false;
 
   @override
   void initState() {
@@ -45,25 +69,34 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
     if (widget.initialOrder != null) {
       final order = widget.initialOrder!;
       final details = order['order_details'] ?? {};
-      final items = details['items'] as List?;
-      if (items != null && items.isNotEmpty) {
-        final item = items[0];
-        _customNameController.text = item['name'] ?? '';
-        _priceController.text = item['custom_price']?.toString() ?? item['price']?.toString() ?? '';
-        _quantityController.text = item['quantity']?.toString() ?? '1';
-        _useCustomProduct = true;
+      final rawItems = details['items'] as List?;
+      if (rawItems != null && rawItems.isNotEmpty) {
+        for (final raw in rawItems) {
+          final item = raw is Map ? raw : {};
+          _items.add(_OrderItem(
+            // order_details never persisted a product_id (only name/price/
+            // quantity), so an edited order can't be re-linked to its
+            // catalog entry — reopen every line as free text, same as the
+            // single-item form already did before this change.
+            useCustom: true,
+            name: item['name']?.toString() ?? '',
+            price: item['custom_price']?.toString() ?? item['price']?.toString() ?? '',
+            quantity: item['quantity']?.toString() ?? '1',
+          ));
+        }
       }
       _feeController.text = details['additional_fee']?.toString() ?? '0';
       _addressController.text = details['delivery_address'] ?? '';
       _dateController.text = details['delivery_date'] ?? '';
     }
+    if (_items.isEmpty) _items.add(_OrderItem());
   }
 
   @override
   void dispose() {
-    _customNameController.dispose();
-    _priceController.dispose();
-    _quantityController.dispose();
+    for (final item in _items) {
+      item.dispose();
+    }
     _feeController.dispose();
     _addressController.dispose();
     _dateController.dispose();
@@ -77,7 +110,9 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
         _catalogProducts = prods;
         _isLoadingProducts = false;
         if (prods.isEmpty) {
-          _useCustomProduct = true;
+          for (final item in _items) {
+            item.useCustom = true;
+          }
         }
       });
     }
@@ -99,44 +134,66 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
     );
   }
 
-  double _calculateTotal() {
-    final qty = int.tryParse(_quantityController.text) ?? 1;
-    double unitPrice = 0.0;
-    if (_useCustomProduct || _selectedProduct == null) {
-      unitPrice = double.tryParse(_priceController.text) ?? 0.0;
+  void _addItem() {
+    setState(() => _items.add(_OrderItem(useCustom: _catalogProducts.isEmpty)));
+  }
+
+  void _removeItem(int index) {
+    if (_items.length <= 1) return;
+    setState(() {
+      _items[index].dispose();
+      _items.removeAt(index);
+    });
+  }
+
+  double _itemSubtotal(_OrderItem item) {
+    final qty = int.tryParse(item.quantityController.text) ?? 1;
+    double unitPrice;
+    if (item.useCustom || item.product == null) {
+      unitPrice = double.tryParse(item.priceController.text) ?? 0.0;
     } else {
-      unitPrice = double.tryParse(_priceController.text.isNotEmpty
-              ? _priceController.text
-              : (_selectedProduct!['price']?.toString() ?? '0')) ??
+      unitPrice = double.tryParse(item.priceController.text.isNotEmpty
+              ? item.priceController.text
+              : (item.product!['price']?.toString() ?? '0')) ??
           0.0;
     }
+    return qty * unitPrice;
+  }
+
+  double _calculateTotal() {
+    final itemsTotal = _items.fold<double>(0.0, (sum, item) => sum + _itemSubtotal(item));
     final fee = double.tryParse(_feeController.text) ?? 0.0;
-    return (qty * unitPrice) + fee;
+    return itemsTotal + fee;
   }
 
   Future<void> _submitOrder() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final String prodId = _selectedProduct?['_uid'] ?? _selectedProduct?['_id'] ?? '';
-    final String prodName = _useCustomProduct || _selectedProduct == null
-        ? _customNameController.text.trim()
-        : (_selectedProduct!['name'] ?? 'Produit');
-    final double price = double.tryParse(_priceController.text) ??
-        double.tryParse(_selectedProduct?['price']?.toString() ?? '0') ??
-        0.0;
-    final int qty = int.tryParse(_quantityController.text) ?? 1;
+    final items = _items.map((item) {
+      final qty = int.tryParse(item.quantityController.text) ?? 1;
+      if (item.useCustom || item.product == null) {
+        final price = double.tryParse(item.priceController.text) ?? 0.0;
+        return {
+          'name': item.nameController.text.trim(),
+          'quantity': qty,
+          'custom_price': price,
+        };
+      }
+      final String prodId = item.product?['_uid']?.toString() ?? item.product?['_id']?.toString() ?? '';
+      final double price = double.tryParse(item.priceController.text) ??
+          double.tryParse(item.product?['price']?.toString() ?? '0') ??
+          0.0;
+      return {
+        if (prodId.isNotEmpty) 'product_id': prodId,
+        'name': item.product?['name'] ?? 'Produit',
+        'quantity': qty,
+        'custom_price': price,
+      };
+    }).toList();
+
     final double fee = double.tryParse(_feeController.text) ?? 0.0;
 
     setState(() => _isSubmitting = true);
-
-    final items = [
-      {
-        if (prodId.isNotEmpty) 'product_id': prodId,
-        'name': prodName,
-        'quantity': qty,
-        'custom_price': price,
-      }
-    ];
 
     final result = await ApiService().createManualOrder(
       contactId: widget.contactUid,
@@ -173,6 +230,234 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
         ),
       );
     }
+  }
+
+  Widget _buildItemCard(int index, _OrderItem item, bool isDark, Color primaryColor) {
+    final hasCatalog = !_isLoadingProducts && _catalogProducts.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Produit ${index + 1}',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white54 : Colors.black45)),
+              const Spacer(),
+              if (_items.length > 1)
+                InkWell(
+                  onTap: () => _removeItem(index),
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.close_rounded, color: Colors.redAccent, size: 18),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // Catalogue vs Personnalisé toggle, per item
+          if (hasCatalog) ...[
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => item.useCustom = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: !item.useCustom ? primaryColor : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('Catalogue',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: !item.useCustom ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => item.useCustom = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: item.useCustom ? primaryColor : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('Personnalisé',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: item.useCustom ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Product picker or custom name field
+          if (!item.useCustom && hasCatalog)
+            FormField<Map<String, dynamic>>(
+              initialValue: item.product,
+              validator: (val) {
+                if (!item.useCustom && val == null) {
+                  return 'Veuillez sélectionner un produit';
+                }
+                return null;
+              },
+              builder: (field) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final picked = await _openProductGridPicker();
+                        if (picked == null) return;
+                        setState(() {
+                          item.product = picked;
+                          if (picked['price'] != null) {
+                            item.priceController.text = picked['price'].toString();
+                          }
+                        });
+                        field.didChange(picked);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: field.hasError ? Colors.red : (isDark ? Colors.white24 : Colors.grey.shade400)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: item.product == null
+                            ? Row(
+                                children: [
+                                  Icon(Icons.inventory_2_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                                  const SizedBox(width: 10),
+                                  Text('Choisir un produit dans le catalogue', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: (item.product!['image_url'] != null && item.product!['image_url'].toString().isNotEmpty)
+                                        ? Image.network(item.product!['image_url'], width: 38, height: 38, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 38, color: Colors.grey))
+                                        : Container(width: 38, height: 38, color: Colors.black12, child: const Icon(Icons.image, size: 18, color: Colors.grey)),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item.product!['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
+                                        Text('${double.tryParse(item.product!['price']?.toString() ?? '0')?.toStringAsFixed(0) ?? 0} CFA', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.swap_horiz_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
+                                ],
+                              ),
+                      ),
+                    ),
+                    if (field.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6, left: 4),
+                        child: Text(field.errorText ?? '', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      ),
+                  ],
+                );
+              },
+            )
+          else
+            TextFormField(
+              controller: item.nameController,
+              decoration: InputDecoration(
+                labelText: 'Nom du produit / service',
+                hintText: 'ex: T-Shirt Coton Noir',
+                prefixIcon: const Icon(Icons.card_giftcard_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+              validator: (val) {
+                if ((item.useCustom || !hasCatalog) && (val == null || val.trim().isEmpty)) {
+                  return 'Saisissez le nom du produit';
+                }
+                return null;
+              },
+            ),
+          const SizedBox(height: 10),
+
+          // Quantity & unit price
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: item.quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Quantité',
+                    prefixIcon: const Icon(Icons.numbers_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (val) {
+                    if (val == null || int.tryParse(val) == null || int.parse(val) <= 0) {
+                      return 'Min 1';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: item.priceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Prix unitaire (CFA)',
+                    prefixIcon: const Icon(Icons.payments_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (val) {
+                    if (val == null || double.tryParse(val) == null || double.parse(val) < 0) {
+                      return 'Prix valide requis';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -243,211 +528,19 @@ class _OrderCreationSheetState extends State<OrderCreationSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Catalog vs Custom Toggle
-              if (!_isLoadingProducts && _catalogProducts.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _useCustomProduct = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: !_useCustomProduct ? primaryColor : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: !_useCustomProduct
-                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Catalogue',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: !_useCustomProduct ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _useCustomProduct = true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _useCustomProduct ? primaryColor : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: _useCustomProduct
-                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))]
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Personnalisé',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: _useCustomProduct ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+              // Product line items
+              for (int i = 0; i < _items.length; i++) _buildItemCard(i, _items[i], isDark, primaryColor),
 
-              // Product Picker — opens the same image-grid picker used to
-              // send a product in the chat, instead of a plain text dropdown.
-              if (!_useCustomProduct && _catalogProducts.isNotEmpty) ...[
-                FormField<Map<String, dynamic>>(
-                  initialValue: _selectedProduct,
-                  validator: (val) {
-                    if (!_useCustomProduct && val == null) {
-                      return 'Veuillez sélectionner un produit';
-                    }
-                    return null;
-                  },
-                  builder: (field) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () async {
-                            final picked = await _openProductGridPicker();
-                            if (picked == null) return;
-                            setState(() {
-                              _selectedProduct = picked;
-                              if (picked['price'] != null) {
-                                _priceController.text = picked['price'].toString();
-                              }
-                            });
-                            field.didChange(picked);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: field.hasError ? Colors.red : (isDark ? Colors.white24 : Colors.grey.shade400)),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: _selectedProduct == null
-                                ? Row(
-                                    children: [
-                                      Icon(Icons.inventory_2_rounded, color: isDark ? Colors.white54 : Colors.black45),
-                                      const SizedBox(width: 10),
-                                      Text('Choisir un produit dans le catalogue', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: (_selectedProduct!['image_url'] != null && _selectedProduct!['image_url'].toString().isNotEmpty)
-                                            ? Image.network(_selectedProduct!['image_url'], width: 40, height: 40, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 40, color: Colors.grey))
-                                            : Container(width: 40, height: 40, color: Colors.black12, child: const Icon(Icons.image, size: 20, color: Colors.grey)),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(_selectedProduct!['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
-                                            Text('${double.tryParse(_selectedProduct!['price']?.toString() ?? '0')?.toStringAsFixed(0) ?? 0} CFA', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF10B981), fontSize: 12.5)),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.swap_horiz_rounded, color: isDark ? Colors.white54 : Colors.black45),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        if (field.hasError)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6, left: 4),
-                            child: Text(field.errorText ?? '', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                          ),
-                      ],
-                    );
-                  },
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _addItem,
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                  label: const Text('Ajouter un produit', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(foregroundColor: primaryColor),
                 ),
-                const SizedBox(height: 14),
-              ],
-
-              // Custom Product Name Field
-              if (_useCustomProduct || _catalogProducts.isEmpty) ...[
-                TextFormField(
-                  controller: _customNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nom du produit / service',
-                    hintText: 'ex: T-Shirt Coton Noir',
-                    prefixIcon: const Icon(Icons.card_giftcard_rounded),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (val) {
-                    if ((_useCustomProduct || _catalogProducts.isEmpty) && (val == null || val.trim().isEmpty)) {
-                      return 'Saisissez le nom du produit';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // Quantity & Unit Price Row
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Quantité',
-                        prefixIcon: const Icon(Icons.numbers_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                      validator: (val) {
-                        if (val == null || int.tryParse(val) == null || int.parse(val) <= 0) {
-                          return 'Min 1';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _priceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Prix unitaire (CFA)',
-                        prefixIcon: const Icon(Icons.payments_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                      validator: (val) {
-                        if (val == null || double.tryParse(val) == null || double.parse(val) < 0) {
-                          return 'Prix valide requis';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
 
               // Shipping / Additional Fee
               TextFormField(
