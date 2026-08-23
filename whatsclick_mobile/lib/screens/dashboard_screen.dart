@@ -76,6 +76,23 @@ class _DashboardScreenState extends State<DashboardScreen>
     try {
       _roleId = await ApiService().getUserRoleId();
       final data = await ApiService().fetchDashboardStats();
+      // fetchDashboardStats() catches its own network/parse errors and
+      // returns null rather than throwing — this fell straight through to
+      // the "loaded successfully" branch below with _stats still null,
+      // so every card quietly rendered its empty-state fallback (no
+      // subscription, WhatsApp "Déconnecté", company name "Mon Entreprise")
+      // as if that were the real, current data. A transient hiccup looked
+      // identical to a genuinely disconnected account until the user
+      // happened to pull-to-refresh and get a clean response.
+      if (data == null) {
+        if (mounted) {
+          setState(() {
+            _error = 'Erreur lors du chargement du tableau de bord';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
       final notifData = await ApiService().fetchNotifications();
 
       if (mounted) {
@@ -83,9 +100,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           _stats = data;
           _unreadNotificationsCount = notifData['unreadCount'] ?? 0;
           // Extract bot_active from ai_credits
-          final aiCredits = data?['ai_credits'] as Map?;
+          final aiCredits = data['ai_credits'] as Map?;
           _botActive = aiCredits?['bot_active'] == true;
-          final vendorUserData = data?['vendorUserData'];
+          final vendorUserData = data['vendorUserData'];
           if (vendorUserData != null) {
             String name = vendorUserData['first_name']?.toString() ?? '';
             if (name.isEmpty)

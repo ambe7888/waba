@@ -360,7 +360,7 @@ class ApiService {
     }
     final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats$query');
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
