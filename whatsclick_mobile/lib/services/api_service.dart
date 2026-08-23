@@ -2508,11 +2508,16 @@ class ApiService {
         return body;
       }
       // Laravel validation errors: {"message": "...", "errors": {"field_1": ["The field_1 field is required."]}}
+      // Business-logic failures (e.g. plan/campaign-limit reached, reaction
+      // 22) instead carry their real message under data.message, not the
+      // top level - this was falling through to a bare "HTTP 200" before.
       final errors = body['errors'];
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
         message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else if (body['data']?['message'] is String && (body['data']['message'] as String).isNotEmpty) {
+        message = body['data']['message'];
       } else if (body['message'] is String) {
         message = body['message'];
       } else {
@@ -2809,10 +2814,25 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 25));
-      if (response.statusCode == 200) {
-        return Map<String, dynamic>.from(jsonDecode(response.body));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return Map<String, dynamic>.from(body);
       }
-      return null;
+      // A non-200 (e.g. 422 validation failure) used to be discarded
+      // entirely here, surfacing only a generic "erreur lors de
+      // l'enregistrement" with no way to tell why - same class of bug
+      // already found once on the update path below. Laravel's validation
+      // error shape is {"errors": {"field": ["message"]}}; fall back to
+      // the engine's own message otherwise.
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else {
+        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+      }
+      return {'reaction': 0, 'message': message};
     } catch (e) {
       if (debug) debugPrint('Create Bot Reply Error: $e');
       return null;
@@ -2857,10 +2877,19 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 25));
-      if (response.statusCode == 200) {
-        return Map<String, dynamic>.from(jsonDecode(response.body));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return Map<String, dynamic>.from(body);
       }
-      return null;
+      final errors = body['errors'];
+      String message;
+      if (errors is Map && errors.isNotEmpty) {
+        final firstError = errors.values.first;
+        message = firstError is List ? firstError.first.toString() : firstError.toString();
+      } else {
+        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+      }
+      return {'reaction': 0, 'message': message};
     } catch (e) {
       if (debug) debugPrint('Update Bot Reply Error: $e');
       return null;

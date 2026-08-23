@@ -1166,7 +1166,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     // Usage counts
     final cContacts = _stats?['totalContacts']?.toString() ?? '0';
-    final cCampaigns = _stats?['totalCampaigns']?.toString() ?? '0';
+    // Campaigns is plan-limited per billing cycle, not lifetime (unlike bot
+    // replies/agents below) — this resets when campaignsThisBillingCycle
+    // does, matching the same window the backend actually enforces against.
+    final cCampaigns = _stats?['campaignsThisBillingCycle']?.toString() ?? '0';
     final cBotReplies = _stats?['totalBotReplies']?.toString() ?? '0';
     final cDrip = _stats?['totalDripCampaigns']?.toString() ?? '0';
     final cBotFlows = _stats?['totalBotFlows']?.toString() ?? '0';

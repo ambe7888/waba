@@ -298,7 +298,23 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             $vendorUserPermissions = getUserAuthInfo('permissions') ?: [];
         }
 
+        // Campaigns is the one plan-limited feature that resets on a cycle
+        // (checkPlanUsages()/processCampaignCreate() gate it the same way) -
+        // unlike bot_replies/system_users, which are flat lifetime caps.
+        // totalCampaigns below stays a lifetime count (the campaign list
+        // screen's "Total des campagnes" reads it too), so this is exposed
+        // separately for the subscription tab's "X / Y this month" card.
+        $campaignBillingCycle = app()->make(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class)
+            ->getCurrentBillingCycleDates(getVendorCurrentActiveSubscription($vendorId)->created_at ?? $vendorModel->created_at);
+        $campaignsThisBillingCycle = $this->campaignRepository->countIt([
+            'vendors__id' => $vendorId,
+            ['created_at', '>=', $campaignBillingCycle['start']],
+            ['created_at', '<=', $campaignBillingCycle['end']],
+        ]);
+
         return array_merge([
+            'campaignsThisBillingCycle' => $campaignsThisBillingCycle,
+            'campaignBillingCycleEnd' => $campaignBillingCycle['end'],
             'firstOfMonth' => Carbon::now()->firstOfMonth(),
             'lastOfMonth' => Carbon::now()->lastOfMonth(),
             'vendorId' => $vendorId,
