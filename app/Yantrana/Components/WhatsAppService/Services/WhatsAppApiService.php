@@ -738,7 +738,7 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
         try {
             if (Str::startsWith($file, 'http')) {
                 if (! $mimeType) {
-                    return new Exception(__tr('For the url based media type is required'), 400);
+                    throw new Exception(__tr('For the url based media type is required'), 400);
                 }
             } else {
                 if(!$mimeType) {
@@ -770,7 +770,15 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
                     if (! isset($result['error'])) {
                         return $result['id'] ?? null;
                     } else {
-                        return new Exception($result['error']['message'], $result['error']['code'] ? $result['error']['code'] : 500);
+                        // Was "return new Exception(...)" — the object was never
+                        // thrown, so every caller stored it as if it were a real
+                        // media id. It later got embedded in the outgoing message
+                        // payload, where json_encode() turns a bare Exception into
+                        // "{}" — so WhatsApp's real rejection reason (e.g. "video
+                        // exceeds size limit") was silently replaced with an
+                        // unrelated, confusing "invalid parameter" failure further
+                        // down the line. Throwing surfaces the real reason instead.
+                        throw new Exception($result['error']['message'], $result['error']['code'] ? $result['error']['code'] : 500);
                     }
                 }
 

@@ -986,7 +986,17 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
         // Campaign created successfully, proceed to queue contacts
         $isSucceed = false;
-        $this->contactRepository->getContactsForCampaignInChunks($contactsWhereClause, $groupContactIds, $labelIds, function (Collection $contacts) use (&$request, &$isTestMessageProcessed, &$vendorId, &$whatsAppTemplate, &$scheduleAt, &$campaign, &$isSucceed, &$expireAt, &$presetMessageUid, &$presetMessage) {
+        // Set as soon as media prep (image/video/document upload to WhatsApp)
+        // hard-fails for one contact — e.g. the video exceeds WhatsApp's size
+        // limit. Every contact shares the same template/media, so a failure
+        // here will repeat for every remaining contact too: stop queuing more
+        // of them and surface the real reason instead of silently creating a
+        // campaign that will fail to deliver to everyone once it's processed.
+        $mediaFailureMessage = null;
+        $this->contactRepository->getContactsForCampaignInChunks($contactsWhereClause, $groupContactIds, $labelIds, function (Collection $contacts) use (&$request, &$isTestMessageProcessed, &$vendorId, &$whatsAppTemplate, &$scheduleAt, &$campaign, &$isSucceed, &$expireAt, &$presetMessageUid, &$presetMessage, &$mediaFailureMessage) {
+            if ($mediaFailureMessage) {
+                return;
+            }
             $queueData = [];
             foreach ($contacts as $contact) {
                 // if number is missing don't process it further
@@ -1022,7 +1032,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     // (e.g. transient WhatsApp API error) — the surrounding try/catch treats
                     // that as fail-soft, so fall back to the raw request inputs here too
                     // instead of a fatal error on a null method call.
-                    $templateMessageSentProcess = $this->sendTemplateMessageProcess($request, $contact, true, $campaign->_id, $vendorId, $whatsAppTemplate, $isTestMessageProcessed?->data('inputs'));
+                    try {
+                        $templateMessageSentProcess = $this->sendTemplateMessageProcess($request, $contact, true, $campaign->_id, $vendorId, $whatsAppTemplate, $isTestMessageProcessed?->data('inputs'));
+                    } catch (\Throwable $e) {
+                        $mediaFailureMessage = $e->getMessage() ?: __tr('Failed to process media for the template.');
+                        break;
+                    }
+                    if ($templateMessageSentProcess->failed()) {
+                        $mediaFailureMessage = $templateMessageSentProcess->message() ?: __tr('Failed to process media for the template.');
+                        break;
+                    }
                 }
                 // large contacts simulation
                 // for ($i=0; $i < 2000; $i++) {
@@ -1063,6 +1082,15 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $isSucceed = true;
             }
         });
+
+        if ($mediaFailureMessage) {
+            // Remove the campaign and whatever got queued for earlier contacts
+            // before the media failure was hit, rather than leaving a broken,
+            // partially-queued campaign behind.
+            $this->whatsAppMessageQueueRepository->deleteItAll($campaign->_id, 'campaigns__id');
+            $this->campaignRepository->deleteIt($campaign->_id);
+            return $this->engineFailedResponse([], $mediaFailureMessage);
+        }
 
         if ($isSucceed) {
 
