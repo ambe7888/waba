@@ -24,7 +24,6 @@
     scheduleAt: '',
     expireAt: '',
     contactCount: 0,
-    isLoadingContactCount: false,
     restrictByLanguageChange: function() {
 
         const el = this.$refs.lwRestrictLanguageSwitch;
@@ -41,21 +40,12 @@
         }
 
         var self = this;
-        self.isLoadingContactCount = true;
-        // Safety net: if the request ever fails silently (no error
-        // callback is wired below), don't leave the loading indicator
-        // spinning forever.
-        var loadingTimeoutId = setTimeout(function() {
-            self.isLoadingContactCount = false;
-        }, 10000);
         __DataRequest.post('{{ route('vendor.campaign.read.targeted_contact_count') }}', {
                 'audience_uid': this.audienceUid,
                 'restrict_by_language': this.restrictByTemplatedContactLanguage,
                 'template_id': this.selectedTemplate
             }, function(responseData) {
-                clearTimeout(loadingTimeoutId);
                 self.contactCount = responseData.data.totalContacts;
-                self.isLoadingContactCount = false;
             }
         );
     },
@@ -265,28 +255,6 @@
                                             </x-slot>
                                         </x-lw.input-field>
                                         <div x-effect="autoGenerateTitleEffect(); getTargetedContactCount()"></div>
-                                        <script>
-                                            // A plain native "change" listener on the underlying <select>,
-                                            // not selectize's own .on('change') API — that one only worked
-                                            // once selectize had actually finished initializing on this
-                                            // field, which depended on timing that didn't hold up in
-                                            // practice (the contact count stayed frozen at 0 no matter
-                                            // which audience was picked). Selectize is documented to keep
-                                            // this element's value in sync and fire a real "change" event
-                                            // on it on every selection, so this fires reliably regardless
-                                            // of when/whether selectize has wrapped the field yet.
-                                            (function() {
-                                                var el = document.getElementById('lwSelectAudiencesField');
-                                                if (!el) return;
-                                                el.addEventListener('change', function() {
-                                                    var container = document.getElementById('lwCreateNewCampaignContainer');
-                                                    if (!container) return;
-                                                    var campaignData = Alpine.$data(container);
-                                                    campaignData.audienceUid = this.value;
-                                                    campaignData.getTargetedContactCount();
-                                                });
-                                            })();
-                                        </script>
                                         {{-- /select audience --}}
                                         
                                         <!-- Restrict by Template Language field -->
@@ -299,11 +267,7 @@
                                     </div>
                                     @if(!$isNonTemplateCampaign)
                                     <strong class="m-2">
-                                        {{ __tr('Total Targeted Contacts: ') }}
-                                        <span x-show="!isLoadingContactCount" x-text="contactCount"></span>
-                                        <span x-show="isLoadingContactCount" x-cloak>
-                                            <i class="fa fa-spinner fa-spin"></i> {{ __tr('Calcul en cours...') }}
-                                        </span>
+                                        {{ __tr('Total Targeted Contacts: ') }} <span x-text="contactCount"></span>
                                     </strong>
                                     @endif
                                  </fieldset>
@@ -437,42 +401,6 @@
                 $('#lwTemplateStructureContainer').text('');
                 return inputData;
             };
-
-            // Wires the audience selectize's change event to the Alpine
-            // component so getTargetedContactCount() actually re-runs when
-            // an audience is picked. This used to only be attached inside
-            // onTemplateChangeProcess (below), i.e. only after a template
-            // selection had already round-tripped — pick an audience first
-            // (or re-select an already-selected template, which doesn't
-            // fire a fresh change event) and audienceUid never left its
-            // initial empty string, so the contact count stayed frozen at
-            // 0 no matter what audience was visibly selected. .off() first
-            // so repeated calls (e.g. once at page load, again on every
-            // template change) never stack duplicate handlers.
-            window.bindAudienceSelectizeChange = function() {
-                const lwCreateNewCampaignContainer = document.getElementById('lwCreateNewCampaignContainer');
-                if (!lwCreateNewCampaignContainer || _.isUndefined($('#lwSelectAudiencesField')[0])) {
-                    return;
-                }
-                const audienceSelectize = $('#lwSelectAudiencesField')[0].selectize;
-                if (!audienceSelectize) {
-                    return;
-                }
-                var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
-                audienceSelectize.off('change').on('change', function(value) {
-                    campaignData.audienceUid = value;
-                    campaignData.getTargetedContactCount();
-                });
-                // Pick up a value that was already selected before this
-                // ran (e.g. restored form state), not just future changes.
-                campaignData.audienceUid = audienceSelectize.getValue();
-            };
-            $(function() {
-                _.defer(function() {
-                    window.bindAudienceSelectizeChange();
-                });
-            });
-
             window.onTemplateChangeProcess = function(responseData) {
                 if (responseData.reaction == 1) {
                     _.defer(function() {
@@ -487,8 +415,13 @@
                         var campaignData = Alpine.$data(lwCreateNewCampaignContainer);
 
                         // Track change event on audience selectize
-                        window.bindAudienceSelectizeChange();
-
+                        if (!_.isUndefined($('#lwSelectAudiencesField')[0])) {
+                            const audienceSelectize = $('#lwSelectAudiencesField')[0].selectize;
+                            audienceSelectize.on('change', function(value) {
+                                campaignData.audienceUid = value;
+                            });
+                        }
+                        
                         // Track change event on timezone selectize
                         if (!_.isUndefined($('#lwCampaignTimezone')[0])) {
                             const lwCampaignTimezone = $('#lwCampaignTimezone')[0].selectize;
