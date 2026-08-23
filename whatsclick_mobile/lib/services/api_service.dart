@@ -1340,6 +1340,26 @@ class ApiService {
     }
   }
 
+  /// Mints a short-lived signed URL for the WhatsApp Embedded Signup
+  /// WebView bridge (see WhatsAppServiceController::mobileEmbeddedSignupUrl).
+  /// Returns null on failure.
+  Future<String?> fetchWhatsAppEmbeddedSignupUrl() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/embedded-signup-url');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          return body['data']?['url']?.toString();
+        }
+      }
+      return null;
+    } catch (e) {
+      if (debug) debugPrint('Fetch Embedded Signup URL Error: $e');
+      return null;
+    }
+  }
+
   /// Fetch every template regardless of status (APPROVED/PENDING/REJECTED/…)
   /// — for the template management screen. fetchTemplates() above only
   /// returns APPROVED ones, which is right for sending/campaigns but hides

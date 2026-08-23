@@ -47,6 +47,7 @@ dependencies:
   cached_network_image: ^3.4.0
   flutter_cache_manager: ^3.4.1
   gal: ^2.3.0
+  webview_flutter: ^4.10.0
 
 dependency_overrides:
   # flutter_cache_manager pulls in sqflite -> sqflite_android, and the
