@@ -497,6 +497,7 @@ class ApiService {
     String? directLink,
     String? imageUrl,
     File? imageFile,
+    String? categoryUid,
   }) async {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/add');
     try {
@@ -511,6 +512,7 @@ class ApiService {
         request.fields['price'] = price;
         if (description != null && description.isNotEmpty) request.fields['description'] = description;
         if (directLink != null && directLink.isNotEmpty) request.fields['direct_link'] = directLink;
+        if (categoryUid != null && categoryUid.isNotEmpty) request.fields['category_uid'] = categoryUid;
         final mimeType = lookupMimeType(imageFile.path)?.split('/');
         request.files.add(await http.MultipartFile.fromPath(
           'image_file',
@@ -530,6 +532,7 @@ class ApiService {
                 if (description != null && description.isNotEmpty) 'description': description,
                 if (directLink != null && directLink.isNotEmpty) 'direct_link': directLink,
                 if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+                if (categoryUid != null && categoryUid.isNotEmpty) 'category_uid': categoryUid,
               }),
             )
             .timeout(const Duration(seconds: 20));
@@ -584,6 +587,59 @@ class ApiService {
     } catch (e) {
       if (debug) debugPrint('Sync Products Error: $e');
       return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Fetch product categories, each with a products_count field.
+  Future<List<Map<String, dynamic>>> fetchCategories() async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1) {
+          final list = body['data']?['categories'] as List?;
+          if (list != null) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } catch (e) {
+      if (debug) debugPrint('Fetch Categories Error: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> addCategory(String name) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories/add');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders(), body: jsonEncode({'name': name}))
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+      }
+      return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'ajout de la catégorie.'};
+    } catch (e) {
+      if (debug) debugPrint('Add Category Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  Future<bool> deleteCategory(String categoryUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories/delete/$categoryUid');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (debug) debugPrint('Delete Category Error: $e');
+      return false;
     }
   }
 
@@ -1596,10 +1652,14 @@ class ApiService {
     }
   }
 
-  /// Fetch product list for mobile
-  Future<List<Map<String, dynamic>>> fetchProducts({String search = ''}) async {
-    final url =
-        Uri.parse('${baseApiUrl}vendor/ecommerce/products?search=$search');
+  /// Fetch product list for mobile. Pass categoryUid to filter by category,
+  /// or 'uncategorized' to get products with no category assigned.
+  Future<List<Map<String, dynamic>>> fetchProducts({String search = '', String? categoryUid}) async {
+    final queryParams = {
+      'search': search,
+      if (categoryUid != null && categoryUid.isNotEmpty) 'category_uid': categoryUid,
+    };
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products').replace(queryParameters: queryParams);
     try {
       final response = await http
           .get(url, headers: _getHeaders())

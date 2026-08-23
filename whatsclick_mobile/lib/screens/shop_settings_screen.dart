@@ -33,10 +33,15 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
   bool _isLoadingProducts = true;
   List<Map<String, dynamic>> _products = [];
 
+  List<Map<String, dynamic>> _categories = [];
+  // null = "Toutes", 'uncategorized' = no category assigned, else a category _uid.
+  String? _categoryFilter;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadCategories();
     _loadProducts();
   }
 
@@ -76,12 +81,149 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
 
   Future<void> _loadProducts() async {
     setState(() => _isLoadingProducts = true);
-    final products = await ApiService().fetchProducts();
+    final products = await ApiService().fetchProducts(categoryUid: _categoryFilter);
     if (!mounted) return;
     setState(() {
       _products = products;
       _isLoadingProducts = false;
     });
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await ApiService().fetchCategories();
+    if (!mounted) return;
+    setState(() => _categories = categories);
+  }
+
+  Future<void> _openManageCategoriesSheet() async {
+    final newNameController = TextEditingController();
+    final isDark = ThemeService().isDark;
+    bool submitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (sheetContext) {
+        return StatefulBuilder(builder: (sheetContext, setSheetState) {
+          Future<void> addCategory() async {
+            final name = newNameController.text.trim();
+            if (name.isEmpty) return;
+            setSheetState(() => submitting = true);
+            final result = await ApiService().addCategory(name);
+            if (!sheetContext.mounted) return;
+            if (result['success'] == true) {
+              newNameController.clear();
+              await _loadCategories();
+              setSheetState(() => submitting = false);
+            } else {
+              setSheetState(() => submitting = false);
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                SnackBar(content: Text(result['message']?.toString() ?? 'Erreur.'), backgroundColor: Colors.red),
+              );
+            }
+          }
+
+          Future<void> deleteCategory(Map<String, dynamic> category) async {
+            final confirm = await showDialog<bool>(
+              context: sheetContext,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Supprimer cette catégorie ?'),
+                content: Text('Les produits de "${category['name']}" deviendront non catégorisés.'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+            if (confirm != true) return;
+            final uid = category['_uid']?.toString();
+            if (uid == null) return;
+            final success = await ApiService().deleteCategory(uid);
+            if (!sheetContext.mounted) return;
+            if (success) {
+              if (_categoryFilter == uid) {
+                _categoryFilter = null;
+                _loadProducts();
+              }
+              await _loadCategories();
+              setSheetState(() {});
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20, right: 20, top: 20,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Catégories de produits',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: newNameController,
+                          decoration: const InputDecoration(labelText: 'Nouvelle catégorie', border: OutlineInputBorder()),
+                          onSubmitted: (_) => addCategory(),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton.filled(
+                        onPressed: submitting ? null : addCategory,
+                        icon: submitting
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.add_rounded),
+                        style: IconButton.styleFrom(backgroundColor: ThemeService.primaryColor, foregroundColor: Colors.white),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_categories.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Aucune catégorie pour le moment.', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
+                    )
+                  else
+                    ..._categories.map((c) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${c['name']} (${c['products_count'] ?? 0})',
+                                  style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                onPressed: () => deleteCategory(c),
+                              ),
+                            ],
+                          ),
+                        )),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -149,6 +291,7 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
     if (success) {
       setState(() => _products.removeWhere((p) => p['_uid'] == uid));
       _showMessage('Produit supprimé.');
+      _loadCategories();
     } else {
       _showMessage('Impossible de supprimer ce produit.', isError: true);
     }
@@ -161,6 +304,7 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
     final linkController = TextEditingController();
     File? pickedImage;
     bool submitting = false;
+    String? selectedCategoryUid = (_categoryFilter != null && _categoryFilter != 'uncategorized') ? _categoryFilter : null;
 
     final isDark = ThemeService().isDark;
     await showModalBottomSheet(
@@ -239,6 +383,21 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (_categories.isNotEmpty) ...[
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedCategoryUid,
+                      decoration: const InputDecoration(labelText: 'Catégorie (facultatif)', border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem<String?>(value: null, child: Text('Aucune')),
+                        ..._categories.map((c) => DropdownMenuItem<String?>(
+                              value: c['_uid']?.toString(),
+                              child: Text(c['name']?.toString() ?? ''),
+                            )),
+                      ],
+                      onChanged: (val) => setSheetState(() => selectedCategoryUid = val),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   TextField(
                     controller: linkController,
                     decoration: const InputDecoration(labelText: 'Lien direct (facultatif)', border: OutlineInputBorder()),
@@ -265,12 +424,14 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
                                 description: descController.text.trim(),
                                 imageFile: pickedImage,
                                 directLink: linkController.text.trim(),
+                                categoryUid: selectedCategoryUid,
                               );
                               if (!sheetContext.mounted) return;
                               if (result['success'] == true) {
                                 Navigator.pop(sheetContext);
                                 _showMessage('Produit ajouté.');
                                 _loadProducts();
+                                _loadCategories();
                               } else {
                                 setSheetState(() => submitting = false);
                                 ScaffoldMessenger.of(sheetContext).showSnackBar(
@@ -526,12 +687,36 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : Colors.black87)),
               ),
               TextButton.icon(
+                onPressed: _openManageCategoriesSheet,
+                icon: const Icon(Icons.sell_outlined, size: 18),
+                label: const Text('Catégories'),
+              ),
+              TextButton.icon(
                 onPressed: _openAddProductSheet,
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Ajouter'),
               ),
             ],
           ),
+          if (_categories.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _categoryChip(label: 'Toutes', value: null, isDark: isDark),
+                  const SizedBox(width: 6),
+                  _categoryChip(label: 'Sans catégorie', value: 'uncategorized', isDark: isDark),
+                  const SizedBox(width: 6),
+                  for (final c in _categories) ...[
+                    _categoryChip(label: c['name']?.toString() ?? '', value: c['_uid']?.toString(), isDark: isDark),
+                    const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           if (_isLoadingProducts)
             const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
@@ -549,9 +734,37 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
     );
   }
 
+  Widget _categoryChip({required String label, required String? value, required bool isDark}) {
+    final selected = _categoryFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _categoryFilter = value);
+        _loadProducts();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? ThemeService.primaryColor : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductTile(Map<String, dynamic> product, bool isDark) {
     final imageUrl = product['image_url']?.toString();
     final price = double.tryParse(product['price']?.toString() ?? '') ?? 0;
+    final categoryName = (product['category'] is Map) ? product['category']['name']?.toString() : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(10),
@@ -575,7 +788,22 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
               children: [
                 Text(product['name']?.toString() ?? '', style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
                 const SizedBox(height: 2),
-                Text('${price.toStringAsFixed(0)} CFA', style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54)),
+                Row(
+                  children: [
+                    Text('${price.toStringAsFixed(0)} CFA', style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.black54)),
+                    if (categoryName != null && categoryName.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: ThemeService.primaryColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(categoryName, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: ThemeService.primaryColor)),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
