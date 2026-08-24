@@ -237,6 +237,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     }
   }
 
+  /// Strips HTML tags and WhatsApp markdown so a server-formatted message
+  /// body (formatWhatsAppText() output) can be meaningfully compared
+  /// against the raw text a user typed locally, before the backend has
+  /// applied any formatting to it.
+  String _normalizeForReconciliation(String text) {
+    var result = text.replaceAll(RegExp(r'<[^>]*>'), '');
+    result = result.replaceAll(RegExp(r'[*_~`]'), '');
+    result = result.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return result;
+  }
+
   Future<void> _loadMessages({bool silent = false}) async {
     if (!silent) {
       setState(() {
@@ -293,7 +304,22 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       if (existsInApi) return false;
       final localTs = DateTime.tryParse(m.timestamp);
       bool existsSimilar = orderedMessages.any((apiMsg) {
-        if (apiMsg.isIncoming || apiMsg.body != m.body) {
+        if (apiMsg.isIncoming) return false;
+        // Text messages: compare content after stripping the formatting
+        // the backend applies (formatWhatsAppText() turns WhatsApp
+        // markdown into HTML) and the raw markdown the user typed - an
+        // exact match here almost never held once a message used any
+        // formatting (*bold*, _italic_), leaving the local "sending..."
+        // placeholder stuck next to the real, confirmed message forever.
+        // Media/voice placeholders never carried a comparable body at all
+        // (a synthetic label like "Note vocale (0:05)" or the filename),
+        // so match those by type instead of body.
+        final sameType = (m.type ?? 'text') == (apiMsg.type ?? 'text');
+        if (!sameType) return false;
+        final isTextType = (m.type ?? 'text') == 'text';
+        if (isTextType &&
+            _normalizeForReconciliation(apiMsg.body) !=
+                _normalizeForReconciliation(m.body)) {
           return false;
         }
         final apiTs = DateTime.tryParse(apiMsg.timestamp);
