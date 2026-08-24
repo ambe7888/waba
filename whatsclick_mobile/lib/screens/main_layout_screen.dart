@@ -23,6 +23,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _currentIndex = 0; // Default to Dashboard
   StreamSubscription<String>? _notificationTapSubscription;
   int _unreadConversations = 0;
+  // Same check HomeScreen/AccountScreen run on their own — this one drives
+  // the red dot on the bottom nav's "Compte" tab itself, so an available
+  // update is visible without having to open either of those screens first.
+  bool _updateAvailable = false;
   late final List<Widget> _screens;
   // Lets DashboardScreen (or anything else) request that the Discussions
   // tab apply a specific segment filter once it becomes visible. Wrapped
@@ -69,6 +73,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         _handleNotificationTap(contactUid);
       }
     });
+    _checkUpdate();
+  }
+
+  Future<void> _checkUpdate() async {
+    final updateInfo = await ApiService().checkForUpdate();
+    if (mounted) {
+      setState(() => _updateAvailable = updateInfo != null);
+    }
   }
 
   @override
@@ -265,6 +277,23 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                                                   color: Colors.white,
                                                   fontSize: 8,
                                                   fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        if (index == 4 && _updateAvailable)
+                                          Positioned(
+                                            right: -2,
+                                            top: -2,
+                                            child: Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isDark ? ThemeService.darkSurface : ThemeService.lightCard,
+                                                  width: 1.5,
                                                 ),
                                               ),
                                             ),

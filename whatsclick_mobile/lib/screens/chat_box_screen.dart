@@ -348,30 +348,34 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       }
     }
 
-    if (hasChanged || !silent) {
+    final wasFirstLoad = _isFirstLoad;
+    // `wasFirstLoad` is forced into the gate below so establishing
+    // pagination state never depends on `hasChanged`/`silent` - those are
+    // about whether the message *content* changed, unrelated to whether
+    // this is the first fetch. Without this, a first response that
+    // happened to look identical to the initial placeholder (e.g. a
+    // brand-new conversation, or a race with a concurrent poll) left
+    // _isFirstLoad stuck true and _olderMessagesNextPage stuck at 0
+    // forever, permanently hiding the "load older messages" button.
+    if (hasChanged || !silent || wasFirstLoad) {
       if (mounted) {
         // Detect if a truly new message arrived (count increased)
         final newMsgArrived = combinedMessages.length > _lastMessageCount;
         final wasAtBottom = _isAtBottom();
-        
-        final wasFirstLoad = _isFirstLoad;
+
         setState(() {
           _messages = combinedMessages;
           _isLoading = false;
           _lastMessageCount = combinedMessages.length;
-          // Only the very first fetch establishes whether older messages
-          // exist — later silent polls always re-fetch just page 1 and
-          // would otherwise stomp on pagination progress from
-          // _loadOlderMessages.
           if (wasFirstLoad) {
             _olderMessagesNextPage = ApiService().lastMessagesNextPage;
+            _isFirstLoad = false;
           }
         });
 
         // Scroll to bottom only on first load, or if user is already at bottom and a new message arrives
-        if (_isFirstLoad || (newMsgArrived && wasAtBottom)) {
+        if (wasFirstLoad || (newMsgArrived && wasAtBottom)) {
           _scrollToBottom();
-          _isFirstLoad = false;
         }
       }
     } else {

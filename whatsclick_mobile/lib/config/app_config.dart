@@ -7,7 +7,7 @@ h7Lw4wxlBrbDONgYaebgscpjPRloeL0kj4aLI462lcQGVAxhyh8JijsCAwEAAQ==
 -----END PUBLIC KEY-----''';
 
 const bool debug = true;
-const String version = '1.0.15';
+const String version = '1.0.16';
 
 // Polling configuration
 const int pollingIntervalSeconds = 3;
