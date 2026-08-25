@@ -2,7 +2,7 @@ name: whatsjet_mobile
 description: "WhatsClick Mobile - Application de messagerie WhatsApp Business"
 publish_to: 'none'
 
-version: 1.0.16+16
+version: 1.0.19+19
 
 environment:
   sdk: '>=3.1.5 <4.0.0'
@@ -52,6 +52,7 @@ dependencies:
   # incompatible with this project's firebase_core ^2.30.0. 6.0.0 is the
   # last release on flutter_inappwebview_web's pre-package:web 1.0.x line.
   flutter_inappwebview: 6.0.0
+  pusher_channels_flutter: ^2.4.0
 
 dependency_overrides:
   # flutter_cache_manager pulls in sqflite -> sqflite_android, and the
@@ -75,7 +76,7 @@ flutter_launcher_icons:
   image_path: "assets/icon/launcher_icon.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icon/launcher_icon.png"
+  adaptive_icon_foreground: "assets/icon/launcher_icon_foreground.png"
 
 
 flutter:
