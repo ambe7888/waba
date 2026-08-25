@@ -283,12 +283,17 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
 
         $agents = [];
         if (!$isRestrictedVendorUser) {
-            $agents = \DB::table('users')
-                ->where('vendors__id', $vendorId)
+            // Agents are linked to their vendor via the vendor_users pivot
+            // table, not users.vendors__id (that column is only ever set for
+            // vendor admins - AuthRepository::storeUser() deliberately skips
+            // it for agents, see the vendors__id exclusion there). Filtering
+            // directly on users.vendors__id here silently matched zero rows
+            // for every vendor's agents, always showing 0 regardless of how
+            // many were actually invited.
+            $agents = $this->userRepository->fetchAgentsList($vendorId)
                 ->where('status', 1)
                 ->where('user_roles__id', 3) // agents/team members only, not the vendor admin (2)
-                ->select('_id', '_uid', 'first_name', 'last_name', 'email')
-                ->get();
+                ->values();
         }
 
         $vendorUserData = auth()->user();
