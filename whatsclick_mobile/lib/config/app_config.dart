@@ -1,13 +1,8 @@
 const String baseUrl = 'https://whats-click.com/'; // Production server URL
 const String baseApiUrl = '${baseUrl}api/';
 
-const String publicKey = '''-----BEGIN PUBLIC KEY-----
-MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAPJwwNa//eaQYxkNsAODohg38azVtalE
-h7Lw4wxlBrbDONgYaebgscpjPRloeL0kj4aLI462lcQGVAxhyh8JijsCAwEAAQ==
------END PUBLIC KEY-----''';
-
-const bool debug = true;
-const String version = '1.0.16';
+// Version de l'application
+const String version = '1.0.21';
 
 // Polling configuration
 const int pollingIntervalSeconds = 3;
@@ -15,7 +10,6 @@ const int aggressivePollingIntervalMs = 800;
 const int aggressivePollingMaxCount = 8;
 
 const Map configItems = {
-  'debug': debug,
   'appTitle': 'WhatsClick',
   'default_language_code': 'fr',
   'services': {
