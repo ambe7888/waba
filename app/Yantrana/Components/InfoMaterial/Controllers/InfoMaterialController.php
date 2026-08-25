@@ -82,12 +82,28 @@ class InfoMaterialController extends BaseController
 
         // This resource has no vendors__id, so it's visible to every vendor —
         // notify everyone the same way (vendors__id null = global/broadcast).
-        \App\Models\VendorNotification::create([
+        $notification = \App\Models\VendorNotification::create([
             'title' => 'Nouvelle ressource disponible',
             'message' => $request->title,
             'type' => 'info',
             'vendors__id' => null,
         ]);
+
+        // The record above only makes it show up in the in-app notifications
+        // list - it was never actually pushed. Broadcast to every vendor
+        // with a registered device, same as any other global notification.
+        if (function_exists('sendFCMNotification')) {
+            foreach (\App\Yantrana\Components\Vendor\Models\VendorModel::pluck('_id') as $vendorId) {
+                try {
+                    sendFCMNotification($vendorId, 'Nouvelle ressource disponible', $request->title, [
+                        'notification_id' => (string) $notification->_id,
+                        'type' => 'info',
+                    ]);
+                } catch (\Throwable $th) {
+                    \Log::error('Resource notification FCM failed for vendor ' . $vendorId . ': ' . $th->getMessage());
+                }
+            }
+        }
 
         return redirect()->route('info_material.index')->with('success', __tr('Material uploaded successfully.'));
     }
