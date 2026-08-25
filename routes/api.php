@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.16',
+        'version' => '1.0.21',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Correction des messages en double dans les discussions et des coches de lecture manquantes. Le bouton pour voir les anciens messages fonctionne désormais correctement. Un point rouge de mise à jour est aussi visible sur l'onglet Compte.",
+        'change_log' => "Messagerie en temps réel (Pusher) corrigée, pagination des campagnes, protection contre les plantages à l'envoi de gros fichiers, notifications qui redirigent maintenant vers l'écran concerné, avatar généré et actions rapides sur les notifications de message, correction d'un message affiché deux fois à l'ouverture d'une discussion, et lecture des vidéos de ressources directement dans l'app.",
     ]);
 })->name('api.app_version');
 // Mobile app apis
