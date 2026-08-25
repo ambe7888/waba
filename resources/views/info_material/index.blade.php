@@ -66,9 +66,9 @@
                                             </a>
                                         @endif
                                         @if(!empty($material->__data['video_url']))
-                                            <a href="{{ $material->__data['video_url'] }}" class="btn btn-sm btn-danger mr-1" style="border-radius: 8px; background: #dc2626; border: none; font-size: 0.8rem; font-weight: 600;" target="_blank">
+                                            <button type="button" class="btn btn-sm btn-danger mr-1" style="border-radius: 8px; background: #dc2626; border: none; font-size: 0.8rem; font-weight: 600;" data-toggle="modal" data-target="#videoModal{{ $material->_uid }}">
                                                 <i class="fa fa-play mr-1"></i> {{ __tr('Video') }}
-                                            </a>
+                                            </button>
                                         @endif
                                         <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#viewModal{{ $material->_uid }}" style="border-radius: 8px; background: #2563eb; border: none; font-size: 0.8rem; font-weight: 600;">
                                             <i class="fa fa-eye mr-1"></i> {{ __tr('Voir') }}
@@ -129,13 +129,53 @@
                     <a href="{{ route('info_material.download', ['uid' => $material->_uid]) }}" class="btn btn-success" target="_blank"><i class="fa fa-download"></i> {{ __tr('Download Attached File') }}</a>
                 @endif
                 @if(!empty($material->__data['video_url']))
-                    <a href="{{ $material->__data['video_url'] }}" class="btn btn-danger" target="_blank"><i class="fa fa-play"></i> {{ __tr('Watch Video') }}</a>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" data-toggle="modal" data-target="#videoModal{{ $material->_uid }}"><i class="fa fa-play"></i> {{ __tr('Watch Video') }}</button>
                 @endif
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Close') }}</button>
             </div>
         </div>
     </div>
 </div>
+
+@if(!empty($material->__data['video_url']))
+<div class="modal fade" id="videoModal{{ $material->_uid }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ $material->title }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="embed-responsive embed-responsive-16by9">
+                    <iframe class="embed-responsive-item js-video-frame" data-src="{{ toEmbedVideoUrl($material->__data['video_url']) }}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endforeach
 
 @endsection
+
+@push('js')
+<script>
+    $(document).ready(function() {
+        // Lazily load each video iframe only while its modal is open, and
+        // clear it on close so the video actually stops playing.
+        $('.modal').on('shown.bs.modal', function() {
+            var frame = $(this).find('.js-video-frame');
+            if (frame.length && !frame.attr('src')) {
+                frame.attr('src', frame.data('src'));
+            }
+        }).on('hidden.bs.modal', function() {
+            var frame = $(this).find('.js-video-frame');
+            if (frame.length) {
+                frame.removeAttr('src');
+            }
+        });
+    });
+</script>
+@endpush

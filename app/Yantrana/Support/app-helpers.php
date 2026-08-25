@@ -41,6 +41,33 @@ use App\Yantrana\Components\WhatsAppService\Repositories\WhatsAppMessageLogRepos
 use App\Yantrana\Components\UserDevice\Repositories\UserDeviceRepository;
 use Google\Client as GoogleClient;
 
+if (! function_exists('toEmbedVideoUrl')) {
+    /**
+     * Turn a Google Drive / YouTube share link into its embeddable player
+     * URL, so it can play inline in an iframe instead of opening Drive or
+     * YouTube directly. Falls back to the original url for anything else.
+     *
+     * @param string $url
+     * @return string
+     */
+    function toEmbedVideoUrl(string $url)
+    {
+        if (preg_match('/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/', $url, $matches)
+            || preg_match('/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return 'https://drive.google.com/file/d/' . $matches[1] . '/preview';
+        }
+
+        if (str_contains($url, 'you') && (
+            preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)
+            || preg_match('/[?&]v=([a-zA-Z0-9_-]+)/', $url, $matches)
+        )) {
+            return 'https://www.youtube.com/embed/' . $matches[1];
+        }
+
+        return $url;
+    }
+}
+
 if (! function_exists('translateWhatsAppError')) {
     /**
      * Translate Meta WhatsApp Cloud API raw error messages into French
