@@ -11,6 +11,10 @@ import 'contacts_screen.dart';
 import 'campaign_list_screen.dart';
 import 'account_screen.dart';
 import 'chat_box_screen.dart';
+import 'login_screen.dart';
+import 'ticket_detail_screen.dart';
+import 'resource_list_screen.dart';
+import '../services/pusher_service.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -21,11 +25,14 @@ class MainLayoutScreen extends StatefulWidget {
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _currentIndex = 0; // Default to Dashboard
-  StreamSubscription<String>? _notificationTapSubscription;
+  StreamSubscription<Map<String, String>>? _notificationTapSubscription;
+  StreamSubscription<void>? _unauthorizedSubscription;
   int _unreadConversations = 0;
-  // Same check HomeScreen/AccountScreen run on their own — this one drives
-  // the red dot on the bottom nav's "Compte" tab itself, so an available
-  // update is visible without having to open either of those screens first.
+  // The single source of truth for the update check - HomeScreen (dialog)
+  // and AccountScreen (settings badge) both listen to this instead of each
+  // independently calling checkForUpdate(), which used to fire the same
+  // unauthenticated GET three times on every cold start.
+  final ValueNotifier<Map<String, dynamic>?> _updateInfo = ValueNotifier(null);
   bool _updateAvailable = false;
   late final List<Widget> _screens;
   // Lets DashboardScreen (or anything else) request that the Discussions
@@ -55,6 +62,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       ),
       HomeScreen(
         pendingFilterNotifier: _pendingHomeFilter,
+        updateInfoNotifier: _updateInfo,
         onUnreadCountChanged: (count) {
           if (mounted && _unreadConversations != count) {
             setState(() {
@@ -65,32 +73,86 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       ),
       const ContactsScreen(),
       const CampaignListScreen(),
-      const AccountScreen(),
+      AccountScreen(updateInfoNotifier: _updateInfo),
     ];
     _notificationTapSubscription =
-        FcmService.onNotificationTap.listen((contactUid) {
+        FcmService.onNotificationTap.listen((data) {
       if (mounted) {
-        _handleNotificationTap(contactUid);
+        _handleNotificationTap(data);
+      }
+    });
+    // Intercepteur 401 global : token expiré ou révoqué côté serveur.
+    // Toute réponse 401 dans ApiService déclenche ce listener → logout
+    // propre + redirection vers LoginScreen sans action utilisateur.
+    _unauthorizedSubscription = ApiService.onUnauthorized.listen((_) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
       }
     });
     _checkUpdate();
+    _initPusher();
+  }
+
+  Future<void> _initPusher() async {
+    final vendorUid = await ApiService().getVendorUid();
+    if (vendorUid.isNotEmpty) {
+      await PusherService().init(vendorUid);
+    }
   }
 
   Future<void> _checkUpdate() async {
     final updateInfo = await ApiService().checkForUpdate();
-    if (mounted) {
-      setState(() => _updateAvailable = updateInfo != null);
-    }
+    if (!mounted) return;
+    // Populating this notifier is what HomeScreen (dialog) and AccountScreen
+    // (settings badge) are listening for.
+    _updateInfo.value = updateInfo;
+    setState(() => _updateAvailable = updateInfo != null);
   }
 
   @override
   void dispose() {
     _notificationTapSubscription?.cancel();
+    _unauthorizedSubscription?.cancel();
     _pendingHomeFilter.dispose();
+    _updateInfo.dispose();
     super.dispose();
   }
 
-  void _handleNotificationTap(String contactUid) async {
+  void _handleNotificationTap(Map<String, String> data) async {
+    final type = data['type'] ?? '';
+    final uid = data['uid'] ?? '';
+    final contactUid = data['contact_uid'] ?? '';
+
+    if (type == 'support_ticket' && uid.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TicketDetailScreen(ticketUid: uid, subject: ''),
+        ),
+      );
+      return;
+    }
+
+    if (type == 'resource') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ResourceListScreen()),
+      );
+      return;
+    }
+
+    if (type == 'campaign') {
+      navigateToTab(3);
+      return;
+    }
+
+    if (contactUid.isEmpty) return;
+
+    _handleChatNotificationTap(contactUid);
+  }
+
+  void _handleChatNotificationTap(String contactUid) async {
     // Show a loading dialog
     showDialog(
       context: context,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,6 +21,40 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// Handles taps on notification action buttons that don't need to open the
+/// app UI (mark as read / inline reply) - runs in a separate background
+/// isolate, same constraints as [firebaseMessagingBackgroundHandler].
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) {
+  _handleBackgroundNotificationAction(response);
+}
+
+Future<void> _handleBackgroundNotificationAction(NotificationResponse response) async {
+  if (response.payload == null) return;
+  try {
+    final data = jsonDecode(response.payload!);
+    final contactUid = (data['contact_uid'] ?? '').toString();
+    if (contactUid.isEmpty) return;
+
+    await ApiService().init();
+
+    if (response.actionId == 'mark_read') {
+      await ApiService().fetchMessages(contactUid);
+    } else if (response.actionId == 'reply') {
+      final replyText = response.input?.trim() ?? '';
+      if (replyText.isEmpty) return;
+      await ApiService().sendMessage(contactUid, replyText);
+    } else {
+      return;
+    }
+
+    final notificationId = contactUid.hashCode.remainder(100000);
+    await FcmService._localNotifications.cancel(notificationId);
+  } catch (e) {
+    if (kDebugMode) print('Error handling background notification action: $e');
+  }
+}
+
 class FcmService {
   static final FcmService _instance = FcmService._internal();
   factory FcmService() => _instance;
@@ -29,10 +64,12 @@ class FcmService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  // Static stream controller for notification taps
-  static final StreamController<String> _notificationTapStreamController =
-      StreamController<String>.broadcast();
-  static Stream<String> get onNotificationTap => _notificationTapStreamController.stream;
+  // Static stream controller for notification taps. Carries {'type', 'contact_uid', 'uid'}
+  // so listeners can route to the right screen for every notification kind
+  // (message/support_ticket/resource/campaign), not just chat messages.
+  static final StreamController<Map<String, String>> _notificationTapStreamController =
+      StreamController<Map<String, String>>.broadcast();
+  static Stream<Map<String, String>> get onNotificationTap => _notificationTapStreamController.stream;
 
   // Track whether Firebase was initialized successfully
   bool _isFirebaseAvailable = false;
@@ -74,18 +111,23 @@ class FcmService {
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (kDebugMode) print('Notification tapped: ${response.payload}');
+        // Action buttons (mark as read / reply) don't open the app - they're
+        // handled entirely in the background isolate, see notificationTapBackground.
+        if (response.actionId != null && response.actionId!.isNotEmpty) return;
         if (response.payload != null) {
           try {
             final data = jsonDecode(response.payload!);
-            final contactUid = data['contact_uid'] ?? '';
-            if (contactUid.isNotEmpty) {
-              _notificationTapStreamController.add(contactUid);
-            }
+            _notificationTapStreamController.add({
+              'type': (data['type'] ?? '').toString(),
+              'contact_uid': (data['contact_uid'] ?? '').toString(),
+              'uid': (data['uid'] ?? '').toString(),
+            });
           } catch (e) {
             if (kDebugMode) print('Error parsing notification payload: $e');
           }
         }
       },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
     // Create the Android notification channel
@@ -123,6 +165,13 @@ class FcmService {
       final title = notification?.title ?? data['title'] ?? 'Nouveau message';
       final body = notification?.body ?? data['body'] ?? 'Vous avez reçu un nouveau message';
       final contactUid = data['contact_uid'] ?? data['contactUid'] ?? '';
+      final type = (data['type'] ?? (contactUid.isNotEmpty ? 'message' : '')).toString();
+      final targetUid = (data['uid'] ?? '').toString();
+      final isMessage = contactUid.isNotEmpty;
+
+      // Generated colored-initial avatar, same hash formula as the in-app
+      // contact list, so the notification icon matches what's shown in-app.
+      final avatarBytes = isMessage ? await _generateAvatarBytes(title) : null;
 
       final androidDetails = AndroidNotificationDetails(
         'whatsclick_messages',
@@ -136,6 +185,24 @@ class FcmService {
         icon: 'ic_launcher_foreground',
         color: const Color(0xFF198754),
         styleInformation: const BigTextStyleInformation(''),
+        largeIcon: avatarBytes != null ? ByteArrayAndroidBitmap(avatarBytes) : null,
+        actions: isMessage
+            ? [
+                const AndroidNotificationAction(
+                  'mark_read',
+                  'Marquer comme lu',
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                ),
+                const AndroidNotificationAction(
+                  'reply',
+                  'Répondre',
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                  inputs: [AndroidNotificationActionInput(label: 'Votre réponse...')],
+                ),
+              ]
+            : null,
       );
 
       final darwinDetails = DarwinNotificationDetails(
@@ -149,21 +216,73 @@ class FcmService {
         iOS: darwinDetails,
       );
 
-      // Use a consistent ID based on contactUid to group/overwrite notifications from the same sender
-      // This prevents notification pile-up / duplicates in the status bar
-      final int notificationId = contactUid.isNotEmpty 
-          ? contactUid.hashCode.remainder(100000) 
-          : 0;
+      // Use a consistent ID so a second notification about the same
+      // contact/resource/ticket/campaign overwrites the first instead of
+      // piling up in the status bar.
+      final String idSource = contactUid.isNotEmpty
+          ? contactUid
+          : (targetUid.isNotEmpty ? targetUid : '$title|$body');
+      final int notificationId = idSource.hashCode.remainder(100000);
 
       await _localNotifications.show(
         notificationId,
         title,
         body,
         details,
-        payload: jsonEncode({'contact_uid': contactUid}),
+        payload: jsonEncode({
+          'type': type,
+          'contact_uid': contactUid,
+          'uid': targetUid,
+        }),
       );
     } catch (e) {
       if (kDebugMode) print('Error showing local notification: $e');
+    }
+  }
+
+  /// Renders a colored-circle initials avatar as PNG bytes, for use as a
+  /// notification's largeIcon. Uses the same hue-from-name-hash formula as
+  /// the in-app contact avatar (see home_screen.dart's _buildAvatar) so the
+  /// generated "logo" matches what the vendor already sees in the app.
+  static Future<Uint8List?> _generateAvatarBytes(String name) async {
+    try {
+      final trimmed = name.trim();
+      final initials = trimmed.isNotEmpty
+          ? trimmed
+              .split(' ')
+              .map((e) => e.isNotEmpty ? e[0] : '')
+              .take(2)
+              .join()
+              .toUpperCase()
+          : 'C';
+      final hash = trimmed.hashCode;
+      final color = HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.8, 0.45).toColor();
+
+      const double size = 128;
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, Paint()..color = color);
+
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: initials,
+          style: const TextStyle(color: Colors.white, fontSize: 52, fontWeight: FontWeight.w700),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+      );
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(size.toInt(), size.toInt());
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      if (kDebugMode) print('Error generating notification avatar: $e');
+      return null;
     }
   }
 
@@ -229,8 +348,13 @@ class FcmService {
           print('Notification opened app: ${message.data}');
         }
         final contactUid = message.data['contact_uid'] ?? message.data['contactUid'] ?? '';
-        if (contactUid.isNotEmpty) {
-          _notificationTapStreamController.add(contactUid);
+        final type = message.data['type'] ?? (contactUid.isNotEmpty ? 'message' : '');
+        if (contactUid.isNotEmpty || (message.data['uid'] ?? '').isNotEmpty) {
+          _notificationTapStreamController.add({
+            'type': type.toString(),
+            'contact_uid': contactUid.toString(),
+            'uid': (message.data['uid'] ?? '').toString(),
+          });
         }
         _messageStreamController.add(message);
       });
@@ -239,9 +363,15 @@ class FcmService {
       _firebaseMessaging!.getInitialMessage().then((RemoteMessage? initialMessage) {
         if (initialMessage != null) {
           final contactUid = initialMessage.data['contact_uid'] ?? initialMessage.data['contactUid'] ?? '';
-          if (contactUid.isNotEmpty) {
+          final type = initialMessage.data['type'] ?? (contactUid.isNotEmpty ? 'message' : '');
+          final uid = (initialMessage.data['uid'] ?? '').toString();
+          if (contactUid.isNotEmpty || uid.isNotEmpty) {
             Future.delayed(const Duration(milliseconds: 1500), () {
-              _notificationTapStreamController.add(contactUid);
+              _notificationTapStreamController.add({
+                'type': type.toString(),
+                'contact_uid': contactUid.toString(),
+                'uid': uid,
+              });
             });
           }
         }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'ticket_detail_screen.dart';
+import 'resource_list_screen.dart';
+import 'campaign_list_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -62,6 +65,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  void _handleNotificationTap(Map<String, dynamic> notif) {
+    final action = (notif['action'] ?? '').toString();
+    if (action.isEmpty || !action.contains(':')) return;
+
+    final parts = action.split(':');
+    final kind = parts.first;
+    final uid = parts.sublist(1).join(':');
+    if (uid.isEmpty) return;
+
+    switch (kind) {
+      case 'support_ticket':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TicketDetailScreen(
+              ticketUid: uid,
+              subject: (notif['title'] ?? '').toString(),
+            ),
+          ),
+        );
+        break;
+      case 'resource':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ResourceListScreen()),
+        );
+        break;
+      case 'campaign':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CampaignListScreen()),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -113,6 +149,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         border: isRead ? null : Border.all(color: _getColorForType(type).withValues(alpha: 0.5), width: 1.5),
                       ),
                       child: ListTile(
+                        onTap: (notif['action'] ?? '').toString().isNotEmpty
+                            ? () => _handleNotificationTap(notif)
+                            : null,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         leading: Container(
                           padding: const EdgeInsets.all(10),
