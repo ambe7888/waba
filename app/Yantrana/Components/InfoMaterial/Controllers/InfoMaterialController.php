@@ -57,7 +57,7 @@ class InfoMaterialController extends BaseController
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'nullable|file|max:10240', // 10MB max
+            'file' => 'nullable|file|max:51200', // 50MB max
         ]);
 
         $path = null;
@@ -69,7 +69,7 @@ class InfoMaterialController extends BaseController
             $originalName = $file->getClientOriginalName();
         }
 
-        InfoMaterialModel::create([
+        $material = InfoMaterialModel::create([
             'status' => 1,
             'title' => $request->title,
             'description' => $request->description ?? '',
@@ -87,6 +87,7 @@ class InfoMaterialController extends BaseController
             'message' => $request->title,
             'type' => 'info',
             'vendors__id' => null,
+            'action' => 'resource:' . $material->_uid,
         ]);
 
         // The record above only makes it show up in the in-app notifications
@@ -97,7 +98,8 @@ class InfoMaterialController extends BaseController
                 try {
                     sendFCMNotification($vendorId, 'Nouvelle ressource disponible', $request->title, [
                         'notification_id' => (string) $notification->_id,
-                        'type' => 'info',
+                        'type' => 'resource',
+                        'uid' => $material->_uid,
                     ]);
                 } catch (\Throwable $th) {
                     \Log::error('Resource notification FCM failed for vendor ' . $vendorId . ': ' . $th->getMessage());
@@ -135,7 +137,7 @@ class InfoMaterialController extends BaseController
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'nullable|file|max:10240', // 10MB max
+            'file' => 'nullable|file|max:51200', // 50MB max
         ]);
 
         $material = InfoMaterialModel::where('_uid', $uid)->firstOrFail();

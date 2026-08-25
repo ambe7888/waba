@@ -1479,6 +1479,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'message' => $notificationMessage,
                 'type' => 'success',
                 'vendors__id' => $campaign->vendors__id,
+                'action' => 'campaign:' . $campaign->_uid,
             ]);
             // Creating the row alone only logs it for the admin notifications
             // list - it was never actually pushed to the vendor's device,
@@ -1488,7 +1489,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 try {
                     sendFCMNotification($campaign->vendors__id, $notificationTitle, $notificationMessage, [
                         'notification_id' => (string) $notification->_id,
-                        'type' => 'success',
+                        'type' => 'campaign',
+                        'uid' => $campaign->_uid,
                     ]);
                 } catch (\Throwable $th) {
                     \Log::error('Campaign completion FCM notification failed: ' . $th->getMessage());
@@ -4774,6 +4776,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     $contactDescription, 
                     $messageBody ?: $messageType, 
                     [
+                        'type' => 'message',
                         'messageType' => $messageType,
                         'contactUid' => $contactUid,
                         'contactWaId' => (string) $waId,

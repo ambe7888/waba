@@ -15,6 +15,7 @@ class VendorNotification extends Model
         'message',
         'type',
         'is_read',
+        'action',
     ];
 
     protected $casts = [

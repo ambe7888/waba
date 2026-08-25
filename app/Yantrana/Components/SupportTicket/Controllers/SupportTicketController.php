@@ -241,6 +241,7 @@ class SupportTicketController extends BaseController
                 'message' => \Illuminate\Support\Str::limit(strip_tags($request->message), 150),
                 'type' => 'info',
                 'vendors__id' => $ticket->vendors__id,
+                'action' => 'support_ticket:' . $ticket->_uid,
             ]);
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
@@ -402,6 +403,7 @@ class SupportTicketController extends BaseController
                 'message' => \Illuminate\Support\Str::limit(strip_tags($request->message), 150),
                 'type' => 'info',
                 'vendors__id' => $ticket->vendors__id,
+                'action' => 'support_ticket:' . $ticket->_uid,
             ]);
         } else {
             // Vendor replied, reopen ticket if it was answered (2)
