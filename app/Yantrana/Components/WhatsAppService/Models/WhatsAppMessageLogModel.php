@@ -27,6 +27,7 @@
 namespace App\Yantrana\Components\WhatsAppService\Models;
 
 use App\Yantrana\Base\BaseModel;
+use App\Yantrana\Components\Contact\Support\ContactMessageStatsSync;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Arr;
 
@@ -44,6 +45,30 @@ class WhatsAppMessageLogModel extends BaseModel
         // incoming/outgoing message on the whole platform - was silently
         // failing and logging a multi-line error, flooding storage/logs
         // with hundreds of MB for a sync nobody consumes.
+
+        // Keep contacts.last_message_at / last_incoming_message_at /
+        // unread_messages_count in step with the log. Hooked here rather
+        // than at each call site so no write path can quietly bypass it -
+        // storeIt() and updateIt() both go through Eloquent, so both fire.
+        // Bulk inserts (storeItAll) do not fire events; the nightly
+        // contacts:backfill-message-columns run repairs that drift.
+        static::created(function ($messageLog) {
+            ContactMessageStatsSync::messageStored(
+                $messageLog->contacts__id,
+                $messageLog->getRawOriginal('messaged_at'),
+                (int) $messageLog->is_incoming_message === 1,
+                $messageLog->status
+            );
+        });
+
+        static::updated(function ($messageLog) {
+            // Only a status change can alter the unread count. Recount
+            // instead of applying a delta: Meta re-delivers the same status
+            // webhook often enough that a delta would drift.
+            if ($messageLog->wasChanged('status') and (int) $messageLog->is_incoming_message === 1) {
+                ContactMessageStatsSync::recomputeUnread($messageLog->contacts__id);
+            }
+        });
     }
 
     /**

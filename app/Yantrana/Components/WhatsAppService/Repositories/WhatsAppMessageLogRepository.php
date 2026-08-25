@@ -205,7 +205,7 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
     public function markAsRead($contact, $vendorId = null)
     {
         $vendorId = $vendorId ?: getVendorId();
-        return $this->primaryModel::where([
+        $updated = $this->primaryModel::where([
             'contacts__id' => $contact->_id,
             'vendors__id' => $vendorId,
             // 'wab_phone_number_id' => (string) getVendorSettings('current_phone_number_id', null, null, $vendorId),
@@ -214,6 +214,14 @@ class WhatsAppMessageLogRepository extends BaseRepository implements WhatsAppMes
         ])->update([
             'status' => 'read',
         ]);
+
+        // A query-builder update fires no model events, so the denormalised
+        // badge on contacts has to be cleared here explicitly. Called
+        // unconditionally rather than only when $updated > 0, so it also
+        // repairs a stale non-zero count when there was nothing left to flip.
+        \App\Yantrana\Components\Contact\Support\ContactMessageStatsSync::markedAllRead($contact->_id);
+
+        return $updated;
     }
 
     /**
