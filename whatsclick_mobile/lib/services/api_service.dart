@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/contact.dart';
@@ -12,6 +14,7 @@ import '../models/chat_message.dart';
 import '../models/resource.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'pusher_service.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -78,7 +81,7 @@ class ApiService {
             .post(url, headers: _getHeaders())
             .timeout(const Duration(seconds: 10));
       } catch (e) {
-        if (debug) debugPrint('Logout revoke Error: $e');
+        if (kDebugMode) debugPrint('Logout revoke Error: $e');
       }
     }
 
@@ -88,6 +91,9 @@ class ApiService {
     await prefs.remove('auth_token');
     await prefs.remove('user_role_id');
     await prefs.remove('user_permissions');
+    
+    // Disconnect websocket
+    await PusherService().disconnect();
   }
 
   /// Helper pour vérifier une permission spécifique
@@ -122,6 +128,62 @@ class ApiService {
     return headers;
   }
 
+  /// Authorizes a Pusher private channel subscription. The
+  /// api/broadcasting/auth route is special-cased server-side
+  /// (YesTokenAuth::verifyToken()) to read the token from an `auth_token`
+  /// body/query field instead of the Authorization header - a normal
+  /// Bearer header is ignored on this one route - so the token has to be
+  /// sent that way here, not via _getHeaders(). Returns the raw
+  /// `{auth: "..."}` payload Pusher expects, or null on failure.
+  Future<Map<String, dynamic>?> authorizePusherChannel(String channelName, String socketId) async {
+    final url = Uri.parse('${baseApiUrl}broadcasting/auth');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'channel_name': channelName,
+          'socket_id': socketId,
+          'auth_token': _token,
+        }),
+      ).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) return body;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Pusher channel authorization error: $e');
+    }
+    return null;
+  }
+
+  // ─────────────────────────────────────────────
+  // Intercepteur 401 global — token expiré/révoqué
+  // ─────────────────────────────────────────────
+
+  /// Stream émettant un événement quand le serveur répond 401.
+  /// MainLayoutScreen écoute ce stream pour rediriger vers LoginScreen.
+  static final StreamController<void> _unauthorizedController =
+      StreamController<void>.broadcast();
+  static Stream<void> get onUnauthorized => _unauthorizedController.stream;
+
+  /// À appeler après chaque réponse HTTP authentifiée.
+  /// Si le code est 401, nettoie le token et notifie l'UI.
+  void _checkUnauthorized(http.Response response) {
+    if (response.statusCode == 401) {
+      // Nettoyage local sans appel serveur (le token est déjà invalide)
+      _token = null;
+      _cachedRoleId = null;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.remove('auth_token');
+        prefs.remove('user_role_id');
+        prefs.remove('user_permissions');
+      });
+      _unauthorizedController.add(null);
+    }
+  }
+
+
   /// Register a new vendor
   Future<Map<String, dynamic>> registerVendor(Map<String, dynamic> data) async {
     final url = Uri.parse('${baseApiUrl}register/vendor');
@@ -131,6 +193,8 @@ class ApiService {
         headers: _getHeaders(requireAuth: false),
         body: jsonEncode(data),
       );
+
+      _checkUnauthorized(response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);
@@ -164,6 +228,8 @@ class ApiService {
           'password': password,
         }),
       );
+
+      _checkUnauthorized(response);
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -212,7 +278,7 @@ class ApiService {
       }
       return {'success': false, 'two_factor': false, 'message': 'Erreur serveur (${response.statusCode})'};
     } catch (e) {
-      if (debug) debugPrint('Login Error: $e');
+      if (kDebugMode) debugPrint('Login Error: $e');
       return {'success': false, 'two_factor': false, 'message': 'Erreur réseau: $e'};
     }
   }
@@ -233,6 +299,8 @@ class ApiService {
           'code': code,
         }),
       );
+
+      _checkUnauthorized(response);
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -259,7 +327,7 @@ class ApiService {
       }
       return {'success': false, 'message': 'Erreur de connexion.'};
     } catch (e) {
-      if (debug) debugPrint('2FA Verification Error: $e');
+      if (kDebugMode) debugPrint('2FA Verification Error: $e');
       return {'success': false, 'message': 'Erreur de connexion.'};
     }
   }
@@ -294,10 +362,11 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
-      if (debug) {
+      if (kDebugMode) {
         debugPrint(
             'fetchContacts status=${response.statusCode} body=${response.body}');
       }
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
 
@@ -337,7 +406,7 @@ class ApiService {
       }
       return {'contacts': <Contact>[], 'nextPage': 0};
     } catch (e, stack) {
-      if (debug) debugPrint('Fetch Contacts Error: $e\n$stack');
+      if (kDebugMode) debugPrint('Fetch Contacts Error: $e\n$stack');
       // Signal a network failure distinctly from "genuinely zero contacts"
       // so callers don't wipe an already-shown list to a false empty state.
       return {'contacts': <Contact>[], 'nextPage': 0, 'error': true};
@@ -361,6 +430,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats$query');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -384,7 +454,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Dashboard Error: $e');
+      if (kDebugMode) debugPrint('Fetch Dashboard Error: $e');
       return null;
     }
   }
@@ -395,12 +465,13 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ai-settings');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch AI Settings Error: $e');
+      if (kDebugMode) debugPrint('Fetch AI Settings Error: $e');
       return null;
     }
   }
@@ -436,7 +507,7 @@ class ApiService {
       }
       return {'success': false, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Save AI Settings Error: $e');
+      if (kDebugMode) debugPrint('Save AI Settings Error: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -446,12 +517,13 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/shop-settings');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Shop Settings Error: $e');
+      if (kDebugMode) debugPrint('Fetch Shop Settings Error: $e');
       return null;
     }
   }
@@ -483,7 +555,7 @@ class ApiService {
       }
       return {'success': false, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Save Shop Settings Error: $e');
+      if (kDebugMode) debugPrint('Save Shop Settings Error: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -551,7 +623,7 @@ class ApiService {
       }
       return {'success': false, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Add Product Error: $e');
+      if (kDebugMode) debugPrint('Add Product Error: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -561,13 +633,14 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/delete/$productUid');
     try {
       final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Product Error: $e');
+      if (kDebugMode) debugPrint('Delete Product Error: $e');
       return false;
     }
   }
@@ -585,7 +658,7 @@ class ApiService {
       }
       return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Échec de la synchronisation.'};
     } catch (e) {
-      if (debug) debugPrint('Sync Products Error: $e');
+      if (kDebugMode) debugPrint('Sync Products Error: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -595,6 +668,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -606,7 +680,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Categories Error: $e');
+      if (kDebugMode) debugPrint('Fetch Categories Error: $e');
       return [];
     }
   }
@@ -623,7 +697,7 @@ class ApiService {
       }
       return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'ajout de la catégorie.'};
     } catch (e) {
-      if (debug) debugPrint('Add Category Error: $e');
+      if (kDebugMode) debugPrint('Add Category Error: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -632,13 +706,14 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories/delete/$categoryUid');
     try {
       final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Category Error: $e');
+      if (kDebugMode) debugPrint('Delete Category Error: $e');
       return false;
     }
   }
@@ -648,6 +723,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/settings/toggle-bot');
     try {
       final response = await http.post(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -656,7 +732,7 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Toggle Bot Error: $e');
+      if (kDebugMode) debugPrint('Toggle Bot Error: $e');
       return false;
     }
   }
@@ -666,7 +742,8 @@ class ApiService {
   Future<Map<String, int>> fetchUnreadCounts() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/chat/unread-count');
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -680,7 +757,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      if (debug) debugPrint('Fetch Unread Counts Error: $e');
+      if (kDebugMode) debugPrint('Fetch Unread Counts Error: $e');
     }
     return {'unreadMessagesCount': 0, 'myAssignedUnreadMessagesCount': 0};
   }
@@ -689,7 +766,8 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchSupportTickets({int page = 1}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets?page=$page');
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -698,7 +776,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Tickets Error: $e');
+      if (kDebugMode) debugPrint('Fetch Tickets Error: $e');
       return null;
     }
   }
@@ -724,6 +802,7 @@ class ApiService {
         request.files.add(await http.MultipartFile.fromPath('attachment', attachment.path));
         final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
         final response = await http.Response.fromStream(streamedResponse);
+        _checkUnauthorized(response);
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body);
           return body['reaction'] == 1;
@@ -738,13 +817,14 @@ class ApiService {
           'description': description,
         }),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Create Ticket Error: $e');
+      if (kDebugMode) debugPrint('Create Ticket Error: $e');
       return false;
     }
   }
@@ -755,6 +835,7 @@ class ApiService {
 
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['reaction'] == 1) {
@@ -764,14 +845,14 @@ class ApiService {
       }
       throw Exception('HTTP ${response.statusCode}: ${response.body}');
     } catch (e) {
-      if (debug) debugPrint('Fetch Ticket Details Error: $e');
+      if (kDebugMode) debugPrint('Fetch Ticket Details Error: $e');
       rethrow; // Rethrow to display in UI
     }
   }
 
   /// Reply to a support ticket
   Future<bool> replyToSupportTicket(String uid, String message,
-      {List<File>? attachments}) async {
+      {List<PlatformFile>? attachments}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets/$uid/reply');
 
     try {
@@ -784,7 +865,13 @@ class ApiService {
           'Accept': 'application/json',
         });
         request.fields['message'] = message;
-        for (var file in attachments) {
+        for (var picked in attachments) {
+          if (picked.path == null) continue;
+          File file = File(picked.path!);
+          // Keep the real original name throughout - picked.path is a local
+          // cache path (often a UUID-named temp file on Android), never the
+          // name the vendor actually gave the file.
+          String originalName = picked.name;
           final length = await file.length();
           File fileToUpload = file;
 
@@ -812,29 +899,31 @@ class ApiService {
                   fileToUpload = File(compressedFile.path);
                 }
               } catch (e) {
-                if (debug) debugPrint('Compression error: $e');
+                if (kDebugMode) debugPrint('Compression error: $e');
               }
             }
           }
 
           final finalLength = await fileToUpload.length();
           if (finalLength > 10485760) {
-            if (debug) {
+            if (kDebugMode) {
               debugPrint('File too large even after compression: $finalLength');
             }
             return false;
           }
           request.files.add(await http.MultipartFile.fromPath(
-              'attachments[]', fileToUpload.path));
+              'attachments[]', fileToUpload.path,
+              filename: originalName));
         }
         final streamedResponse =
             await request.send().timeout(const Duration(seconds: 60));
         final response = await http.Response.fromStream(streamedResponse);
+        _checkUnauthorized(response);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           return data['reaction'] == 1;
         } else {
-          if (debug) {
+          if (kDebugMode) {
             debugPrint(
                 'Upload failed: ${response.statusCode} - ${response.body}');
           }
@@ -846,6 +935,7 @@ class ApiService {
           headers: _getHeaders(),
           body: jsonEncode({'message': message}),
         );
+        _checkUnauthorized(response);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           return data['reaction'] == 1;
@@ -853,7 +943,7 @@ class ApiService {
         return false;
       }
     } catch (e) {
-      if (debug) debugPrint('Reply Ticket Error: $e');
+      if (kDebugMode) debugPrint('Reply Ticket Error: $e');
       return false;
     }
   }
@@ -871,6 +961,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final reaction = body['reaction'];
@@ -893,14 +984,14 @@ class ApiService {
           }
         }
       } else {
-        if (debug) {
+        if (kDebugMode) {
           debugPrint(
               'Fetch Messages API Error: ${response.statusCode} ${response.body}');
         }
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Messages Error: $e');
+      if (kDebugMode) debugPrint('Fetch Messages Error: $e');
       return null;
     }
   }
@@ -917,6 +1008,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -939,7 +1031,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Older Messages Error: $e');
+      if (kDebugMode) debugPrint('Fetch Older Messages Error: $e');
       return null;
     }
   }
@@ -962,17 +1054,19 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug) {
+      if (kDebugMode) {
         debugPrint(
             'Send Message API Error: ${response.statusCode} ${response.body}');
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Send Message Error: $e');
+      if (kDebugMode) debugPrint('Send Message Error: $e');
       return false;
     }
   }
@@ -992,13 +1086,15 @@ class ApiService {
         }),
       );
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Register Device Token Error: $e');
+      if (kDebugMode) debugPrint('Register Device Token Error: $e');
       return false;
     }
   }
@@ -1008,6 +1104,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/info-materials');
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final reaction = body['reaction'];
@@ -1020,7 +1117,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Resources Error: $e');
+      if (kDebugMode) debugPrint('Fetch Resources Error: $e');
       return [];
     }
   }
@@ -1031,6 +1128,7 @@ class ApiService {
         Uri.parse('${baseApiUrl}vendor/contacts/$contactUid/get-update-data');
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1039,7 +1137,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Contact Details Error: $e');
+      if (kDebugMode) debugPrint('Fetch Contact Details Error: $e');
       return null;
     }
   }
@@ -1074,6 +1172,8 @@ class ApiService {
         body: jsonEncode(bodyMap),
       );
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         // reaction 1 = success, reaction 14 = "nothing to update" (already at desired state = also success)
@@ -1081,7 +1181,7 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Contact Details Error: $e');
+      if (kDebugMode) debugPrint('Update Contact Details Error: $e');
       return false;
     }
   }
@@ -1092,6 +1192,7 @@ class ApiService {
         '${baseApiUrl}vendor/whatsapp/contact/chat-box-data/$contactUid');
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1100,7 +1201,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Labels and Agents Error: $e');
+      if (kDebugMode) debugPrint('Fetch Labels and Agents Error: $e');
       return null;
     }
   }
@@ -1119,13 +1220,14 @@ class ApiService {
           'contact_labels': labelIds,
         }),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Assign Contact Labels Error: $e');
+      if (kDebugMode) debugPrint('Assign Contact Labels Error: $e');
       return false;
     }
   }
@@ -1143,13 +1245,14 @@ class ApiService {
           'assigned_users_uid': userUid,
         }),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Assign Contact User Error: $e');
+      if (kDebugMode) debugPrint('Assign Contact User Error: $e');
       return false;
     }
   }
@@ -1167,13 +1270,14 @@ class ApiService {
           'contact_notes': notes,
         }),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Contact Notes Error: $e');
+      if (kDebugMode) debugPrint('Update Contact Notes Error: $e');
       return false;
     }
   }
@@ -1187,13 +1291,14 @@ class ApiService {
         url,
         headers: _getHeaders(),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Block Contact Error: $e');
+      if (kDebugMode) debugPrint('Block Contact Error: $e');
       return false;
     }
   }
@@ -1207,13 +1312,14 @@ class ApiService {
         url,
         headers: _getHeaders(),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Unblock Contact Error: $e');
+      if (kDebugMode) debugPrint('Unblock Contact Error: $e');
       return false;
     }
   }
@@ -1225,6 +1331,7 @@ class ApiService {
         '${baseApiUrl}vendor/bot-replies/$contactUid/all-active-bots');
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1236,7 +1343,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Quick Replies Error: $e');
+      if (kDebugMode) debugPrint('Fetch Quick Replies Error: $e');
       return [];
     }
   }
@@ -1254,13 +1361,14 @@ class ApiService {
           'bot_id': botId,
         }),
       );
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Send Quick Reply Error: $e');
+      if (kDebugMode) debugPrint('Send Quick Reply Error: $e');
       return false;
     }
   }
@@ -1273,6 +1381,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/24h-campaign/eligible-contacts');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1281,7 +1390,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Eligible 24h Contacts Error: $e');
+      if (kDebugMode) debugPrint('Fetch Eligible 24h Contacts Error: $e');
       return null;
     }
   }
@@ -1293,6 +1402,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/non-template-message-presets/all/list-data?length=-1&draw=1');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final list = body['data'] as List?;
@@ -1300,7 +1410,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Non-Template Message Presets Error: $e');
+      if (kDebugMode) debugPrint('Fetch Non-Template Message Presets Error: $e');
       return [];
     }
   }
@@ -1312,10 +1422,17 @@ class ApiService {
   // a couple of times on an actual failure (bad status, exception, missing
   // data) before giving up; a real empty templates list from a successful
   // response is returned immediately, untouched.
+  /// Reason the last fetchTemplates() call failed, if any (after retries
+  /// are exhausted) — surfaced in the UI instead of just silently showing
+  /// an empty template list.
+  String? lastFetchTemplatesError;
+
   Future<List<Map<String, dynamic>>> fetchTemplates({int retriesLeft = 2}) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates');
+    if (retriesLeft == 2) lastFetchTemplatesError = null;
     try {
-      final response = await http.get(url, headers: _getHeaders());
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1324,6 +1441,8 @@ class ApiService {
             return List<Map<String, dynamic>>.from(list);
           }
         }
+      } else {
+        lastFetchTemplatesError = 'HTTP ${response.statusCode}';
       }
       if (retriesLeft > 0) {
         await Future.delayed(const Duration(seconds: 2));
@@ -1331,7 +1450,8 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Templates Error: $e');
+      if (kDebugMode) debugPrint('Fetch Templates Error: $e');
+      lastFetchTemplatesError = e.toString();
       if (retriesLeft > 0) {
         await Future.delayed(const Duration(seconds: 2));
         return fetchTemplates(retriesLeft: retriesLeft - 1);
@@ -1357,8 +1477,73 @@ class ApiService {
       final message = body['data']?['message']?.toString() ?? body['message']?.toString();
       return (url: null, message: (message != null && message.isNotEmpty) ? message : null);
     } catch (e) {
-      if (debug) debugPrint('Fetch Embedded Signup URL Error: $e');
+      if (kDebugMode) debugPrint('Fetch Embedded Signup URL Error: $e');
       return (url: null, message: null);
+    }
+  }
+
+  /// Aggregated WhatsApp API details (phone number, business profile,
+  /// health/verification, test contact) for the "Paramètres WhatsApp API"
+  /// screen. Reads cached data only - fast, no live Meta calls.
+  Future<Map<String, dynamic>?> fetchWhatsAppApiDetails() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/api-details');
+    try {
+      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['reaction'] == 1 && body['data'] is Map) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Fetch WhatsApp API Details Error: $e');
+    }
+    return null;
+  }
+
+  /// Live-refresh WhatsApp API details from Meta, mirrors the web
+  /// dashboard's "Actualiser" button. Returns the same shape as
+  /// [fetchWhatsAppApiDetails], or null with [message] set on failure.
+  Future<({Map<String, dynamic>? data, String? message})> refreshWhatsAppApiDetails() async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/api-details/refresh');
+    try {
+      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 30));
+      _checkUnauthorized(response);
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1 && body['data'] is Map) {
+        return (data: Map<String, dynamic>.from(body['data']), message: null);
+      }
+      final message = body['data']?['message']?.toString() ?? body['message']?.toString();
+      return (data: null, message: (message != null && message.isNotEmpty) ? message : null);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Refresh WhatsApp API Details Error: $e');
+      return (data: null, message: null);
+    }
+  }
+
+  /// Save the mandatory WhatsApp test contact number (used for 24h campaign
+  /// message tests). Returns the refreshed details on success.
+  Future<({Map<String, dynamic>? data, String? message})> saveWhatsAppTestContact(String testContact) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/test-contact');
+    try {
+      final response = await http.post(
+        url,
+        headers: _getHeaders(),
+        body: jsonEncode({'test_recipient_contact': testContact}),
+      ).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1 && body['data'] is Map) {
+        return (data: Map<String, dynamic>.from(body['data']), message: null);
+      }
+      final message = body['errors']?['test_recipient_contact']?[0]?.toString() ??
+          body['data']?['message']?.toString() ??
+          body['message']?.toString();
+      return (data: null, message: (message != null && message.isNotEmpty) ? message : null);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Save WhatsApp Test Contact Error: $e');
+      return (data: null, message: null);
     }
   }
 
@@ -1370,6 +1555,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/all');
     try {
       final response = await http.get(url, headers: _getHeaders());
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1381,7 +1567,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch All Templates Error: $e');
+      if (kDebugMode) debugPrint('Fetch All Templates Error: $e');
       return [];
     }
   }
@@ -1422,7 +1608,7 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Send Template Message Error: $e');
+      if (kDebugMode) debugPrint('Send Template Message Error: $e');
       return false;
     }
   }
@@ -1435,7 +1621,7 @@ class ApiService {
       final token = _token ??
           (await SharedPreferences.getInstance()).getString('auth_token');
       if (token == null || token.isEmpty) {
-        if (debug) debugPrint('Upload Temp Media Error: token manquant');
+        if (kDebugMode) debugPrint('Upload Temp Media Error: token manquant');
         return null;
       }
       final request = http.MultipartRequest('POST', url);
@@ -1468,7 +1654,7 @@ class ApiService {
         } else {
           mimeType = 'application/pdf';
         }
-        if (debug) {
+        if (kDebugMode) {
           debugPrint(
               'Upload Temp Media: MIME fallback -> $mimeType (mediaType=$mediaType, path=${file.path})');
         }
@@ -1487,6 +1673,7 @@ class ApiService {
           await request.send().timeout(const Duration(seconds: 45));
       final responseBody = await response.stream.bytesToString();
       debugPrint('Upload Temp Media [${response.statusCode}]: $responseBody');
+      if (response.statusCode == 401) { logout(); }
 
       if (response.statusCode == 200) {
         final body = jsonDecode(responseBody);
@@ -1499,20 +1686,20 @@ class ApiService {
             body['message'] ??
             'Erreur serveur (reaction != 1)';
         lastUploadError = msg is String ? msg : msg.toString();
-        if (debug) {
+        if (kDebugMode) {
           debugPrint('Upload Temp Media Server Error: $lastUploadError');
         }
       } else {
         lastUploadError = 'HTTP ${response.statusCode}';
       }
-      if (debug) {
+      if (kDebugMode) {
         debugPrint(
             'Upload Temp Media API Error: status=${response.statusCode}');
       }
       return null;
     } catch (e) {
       lastUploadError = e.toString();
-      if (debug) debugPrint('Upload Temp Media Exception: $e');
+      if (kDebugMode) debugPrint('Upload Temp Media Exception: $e');
       return null;
     }
   }
@@ -1541,32 +1728,46 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 30));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
-      if (debug) {
+      if (kDebugMode) {
         debugPrint(
             'Send Media Message API Error: ${response.statusCode} ${response.body}');
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Send Media Message Error: $e');
+      if (kDebugMode) debugPrint('Send Media Message Error: $e');
       return false;
     }
   }
 
-  /// Fetch campaign list for mobile
-  Future<List<Map<String, dynamic>>> fetchCampaigns({bool showArchived = false}) async {
-    final url = Uri.parse('${baseApiUrl}vendor/campaign-list${showArchived ? '?show_archived=1' : ''}');
+  /// Reason the last fetchCampaigns() call failed, if any — surfaced in the
+  /// UI instead of just silently showing an empty list.
+  String? lastFetchCampaignsError;
+
+  /// Fetch campaign list for mobile, one page at a time. The backend
+  /// (CampaignRepository::fetchCampaignListPaginatedData()) already paginates
+  /// at 100/page and reads Laravel's standard `?page=` query param - this
+  /// was just never threaded through from the app before, so every screen
+  /// open loaded every campaign the vendor ever had in one shot.
+  /// Returns `{campaigns, nextPage, error}` - nextPage is 0 when there's
+  /// nothing more to load.
+  Future<Map<String, dynamic>> fetchCampaigns({bool showArchived = false, int page = 1}) async {
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/campaign-list?page=$page${showArchived ? '&show_archived=1' : ''}');
+    lastFetchCampaignsError = null;
     try {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (debug) debugPrint('fetchCampaigns status: ${response.statusCode}');
+      if (kDebugMode) debugPrint('fetchCampaigns status: ${response.statusCode}');
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        if (debug) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
+        if (kDebugMode) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
 
         // 1. Standard API response (reaction == 1) or the "external API"
         // convention (result == 'success') — apiGetCampaignList() is shared
@@ -1574,33 +1775,54 @@ class ApiService {
         // instead of this app's usual reaction/data.
         if (body['reaction'] == 1 || body['result'] == 'success') {
           final raw = body['data']?['campaignList'];
-          if (debug) {
+          if (kDebugMode) {
             debugPrint('fetchCampaigns campaignList type: ${raw.runtimeType}');
           }
+          // Laravel paginator shape: {data:[...], current_page, last_page, ...}
           if (raw is Map && raw['data'] is List) {
-            return List<Map<String, dynamic>>.from(raw['data']);
+            final currentPage = (raw['current_page'] as num?)?.toInt() ?? page;
+            final lastPage = (raw['last_page'] as num?)?.toInt() ?? currentPage;
+            return {
+              'campaigns': List<Map<String, dynamic>>.from(raw['data']),
+              'nextPage': currentPage < lastPage ? currentPage + 1 : 0,
+              'error': false,
+            };
           }
           if (raw is List) {
-            return List<Map<String, dynamic>>.from(raw);
+            return {
+              'campaigns': List<Map<String, dynamic>>.from(raw),
+              'nextPage': 0,
+              'error': false,
+            };
           }
         }
 
         // 2. Datatable direct response
         if (body['data'] is List) {
-          return List<Map<String, dynamic>>.from(body['data']);
+          return {
+            'campaigns': List<Map<String, dynamic>>.from(body['data']),
+            'nextPage': 0,
+            'error': false,
+          };
         }
 
         // 3. Simple list response
         if (body is List) {
-          return List<Map<String, dynamic>>.from(body);
+          return {
+            'campaigns': List<Map<String, dynamic>>.from(body),
+            'nextPage': 0,
+            'error': false,
+          };
         }
       } else {
-        if (debug) debugPrint('fetchCampaigns error body: ${response.body}');
+        if (kDebugMode) debugPrint('fetchCampaigns error body: ${response.body}');
+        lastFetchCampaignsError = 'HTTP ${response.statusCode}';
       }
-      return [];
+      return {'campaigns': <Map<String, dynamic>>[], 'nextPage': 0, 'error': true};
     } catch (e) {
-      if (debug) debugPrint('Fetch Campaigns Error: $e');
-      return [];
+      if (kDebugMode) debugPrint('Fetch Campaigns Error: $e');
+      lastFetchCampaignsError = e.toString();
+      return {'campaigns': <Map<String, dynamic>>[], 'nextPage': 0, 'error': true};
     }
   }
 
@@ -1609,6 +1831,7 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}app-version');
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final latestVersion = data['version']?.toString() ?? '1.0.0';
@@ -1623,7 +1846,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      if (debug) debugPrint('Check for update error: $e');
+      if (kDebugMode) debugPrint('Check for update error: $e');
     }
     return null;
   }
@@ -1661,6 +1884,8 @@ class ApiService {
         }),
       );
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1669,7 +1894,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Create Contact Label Error: $e');
+      if (kDebugMode) debugPrint('Create Contact Label Error: $e');
       return null;
     }
   }
@@ -1686,6 +1911,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1700,7 +1926,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Products Error: $e');
+      if (kDebugMode) debugPrint('Fetch Products Error: $e');
       return [];
     }
   }
@@ -1720,13 +1946,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Send Product Message Error: $e');
+      if (kDebugMode) debugPrint('Send Product Message Error: $e');
       return false;
     }
   }
@@ -1757,6 +1985,8 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return {
@@ -1771,7 +2001,7 @@ class ApiService {
         'message': body['data']?['message'] ?? body['message'] ?? 'Erreur lors de la création.',
       };
     } catch (e) {
-      if (debug) debugPrint('Create Manual Order Error: $e');
+      if (kDebugMode) debugPrint('Create Manual Order Error: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1786,18 +2016,23 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders');
     try {
       final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final orders = body['orders'] as List?;
         return {
           'is_feature_available': body['is_feature_available'] == true,
           'orders': orders != null ? List<Map<String, dynamic>>.from(orders) : <Map<String, dynamic>>[],
+          'error': false,
         };
       }
-      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[]};
+      // Distinguish a real server answer ("feature not enabled") from a
+      // failed request - both used to collapse to the same
+      // is_feature_available:false, showing the wrong message to the user.
+      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[], 'error': true};
     } catch (e) {
-      if (debug) debugPrint('Fetch All Orders Error: $e');
-      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[]};
+      if (kDebugMode) debugPrint('Fetch All Orders Error: $e');
+      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[], 'error': true};
     }
   }
 
@@ -1808,6 +2043,8 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+
+      _checkUnauthorized(response);
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1820,7 +2057,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Contact Orders Error: $e');
+      if (kDebugMode) debugPrint('Fetch Contact Orders Error: $e');
       return [];
     }
   }
@@ -1837,13 +2074,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Order Status Error: $e');
+      if (kDebugMode) debugPrint('Update Order Status Error: $e');
       return false;
     }
   }
@@ -1855,13 +2094,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['success'] ?? body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Order Error: $e');
+      if (kDebugMode) debugPrint('Delete Order Error: $e');
       return false;
     }
   }
@@ -1873,6 +2113,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1884,7 +2125,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Canned Replies Error: $e');
+      if (kDebugMode) debugPrint('Fetch Canned Replies Error: $e');
       return [];
     }
   }
@@ -1909,6 +2150,8 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1917,7 +2160,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Save Canned Reply Error: $e');
+      if (kDebugMode) debugPrint('Save Canned Reply Error: $e');
       return null;
     }
   }
@@ -1929,13 +2172,14 @@ class ApiService {
       final response = await http
           .delete(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Canned Reply Error: $e');
+      if (kDebugMode) debugPrint('Delete Canned Reply Error: $e');
       return false;
     }
   }
@@ -1947,11 +2191,12 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (debug) {
+      if (kDebugMode) {
         debugPrint('fetchContactGroups status: ${response.statusCode}');
       }
       // Log FULL body to diagnose production issue
-      if (debug) debugPrint('fetchContactGroups FULL body: ${response.body}');
+      if (kDebugMode) debugPrint('fetchContactGroups FULL body: ${response.body}');
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -1966,7 +2211,7 @@ class ApiService {
               data?['contactGroups']?['data'] ??
               data?['contactGroups'] ??
               data?['data'];
-          if (debug) {
+          if (kDebugMode) {
             debugPrint(
                 'fetchContactGroups resolved list type: ${list?.runtimeType}, length: ${list is List ? (list).length : "N/A"}');
           }
@@ -1977,7 +2222,7 @@ class ApiService {
           if (data is Map) {
             for (final val in data.values) {
               if (val is List && val.isNotEmpty) {
-                if (debug) {
+                if (kDebugMode) {
                   debugPrint(
                       'fetchContactGroups found list in data values: length ${val.length}');
                 }
@@ -1988,7 +2233,7 @@ class ApiService {
               if (val is Map) {
                 for (final innerVal in val.values) {
                   if (innerVal is List && innerVal.isNotEmpty) {
-                    if (debug) {
+                    if (kDebugMode) {
                       debugPrint(
                           'fetchContactGroups found nested list: length ${innerVal.length}');
                     }
@@ -2004,7 +2249,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Contact Groups Error: $e');
+      if (kDebugMode) debugPrint('Fetch Contact Groups Error: $e');
       return [];
     }
   }
@@ -2017,6 +2262,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2028,7 +2274,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Contact Labels Error: $e');
+      if (kDebugMode) debugPrint('Fetch Contact Labels Error: $e');
       return [];
     }
   }
@@ -2041,6 +2287,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 30));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2054,7 +2301,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch All Contacts Simple Error: $e');
+      if (kDebugMode) debugPrint('Fetch All Contacts Simple Error: $e');
       return [];
     }
   }
@@ -2066,7 +2313,8 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (debug) debugPrint('fetchAudiences status: ${response.statusCode}');
+      if (kDebugMode) debugPrint('fetchAudiences status: ${response.statusCode}');
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final list = body['data'] as List?;
@@ -2076,7 +2324,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Audiences Error: $e');
+      if (kDebugMode) debugPrint('Fetch Audiences Error: $e');
       return [];
     }
   }
@@ -2088,6 +2336,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2099,7 +2348,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch All Labels Error: $e');
+      if (kDebugMode) debugPrint('Fetch All Labels Error: $e');
       return [];
     }
   }
@@ -2146,7 +2395,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Create Audience Error: $e');
+      if (kDebugMode) debugPrint('Create Audience Error: $e');
       return null;
     }
   }
@@ -2158,6 +2407,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2169,7 +2419,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Simple Contacts Error: $e');
+      if (kDebugMode) debugPrint('Fetch Simple Contacts Error: $e');
       return [];
     }
   }
@@ -2188,13 +2438,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Create Contact Group Error: $e');
+      if (kDebugMode) debugPrint('Create Contact Group Error: $e');
       return false;
     }
   }
@@ -2211,13 +2463,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Contact Group Error: $e');
+      if (kDebugMode) debugPrint('Delete Contact Group Error: $e');
       return false;
     }
   }
@@ -2233,13 +2487,14 @@ class ApiService {
             body: jsonEncode(data),
           )
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1; // 1 means success usually
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Create Contact Error: $e');
+      if (kDebugMode) debugPrint('Create Contact Error: $e');
       return false;
     }
   }
@@ -2255,13 +2510,14 @@ class ApiService {
             body: jsonEncode(data),
           )
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Contact Error: $e');
+      if (kDebugMode) debugPrint('Update Contact Error: $e');
       return false;
     }
   }
@@ -2276,13 +2532,14 @@ class ApiService {
             headers: _getHeaders(),
           )
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Contact Error: $e');
+      if (kDebugMode) debugPrint('Delete Contact Error: $e');
       return false;
     }
   }
@@ -2305,13 +2562,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Assign Groups Error: $e');
+      if (kDebugMode) debugPrint('Assign Groups Error: $e');
       return false;
     }
   }
@@ -2334,13 +2593,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Unassign Groups Error: $e');
+      if (kDebugMode) debugPrint('Unassign Groups Error: $e');
       return false;
     }
   }
@@ -2353,6 +2614,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2366,7 +2628,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Group Contacts Error: $e');
+      if (kDebugMode) debugPrint('Fetch Group Contacts Error: $e');
       return [];
     }
   }
@@ -2501,7 +2763,7 @@ class ApiService {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      if (debug) debugPrint('Create Campaign [${response.statusCode}]: ${response.body}');
+      if (kDebugMode) debugPrint('Create Campaign [${response.statusCode}]: ${response.body}');
 
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
@@ -2525,7 +2787,7 @@ class ApiService {
       }
       return {'reaction': body['reaction'] ?? 2, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Create Campaign Error: $e');
+      if (kDebugMode) debugPrint('Create Campaign Error: $e');
       return {'reaction': 2, 'message': e.toString()};
     }
   }
@@ -2545,7 +2807,7 @@ class ApiService {
       final body = jsonDecode(response.body);
       return (reaction: (body['reaction'] as num?)?.toInt() ?? 2, message: body['message']?.toString());
     } catch (e) {
-      if (debug) debugPrint('Sync Templates Error: $e');
+      if (kDebugMode) debugPrint('Sync Templates Error: $e');
       return (reaction: 2, message: null);
     }
   }
@@ -2569,7 +2831,7 @@ class ApiService {
       lastTemplateDeleteError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Template Error: $e');
+      if (kDebugMode) debugPrint('Delete Template Error: $e');
       lastTemplateDeleteError = e.toString();
       return false;
     }
@@ -2588,6 +2850,8 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 35));
 
+      _checkUnauthorized(response);
+
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2601,7 +2865,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Schedule Campaign Error: $e');
+      if (kDebugMode) debugPrint('Schedule Campaign Error: $e');
       return null;
     }
   }
@@ -2615,6 +2879,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 25));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2629,7 +2894,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Campaign Dashboard Error: $e');
+      if (kDebugMode) debugPrint('Fetch Campaign Dashboard Error: $e');
       return null;
     }
   }
@@ -2648,6 +2913,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 25));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['data'] != null && body['data'] is List) {
@@ -2656,7 +2922,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Campaign Contacts Error: $e');
+      if (kDebugMode) debugPrint('Fetch Campaign Contacts Error: $e');
       return [];
     }
   }
@@ -2695,11 +2961,11 @@ class ApiService {
       } else {
         lastTemplateCreateError = 'HTTP ${response.statusCode}';
       }
-      if (debug) debugPrint('Create Template failed: $lastTemplateCreateError — body: ${response.body}');
+      if (kDebugMode) debugPrint('Create Template failed: $lastTemplateCreateError — body: ${response.body}');
       return null;
     } catch (e) {
       lastTemplateCreateError = e.toString();
-      if (debug) debugPrint('Create Template Error: $e');
+      if (kDebugMode) debugPrint('Create Template Error: $e');
       return null;
     }
   }
@@ -2712,6 +2978,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2721,7 +2988,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (debug) debugPrint('Fetch Subscription History Error: $e');
+      if (kDebugMode) debugPrint('Fetch Subscription History Error: $e');
       return [];
     }
   }
@@ -2733,6 +3000,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1) {
@@ -2741,7 +3009,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Bot Replies Error: $e');
+      if (kDebugMode) debugPrint('Fetch Bot Replies Error: $e');
       return null;
     }
   }
@@ -2754,13 +3022,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Toggle Bot Reply Status Error: $e');
+      if (kDebugMode) debugPrint('Toggle Bot Reply Status Error: $e');
       return false;
     }
   }
@@ -2773,13 +3042,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Bot Reply Error: $e');
+      if (kDebugMode) debugPrint('Delete Bot Reply Error: $e');
       return false;
     }
   }
@@ -2834,7 +3104,7 @@ class ApiService {
       }
       return {'reaction': 0, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Create Bot Reply Error: $e');
+      if (kDebugMode) debugPrint('Create Bot Reply Error: $e');
       return null;
     }
   }
@@ -2891,7 +3161,7 @@ class ApiService {
       }
       return {'reaction': 0, 'message': message};
     } catch (e) {
-      if (debug) debugPrint('Update Bot Reply Error: $e');
+      if (kDebugMode) debugPrint('Update Bot Reply Error: $e');
       return null;
     }
   }
@@ -2908,6 +3178,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1 && body['data'] != null) {
@@ -2917,13 +3188,13 @@ class ApiService {
       } else {
         lastActionSupportDataError = 'HTTP ${response.statusCode}';
       }
-      if (debug) {
+      if (kDebugMode) {
         debugPrint('Fetch Bot Action Support Data failed [${response.statusCode}]: ${response.body}');
       }
       return null;
     } catch (e) {
       lastActionSupportDataError = e.toString();
-      if (debug) debugPrint('Fetch Bot Action Support Data Error: $e');
+      if (kDebugMode) debugPrint('Fetch Bot Action Support Data Error: $e');
       return null;
     }
   }
@@ -2945,13 +3216,14 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Store Reminder Error: $e');
+      if (kDebugMode) debugPrint('Store Reminder Error: $e');
       return false;
     }
   }
@@ -2963,13 +3235,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Cancel Reminder Error: $e');
+      if (kDebugMode) debugPrint('Cancel Reminder Error: $e');
       return false;
     }
   }
@@ -2986,6 +3259,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1 &&
@@ -3000,7 +3274,7 @@ class ApiService {
       return [];
     } catch (e) {
       lastDripCampaignsError = e.toString();
-      if (debug) debugPrint('Fetch Drip Campaigns Error: $e');
+      if (kDebugMode) debugPrint('Fetch Drip Campaigns Error: $e');
       return [];
     }
   }
@@ -3013,13 +3287,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Toggle Drip Campaign Error: $e');
+      if (kDebugMode) debugPrint('Toggle Drip Campaign Error: $e');
       return false;
     }
   }
@@ -3031,13 +3306,14 @@ class ApiService {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Archive Campaign Error: $e');
+      if (kDebugMode) debugPrint('Archive Campaign Error: $e');
       return false;
     }
   }
@@ -3064,7 +3340,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return null;
     } catch (e) {
-      if (debug) debugPrint('Create Drip Campaign Error: $e');
+      if (kDebugMode) debugPrint('Create Drip Campaign Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return null;
     }
@@ -3102,7 +3378,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Store Drip Campaign Step Error: $e');
+      if (kDebugMode) debugPrint('Store Drip Campaign Step Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return false;
     }
@@ -3124,7 +3400,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Drip Campaign Detail Error: $e');
+      if (kDebugMode) debugPrint('Fetch Drip Campaign Detail Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return null;
     }
@@ -3158,7 +3434,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Drip Campaign Step Error: $e');
+      if (kDebugMode) debugPrint('Update Drip Campaign Step Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return false;
     }
@@ -3177,7 +3453,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Drip Campaign Step Error: $e');
+      if (kDebugMode) debugPrint('Delete Drip Campaign Step Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return false;
     }
@@ -3196,7 +3472,7 @@ class ApiService {
       lastDripCampaignError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Drip Campaign Error: $e');
+      if (kDebugMode) debugPrint('Delete Drip Campaign Error: $e');
       lastDripCampaignError = 'Erreur de connexion';
       return false;
     }
@@ -3206,7 +3482,7 @@ class ApiService {
   /// Normally cached at login, but falls back to deriving it from the
   /// dashboard stats endpoint for sessions that logged in before this was
   /// persisted, so existing installs don't need to re-login.
-  Future<String> _getVendorUid() async {
+  Future<String> getVendorUid() async {
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString('vendor_uid');
     if (cached != null && cached.isNotEmpty) return cached;
@@ -3222,15 +3498,23 @@ class ApiService {
 
   /// Fetch Mobile Notifications
   Future<Map<String, dynamic>> fetchNotifications() async {
-    final vendorUid = await _getVendorUid();
+    final vendorUid = await getVendorUid();
     final url = Uri.parse('$baseApiUrl$vendorUid/notifications');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        if (body['reaction'] == 1 && body['data'] != null) {
+        // VendorNotificationController::getNotifications() responds with
+        // processResponse(20, ...) - reaction 20 is its actual success code
+        // here, not this app's usual 1. Checking for 1 meant this branch
+        // never matched, so the notifications page always fell through to
+        // "success: false" and showed empty, no matter what the backend
+        // actually returned (confirmed live: real unread notifications
+        // exist, but reaction was always 20).
+        if (body['reaction'] == 20 && body['data'] != null) {
           return {
             'success': true,
             'notifications': List<Map<String, dynamic>>.from(body['data']['notifications'] ?? []),
@@ -3240,26 +3524,28 @@ class ApiService {
       }
       return {'success': false, 'notifications': [], 'unreadCount': 0};
     } catch (e) {
-      if (debug) debugPrint('Fetch Notifications Error: $e');
+      if (kDebugMode) debugPrint('Fetch Notifications Error: $e');
       return {'success': false, 'notifications': [], 'unreadCount': 0};
     }
   }
 
   /// Mark Notifications as Read
   Future<bool> markNotificationsAsRead() async {
-    final vendorUid = await _getVendorUid();
+    final vendorUid = await getVendorUid();
     final url = Uri.parse('$baseApiUrl$vendorUid/notifications/mark-read');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 10));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        return body['reaction'] == 1;
+        // Same actual success code (20, not 1) as getNotifications() above.
+        return body['reaction'] == 20;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Mark Notifications Read Error: $e');
+      if (kDebugMode) debugPrint('Mark Notifications Read Error: $e');
       return false;
     }
   }
@@ -3271,6 +3557,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1 && body['data'] != null) {
@@ -3279,7 +3566,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Agents Error: $e');
+      if (kDebugMode) debugPrint('Fetch Agents Error: $e');
       return null;
     }
   }
@@ -3291,6 +3578,7 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1 && body['data'] != null) {
@@ -3299,7 +3587,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      if (debug) debugPrint('Fetch Agent Detail Error: $e');
+      if (kDebugMode) debugPrint('Fetch Agent Detail Error: $e');
       return null;
     }
   }
@@ -3342,7 +3630,7 @@ class ApiService {
       lastAgentUpdateError = body['message']?.toString();
       return false;
     } catch (e) {
-      if (debug) debugPrint('Update Agent Error: $e');
+      if (kDebugMode) debugPrint('Update Agent Error: $e');
       lastAgentUpdateError = 'Erreur de connexion';
       return false;
     }
@@ -3396,7 +3684,7 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Create Agent Error: $e');
+      if (kDebugMode) debugPrint('Create Agent Error: $e');
       lastAgentCreateError = 'Erreur de connexion';
       return false;
     }
@@ -3413,13 +3701,14 @@ class ApiService {
             body: jsonEncode({'status': allowLogin ? '1' : '0'}),
           )
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Toggle Agent Status Error: $e');
+      if (kDebugMode) debugPrint('Toggle Agent Status Error: $e');
       return false;
     }
   }
@@ -3431,13 +3720,14 @@ class ApiService {
       final response = await http
           .delete(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         return body['reaction'] == 1;
       }
       return false;
     } catch (e) {
-      if (debug) debugPrint('Delete Agent Error: $e');
+      if (kDebugMode) debugPrint('Delete Agent Error: $e');
       return false;
     }
   }

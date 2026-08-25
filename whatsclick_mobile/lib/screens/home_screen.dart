@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../services/theme_service.dart';
+import '../services/pusher_service.dart';
 import '../models/contact.dart';
 import 'chat_box_screen.dart';
 import 'notifications_screen.dart';
@@ -25,7 +26,19 @@ class PendingHomeFilterRequest {
 class HomeScreen extends StatefulWidget {
   final Function(int)? onUnreadCountChanged;
   final ValueNotifier<PendingHomeFilterRequest?>? pendingFilterNotifier;
-  const HomeScreen({super.key, this.onUnreadCountChanged, this.pendingFilterNotifier});
+  // Shared with MainLayoutScreen/AccountScreen so the update check only
+  // ever hits the network once per launch instead of three times
+  // independently. Still optional so this screen keeps working if ever
+  // opened standalone.
+  final ValueNotifier<Map<String, dynamic>?>? updateInfoNotifier;
+  final VoidCallback? onOpenCampaigns;
+  const HomeScreen({
+    super.key,
+    this.onUnreadCountChanged,
+    this.pendingFilterNotifier,
+    this.updateInfoNotifier,
+    this.onOpenCampaigns,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -40,8 +53,12 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _nextPage = 0;
+  // Guards against FCM/Pusher/the 30s timer all firing near-simultaneously
+  // for the same incoming message and racing each other's page-1 fetch.
+  bool _isFetchingContacts = false;
 
   late final StreamSubscription<RemoteMessage> _fcmSubscription;
+  StreamSubscription<Map<String, dynamic>>? _pusherSubscription;
   Timer? _pollingTimer;
   Timer? _searchDebouncer;
 
@@ -85,7 +102,14 @@ class _HomeScreenState extends State<HomeScreen>
       widget.pendingFilterNotifier!.value = null;
     }
     _loadContacts();
-    _checkUpdate();
+    if (widget.updateInfoNotifier != null) {
+      widget.updateInfoNotifier!.addListener(_onSharedUpdateInfoChanged);
+      // In case the parent's check already finished before this screen
+      // mounted (unlikely given the async timing, but safe either way).
+      _onSharedUpdateInfoChanged();
+    } else {
+      _checkUpdate();
+    }
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
@@ -124,7 +148,11 @@ class _HomeScreenState extends State<HomeScreen>
           _applyFilters();
         }
 
-        _loadContacts(silent: true);
+        // background: true - the optimistic update above already moved this
+        // contact to the top correctly; a full resort here would just
+        // reshuffle everything else on screen the same way the scroll
+        // pagination bug did (see _loadMoreContacts).
+        _loadContacts(silent: true, background: true);
         _refreshBadgeCounts();
       }
     });
@@ -132,9 +160,16 @@ class _HomeScreenState extends State<HomeScreen>
     // Load badge counts on start
     _refreshBadgeCounts();
 
-    // Background polling every 5s for real-time feel
+    // Écoute Pusher pour les nouveaux messages — remplace le polling agressif.
+    // Le polling tombe à 30s en simple keepalive.
+    _pusherSubscription = PusherService().onNewMessage.listen((_) {
+      _loadContacts(silent: true, background: true);
+      _refreshBadgeCounts();
+    });
+
+    // Keepalive polling 30s (fallback si Pusher indisponible)
     _pollingTimer = Timer.periodic(
-      const Duration(seconds: pollingIntervalSeconds),
+      const Duration(seconds: 30),
       (_) {
         _loadContacts(silent: true, background: true);
         _refreshBadgeCounts();
@@ -152,8 +187,9 @@ class _HomeScreenState extends State<HomeScreen>
       _loadContacts(silent: true);
       _refreshBadgeCounts();
       _pollingTimer?.cancel();
+      // Keepalive 30s après reprise
       _pollingTimer = Timer.periodic(
-        const Duration(seconds: pollingIntervalSeconds),
+        const Duration(seconds: 30),
         (_) {
           _loadContacts(silent: true, background: true);
           _refreshBadgeCounts();
@@ -162,11 +198,27 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  bool _updateDialogShown = false;
+
+  void _onSharedUpdateInfoChanged() {
+    final info = widget.updateInfoNotifier?.value;
+    if (info != null) _showUpdateDialog(info);
+  }
+
+  /// Fallback used only when this screen is opened without a shared
+  /// notifier (e.g. in isolation) - MainLayoutScreen normally supplies one
+  /// so this never runs in the app's real navigation flow.
   Future<void> _checkUpdate() async {
     try {
       final updateInfo = await ApiService().checkForUpdate();
-      if (updateInfo != null && mounted) {
-        showDialog(
+      if (updateInfo != null) _showUpdateDialog(updateInfo);
+    } catch (_) {}
+  }
+
+  void _showUpdateDialog(Map<String, dynamic> updateInfo) {
+    if (_updateDialogShown || !mounted) return;
+    _updateDialogShown = true;
+    showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
@@ -224,10 +276,7 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         );
-      }
-    } catch (_) {}
   }
-
 
 
   Future<void> _loadContacts({
@@ -236,6 +285,8 @@ class _HomeScreenState extends State<HomeScreen>
     bool background = false,
   }) async {
     if (_isLoadingMore && !reset) return;
+    if (_isFetchingContacts) return;
+    _isFetchingContacts = true;
 
     if (reset) {
       _nextPage = 0;
@@ -334,6 +385,8 @@ class _HomeScreenState extends State<HomeScreen>
           SnackBar(content: Text('Erreur de chargement: $e')),
         );
       }
+    } finally {
+      _isFetchingContacts = false;
     }
   }
 
@@ -388,7 +441,14 @@ class _HomeScreenState extends State<HomeScreen>
         _allUniqueLabels = labelsSet.toList();
         _isLoadingMore = false;
       });
-      _applyFilters();
+      // Same reasoning as the background-poll path above: newly-loaded
+      // pages are already in the right relative order from the backend, so
+      // re-sorting the whole list here just reshuffles what's already on
+      // screen out from under the user's finger mid-scroll (and permanently
+      // buries any never-messaged contact - null lastMessageTime always
+      // sorts last - at the very bottom instead of wherever the backend
+      // placed it within its own page).
+      _applyFilters(resort: false);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -1014,7 +1074,9 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.pendingFilterNotifier?.removeListener(_onPendingFilterRequest);
+    widget.updateInfoNotifier?.removeListener(_onSharedUpdateInfoChanged);
     _fcmSubscription.cancel();
+    _pusherSubscription?.cancel();
     _pollingTimer?.cancel();
     _searchDebouncer?.cancel();
     _searchController.dispose();
@@ -1108,7 +1170,9 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => NotificationsScreen(onOpenCampaigns: widget.onOpenCampaigns),
+                ),
               );
               _refreshBadgeCounts();
             },

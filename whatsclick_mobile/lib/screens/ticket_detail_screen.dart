@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,16 +28,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   final _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<File> _selectedFiles = [];
+  final List<PlatformFile> _selectedFiles = [];
 
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-      if (result != null) {
+      if (result != null && mounted) {
         setState(() {
-          _selectedFiles.addAll(result.files
-              .where((f) => f.path != null)
-              .map((f) => File(f.path!)));
+          _selectedFiles.addAll(result.files.where((f) => f.path != null));
         });
       }
     } catch (e) {
@@ -55,6 +52,13 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   void initState() {
     super.initState();
     _fetchDetails();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDetails() async {
@@ -91,6 +95,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted || !_scrollController.hasClients) return;
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -394,7 +399,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                                 const SizedBox(width: 4),
                                                 Flexible(
                                                   child: Text(
-                                                    file.path.split('/').last,
+                                                    file.name,
                                                     style: TextStyle(
                                                         fontSize: 12,
                                                         color: isDark

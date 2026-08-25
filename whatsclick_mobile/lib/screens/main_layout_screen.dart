@@ -63,6 +63,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       HomeScreen(
         pendingFilterNotifier: _pendingHomeFilter,
         updateInfoNotifier: _updateInfo,
+        onOpenCampaigns: () => navigateToTab(3),
         onUnreadCountChanged: (count) {
           if (mounted && _unreadConversations != count) {
             setState(() {

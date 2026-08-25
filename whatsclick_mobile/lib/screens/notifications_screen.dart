@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'ticket_detail_screen.dart';
 import 'resource_list_screen.dart';
-import 'campaign_list_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  // CampaignListScreen assumes it's living inside MainLayoutScreen's tab
+  // bar (it relies on that parent's background showing through its own
+  // transparent Scaffold) - pushing it standalone renders a black screen.
+  // Switching tabs on the underlying MainLayoutScreen via this callback
+  // avoids that instead of pushing the screen directly.
+  final VoidCallback? onOpenCampaigns;
+
+  const NotificationsScreen({super.key, this.onOpenCampaigns});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -91,9 +97,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
         break;
       case 'campaign':
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CampaignListScreen()),
-        );
+        if (widget.onOpenCampaigns != null) {
+          Navigator.of(context).pop();
+          widget.onOpenCampaigns!();
+        }
         break;
     }
   }

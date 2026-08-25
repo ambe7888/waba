@@ -263,7 +263,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => NotificationsScreen(onOpenCampaigns: widget.onOpenCampaigns),
+                ),
               );
               // Refresh on return
               _fetchDashboardStats();
