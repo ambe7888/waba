@@ -6,7 +6,6 @@ use App\Yantrana\Base\BaseController;
 use App\Yantrana\Components\InfoMaterial\Models\InfoMaterialModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class InfoMaterialController extends BaseController
 {
@@ -57,26 +56,16 @@ class InfoMaterialController extends BaseController
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'nullable|file|max:51200', // 50MB max
+            'video_url' => 'nullable|url|max:500',
         ]);
-
-        $path = null;
-        $originalName = null;
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $filename = time() . '_' . Str::slug($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('info_materials', $filename, 'public');
-            $originalName = $file->getClientOriginalName();
-        }
 
         $material = InfoMaterialModel::create([
             'status' => 1,
             'title' => $request->title,
             'description' => $request->description ?? '',
-            'type' => 1, // 1 for file
+            'type' => 1,
             '__data' => [
-                'file_path' => $path,
-                'file_name' => $originalName
+                'video_url' => $request->video_url,
             ]
         ]);
 
@@ -137,25 +126,14 @@ class InfoMaterialController extends BaseController
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'nullable|file|max:51200', // 50MB max
+            'video_url' => 'nullable|url|max:500',
         ]);
 
         $material = InfoMaterialModel::where('_uid', $uid)->firstOrFail();
+        // Preserves a legacy attached file (if any) - uploading new files is
+        // no longer supported here, resources use video links instead.
         $data = $material->__data;
-
-        if ($request->hasFile('file')) {
-            // Delete old file if exists
-            if (isset($data['file_path'])) {
-                Storage::disk('public')->delete($data['file_path']);
-            }
-            
-            $file = $request->file('file');
-            $filename = time() . '_' . Str::slug($file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('info_materials', $filename, 'public');
-            
-            $data['file_path'] = $path;
-            $data['file_name'] = $file->getClientOriginalName();
-        }
+        $data['video_url'] = $request->video_url;
 
         $material->update([
             'title' => $request->title,
@@ -235,6 +213,7 @@ class InfoMaterialController extends BaseController
                 'description' => $material->description,
                 'file_name' => $material->__data['file_name'] ?? null,
                 'download_url' => isset($material->__data['file_name']) ? route('app_api.vendor.info_materials.download', ['uid' => $material->_uid]) : null,
+                'video_url' => $material->__data['video_url'] ?? null,
             ];
         });
 

@@ -65,6 +65,11 @@
                                                 <i class="fa fa-download mr-1"></i> {{ __tr('Download') }}
                                             </a>
                                         @endif
+                                        @if(!empty($material->__data['video_url']))
+                                            <a href="{{ $material->__data['video_url'] }}" class="btn btn-sm btn-danger mr-1" style="border-radius: 8px; background: #dc2626; border: none; font-size: 0.8rem; font-weight: 600;" target="_blank">
+                                                <i class="fa fa-play mr-1"></i> {{ __tr('Video') }}
+                                            </a>
+                                        @endif
                                         <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#viewModal{{ $material->_uid }}" style="border-radius: 8px; background: #2563eb; border: none; font-size: 0.8rem; font-weight: 600;">
                                             <i class="fa fa-eye mr-1"></i> {{ __tr('Voir') }}
                                         </button>
@@ -122,6 +127,9 @@
             <div class="modal-footer">
                 @if(!empty($material->__data['file_name']))
                     <a href="{{ route('info_material.download', ['uid' => $material->_uid]) }}" class="btn btn-success" target="_blank"><i class="fa fa-download"></i> {{ __tr('Download Attached File') }}</a>
+                @endif
+                @if(!empty($material->__data['video_url']))
+                    <a href="{{ $material->__data['video_url'] }}" class="btn btn-danger" target="_blank"><i class="fa fa-play"></i> {{ __tr('Watch Video') }}</a>
                 @endif
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Close') }}</button>
             </div>

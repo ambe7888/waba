@@ -15,7 +15,7 @@
                     <h3 class="mb-0">{{ __tr('Resource Details') }}</h3>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('info_material.store') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('info_material.store') }}" method="POST">
                         @csrf
                         <div class="form-group">
                             <label for="title">{{ __tr('Title') }}</label>
@@ -26,9 +26,9 @@
                             <textarea name="description" id="description" rows="10" class="form-control"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="file">{{ __tr('File (Optional)') }}</label>
-                            <input type="file" name="file" id="file" class="form-control">
-                            <small class="form-text text-muted">{{ __tr('Max file size: 10MB.') }}</small>
+                            <label for="video_url">{{ __tr('Video link (Optional)') }}</label>
+                            <input type="url" name="video_url" id="video_url" class="form-control" placeholder="https://www.youtube.com/watch?v=...">
+                            <small class="form-text text-muted">{{ __tr('For a video that would be too large to upload directly - YouTube (unlisted), Google Drive, etc.') }}</small>
                         </div>
                         <div class="form-group">
                             <button type="submit" class="btn btn-primary">{{ __tr('Upload') }}</button>
