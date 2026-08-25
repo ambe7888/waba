@@ -15,6 +15,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:gal/gal.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
+import '../services/pusher_service.dart';
 import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
@@ -44,8 +45,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   final _searchController = TextEditingController();
   List<ChatMessage> _messages = [];
   bool _isLoading = true;
+  bool _isFetching = false; // Guard contre les requêtes fetchMessages concurrentes
   Timer? _pollingTimer;
   StreamSubscription? _fcmSubscription;
+  StreamSubscription<Map<String, dynamic>>? _pusherSubscription;
   bool _isFirstLoad = true; // Track first load for auto-scroll
   int _lastMessageCount = 0; // Track new message detection
 
@@ -147,9 +150,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       _loadMessages(silent: true);
     });
 
-    // Optimized polling interval
+    // Écoute Pusher pour les nouveaux messages de ce contact (ciblé)
+    _pusherSubscription = PusherService().onNewMessage.listen((data) {
+      // On rafraîchit uniquement si le message concerne ce contact
+      final uid = data['contact_uid']?.toString() ?? data['contactUid']?.toString();
+      if (uid == null || uid == widget.contact.uid) {
+        _loadMessages(silent: true);
+      }
+    });
+
+    // Keepalive polling 30s (fallback si Pusher indisponible)
     _pollingTimer = Timer.periodic(
-      const Duration(seconds: pollingIntervalSeconds),
+      const Duration(seconds: 30),
       (_) => _loadMessages(silent: true),
     );
     _loadCannedReplies();
@@ -249,147 +261,175 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   }
 
   Future<void> _loadMessages({bool silent = false}) async {
+    // Guard : une seule requête à la fois pour ce contact
+    if (_isFetching) return;
+    _isFetching = true;
+
     if (!silent) {
-      setState(() {
-        _isLoading = true;
-      });
+      if (mounted) setState(() => _isLoading = true);
     }
 
-    final messages = await ApiService().fetchMessages(widget.contact.uid);
-    if (messages == null) {
-      if (mounted && _isLoading) {
-        setState(() {
-          _isLoading = false;
+    try {
+      final messages = await ApiService().fetchMessages(widget.contact.uid);
+
+      if (messages == null) {
+        // Erreur réseau — on relâche le spinner pour ne pas bloquer l'UI
+        if (mounted && _isLoading) setState(() => _isLoading = false);
+        return;
+      }
+
+      // Sort newest first (reversed ListView)
+      final orderedMessages = List<ChatMessage>.from(messages);
+      orderedMessages.sort((a, b) {
+        final dtA = DateTime.tryParse(a.timestamp);
+        final dtB = DateTime.tryParse(b.timestamp);
+        if (dtA == null && dtB == null) return 0;
+        if (dtA == null) return 1;
+        if (dtB == null) return -1;
+        return dtB.compareTo(dtA);
+      });
+
+      // Merge API messages with current state
+      final Map<String, ChatMessage> mergedMap = {};
+      for (var m in _messages) {
+        if (!m.isIncoming && m.status == 'initialize') continue;
+        // Drop the instant "preview" bubble seeded in initState() from
+        // contact.lastMessage - it always guesses isIncoming:true and has a
+        // synthetic uid that never matches a real message, so once the real
+        // fetch below lands it must be dropped rather than kept alongside it
+        // (otherwise the last message renders twice, once on each side).
+        if (m.uid.startsWith('preview_')) continue;
+        mergedMap[m.uid] = m;
+      }
+      for (var m in orderedMessages) {
+        mergedMap[m.uid] = m;
+      }
+
+      final mergedList = mergedMap.values.toList()
+        ..sort((a, b) {
+          final dtA = DateTime.tryParse(a.timestamp);
+          final dtB = DateTime.tryParse(b.timestamp);
+          if (dtA == null && dtB == null) return 0;
+          if (dtA == null) return 1;
+          if (dtB == null) return -1;
+          return dtB.compareTo(dtA);
         });
-      }
-      return;
-    }
 
-    // Sort by date descending (newest first for reversed ListView)
-    final orderedMessages = List<ChatMessage>.from(messages);
-    orderedMessages.sort((a, b) {
-      DateTime? dtA = DateTime.tryParse(a.timestamp);
-      DateTime? dtB = DateTime.tryParse(b.timestamp);
-      if (dtA == null && dtB == null) return 0;
-      if (dtA == null) return 1;
-      if (dtB == null) return -1;
-      return dtB.compareTo(dtA);
-    });
+      // Garder les messages locaux 'initialize' pas encore confirmés par l'API
+      final localPending = _messages.where((m) {
+        if (m.isIncoming || m.status != 'initialize') return false;
+        if (orderedMessages.any((api) => api.uid == m.uid)) return false;
+        final localTs = DateTime.tryParse(m.timestamp);
+        final existsSimilar = orderedMessages.any((api) {
+          if (api.isIncoming) return false;
+          final sameType = (m.type ?? 'text') == (api.type ?? 'text');
+          if (!sameType) return false;
+          final isText = (m.type ?? 'text') == 'text';
+          if (isText && _normalizeForReconciliation(api.body) != _normalizeForReconciliation(m.body)) return false;
+          final apiTs = DateTime.tryParse(api.timestamp);
+          if (apiTs == null || localTs == null) return false;
+          final diff = apiTs.difference(localTs).inSeconds;
+          return diff >= -2 && diff <= 60;
+        });
+        return !existsSimilar;
+      }).toList();
 
-    // Merge API messages with existing
-    final Map<String, ChatMessage> mergedMap = {};
-    for (var m in _messages) {
-      if (!m.isIncoming && m.status == 'initialize') continue;
-      mergedMap[m.uid] = m;
-    }
-    for (var m in orderedMessages) {
-      mergedMap[m.uid] = m;
-    }
+      final combinedMessages = <ChatMessage>[
+        ...localPending,
+        ...mergedList,
+      ];
 
-    final mergedList = mergedMap.values.toList();
-    mergedList.sort((a, b) {
-      DateTime? dtA = DateTime.tryParse(a.timestamp);
-      DateTime? dtB = DateTime.tryParse(b.timestamp);
-      if (dtA == null && dtB == null) return 0;
-      if (dtA == null) return 1;
-      if (dtB == null) return -1;
-      return dtB.compareTo(dtA);
-    });
-
-    // Keep local sending messages not yet reflected in API
-    final localSendingMessages = _messages.where((m) {
-      if (m.isIncoming) return false;
-      if (m.status != 'initialize') return false;
-      bool existsInApi = orderedMessages.any((apiMsg) => apiMsg.uid == m.uid);
-      if (existsInApi) return false;
-      final localTs = DateTime.tryParse(m.timestamp);
-      bool existsSimilar = orderedMessages.any((apiMsg) {
-        if (apiMsg.isIncoming) return false;
-        // Text messages: compare content after stripping the formatting
-        // the backend applies (formatWhatsAppText() turns WhatsApp
-        // markdown into HTML) and the raw markdown the user typed - an
-        // exact match here almost never held once a message used any
-        // formatting (*bold*, _italic_), leaving the local "sending..."
-        // placeholder stuck next to the real, confirmed message forever.
-        // Media/voice placeholders never carried a comparable body at all
-        // (a synthetic label like "Note vocale (0:05)" or the filename),
-        // so match those by type instead of body.
-        final sameType = (m.type ?? 'text') == (apiMsg.type ?? 'text');
-        if (!sameType) return false;
-        final isTextType = (m.type ?? 'text') == 'text';
-        if (isTextType &&
-            _normalizeForReconciliation(apiMsg.body) !=
-                _normalizeForReconciliation(m.body)) {
-          return false;
-        }
-        final apiTs = DateTime.tryParse(apiMsg.timestamp);
-        if (apiTs == null || localTs == null) {
-          return false;
-        }
-        // Reconcile only if API message is around/after local optimistic one.
-        final diff = apiTs.difference(localTs).inSeconds;
-        return diff >= -2 && diff <= 60;
-      });
-      return !existsSimilar;
-    }).toList();
-
-    final combinedMessages = <ChatMessage>[];
-    combinedMessages.addAll(localSendingMessages);
-    combinedMessages.addAll(mergedList);
-
-    // FIX: Compare including status to detect read receipt changes
-    bool hasChanged = _messages.length != combinedMessages.length;
-    if (!hasChanged) {
-      for (int i = 0; i < _messages.length; i++) {
-        if (_messages[i].hasChangedFrom(combinedMessages[i])) {
-          hasChanged = true;
-          break;
-        }
-      }
-    }
-
-    final wasFirstLoad = _isFirstLoad;
-    // `wasFirstLoad` is forced into the gate below so establishing
-    // pagination state never depends on `hasChanged`/`silent` - those are
-    // about whether the message *content* changed, unrelated to whether
-    // this is the first fetch. Without this, a first response that
-    // happened to look identical to the initial placeholder (e.g. a
-    // brand-new conversation, or a race with a concurrent poll) left
-    // _isFirstLoad stuck true and _olderMessagesNextPage stuck at 0
-    // forever, permanently hiding the "load older messages" button.
-    if (hasChanged || !silent || wasFirstLoad) {
-      if (mounted) {
-        // Detect if a truly new message arrived (count increased)
-        final newMsgArrived = combinedMessages.length > _lastMessageCount;
-        final wasAtBottom = _isAtBottom();
-
-        setState(() {
-          _messages = combinedMessages;
-          _isLoading = false;
-          _lastMessageCount = combinedMessages.length;
-          if (wasFirstLoad) {
-            _olderMessagesNextPage = ApiService().lastMessagesNextPage;
-            _isFirstLoad = false;
+      bool hasChanged = _messages.length != combinedMessages.length;
+      if (!hasChanged) {
+        for (int i = 0; i < _messages.length; i++) {
+          if (_messages[i].hasChangedFrom(combinedMessages[i])) {
+            hasChanged = true;
+            break;
           }
-        });
-
-        // Scroll to bottom only on first load, or if user is already at bottom and a new message arrives
-        if (wasFirstLoad || (newMsgArrived && wasAtBottom)) {
-          _scrollToBottom();
         }
       }
-    } else {
-      if (mounted && _isLoading) {
-        setState(() {
-          _isLoading = false;
-        });
+
+      final wasFirstLoad = _isFirstLoad;
+      if (hasChanged || !silent || wasFirstLoad) {
+        if (mounted) {
+          final newMsgArrived = combinedMessages.length > _lastMessageCount;
+          final wasAtBottom = _isAtBottom();
+
+          setState(() {
+            _messages = combinedMessages;
+            _isLoading = false;
+            _lastMessageCount = combinedMessages.length;
+            if (wasFirstLoad) {
+              _olderMessagesNextPage = ApiService().lastMessagesNextPage;
+              _isFirstLoad = false;
+            }
+          });
+
+          // Scroll vers le bas : premier chargement ou si l'user était déjà en bas
+          if (wasFirstLoad || (newMsgArrived && wasAtBottom)) {
+            _scrollToBottom();
+          }
+        }
+      } else {
+        if (mounted && _isLoading) setState(() => _isLoading = false);
       }
+    } finally {
+      _isFetching = false;
     }
   }
 
-  /// "Load older messages" bar shown at the top of the conversation
-  /// (mirrors the web dashboard's own older-messages control) instead of
-  /// relying purely on scroll-up infinite loading.
+  /// Fetches and appends the next older page of messages.
+  /// Préserve la position de scroll pour ne pas déplacer les messages visibles.
+  Future<void> _loadOlderMessages() async {
+    if (_isLoadingOlderMessages || _olderMessagesNextPage == 0) return;
+    setState(() => _isLoadingOlderMessages = true);
+
+    final result = await ApiService()
+        .fetchOlderMessages(widget.contact.uid, _olderMessagesNextPage);
+
+    if (!mounted) return;
+    if (result == null) {
+      setState(() => _isLoadingOlderMessages = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors du chargement des anciens messages')),
+      );
+      return;
+    }
+
+    final older = List<ChatMessage>.from(result['messages'] as List<ChatMessage>);
+    older.sort((a, b) {
+      final dtA = DateTime.tryParse(a.timestamp);
+      final dtB = DateTime.tryParse(b.timestamp);
+      if (dtA == null || dtB == null) return 0;
+      return dtB.compareTo(dtA);
+    });
+
+    // Capturer la position scroll AVANT d'ajouter les anciens messages
+    // pour éviter que le viewport saute après le rebuild
+    final scrollPixels = _scrollController.hasClients
+        ? _scrollController.position.pixels
+        : 0.0;
+
+    setState(() {
+      final existingUids = _messages.map((m) => m.uid).toSet();
+      for (final m in older) {
+        if (!existingUids.contains(m.uid)) {
+          _messages.add(m);
+        }
+      }
+      _olderMessagesNextPage = result['nextPage'] as int;
+      _isLoadingOlderMessages = false;
+    });
+
+    // Restaurer la position après rebuild
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(scrollPixels);
+      }
+    });
+  }
+
+  /// Barre affichée en haut de la conversation pour charger les messages plus anciens.
   Widget _buildLoadOlderMessagesBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
@@ -442,57 +482,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  /// Fetches and appends the next older page of messages. Appending to the
-  /// *end* of [_messages] (which, since the list is newest-first and the
-  /// ListView is reversed, renders further *up* the screen) never shifts
-  /// the messages the user is currently looking at.
-  Future<void> _loadOlderMessages() async {
-    if (_isLoadingOlderMessages || _olderMessagesNextPage == 0) return;
-    setState(() => _isLoadingOlderMessages = true);
-
-    final result = await ApiService()
-        .fetchOlderMessages(widget.contact.uid, _olderMessagesNextPage);
-
-    if (!mounted) return;
-    if (result == null) {
-      setState(() => _isLoadingOlderMessages = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors du chargement des anciens messages')),
-      );
-      return;
-    }
-
-    final older = List<ChatMessage>.from(result['messages'] as List<ChatMessage>);
-    older.sort((a, b) {
-      final dtA = DateTime.tryParse(a.timestamp);
-      final dtB = DateTime.tryParse(b.timestamp);
-      if (dtA == null || dtB == null) return 0;
-      return dtB.compareTo(dtA);
-    });
-
-    setState(() {
-      final existingUids = _messages.map((m) => m.uid).toSet();
-      for (final m in older) {
-        if (!existingUids.contains(m.uid)) {
-          _messages.add(m);
-        }
-      }
-      _olderMessagesNextPage = result['nextPage'] as int;
-      _isLoadingOlderMessages = false;
-    });
-  }
-
   void _startAggressivePolling() {
-    int count = 0;
-    Timer.periodic(Duration(milliseconds: aggressivePollingIntervalMs),
-        (timer) {
-      if (!mounted || count >= aggressivePollingMaxCount) {
-        timer.cancel();
-        return;
-      }
-      count++;
-      _loadMessages(silent: true);
-    });
+    // Désactivé : Pusher gère le temps réel. Cette méthode est conservée
+    // pour compatibilité avec les appels existants mais ne fait plus rien.
   }
 
   Future<void> _handleSend() async {
@@ -583,14 +575,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   }
 
   void _scrollToBottom() {
+    // Double post-frame pour garantir le scroll après rebuild complet
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.animateTo(
+            0.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     });
   }
 
@@ -1178,6 +1173,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
+  String _mediaLimitTypeLabel(String type) {
+    switch (type) {
+      case 'image':
+        return 'images';
+      case 'audio':
+        return 'fichiers audio';
+      case 'video':
+        return 'vidéos';
+      case 'document':
+        return 'documents';
+      default:
+        return 'fichiers';
+    }
+  }
+
   Future<void> _pickAndSendMedia(String type) async {
     FileType fileType = FileType.any;
     List<String>? allowedExtensions;
@@ -1197,7 +1207,17 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: fileType,
         allowedExtensions: allowedExtensions,
-        withData: true,
+        // withData:true forces the plugin to read the whole file into RAM as
+        // bytes up front, even though the code below prefers picked.path
+        // (the common case on Android/iOS) and only falls back to bytes when
+        // path is unavailable. For a large video or document that meant
+        // loading the entire file into memory for no reason - an easy
+        // out-of-memory crash on real devices, which is exactly what was
+        // reported. false lets the OS stream from disk instead; the
+        // picked.bytes fallback below simply won't have data in the rare
+        // case path is null, which is the correct outcome (a clear "file
+        // unavailable" message) instead of a memory blowup on every pick.
+        withData: false,
       );
 
       if (result == null || result.files.isEmpty) return;
@@ -1223,6 +1243,30 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text('Fichier inaccessible sur cet appareil.')),
+          );
+        }
+        return;
+      }
+
+      // WhatsApp's own hard limits (Meta Cloud API, not configurable):
+      // images 5MB, audio/video 16MB, documents 100MB. Checking client-side
+      // before upload gives an immediate, specific error instead of letting
+      // the user wait through a full upload that Meta would reject anyway.
+      const limitsInBytes = {
+        'image': 5 * 1024 * 1024,
+        'audio': 16 * 1024 * 1024,
+        'video': 16 * 1024 * 1024,
+        'document': 100 * 1024 * 1024,
+      };
+      final sizeLimit = limitsInBytes[type];
+      final fileSize = picked.size;
+      if (sizeLimit != null && fileSize > sizeLimit) {
+        final limitMb = (sizeLimit / (1024 * 1024)).round();
+        final fileMb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
+        if (mounted) {
+          _showChatNotice(
+            'Fichier trop volumineux ($fileMb Mo). WhatsApp limite les ${_mediaLimitTypeLabel(type)} à $limitMb Mo.',
+            duration: const Duration(seconds: 5),
           );
         }
         return;
@@ -1309,6 +1353,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   void dispose() {
     _messageController.removeListener(_onMessageTextChanged);
     _fcmSubscription?.cancel();
+    _pusherSubscription?.cancel();
     _pollingTimer?.cancel();
     _recordingTimer?.cancel();
     _audioRecorder.dispose();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../services/api_service.dart';
+import 'create_template_screen.dart';
 
 class SendTemplateScreen extends StatefulWidget {
   final String contactUid;
@@ -118,11 +119,14 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
     super.dispose();
   }
 
+  String? _templatesError;
+
   Future<void> _fetchTemplates() async {
     final list = await ApiService().fetchTemplates();
     if (mounted) {
       setState(() {
         _templates = list;
+        _templatesError = list.isEmpty ? ApiService().lastFetchTemplatesError : null;
         _isLoadingTemplates = false;
       });
     }
@@ -491,7 +495,62 @@ class _SendTemplateScreenState extends State<SendTemplateScreen> {
       return Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
     }
     if (_templates.isEmpty) {
-      return Center(child: Text('Aucun modèle approuvé.'));
+      if (_templatesError != null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                const SizedBox(height: 12),
+                const Text('Impossible de charger les modèles.\nVérifiez votre connexion.', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() => _isLoadingTemplates = true);
+                    _fetchTemplates();
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Réessayer'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.article_outlined, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              const Text('Aucun modèle approuvé.', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push<bool>(
+                    MaterialPageRoute(builder: (_) => const CreateTemplateScreen()),
+                  ).then((created) {
+                    if (created == true) {
+                      setState(() => _isLoadingTemplates = true);
+                      _fetchTemplates();
+                    }
+                  });
+                },
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Créer votre premier modèle'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final filtered = _filteredTemplates;
