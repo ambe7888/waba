@@ -20,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'whatsapp-webhook/*',
             'webhook/external-order/*',
             'whatsapp-embedded-signup-mobile/*',
+            // Broadcast::routes() defaults to the 'web' middleware group
+            // (CSRF included) even when mounted inside the api.php file's
+            // app_api.vendor.authenticate group - the mobile app has no
+            // session/CSRF token to send, only its bearer token, so this
+            // route would otherwise 419 on every private-channel subscribe.
+            // Scoped to api/broadcasting/* only - the web dashboard's own
+            // broadcasting/auth (real browser sessions) keeps CSRF.
+            'api/broadcasting/*',
         ]);
 
         $middleware->append([
