@@ -55,13 +55,33 @@ class WhatsAppMessageLogModel extends BaseModel
         static::created(function ($messageLog) {
             ContactMessageStatsSync::messageStored(
                 $messageLog->contacts__id,
-                $messageLog->getRawOriginal('messaged_at'),
+                // The value actually being written to the column. Not
+                // getRawOriginal(): during created/updated Laravel has not
+                // run syncOriginal() yet, so "original" is empty on insert
+                // and the pre-update value on update - either way not what
+                // this needs.
+                $messageLog->getAttributes()['messaged_at'] ?? null,
                 (int) $messageLog->is_incoming_message === 1,
                 $messageLog->status
             );
         });
 
         static::updated(function ($messageLog) {
+            // The delivery-status webhook re-stamps messaged_at on a row
+            // that already exists, which moves that conversation in the
+            // list exactly as a new message would.
+            if ($messageLog->wasChanged('messaged_at')) {
+                ContactMessageStatsSync::messageStored(
+                    $messageLog->contacts__id,
+                    $messageLog->getAttributes()['messaged_at'] ?? null,
+                    (int) $messageLog->is_incoming_message === 1,
+                    // Never re-increment unread from an update - the row was
+                    // already counted when it was created. The status branch
+                    // below owns the unread count.
+                    null
+                );
+            }
+
             // Only a status change can alter the unread count. Recount
             // instead of applying a delta: Meta re-delivers the same status
             // webhook often enough that a delta would drift.
