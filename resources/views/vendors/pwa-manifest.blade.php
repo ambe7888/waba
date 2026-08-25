@@ -16,12 +16,20 @@
     {
       "src": "{{ getAppSettings('favicon_image_url') }}",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "{{ getAppSettings('logo_image_url') }}",
+      "src": "{{ getAppSettings('favicon_image_url') }}",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "{{ url('/pwa-icons/maskable-512.png') }}",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
