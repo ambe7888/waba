@@ -5296,6 +5296,14 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
         $businessProfile = getVendorSettings('whatsapp_business_profile_data') ?: [];
 
+        // test_recipient_contact stores the test Contact's internal _uid,
+        // not the phone number itself (see VendorSettingsEngine::updateProcess()) -
+        // resolve it before showing it to the vendor.
+        $testContactUid = getVendorSettings('test_recipient_contact');
+        $testContact = $testContactUid
+            ? \App\Yantrana\Components\Contact\Models\ContactModel::where('_uid', $testContactUid)->first()
+            : null;
+
         return $this->engineSuccessResponse([
             'isConnected' => isWhatsAppBusinessAccountReady(),
             'phoneNumberId' => $phoneRecord['id'] ?? $phoneNumberId,
@@ -5318,7 +5326,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 'updatedAtFormatted' => $healthEntry['health_status_updated_at_formatted'] ?? null,
                 'canSendMessage' => $healthEntry['health_data']['health_status']['can_send_message'] ?? null,
             ] : null,
-            'testContactNumber' => getVendorSettings('test_recipient_contact'),
+            'testContactNumber' => $testContact->wa_id ?? null,
             'embeddedSignupDoneAt' => getVendorSettings('embedded_setup_done_at')
                 ? formatDateTime(getVendorSettings('embedded_setup_done_at'))
                 : null,
