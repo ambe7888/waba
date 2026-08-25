@@ -467,38 +467,22 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
             $query->where('_uid', $requestContactUid);
         }
 
-        $vendorIdForSubquery = $vendorId ?: getVendorId();
-
         // -----------------------------------------
-        // LATEST MESSAGE JOIN
+        // ORDERING
         // -----------------------------------------
-        $query->leftJoinSub(
-            DB::table('whatsapp_message_logs')
-                ->where('vendors__id', $vendorIdForSubquery)
-                ->selectRaw('contacts__id, MAX(messaged_at) AS latest_message')
-                ->groupBy('contacts__id'),
-            'latest_messages',
-            'contacts._id',
-            '=',
-            'latest_messages.contacts__id'
-        )->orderByRaw('contacts.is_pinned DESC, latest_messages.latest_message DESC, contacts._id DESC');
-
-        // -----------------------------------------
-        // UNREAD COUNT JOIN (LEFT)
-        // -----------------------------------------
-        $query->leftJoinSub(
-            DB::table('whatsapp_message_logs')
-                ->where('vendors__id', $vendorIdForSubquery)
-                ->where('status', 'received')
-                ->where('is_incoming_message', 1)
-                ->selectRaw('contacts__id, COUNT(*) AS unread_messages_count')
-                ->groupBy('contacts__id'),
-            'unread_counts',
-            'contacts._id',
-            '=',
-            'unread_counts.contacts__id'
-        );
-        $query->addSelect('unread_counts.unread_messages_count');
+        // Reads contacts.last_message_at instead of re-deriving it. This
+        // used to be two leftJoinSub aggregates over the vendor's entire
+        // message history, built in full and then trimmed to 12 rows:
+        // 3394 ms for the largest account (321k messages), against 0.61 ms
+        // for this form, which walks idx_contacts_vendor_pinned_lastmsg
+        // backwards. unread_messages_count now arrives with contacts.*,
+        // under the same name the join used to expose, so every consumer
+        // (mobile app included) is unaffected.
+        //
+        // The columns are maintained by ContactMessageStatsSync on the
+        // message-log model events, and reconciled by
+        // contacts:backfill-message-columns.
+        $query->orderByRaw('contacts.is_pinned DESC, contacts.last_message_at DESC, contacts._id DESC');
 
         // -----------------------------------------
         // LABEL FILTER
@@ -538,7 +522,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // UNREAD FILTER
         // -----------------------------------------
         if ($unreadOnly) {
-            $query->whereNotNull('unread_counts.unread_messages_count');
+            $query->where('contacts.unread_messages_count', '>', 0);
         }
 
         // -----------------------------------------
@@ -548,9 +532,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // INCOMING message within 24h, not just any message) so the count
         // shown on the dashboard card and this filtered list always agree.
         if ($active24hOnly) {
-            $query->whereHas('lastIncomingMessage', function ($q) {
-                $q->where('messaged_at', '>', now()->subHours(24));
-            });
+            $query->where('contacts.last_incoming_message_at', '>', now()->subHours(24));
         }
 
         // -----------------------------------------
@@ -588,8 +570,10 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
         // -----------------------------------------
         // FINAL RETURN
         // -----------------------------------------
+        // whereNotNull replaces has('lastIncomingMessage'), which was an
+        // EXISTS subquery against the message log for every candidate row.
         return $query->with(['lastMessage', 'labels'])
-            ->has('lastIncomingMessage')
+            ->whereNotNull('contacts.last_incoming_message_at')
             ->simplePaginate(12);
     }
 
