@@ -5253,10 +5253,101 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     public function requestBusinessProfile($phoneNumberId)
     {
         $businessProfile = $this->whatsAppApiService->businessProfile($phoneNumberId);
+        $profileData = $businessProfile['data'][0] ?? [];
+        // Cached so the mobile app's API-details screen can read it back
+        // without another Meta round-trip on every screen open - the web
+        // modal that also calls this stays unaffected, it just gets the
+        // same data plus this side effect.
+        $this->vendorSettingsEngine->updateProcess('whatsapp_cloud_api_setup', [
+            'whatsapp_business_profile_data' => $profileData,
+        ], getVendorId());
         return $this->engineSuccessResponse([
             'phoneNumberId' => $phoneNumberId,
-            'businessProfile' => $businessProfile['data'][0] ?? []
+            'businessProfile' => $profileData
         ]);
+    }
+
+    /**
+     * Aggregated WhatsApp API details for the mobile app's "Paramètres
+     * WhatsApp API" screen - reads what's already cached in vendor settings,
+     * no live Meta calls, mirrors what the web Meta API dashboard shows.
+     *
+     * @return EngineResponse
+     */
+    public function getApiDetailsSummary()
+    {
+        $phoneNumberId = getVendorSettings('current_phone_number_id');
+        $phoneNumbers = getVendorSettings('whatsapp_phone_numbers') ?: [];
+        $phoneRecord = Arr::first($phoneNumbers, function ($value) use ($phoneNumberId) {
+            return $value['id'] == $phoneNumberId;
+        }) ?: (reset($phoneNumbers) ?: []);
+
+        $wabaId = getVendorSettings('whatsapp_business_account_id');
+        $healthData = getVendorSettings('whatsapp_health_status_data') ?: [];
+        $healthEntry = $wabaId ? ($healthData[$wabaId] ?? null) : null;
+        $healthEntities = $healthEntry['health_data']['health_status']['entities'] ?? [];
+
+        $businessEntity = Arr::first($healthEntities, function ($value) {
+            return ($value['entity_type'] ?? null) == 'BUSINESS';
+        });
+
+        $businessProfile = getVendorSettings('whatsapp_business_profile_data') ?: [];
+
+        return $this->engineSuccessResponse([
+            'isConnected' => isWhatsAppBusinessAccountReady(),
+            'phoneNumberId' => $phoneRecord['id'] ?? $phoneNumberId,
+            'displayPhoneNumber' => $phoneRecord['display_phone_number'] ?? getVendorSettings('current_phone_number_number'),
+            'verifiedName' => $phoneRecord['verified_name'] ?? null,
+            'status' => $phoneRecord['phone_status_info']['status'] ?? ($phoneRecord['status'] ?? null),
+            'qualityRating' => $phoneRecord['quality_rating'] ?? null,
+            'messagingLimitTier' => $phoneRecord['phone_status_info']['messaging_limit_tier'] ?? null,
+            'wabaId' => $wabaId,
+            'businessProfile' => [
+                'about' => $businessProfile['about'] ?? null,
+                'description' => $businessProfile['description'] ?? null,
+                'email' => $businessProfile['email'] ?? null,
+                'address' => $businessProfile['address'] ?? null,
+                'websites' => $businessProfile['websites'] ?? [],
+                'profilePictureUrl' => $businessProfile['profile_picture_url'] ?? null,
+                'vertical' => $businessProfile['vertical'] ?? null,
+            ],
+            'health' => $healthEntry ? [
+                'updatedAtFormatted' => $healthEntry['health_status_updated_at_formatted'] ?? null,
+                'canSendMessage' => $healthEntry['health_data']['health_status']['can_send_message'] ?? null,
+            ] : null,
+            'testContactNumber' => getVendorSettings('test_recipient_contact'),
+            'embeddedSignupDoneAt' => getVendorSettings('embedded_setup_done_at')
+                ? formatDateTime(getVendorSettings('embedded_setup_done_at'))
+                : null,
+            'paymentManagementUrl' => $wabaId
+                ? ('https://business.facebook.com/billing_hub/accounts/details?asset_id=' . $wabaId . '&account_type=whatsapp-business-account')
+                : null,
+            'businessVerificationUrl' => $businessEntity
+                ? ('https://business.facebook.com/latest/settings/security_center/?business_id=' . $businessEntity['id'])
+                : null,
+        ]);
+    }
+
+    /**
+     * Live-refresh WhatsApp API details from Meta (phone numbers, business
+     * profile, health status), then return the same aggregated shape as
+     * getApiDetailsSummary(). Combines the web dashboard's separate sync
+     * actions into the mobile app's single "Actualiser" button.
+     *
+     * @return EngineResponse
+     */
+    public function refreshApiDetailsForApp()
+    {
+        if (!isWhatsAppBusinessAccountReady()) {
+            return $this->engineFailedResponse([], __tr('WhatsApp API not connected yet'));
+        }
+        $this->processSyncPhoneNumbers();
+        $phoneNumberId = getVendorSettings('current_phone_number_id');
+        if ($phoneNumberId) {
+            $this->requestBusinessProfile($phoneNumberId);
+        }
+        $this->refreshHealthStatus();
+        return $this->getApiDetailsSummary();
     }
 
     /**

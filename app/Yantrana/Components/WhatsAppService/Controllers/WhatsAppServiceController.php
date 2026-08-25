@@ -1181,6 +1181,64 @@ class WhatsAppServiceController extends BaseController
     }
 
     /**
+     * WhatsApp API details for the mobile app's "Paramètres WhatsApp API"
+     * screen - reads cached data only, no live Meta calls.
+     *
+     * @return json
+     */
+    public function apiDetailsSummary()
+    {
+        validateVendorAccess('administrative');
+        $processReaction = $this->whatsAppServiceEngine->getApiDetailsSummary();
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+     * Live-refresh WhatsApp API details from Meta, mirrors the web
+     * dashboard's "Actualiser" button.
+     *
+     * @return json
+     */
+    public function refreshApiDetails()
+    {
+        validateVendorAccess('administrative');
+        if (isDemo() and isDemoVendorAccount()) {
+            return $this->processResponse(22, [
+                22 => __tr('Functionality is disabled in this demo.')
+            ], [], true);
+        }
+        $processReaction = $this->whatsAppServiceEngine->refreshApiDetailsForApp();
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
+     * Set the mandatory WhatsApp test contact number (used for 24h campaign
+     * message tests) from the mobile app.
+     *
+     * @param BaseRequestTwo $request
+     * @return json
+     */
+    public function updateTestContact(BaseRequestTwo $request)
+    {
+        validateVendorAccess('administrative');
+        $request->validate([
+            'test_recipient_contact' => [
+                'required',
+                'numeric',
+            ],
+        ]);
+        if (!$this->vendorSettingsEngine->updateProcess('whatsapp_cloud_api_setup', [
+            'test_recipient_contact' => $request->test_recipient_contact,
+        ], getVendorId())) {
+            return $this->processResponse(22, [
+                22 => __tr('Failed to save test contact number.')
+            ], [], true);
+        }
+        $processReaction = $this->whatsAppServiceEngine->getApiDetailsSummary();
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
      * Update Business Profile
      *
      * @param BaseRequestTwo $request

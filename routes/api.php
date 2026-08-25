@@ -301,6 +301,20 @@ Route::group([
             'sendChatMessage',
         ])->name('app_api.vendor.chat_message.send.process');
 
+        // WhatsApp API details (mobile "Paramètres WhatsApp API" screen)
+        Route::get('/whatsapp/api-details', [
+            WhatsAppServiceController::class,
+            'apiDetailsSummary',
+        ])->name('app_api.vendor.whatsapp.api_details.read');
+        Route::post('/whatsapp/api-details/refresh', [
+            WhatsAppServiceController::class,
+            'refreshApiDetails',
+        ])->name('app_api.vendor.whatsapp.api_details.refresh');
+        Route::post('/whatsapp/test-contact', [
+            WhatsAppServiceController::class,
+            'updateTestContact',
+        ])->name('app_api.vendor.whatsapp.test_contact.write');
+
         // Dashboard Stats
         Route::get('/dashboard-stats', [
             \App\Yantrana\Components\Dashboard\Controllers\DashboardController::class,
