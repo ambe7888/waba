@@ -27,9 +27,25 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   Map<String, dynamic>? _globalStats;
   String? _error;
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   String? _statusFilter;
+  // null = toutes, 'meta' = campagne modèle (whatsapp_templates__id set),
+  // 'simple' = campagne libre (message 24h, sans modèle Meta).
+  String? _typeFilter;
   bool _sortNewestFirst = true;
   bool _showingArchived = false;
+  // 0 = no more pages. The backend already paginates at 100/campaign - this
+  // was just never used before, so every screen open loaded the vendor's
+  // entire campaign history in one request.
+  int _nextPage = 0;
+  bool _isLoadingMore = false;
+
+  // A campaign with an attached Meta template is a "Campagne Meta"; one
+  // sent as free-form text (e.g. the "Message 24h" preset) is "simple".
+  bool _isMetaCampaign(Map<String, dynamic> c) {
+    return c['whatsapp_templates__id'] != null ||
+        (c['template_name']?.toString().isNotEmpty ?? false);
+  }
 
   List<Map<String, dynamic>> get _filteredCampaigns {
     final query = _searchController.text.trim().toLowerCase();
@@ -38,6 +54,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
           (c['status']?.toString().toLowerCase() ?? '') != _statusFilter) {
         return false;
       }
+      if (_typeFilter == 'meta' && !_isMetaCampaign(c)) return false;
+      if (_typeFilter == 'simple' && _isMetaCampaign(c)) return false;
       if (query.isEmpty) return true;
       final title = (c['title'] ?? c['campaign_name'] ?? '').toString().toLowerCase();
       final templateName = (c['template_name'] ?? '').toString().toLowerCase();
@@ -74,11 +92,18 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
     _fetchStats();
     _fetchCampaigns();
     _searchController.addListener(() => setState(() {}));
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreCampaigns();
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -151,10 +176,16 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
       _error = null;
     });
     try {
-      final data = await ApiService().fetchCampaigns(showArchived: _showingArchived);
+      final result = await ApiService().fetchCampaigns(showArchived: _showingArchived, page: 1);
+      final data = List<Map<String, dynamic>>.from(result['campaigns'] ?? []);
       if (mounted) {
         setState(() {
           _campaigns = data;
+          _nextPage = (result['nextPage'] as num?)?.toInt() ?? 0;
+          // fetchCampaigns() never throws - it catches its own network/HTTP
+          // errors and returns [] either way, indistinguishable from a
+          // genuinely empty list unless we check its error side-channel.
+          _error = data.isEmpty ? ApiService().lastFetchCampaignsError : null;
           _isLoading = false;
         });
       }
@@ -165,6 +196,30 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadMoreCampaigns() async {
+    if (_isLoadingMore || _nextPage == 0) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final result = await ApiService().fetchCampaigns(showArchived: _showingArchived, page: _nextPage);
+      if (!mounted) return;
+      if (result['error'] == true) {
+        // Keep _nextPage as-is so the next scroll tick (or a manual pull)
+        // just retries instead of silently losing pagination.
+        setState(() => _isLoadingMore = false);
+        return;
+      }
+      final more = List<Map<String, dynamic>>.from(result['campaigns'] ?? []);
+      setState(() {
+        final existingUids = _campaigns.map((c) => c['_uid']).toSet();
+        _campaigns.addAll(more.where((c) => !existingUids.contains(c['_uid'])));
+        _nextPage = (result['nextPage'] as num?)?.toInt() ?? 0;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -321,6 +376,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                   },
                   color: ThemeService.primaryColor,
                   child: CustomScrollView(
+                    controller: _scrollController,
                     slivers: [
                       SliverToBoxAdapter(
                         child: _buildHeaderStats(surfaceCard, onSurface),
@@ -381,6 +437,19 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                             (_, i) => _buildCard(
                                 _filteredCampaigns[i], surfaceCard, onSurface),
                             childCount: _filteredCampaigns.length,
+                          ),
+                        ),
+                      if (_isLoadingMore)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
                           ),
                         ),
                       SliverToBoxAdapter(
@@ -563,7 +632,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                   child: Icon(Icons.filter_list_rounded,
                       size: 20, color: onSurface.withValues(alpha: 0.7)),
                 ),
-                if (_statusFilter != null)
+                if (_statusFilter != null || _typeFilter != null)
                   Positioned(
                     top: -2,
                     right: -2,
@@ -624,7 +693,70 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                   ),
                   const Divider(height: 1),
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Text('TYPE DE CAMPAGNE',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: onSurface.withValues(alpha: 0.45))),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFilterStatusTile(
+                          label: 'Toutes',
+                          icon: Icons.all_inbox_rounded,
+                          color: Colors.grey,
+                          selected: _typeFilter == null,
+                          onSurface: onSurface,
+                          onTap: () {
+                            setModalState(() {});
+                            setState(() => _typeFilter = null);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        _buildFilterStatusTile(
+                          label: 'Campagnes simples (sans modèle)',
+                          icon: Icons.chat_bubble_outline_rounded,
+                          color: Colors.green,
+                          selected: _typeFilter == 'simple',
+                          onSurface: onSurface,
+                          onTap: () {
+                            setModalState(() {});
+                            setState(() => _typeFilter = 'simple');
+                            Navigator.pop(context);
+                          },
+                        ),
+                        _buildFilterStatusTile(
+                          label: 'Campagnes Meta (avec modèle)',
+                          icon: Icons.verified_outlined,
+                          color: Colors.indigo,
+                          selected: _typeFilter == 'meta',
+                          onSurface: onSurface,
+                          onTap: () {
+                            setModalState(() {});
+                            setState(() => _typeFilter = 'meta');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Text('STATUT',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: onSurface.withValues(alpha: 0.45))),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -759,7 +891,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
       Map<String, dynamic> c, Color surfaceCard, Color onSurface) {
     final title = c['title'] ?? c['campaign_name'] ?? 'Sans titre';
     final scheduledAt = _formatDate(c['scheduled_at']);
-    
+    final isMeta = _isMetaCampaign(c);
+
     // Convert status to styling
     Color iconBg = Colors.teal.withAlpha(20);
     Color iconColor = Colors.teal;
@@ -807,10 +940,33 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            scheduledAt,
-            style: TextStyle(
-                fontSize: 12, color: onSurface.withValues(alpha: 0.5)),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (isMeta ? Colors.indigo : Colors.green).withAlpha(26),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isMeta ? 'Meta' : 'Simple',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isMeta ? Colors.indigo : Colors.green,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  scheduledAt,
+                  style: TextStyle(
+                      fontSize: 12, color: onSurface.withValues(alpha: 0.5)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
         trailing: PopupMenuButton<String>(
