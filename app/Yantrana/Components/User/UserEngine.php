@@ -471,15 +471,28 @@ class UserEngine extends BaseEngine implements UserEngineInterface
     {
         $userId = $inputData['users__id'] = getUserID();
         $inputData['vendors__id'] = getVendorId();
-        // Check if device token for particular user exists
+
+        // Looked up by device_token alone, not device_token + users__id.
+        // A physical device install only ever has one FCM token, so it can
+        // only meaningfully belong to one account at a time - but the old
+        // scoped-by-user check let switching accounts on the same device
+        // insert a second row instead of replacing the first. The old
+        // row (old user, old vendor) was left behind, and
+        // sendFCMNotification() looks devices up by vendors__id, so the
+        // vendor being switched away from kept notifying this device
+        // indefinitely.
         $existingDeviceToken = $this->userDeviceRepository->fetchIt([
             'device_token' => $inputData['device_token'],
-            'users__id' => $userId
         ]);
 
-        // Check if device token exists
         if (!__isEmpty($existingDeviceToken)) {
-            return $this->engineReaction(2, [ 'show_message' => false], __tr('Device token already exists.'));
+            if ($existingDeviceToken->users__id == $userId) {
+                return $this->engineReaction(2, ['show_message' => false], __tr('Device token already exists.'));
+            }
+            // Re-point this device at whoever is logged in now, rather than
+            // leaving it registered to the account it was last seen under.
+            $this->userDeviceRepository->updateIt($existingDeviceToken, $inputData);
+            return $this->engineReaction(1, null, __tr('Device token stored successfully.'));
         }
 
         if ($this->userDeviceRepository->storeIt($inputData)) {

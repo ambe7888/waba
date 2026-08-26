@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/contact.dart';
@@ -76,9 +77,28 @@ class ApiService {
     // even after this device "logs out".
     if (_token != null) {
       try {
+        // Sent so the backend can drop this device's push-notification
+        // registration for the account being left. Without it, the vendor
+        // being logged out of keeps a live row pointed at this device and
+        // can keep pushing to it indefinitely - reported as still getting
+        // another account's message notifications after switching accounts,
+        // and even after a plain logout with no new account signed into.
+        String? fcmToken;
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        } catch (e) {
+          if (kDebugMode) debugPrint('Logout FCM token fetch error: $e');
+        }
+
         final url = Uri.parse('${baseApiUrl}user/logout');
         await http
-            .post(url, headers: _getHeaders())
+            .post(
+              url,
+              headers: _getHeaders(),
+              body: jsonEncode({
+                if (fcmToken != null) 'device_token': fcmToken,
+              }),
+            )
             .timeout(const Duration(seconds: 10));
       } catch (e) {
         if (kDebugMode) debugPrint('Logout revoke Error: $e');

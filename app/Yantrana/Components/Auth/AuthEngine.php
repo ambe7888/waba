@@ -175,6 +175,18 @@ class AuthEngine extends BaseEngine implements AuthEngineInterface
      *---------------------------------------------------------------- */
     public function processLogout($request)
     {
+        if (isMobileAppRequest() and $request->device_token) {
+            // Otherwise this device keeps its push-notification registration
+            // pointed at the vendor being logged out of: sendFCMNotification()
+            // looks devices up by vendors__id, so a stale row here means the
+            // vendor being left behind can push to this device indefinitely,
+            // and re-logging into a different account on the same device
+            // used to add a second row rather than replace this one.
+            \App\Yantrana\Components\UserDevice\Models\UserDeviceModel::where(
+                'device_token', $request->device_token
+            )->delete();
+        }
+
         Auth::logout();
         if (isMobileAppRequest()) {
             // revoke the token registry entry so this token is rejected by
