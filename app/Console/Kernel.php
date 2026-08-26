@@ -57,6 +57,17 @@ class Kernel extends ConsoleKernel
             ->dailyAt('09:00')
             ->name('process_saas_automations')
             ->withoutOverlapping();
+
+        // Reconcile the denormalised last-message / unread columns on
+        // contacts. They are maintained live by ContactMessageStatsSync on
+        // the message-log model events, but bulk inserts fire no model
+        // events, so drift is possible. Recomputes from scratch, so it
+        // repairs rather than compounds. Runs at a quiet hour - it is a
+        // full pass over every vendor (~10s on current data).
+        $schedule->command('contacts:backfill-message-columns')
+            ->dailyAt('04:30')
+            ->name('reconcile_contact_message_columns')
+            ->withoutOverlapping();
     }
 
     /**
