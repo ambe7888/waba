@@ -901,6 +901,13 @@ Route::group([
             WhatsAppServiceController::class,
             'mobileEmbeddedSignupUrl',
         ])->name('app_api.vendor.whatsapp.embedded_signup_url');
+        // One-shot auto-login link into the web dashboard. Subscribing and
+        // paying only exist there, so the app has to hand off - and without
+        // this the hand-off lands on a login form mid-purchase.
+        Route::get('/web-bridge-link', [
+            \App\Http\Controllers\MobileWebBridgeController::class,
+            'issueLink',
+        ])->name('app_api.vendor.web_bridge.link');
         // Create and schedule campaign (supports contact_uids)
         Route::post('/whatsapp/campaign/schedule', function (Illuminate\Http\Request $request) {
             validateVendorAccess('manage_campaigns');

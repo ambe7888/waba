@@ -1482,6 +1482,39 @@ class ApiService {
     }
   }
 
+  /// One-shot auto-login link into the web dashboard.
+  ///
+  /// Choosing a plan and paying only exist on the web side, so the app has
+  /// to hand off. The returned URL carries a single-use token that opens a
+  /// real web session, otherwise the vendor lands on a login form in the
+  /// middle of subscribing. Valid 5 minutes and burnt on first use, so it
+  /// is fetched at the moment of the tap rather than cached.
+  Future<({String? url, String? message})> fetchWebBridgeLink({
+    String destination = 'subscription',
+  }) async {
+    final endpoint = Uri.parse(
+        '${baseApiUrl}vendor/web-bridge-link?destination=$destination');
+    try {
+      final response = await http
+          .get(endpoint, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+      _checkUnauthorized(response);
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['reaction'] == 1) {
+        return (url: body['data']?['url']?.toString(), message: null);
+      }
+      final message =
+          body['data']?['message']?.toString() ?? body['message']?.toString();
+      return (
+        url: null,
+        message: (message != null && message.isNotEmpty) ? message : null
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('Fetch Web Bridge Link Error: $e');
+      return (url: null, message: null);
+    }
+  }
+
   /// Aggregated WhatsApp API details (phone number, business profile,
   /// health/verification, test contact) for the "Paramètres WhatsApp API"
   /// screen. Reads cached data only - fast, no live Meta calls.

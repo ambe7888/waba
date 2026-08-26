@@ -486,6 +486,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 $endsAt = null;
                 $isExpired = false;
                 $isFree = true;
+                $isTrial = false;
                 $remainingDays = 0;
                 $totalDays = 30;
                 $progress = 1.0;
@@ -495,6 +496,11 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 if (empty($sub) and $vendorPlanDetails->planType() === 'trial') {
                     $title = $vendorPlanDetails['plan_title'] . ' (' . __tr('Essai') . ')';
                     $isFree = false;
+                    // Trial and paid subscription were indistinguishable to
+                    // the app, so a vendor on their post-signup free week was
+                    // told their "abonnement" was expiring - when they have
+                    // never had one.
+                    $isTrial = true;
                     $trialEndsAt = $vendorPlanDetails['ends_at'];
                     if ($trialEndsAt) {
                         $parsedEndsAt = \Carbon\Carbon::parse($trialEndsAt);
@@ -544,6 +550,7 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     'ends_at' => $endsAt ? (is_string($endsAt) ? $endsAt : $endsAt->toIso8601String()) : null,
                     'is_expired' => $isExpired,
                     'is_free' => $isFree,
+                    'is_trial' => $isTrial,
                     'remaining_days' => $remainingDays,
                     'total_days' => $totalDays,
                     'progress' => $progress,
@@ -565,14 +572,21 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     ],
                     // Mirrors the alert banner in layouts/app.blade.php (web) so the
                     // app can show the same red/orange plan-status alert.
-                    'alert' => (function () use ($vendorPlanDetails) {
+                    'alert' => (function () use ($vendorPlanDetails, $isTrial) {
                         if (!$vendorPlanDetails->hasActivePlan()) {
                             return ['level' => 'danger', 'message' => $vendorPlanDetails->message()];
                         }
                         if ($vendorPlanDetails['is_expiring']) {
-                            return ['level' => 'warning', 'message' => __tr('Your subscription plan is expiring on __endAt__', [
-                                '__endAt__' => formatDate($vendorPlanDetails['ends_at']),
-                            ])];
+                            // Someone on the post-signup free week has no
+                            // subscription yet, so telling them theirs is
+                            // expiring is simply wrong.
+                            return ['level' => 'warning', 'message' => $isTrial
+                                ? __tr("Votre période d'essai se termine le __endAt__", [
+                                    '__endAt__' => formatDate($vendorPlanDetails['ends_at']),
+                                ])
+                                : __tr('Your subscription plan is expiring on __endAt__', [
+                                    '__endAt__' => formatDate($vendorPlanDetails['ends_at']),
+                                ])];
                         }
                         return null;
                     })(),

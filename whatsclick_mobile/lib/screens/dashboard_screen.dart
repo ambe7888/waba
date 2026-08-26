@@ -528,6 +528,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     final isExpired = sub?['is_expired'] == true;
     final isFree = sub?['is_free'] == true;
+    // A vendor on the free week after signup has no subscription yet, so
+    // the wording has to say "période d'essai" rather than "abonnement".
+    final isTrial = sub?['is_trial'] == true;
 
     String companyName = vendorInfo?['title']?.toString() ??
         vendorUserData?['name']?.toString() ??
@@ -572,15 +575,20 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     final String cycleLabel =
         billingCycle.toLowerCase().contains('annuel') ? '/an' : '/mois';
+    // Nothing is being billed during the trial, so neither "Paiement
+    // mensuel" nor a price applies to it.
     final String billedLabel = isFree
         ? 'Aucun accès'
-        : (billingCycle.toLowerCase().contains('annuel')
-            ? 'Paiement annuel'
-            : 'Paiement mensuel');
+        : isTrial
+            ? 'Essai gratuit'
+            : (billingCycle.toLowerCase().contains('annuel')
+                ? 'Paiement annuel'
+                : 'Paiement mensuel');
     final Color statusColor =
         isExpired ? const Color(0xFFDC2626) : const Color(0xFF10B981);
-    final String statusText =
-        isExpired ? 'Expiré' : (isFree ? 'Aucun' : 'Actif');
+    final String statusText = isExpired
+        ? 'Expiré'
+        : (isFree ? 'Aucun' : (isTrial ? 'Essai' : 'Actif'));
 
     Color progressColor = const Color(0xFF10B981);
     if (remainingDays <= 5 && !isFree) {
@@ -821,7 +829,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Votre abonnement expire dans',
+                  isTrial
+                      ? "Votre période d'essai expire dans"
+                      : 'Votre abonnement expire dans',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -857,16 +867,24 @@ class _DashboardScreenState extends State<DashboardScreen>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ManageSubscriptionScreen(
-                    subscriptionData: sub != null
-                        ? Map<String, dynamic>.from(sub as Map)
-                        : {},
-                    statsData: _stats ?? {},
+              onPressed: () {
+                // Nothing to manage yet on trial or free: the useful action
+                // is picking a plan, and that only exists on the web side.
+                if (isFree || isTrial || isExpired) {
+                  _openSubscriptionOnWeb();
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ManageSubscriptionScreen(
+                      subscriptionData: sub != null
+                          ? Map<String, dynamic>.from(sub as Map)
+                          : {},
+                      statsData: _stats ?? {},
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981), // Solid WAPI Green
                 foregroundColor: Colors.white,
@@ -876,7 +894,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                 elevation: 0,
               ),
               child: Text(
-                isFree ? 'Choisir un abonnement' : 'Gérer mon abonnement',
+                // During the trial there is no subscription to manage yet -
+                // the useful action is to pick one before it runs out.
+                (isFree || isTrial)
+                    ? 'Choisir un abonnement'
+                    : 'Gérer mon abonnement',
                 style:
                     const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
@@ -1495,6 +1517,52 @@ class _DashboardScreenState extends State<DashboardScreen>
       borderRadius: BorderRadius.circular(14),
       child: card,
     );
+  }
+
+  /// Opens the web dashboard's subscription page with the vendor already
+  /// signed in.
+  ///
+  /// Plans and checkout live only on the web side, so tapping "Choisir un
+  /// abonnement" used to open a details screen with nothing to choose. The
+  /// link carries a one-shot token so nobody is asked to log in again
+  /// halfway through paying - it is fetched here, at the tap, because it
+  /// expires in five minutes and is burnt on first use.
+  Future<void> _openSubscriptionOnWeb() async {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF10B981)),
+      ),
+    );
+
+    final result = await ApiService().fetchWebBridgeLink();
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // close the loader
+
+    final url = result.url;
+    if (url == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message ??
+              "Impossible d'ouvrir la page d'abonnement. Vérifiez votre connexion."),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(url);
+    // External browser rather than an in-app webview: payment providers
+    // (Wave, Stripe, MoneyFusion) redirect through their own domains and
+    // some refuse to run inside an embedded webview.
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Aucun navigateur disponible sur l'appareil.")),
+      );
+    }
   }
 
   Widget _buildFeatureRow(String label, bool enabled, bool isDark,

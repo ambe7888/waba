@@ -1814,6 +1814,17 @@ Route::any('whatsapp-webhook/{vendorUid}', [
 // Mobile WhatsApp Embedded Signup bridge — reached from a plain WebView in
 // the app on a short-lived signed token, not a logged-in web session.
 // DO NOT CHANGE THE PATH prefix as it's described in CSRF protection.
+// Consumes a one-shot token minted by the app and establishes a real web
+// session, so a vendor sent from the app to subscribe is not asked to log
+// in again. Single use, 5-minute TTL, and the destination is a route name
+// held server-side - never a URL from the request - so it cannot be turned
+// into an open redirect. Deliberately outside the authenticated group: its
+// whole job is to create that session.
+Route::get('mobile-bridge/{token}', [
+    \App\Http\Controllers\MobileWebBridgeController::class,
+    'consume',
+])->name('mobile.web_bridge.consume');
+
 Route::get('whatsapp-embedded-signup-mobile/{token}', [
     WhatsAppServiceController::class,
     'mobileEmbeddedSignupShow',
