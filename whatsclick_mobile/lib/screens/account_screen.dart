@@ -16,9 +16,15 @@ import 'agents_screen.dart';
 import 'ai_settings_screen.dart';
 import 'shop_settings_screen.dart';
 import 'orders_management_screen.dart';
+import 'whatsapp_api_details_screen.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({super.key});
+  // Shared with MainLayoutScreen/HomeScreen so the update check only ever
+  // hits the network once per launch instead of three times independently.
+  // Still optional so this screen keeps working if ever opened standalone.
+  final ValueNotifier<Map<String, dynamic>?>? updateInfoNotifier;
+
+  const AccountScreen({super.key, this.updateInfoNotifier});
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
@@ -42,9 +48,29 @@ class _AccountScreenState extends State<AccountScreen> {
     super.initState();
     _loadRoleAndPermissions();
     _loadData();
-    _checkForUpdate();
+    if (widget.updateInfoNotifier != null) {
+      _updateInfo = widget.updateInfoNotifier!.value;
+      widget.updateInfoNotifier!.addListener(_onSharedUpdateInfoChanged);
+    } else {
+      _checkForUpdate();
+    }
   }
 
+  @override
+  void dispose() {
+    widget.updateInfoNotifier?.removeListener(_onSharedUpdateInfoChanged);
+    super.dispose();
+  }
+
+  void _onSharedUpdateInfoChanged() {
+    if (mounted) {
+      setState(() => _updateInfo = widget.updateInfoNotifier!.value);
+    }
+  }
+
+  /// Fallback used only when this screen is opened without a shared
+  /// notifier (e.g. in isolation) - MainLayoutScreen normally supplies one
+  /// so this never runs in the app's real navigation flow.
   Future<void> _checkForUpdate() async {
     final updateInfo = await ApiService().checkForUpdate();
     if (mounted) {
@@ -460,6 +486,18 @@ class _AccountScreenState extends State<AccountScreen> {
                       },
                       isDark: isDark,
                     ),
+                  if (isAdmin)
+                    _buildSettingsTile(
+                      icon: Icons.facebook_rounded,
+                      title: 'Paramètres WhatsApp API',
+                      iconColor: const Color(0xFF1877F2),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const WhatsAppApiDetailsScreen()),
+                        );
+                      },
+                      isDark: isDark,
+                    ),
                   if (isAdmin || _canManageBot)
                     _buildSettingsTile(
                       icon: Icons.psychology_alt_rounded,
@@ -633,6 +671,16 @@ class _AccountScreenState extends State<AccountScreen> {
                   isDark: isDark,
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Text(
+              'Version $version',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
             ),
           ),
           const SizedBox(height: 32),

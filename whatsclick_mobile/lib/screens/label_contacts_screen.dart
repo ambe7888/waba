@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
@@ -79,7 +80,7 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
       final url = Uri.parse(
           '${baseApiUrl}vendor/contact/by-label/${widget.labelUid}?${params.join('&')}');
 
-      if (debug) debugPrint('LabelContactsScreen URL: $url');
+      if (kDebugMode) debugPrint('LabelContactsScreen URL: $url');
 
       final response = await http.get(url, headers: {
         'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
         'Authorization': 'Bearer $token',
       }).timeout(const Duration(seconds: 20));
 
-      if (debug) debugPrint('LabelContactsScreen response: ${response.body}');
+      if (kDebugMode) debugPrint('LabelContactsScreen response: ${response.body}');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -110,7 +111,7 @@ class _LabelContactsScreenState extends State<LabelContactsScreen> {
         });
       }
     } catch (e) {
-      if (debug) debugPrint('LabelContactsScreen error: $e');
+      if (kDebugMode) debugPrint('LabelContactsScreen error: $e');
       if (mounted) {
         setState(() {
           _error = 'Erreur de chargement';

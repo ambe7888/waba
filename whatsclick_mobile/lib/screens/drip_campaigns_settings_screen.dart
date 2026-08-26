@@ -17,6 +17,7 @@ class _DripCampaignsSettingsScreenState
   bool _isLoading = true;
   List<Map<String, dynamic>> _campaigns = [];
   final Set<String> _togglingUids = {};
+  String? _error;
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _DripCampaignsSettingsScreenState
     if (mounted) {
       setState(() {
         _campaigns = data;
+        _error = data.isEmpty ? ApiService().lastDripCampaignsError : null;
         _isLoading = false;
       });
     }
@@ -101,7 +103,42 @@ class _DripCampaignsSettingsScreenState
           ? const Center(
               child:
                   CircularProgressIndicator(color: ThemeService.primaryColor))
-          : _campaigns.isEmpty
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off_rounded,
+                            size: 64,
+                            color: isDark ? Colors.white30 : Colors.black26),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Impossible de charger les campagnes.\nVérifiez votre connexion.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ThemeService.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Réessayer', style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: _fetchCampaigns,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _campaigns.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),

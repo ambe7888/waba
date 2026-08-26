@@ -22,10 +22,10 @@ class _CampaignsAdminScreenState extends State<CampaignsAdminScreen> {
 
   Future<void> _loadCampaigns() async {
     setState(() => _isLoading = true);
-    final campaigns = await ApiService().fetchCampaigns();
+    final result = await ApiService().fetchCampaigns();
     if (mounted) {
       setState(() {
-        _campaigns = campaigns;
+        _campaigns = List<Map<String, dynamic>>.from(result['campaigns'] ?? []);
         _isLoading = false;
       });
     }

@@ -76,6 +76,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
   ];
 
   void _showDrawerNotice(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -146,7 +147,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
         final success = await ApiService().updateOrderStatus(order['_uid'], value);
         if (success) {
           _fetchOrders();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Statut mis à jour.')));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Statut mis à jour.')));
+          }
         }
       },
     );
@@ -166,7 +169,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
               final success = await ApiService().deleteOrder(order['_uid']);
               if (success) {
                 _fetchOrders();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Commande supprimée.')));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Commande supprimée.')));
+                }
               }
             },
             child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
@@ -292,9 +297,11 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       debugPrint('Fetch Contact Groups Error: $e');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String? _firstName;
@@ -355,9 +362,11 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       customFields: customFieldsPayload,
     );
 
-    setState(() {
-      _isSavingDetails = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isSavingDetails = false;
+      });
+    }
 
     if (mounted) {
       _showDrawerNotice(success
@@ -379,9 +388,11 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       _notesController.text.trim(),
     );
 
-    setState(() {
-      _isSavingNotes = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isSavingNotes = false;
+      });
+    }
 
     if (mounted) {
       _showDrawerNotice(
@@ -404,12 +415,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       success = await ApiService().blockContact(widget.contact.uid);
     }
 
-    setState(() {
-      _isTogglingBlock = false;
-      if (success) {
-        _isBlocked = !_isBlocked;
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _isTogglingBlock = false;
+        if (success) {
+          _isBlocked = !_isBlocked;
+        }
+      });
+    }
 
     if (mounted) {
       _showDrawerNotice(success
@@ -433,12 +446,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     final success =
         await ApiService().assignContactUser(widget.contact.uid, userUid);
 
-    setState(() {
-      _isSavingAgent = false;
-      if (success) {
-        _assignedUserUid = agentUid;
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _isSavingAgent = false;
+        if (success) {
+          _assignedUserUid = agentUid;
+        }
+      });
+    }
 
     if (mounted) {
       _showDrawerNotice(success
@@ -465,19 +480,18 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       _selectedLabelIds.toList(),
     );
 
+    if (!mounted) return;
+
     setState(() {
       _isSavingLabels = false;
-    });
-
-    if (!success) {
-      setState(() {
+      if (!success) {
         if (selected) {
           _selectedLabelIds.remove(labelId);
         } else {
           _selectedLabelIds.add(labelId);
         }
-      });
-    }
+      }
+    });
 
     if (mounted) {
       if (!success) {
@@ -506,6 +520,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
       if (newLabel != null) {
         final labelId = newLabel['_id'] as int;
 
+        if (!mounted) return;
         setState(() {
           _allLabels.add(newLabel);
         });
@@ -514,15 +529,19 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
         _showDrawerNotice('Étiquette créée et assignée !');
       } else {
         _showDrawerNotice('Échec de la création de l\'étiquette');
+        if (mounted) {
+          setState(() {
+            _isSavingLabels = false;
+          });
+        }
+      }
+    } catch (_) {
+      _showDrawerNotice('Échec de la création de l\'étiquette');
+      if (mounted) {
         setState(() {
           _isSavingLabels = false;
         });
       }
-    } catch (_) {
-      _showDrawerNotice('Échec de la création de l\'étiquette');
-      setState(() {
-        _isSavingLabels = false;
-      });
     }
   }
 
@@ -538,6 +557,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     final success = await ApiService().storeReminder(widget.contact.uid,
         _reminderNoteController.text, _reminderDate!.toIso8601String());
 
+    if (!mounted) return;
     setState(() {
       _isSavingReminder = false;
     });
@@ -556,6 +576,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
 
     final success = await ApiService().cancelReminder(widget.contact.uid);
 
+    if (!mounted) return;
     setState(() {
       _isSavingReminder = false;
       if (success) {
@@ -660,8 +681,9 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     );
 
     if (updated == true) {
+      if (!mounted) return;
       setState(() => _isSavingGroups = true);
-      
+
       final toAdd = tempSelectedGroups.difference(Set<String>.from(_selectedGroupUids)).toList();
       final toRemove = Set<String>.from(_selectedGroupUids).difference(tempSelectedGroups).toList();
       
@@ -681,6 +703,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
         success = success && remRes;
       }
 
+      if (!mounted) return;
       if (success) {
         setState(() {
           _selectedGroupUids.clear();
@@ -1289,7 +1312,7 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                     context: context,
                                     initialTime: TimeOfDay.now(),
                                   );
-                                  if (time != null) {
+                                  if (time != null && mounted) {
                                     setState(() {
                                       _reminderDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
                                     });

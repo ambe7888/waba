@@ -34,6 +34,11 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       if (mounted) {
         setState(() {
           _tickets = data?['tickets'] ?? [];
+          // fetchSupportTickets() never throws - it catches its own
+          // network/HTTP errors and returns null, distinct from a real
+          // (possibly empty) response - check that instead of relying on
+          // an unreachable catch block below.
+          _error = data == null ? 'Impossible de charger les tickets. Vérifiez votre connexion.' : null;
           _isLoading = false;
         });
       }
@@ -208,7 +213,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           },
         );
       },
-    );
+    ).then((_) {
+      subjectController.dispose();
+      descriptionController.dispose();
+    });
   }
 
   @override

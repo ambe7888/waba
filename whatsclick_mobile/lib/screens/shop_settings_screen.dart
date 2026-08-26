@@ -224,6 +224,7 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
         });
       },
     );
+    newNameController.dispose();
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -452,6 +453,10 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
         });
       },
     );
+    nameController.dispose();
+    priceController.dispose();
+    descController.dispose();
+    linkController.dispose();
   }
 
   @override

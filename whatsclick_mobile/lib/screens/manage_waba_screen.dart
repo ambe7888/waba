@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import 'whatsapp_embedded_signup_screen.dart';
+import 'whatsapp_api_details_screen.dart';
 
 class ManageWabaScreen extends StatefulWidget {
   final Map<String, dynamic> wabaData;
@@ -55,8 +56,10 @@ class _ManageWabaScreenState extends State<ManageWabaScreen> {
       setState(() {
         _data = Map<String, dynamic>.from(freshWaba ?? freshVendor ?? _data);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('WhatsApp connecté avec succès !'), backgroundColor: Color(0xFF10B981)),
+      // Send the vendor straight to the API-details screen to set the
+      // mandatory test contact number, matching the web setup flow.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const WhatsAppApiDetailsScreen(justConnected: true)),
       );
     }
   }

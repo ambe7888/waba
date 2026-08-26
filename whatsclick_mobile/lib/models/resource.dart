@@ -4,6 +4,7 @@ class Resource {
   final String? description;
   final String? fileName;
   final String? downloadUrl;
+  final String? videoUrl;
 
   Resource({
     required this.uid,
@@ -11,6 +12,7 @@ class Resource {
     this.description,
     this.fileName,
     this.downloadUrl,
+    this.videoUrl,
   });
 
   factory Resource.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Resource {
       description: json['description'],
       fileName: json['file_name'],
       downloadUrl: json['download_url'],
+      videoUrl: json['video_url'],
     );
   }
 }

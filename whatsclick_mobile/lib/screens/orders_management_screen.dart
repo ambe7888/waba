@@ -62,6 +62,8 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     _load();
   }
 
+  bool _loadError = false;
+
   Future<void> _load() async {
     setState(() => _isLoading = true);
     final result = await ApiService().fetchAllOrders();
@@ -69,6 +71,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     setState(() {
       _isFeatureAvailable = result['is_feature_available'] == true;
       _orders = List<Map<String, dynamic>>.from(result['orders'] ?? []);
+      _loadError = result['error'] == true;
       _isLoading = false;
     });
   }
@@ -203,7 +206,9 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           : null,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : !_isFeatureAvailable
+          : _loadError
+              ? _buildNetworkErrorNotice(isDark)
+              : !_isFeatureAvailable
               ? _buildUpgradeNotice(isDark)
               : RefreshIndicator(
                   onRefresh: _load,
@@ -238,6 +243,36 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildNetworkErrorNotice(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 48, color: isDark ? Colors.white30 : Colors.black26),
+            const SizedBox(height: 12),
+            Text(
+              'Impossible de charger les commandes.\nVérifiez votre connexion.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Réessayer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeService.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

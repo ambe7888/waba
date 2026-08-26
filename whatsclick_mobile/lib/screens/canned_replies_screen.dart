@@ -119,7 +119,17 @@ class _CannedRepliesScreenState extends State<CannedRepliesScreen> {
                     shortcut: shortcutController.text.trim(),
                     message: messageController.text.trim(),
                   );
-                  _loadReplies();
+                  if (!mounted) return;
+                  if (success != null) {
+                    _loadReplies();
+                  } else {
+                    setState(() {
+                      _isLoading = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Échec de l\'enregistrement. Réessayez.')),
+                    );
+                  }
                 }
               },
               child: const Text('Enregistrer'),
@@ -152,7 +162,17 @@ class _CannedRepliesScreenState extends State<CannedRepliesScreen> {
               });
               final success =
                   await ApiService().deleteCannedReply(reply['_uid']);
-              _loadReplies();
+              if (!mounted) return;
+              if (success) {
+                _loadReplies();
+              } else {
+                setState(() {
+                  _isLoading = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Échec de la suppression. Réessayez.')),
+                );
+              }
             },
             child: const Text('Supprimer'),
           ),
