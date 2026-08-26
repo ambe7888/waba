@@ -305,7 +305,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       // Merge API messages with current state
       final Map<String, ChatMessage> mergedMap = {};
       for (var m in _messages) {
-        if (!m.isIncoming && m.status == 'initialize') continue;
+        // 'uploading' is handled the same way as 'initialize': both are
+        // local-only bubbles the server has never seen, re-added below by
+        // the localPending pass so a poll mid-upload cannot make the file
+        // the user just picked vanish from the conversation.
+        if (!m.isIncoming && (m.status == 'initialize' || m.status == 'uploading')) continue;
         // Drop the instant "preview" bubble seeded in initState() from
         // contact.lastMessage - it always guesses isIncoming:true and has a
         // synthetic uid that never matches a real message, so once the real
@@ -328,9 +332,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           return dtB.compareTo(dtA);
         });
 
-      // Garder les messages locaux 'initialize' pas encore confirmés par l'API
+      // Garder les messages locaux 'initialize'/'uploading' pas encore
+      // confirmés par l'API
       final localPending = _messages.where((m) {
-        if (m.isIncoming || m.status != 'initialize') return false;
+        if (m.isIncoming) return false;
+        if (m.status != 'initialize' && m.status != 'uploading') return false;
         if (orderedMessages.any((api) => api.uid == m.uid)) return false;
         final localTs = DateTime.tryParse(m.timestamp);
         final existsSimilar = orderedMessages.any((api) {
@@ -607,6 +613,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     switch (status) {
       case 'failed':
         return Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444));
+      // Local-only state: the file is still being uploaded to our server,
+      // before it is even handed to WhatsApp. A spinner rather than a tick,
+      // because nothing has been sent yet.
+      case 'uploading':
+        return SizedBox(
+          width: 11,
+          height: 11,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.6,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+          ),
+        );
       case 'initialize':
         return Icon(Icons.access_time_rounded,
             size: 13,
@@ -1285,15 +1303,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         return;
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Téléchargement de $originalFilename en cours...'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
       String uploadType;
       if (type == 'image') {
         uploadType = 'whatsapp_image';
@@ -1305,9 +1314,37 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         uploadType = 'whatsapp_document';
       }
 
+      // Show the message straight away, before the upload starts. It used
+      // to be inserted only once the upload had finished, so picking a file
+      // left the conversation looking untouched for the whole transfer -
+      // just a 2s toast over a potentially much longer upload, then nothing.
+      final tempUid = UniqueKey().toString();
+      final tempMsg = ChatMessage(
+        uid: tempUid,
+        body: originalFilename,
+        isIncoming: false,
+        timestamp: DateTime.now().toIso8601String(),
+        type: type,
+        status: 'uploading',
+      );
+      if (mounted) {
+        setState(() {
+          _messages.insert(0, tempMsg);
+        });
+        _scrollToBottom();
+      }
+
+      void dropPendingBubble() {
+        if (!mounted) return;
+        setState(() {
+          _messages.removeWhere((m) => m.uid == tempUid);
+        });
+      }
+
       final uploadedFileName =
           await ApiService().uploadTempMedia(file, uploadType);
       if (uploadedFileName == null) {
+        dropPendingBubble();
         if (mounted) {
           final errDetail = ApiService().lastUploadError ?? 'Erreur inconnue';
           _showChatNotice('Erreur envoi $originalFilename : $errDetail',
@@ -1316,18 +1353,23 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         return;
       }
 
-      final tempMsg = ChatMessage(
-        uid: UniqueKey().toString(),
-        body: originalFilename,
-        isIncoming: false,
-        timestamp: DateTime.now().toIso8601String(),
-        type: type,
-        status: 'initialize',
-      );
-      setState(() {
-        _messages.insert(0, tempMsg);
-      });
-      _scrollToBottom();
+      // Uploaded to our server; now queued for WhatsApp. Swap the spinner
+      // for the pending clock so the bubble reflects where it actually is.
+      if (mounted) {
+        setState(() {
+          final i = _messages.indexWhere((m) => m.uid == tempUid);
+          if (i != -1) {
+            _messages[i] = ChatMessage(
+              uid: tempUid,
+              body: originalFilename,
+              isIncoming: false,
+              timestamp: tempMsg.timestamp,
+              type: type,
+              status: 'initialize',
+            );
+          }
+        });
+      }
 
       final success = await ApiService().sendMediaMessage(
         widget.contact.uid,
@@ -1345,6 +1387,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         }
         _startAggressivePolling();
       } else {
+        // Drop the optimistic bubble: nothing reached WhatsApp, so leaving
+        // it on screen would show a message the contact never received.
+        dropPendingBubble();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
