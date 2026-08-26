@@ -42,8 +42,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   final ValueNotifier<PendingHomeFilterRequest?> _pendingHomeFilter =
       ValueNotifier(null);
 
+  // IndexedStack builds every child, so all five tabs used to mount at
+  // launch and each fire its own initState fetches - about a dozen
+  // requests before the first screen was usable, including the contacts
+  // list twice (Discussions and Contacts each load it). Tabs are now built
+  // on first visit and kept alive after, so a cold start only pays for
+  // what is actually on screen.
+  //
+  // 0 (Tableau) is the landing tab. 1 (Discussions) is eager too: it owns
+  // the unread badge on the bottom bar, which would otherwise stay empty
+  // until the tab was opened.
+  final Set<int> _builtTabs = {0, 1};
+
   void navigateToTab(int index) {
-    if (mounted) setState(() => _currentIndex = index);
+    if (!mounted) return;
+    setState(() {
+      _builtTabs.add(index);
+      _currentIndex = index;
+    });
   }
 
   void navigateToDiscussions({String filter = 'all'}) {
@@ -229,7 +245,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             ),
             child: IndexedStack(
               index: _currentIndex,
-              children: _screens,
+              children: List.generate(
+                _screens.length,
+                (i) => _builtTabs.contains(i)
+                    ? _screens[i]
+                    : const SizedBox.shrink(),
+              ),
             ),
           ),
           bottomNavigationBar: Container(
@@ -315,7 +336,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                             behavior: HitTestBehavior.opaque,
                             onTap: () {
                               HapticFeedback.lightImpact();
-                              setState(() => _currentIndex = index);
+                              // navigateToTab, not a bare setState: it also
+                              // marks the tab as built, without which a
+                              // first-time tab would render empty.
+                              navigateToTab(index);
                             },
                             child: SizedBox(
                               height: 65,

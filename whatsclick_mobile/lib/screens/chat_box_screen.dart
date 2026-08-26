@@ -47,6 +47,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   bool _isLoading = true;
   bool _isFetching = false; // Guard contre les requêtes fetchMessages concurrentes
   Timer? _pollingTimer;
+  /// When the fallback refresh last actually ran.
+  DateTime? _lastKeepaliveRefresh;
   StreamSubscription? _fcmSubscription;
   StreamSubscription<Map<String, dynamic>>? _pusherSubscription;
   bool _isFirstLoad = true; // Track first load for auto-scroll
@@ -159,11 +161,22 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       }
     });
 
-    // Keepalive polling 30s (fallback si Pusher indisponible)
-    _pollingTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _loadMessages(silent: true),
-    );
+    // Fallback for anything the realtime channel misses. Ticks every 30s
+    // but only refetches once the last refresh is older than the interval
+    // below - roughly every 90s while Pusher is up, back to 30s when it is
+    // not. Still polls while connected on purpose: isConnected reports the
+    // socket, not that events are actually being delivered.
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      final minInterval = PusherService().isConnected
+          ? const Duration(seconds: 90)
+          : const Duration(seconds: 30);
+      final last = _lastKeepaliveRefresh;
+      if (last != null && DateTime.now().difference(last) < minInterval) {
+        return;
+      }
+      _lastKeepaliveRefresh = DateTime.now();
+      _loadMessages(silent: true);
+    });
     _loadCannedReplies();
     _messageController.addListener(_onMessageTextChanged);
   }

@@ -61,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen>
   StreamSubscription<Map<String, dynamic>>? _pusherSubscription;
   Timer? _pollingTimer;
   Timer? _searchDebouncer;
+  /// When the fallback refresh last actually ran - see _startKeepalive().
+  DateTime? _lastKeepaliveRefresh;
 
   // Label filter state
   final List<String> _selectedLabelFilters = [];
@@ -167,14 +169,35 @@ class _HomeScreenState extends State<HomeScreen>
       _refreshBadgeCounts();
     });
 
-    // Keepalive polling 30s (fallback si Pusher indisponible)
-    _pollingTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) {
-        _loadContacts(silent: true, background: true);
-        _refreshBadgeCounts();
-      },
-    );
+    _startKeepalive();
+  }
+
+  /// Fallback refresh for anything the realtime channel misses.
+  ///
+  /// The timer keeps ticking every 30s, but a tick only actually refetches
+  /// once the last refresh is older than the interval below. While Pusher
+  /// is up that means roughly one refresh every 2 minutes instead of every
+  /// 30s - about a quarter of the requests - and it drops straight back to
+  /// 30s the moment the channel goes down.
+  ///
+  /// Deliberately still polls while connected: `isConnected` reports the
+  /// socket, not delivery. Realtime here was silently dead for a while with
+  /// a healthy-looking socket, and a fallback that trusts the socket would
+  /// have gone dead with it.
+  void _startKeepalive() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      final minInterval = PusherService().isConnected
+          ? const Duration(seconds: 120)
+          : const Duration(seconds: 30);
+      final last = _lastKeepaliveRefresh;
+      if (last != null && DateTime.now().difference(last) < minInterval) {
+        return;
+      }
+      _lastKeepaliveRefresh = DateTime.now();
+      _loadContacts(silent: true, background: true);
+      _refreshBadgeCounts();
+    });
   }
 
   @override
@@ -186,15 +209,8 @@ class _HomeScreenState extends State<HomeScreen>
     } else if (state == AppLifecycleState.resumed) {
       _loadContacts(silent: true);
       _refreshBadgeCounts();
-      _pollingTimer?.cancel();
-      // Keepalive 30s après reprise
-      _pollingTimer = Timer.periodic(
-        const Duration(seconds: 30),
-        (_) {
-          _loadContacts(silent: true, background: true);
-          _refreshBadgeCounts();
-        },
-      );
+      _lastKeepaliveRefresh = DateTime.now();
+      _startKeepalive();
     }
   }
 
