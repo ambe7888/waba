@@ -218,10 +218,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8F9FA),
           body: Container(
             decoration: BoxDecoration(
-              image: const DecorationImage(
-                image: AssetImage('assets/images/whatsapp_bg.png'),
+              image: DecorationImage(
+                image: const AssetImage('assets/images/whatsapp_bg.png'),
                 fit: BoxFit.cover,
-                opacity: 0.45,
+                // Kept lower in dark mode: the same pattern that reads as a
+                // light texture on the pale surface turns muddy against the
+                // dark one and starts competing with the cards.
+                opacity: isDark ? 0.30 : 0.85,
               ),
             ),
             child: IndexedStack(

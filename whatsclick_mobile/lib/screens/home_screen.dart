@@ -1520,6 +1520,57 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// The tick shown before our own last message, mirroring WhatsApp:
+  /// clock while queued, one tick sent, two ticks delivered, two blue
+  /// ticks read. Backend statuses are initialize/accepted/sent/
+  /// delivered/read/played/failed.
+  Widget _buildDeliveryTick(String? status) {
+    const readBlue = Color(0xFF53BDEB);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+
+    switch (status) {
+      case 'read':
+      case 'played':
+        return const Icon(Icons.done_all_rounded, size: 15, color: readBlue);
+      case 'delivered':
+        return Icon(Icons.done_all_rounded, size: 15, color: muted);
+      case 'sent':
+        return Icon(Icons.done_rounded, size: 15, color: muted);
+      case 'failed':
+        return const Icon(Icons.error_outline_rounded, size: 14, color: Color(0xFFDC2626));
+      case 'initialize':
+      case 'accepted':
+        return Icon(Icons.schedule_rounded, size: 13, color: muted);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  /// Small marker before the preview text when the last message was not
+  /// plain text. Null for text/template/interactive, which need no icon.
+  IconData? _mediaPreviewIcon(String? type) {
+    switch (type) {
+      case 'image':
+        return Icons.photo_camera_rounded;
+      case 'video':
+        return Icons.videocam_rounded;
+      case 'audio':
+        return Icons.headphones_rounded;
+      case 'voice':
+        return Icons.mic_rounded;
+      case 'document':
+        return Icons.insert_drive_file_rounded;
+      case 'sticker':
+        return Icons.emoji_emotions_rounded;
+      case 'location':
+        return Icons.location_on_rounded;
+      case 'system':
+        return Icons.info_outline_rounded;
+      default:
+        return null;
+    }
+  }
+
     Widget _buildContactCard(
       Contact contact,
       int index,
@@ -1634,9 +1685,29 @@ class _HomeScreenState extends State<HomeScreen>
                       SizedBox(height: 4),
                       Row(
                         children: [
+                          // Delivery ticks, WhatsApp style: only ever on our
+                          // own messages, never on what the contact sent.
+                          if (!contact.lastMessageIsIncoming) ...[
+                            _buildDeliveryTick(contact.lastMessageStatus),
+                            SizedBox(width: 3),
+                          ],
+                          // Media kind marker (photo/video/document/...).
+                          if (_mediaPreviewIcon(contact.lastMessageType) != null) ...[
+                            Icon(
+                              _mediaPreviewIcon(contact.lastMessageType),
+                              size: 14,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.45),
+                            ),
+                            SizedBox(width: 3),
+                          ],
                           Expanded(
                             child: Text(
-                              contact.lastMessage ?? contact.phoneNumber,
+                              (contact.lastMessage?.trim().isNotEmpty ?? false)
+                                  ? contact.lastMessage!.replaceAll('\n', ' ')
+                                  : contact.phoneNumber,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

@@ -1403,7 +1403,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           image: DecorationImage(
             image: const AssetImage('assets/images/whatsapp_bg.png'),
             fit: BoxFit.cover,
-            opacity: Theme.of(context).brightness == Brightness.dark ? 0.25 : 0.4,
+            opacity: Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.65,
           ),
         ),
         child: Column(
