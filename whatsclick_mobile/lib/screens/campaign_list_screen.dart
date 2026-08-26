@@ -18,7 +18,9 @@ class CampaignListScreen extends StatefulWidget {
   State<CampaignListScreen> createState() => _CampaignListScreenState();
 }
 
-class _CampaignListScreenState extends State<CampaignListScreen> {
+class _CampaignListScreenState extends State<CampaignListScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   bool _isLoading = true;
   int _roleId = 3;
   bool _isAdmin = false;
@@ -29,8 +31,8 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   String? _statusFilter;
-  // null = toutes, 'meta' = campagne modèle (whatsapp_templates__id set),
-  // 'simple' = campagne libre (message 24h, sans modèle Meta).
+  // Driven by the tab bar: null = toutes, 'simple' = campagne libre
+  // (message 24h, sans modèle Meta), 'meta' = campagne avec modèle.
   String? _typeFilter;
   bool _sortNewestFirst = true;
   bool _showingArchived = false;
@@ -88,6 +90,16 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      final mode = switch (_tabController.index) {
+        1 => 'simple',
+        2 => 'meta',
+        _ => null,
+      };
+      if (mode != _typeFilter) setState(() => _typeFilter = mode);
+    });
     _loadRoleAndPermissions();
     _fetchStats();
     _fetchCampaigns();
@@ -102,6 +114,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -385,6 +398,9 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                         child: _buildSearchBar(surfaceCard, onSurface),
                       ),
                       SliverToBoxAdapter(
+                        child: _buildTypeTabs(onSurface),
+                      ),
+                      SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
@@ -458,6 +474,57 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  /// Toutes / Simples / Meta, styled like the dashboard's own tab bar so
+  /// the two read as the same control.
+  ///
+  /// A campaign counts as Meta when it carries an approved template;
+  /// anything sent as free text (the "Message 24h" preset) is simple.
+  Widget _buildTypeTabs(Color onSurface) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: TabBar(
+          controller: _tabController,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: ThemeService.primaryColor,
+            boxShadow: [
+              BoxShadow(
+                color: ThemeService.primaryColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelColor: Colors.white,
+          unselectedLabelColor: onSurface.withValues(alpha: 0.6),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          dividerColor: Colors.transparent,
+          tabs: const [
+            Tab(text: 'Toutes'),
+            Tab(text: 'Simples'),
+            Tab(text: 'Meta'),
+          ],
+        ),
+      ),
     );
   }
 
@@ -632,7 +699,7 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                   child: Icon(Icons.filter_list_rounded,
                       size: 20, color: onSurface.withValues(alpha: 0.7)),
                 ),
-                if (_statusFilter != null || _typeFilter != null)
+                if (_statusFilter != null)
                   Positioned(
                     top: -2,
                     right: -2,
@@ -692,60 +759,9 @@ class _CampaignListScreenState extends State<CampaignListScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Text('TYPE DE CAMPAGNE',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                            color: onSurface.withValues(alpha: 0.45))),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFilterStatusTile(
-                          label: 'Toutes',
-                          icon: Icons.all_inbox_rounded,
-                          color: Colors.grey,
-                          selected: _typeFilter == null,
-                          onSurface: onSurface,
-                          onTap: () {
-                            setModalState(() {});
-                            setState(() => _typeFilter = null);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        _buildFilterStatusTile(
-                          label: 'Campagnes simples (sans modèle)',
-                          icon: Icons.chat_bubble_outline_rounded,
-                          color: Colors.green,
-                          selected: _typeFilter == 'simple',
-                          onSurface: onSurface,
-                          onTap: () {
-                            setModalState(() {});
-                            setState(() => _typeFilter = 'simple');
-                            Navigator.pop(context);
-                          },
-                        ),
-                        _buildFilterStatusTile(
-                          label: 'Campagnes Meta (avec modèle)',
-                          icon: Icons.verified_outlined,
-                          color: Colors.indigo,
-                          selected: _typeFilter == 'meta',
-                          onSurface: onSurface,
-                          onTap: () {
-                            setModalState(() {});
-                            setState(() => _typeFilter = 'meta');
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
+                  // Le type (simple / Meta) est piloté par les onglets
+                  // au-dessus de la liste, pas ici - le dupliquer dans ce
+                  // panneau donnerait deux commandes pour le même réglage.
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                     child: Text('STATUT',

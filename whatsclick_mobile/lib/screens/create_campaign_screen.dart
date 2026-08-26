@@ -1239,26 +1239,41 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
   }
 
   Widget _buildStep4(bool isDark) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Choisissez qui recevra le message de cette campagne.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.2,
-          children: [
-            _buildAudienceCard('all', 'TOUS LES CONTACTS', 'Envoyer à tout le monde', Icons.contact_mail, isDark),
-            _buildAudienceCard('specific', 'CONTACTS SPÉCIFIQUES', 'Sélectionner des contacts', Icons.person, isDark),
-            _buildAudienceCard('audiences', 'AUDIENCE', 'Segments enregistrés', Icons.pie_chart, isDark),
-            _buildAudienceCard('groups', 'GROUPES & ÉTIQUETTES', 'Cibler par groupe', Icons.local_offer, isDark),
-          ],
+        // Pinned. The whole step used to be a single ListView, so choosing
+        // "contacts spécifiques" and scrolling the numbers pushed the four
+        // mode cards off the top and you lost sight of what was selected.
+        // They stay put now; only the list underneath moves.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Choisissez qui recevra le message de cette campagne.', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+              const SizedBox(height: 16),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.2,
+                children: [
+                  _buildAudienceCard('all', 'TOUS LES CONTACTS', 'Envoyer à tout le monde', Icons.contact_mail, isDark),
+                  _buildAudienceCard('specific', 'CONTACTS SPÉCIFIQUES', 'Sélectionner des contacts', Icons.person, isDark),
+                  _buildAudienceCard('audiences', 'AUDIENCE', 'Segments enregistrés', Icons.pie_chart, isDark),
+                  _buildAudienceCard('groups', 'GROUPES & ÉTIQUETTES', 'Cibler par groupe', Icons.local_offer, isDark),
+                ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            children: [
         if (_audienceMode == 'all') ...[
           Container(
             padding: const EdgeInsets.all(16),
@@ -1446,6 +1461,9 @@ class _CreateCampaignScreenState extends State<CreateCampaignScreen> {
             ],
           ],
         ]
+            ],
+          ),
+        ),
       ],
     );
   }
