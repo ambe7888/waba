@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.22',
+        'version' => '1.0.23',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Application nettement plus rapide : la liste des discussions s'affiche instantanément même sur les gros comptes, et l'ouverture de l'app est allégée. Le dernier message apparaît maintenant sous chaque discussion, avec les coches d'envoi, de réception et de lecture, et une icône pour les photos, vidéos et documents. Les notifications de campagne ouvrent enfin le bon écran. Les campagnes se filtrent par type (simples ou Meta), les fichiers d'assistance gardent leur vrai nom, et le motif de fond est plus visible.",
+        'change_log' => "Application nettement plus rapide : la liste des discussions s'affiche instantanément même sur les gros comptes, et l'ouverture de l'app est allégée. Le dernier message apparaît maintenant sous chaque discussion, avec les coches d'envoi, de réception et de lecture, et une icône pour les photos, vidéos et documents. Vos fichiers s'affichent désormais dans la conversation pendant leur envoi, au lieu de sembler ne rien faire. La connexion du compte WhatsApp via Meta ne signale plus d'erreur à tort et montre son avancement. Les notifications de campagne ouvrent le bon écran, les campagnes se filtrent par type (simples ou Meta), les fichiers d'assistance gardent leur vrai nom, et le motif de fond est plus visible.",
     ]);
 })->name('api.app_version');
 // Mobile app apis
