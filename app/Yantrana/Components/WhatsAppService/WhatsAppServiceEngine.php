@@ -2738,6 +2738,14 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $vendorContact->email = maskString($vendorContact->email, 'email');
                 if (!__isEmpty($vendorContact->lastMessage)) {
                     $vendorContact->lastMessage->contact_wa_id = maskString($vendorContact->lastMessage->contact_wa_id, 'phone');
+
+                    // What the discussions list actually shows under the
+                    // name. Without this, template and media messages come
+                    // through with an empty `message` column and render as
+                    // a blank line.
+                    $preview = $this->buildLastMessagePreview($vendorContact->lastMessage);
+                    $vendorContact->lastMessage->preview_text = $preview['text'];
+                    $vendorContact->lastMessage->preview_type = $preview['type'];
                 }
 
                 // Attach active_reminder
@@ -5066,6 +5074,96 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      * @param array $text
      * @return string
      */
+    /**
+     * Build the one-line preview the discussions list shows under a contact
+     * name, WhatsApp style.
+     *
+     * The `message` column alone is not enough: campaign/template sends
+     * leave it empty and keep the real wording in template_components, and
+     * media messages keep theirs in media_values. Those rows rendered as a
+     * blank line in the mobile list.
+     *
+     * Deliberately plain text rather than reusing compileMessageWithValues(),
+     * which renders Blade partials to HTML - far too heavy to run per
+     * contact on a list request, and the wrong output for a preview line.
+     *
+     * @param object $messageLog
+     * @return array{text: string, type: string}
+     */
+    protected function buildLastMessagePreview($messageLog)
+    {
+        $data = $messageLog->__data ?? [];
+        if (!is_array($data)) {
+            $data = [];
+        }
+
+        // System notices ("contact assigned to ...", etc.)
+        if (!empty($messageLog->is_system_message)) {
+            return [
+                'text' => trim(strip_tags($this->formatSystemMessage(data_get($data, 'system_message_data')))),
+                'type' => 'system',
+            ];
+        }
+
+        // Media: caption when there is one, otherwise the app draws an icon
+        // plus the label for this type.
+        $mediaType = data_get($data, 'media_values.type');
+        if (!empty($mediaType)) {
+            $caption = trim((string) data_get($data, 'media_values.caption', ''));
+            $labels = [
+                'image' => __tr('Photo'),
+                'video' => __tr('Vidéo'),
+                'audio' => __tr('Audio'),
+                'voice' => __tr('Message vocal'),
+                'document' => __tr('Document'),
+                'sticker' => __tr('Sticker'),
+                'location' => __tr('Position'),
+            ];
+            return [
+                'text' => $caption !== '' ? $caption : ($labels[$mediaType] ?? __tr('Pièce jointe')),
+                'type' => $mediaType,
+            ];
+        }
+
+        // Plain text message.
+        $plain = trim(strip_tags((string) ($messageLog->message ?? '')));
+        if ($plain !== '') {
+            return ['text' => $plain, 'type' => 'text'];
+        }
+
+        // Template send: the wording lives in the BODY component, with
+        // {{1}}, {{2}}... filled from the stored parameter values.
+        $bodyText = null;
+        foreach ((array) data_get($data, 'template_components', []) as $component) {
+            if (strtoupper((string) data_get($component, 'type')) === 'BODY' and !empty($component['text'])) {
+                $bodyText = $component['text'];
+                break;
+            }
+        }
+        if ($bodyText !== null) {
+            foreach ((array) data_get($data, 'template_component_values', []) as $componentValue) {
+                if (strtolower((string) data_get($componentValue, 'type')) !== 'body') {
+                    continue;
+                }
+                foreach ((array) data_get($componentValue, 'parameters', []) as $index => $parameter) {
+                    $value = data_get($parameter, 'text', data_get($parameter, 'value'));
+                    if ($value !== null) {
+                        $bodyText = str_replace('{{' . ($index + 1) . '}}', $value, $bodyText);
+                    }
+                }
+            }
+            return ['text' => trim(strip_tags($bodyText)), 'type' => 'template'];
+        }
+
+        // Interactive (buttons / list) message.
+        $interactiveBody = data_get($data, 'interaction_message_data.body_text');
+        if (!empty($interactiveBody)) {
+            return ['text' => trim(strip_tags($interactiveBody)), 'type' => 'interactive'];
+        }
+
+        return ['text' => '', 'type' => 'text'];
+    }
+
     protected function formatSystemMessage($systemMessageData)
     {
         $message = '';
