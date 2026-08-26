@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.21',
+        'version' => '1.0.22',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Messagerie en temps réel (Pusher) corrigée, pagination des campagnes, protection contre les plantages à l'envoi de gros fichiers, notifications qui redirigent maintenant vers l'écran concerné, avatar généré et actions rapides sur les notifications de message, correction d'un message affiché deux fois à l'ouverture d'une discussion, et lecture des vidéos de ressources directement dans l'app.",
+        'change_log' => "Application nettement plus rapide : la liste des discussions s'affiche instantanément même sur les gros comptes, et l'ouverture de l'app est allégée. Le dernier message apparaît maintenant sous chaque discussion, avec les coches d'envoi, de réception et de lecture, et une icône pour les photos, vidéos et documents. Les notifications de campagne ouvrent enfin le bon écran. Les campagnes se filtrent par type (simples ou Meta), les fichiers d'assistance gardent leur vrai nom, et le motif de fond est plus visible.",
     ]);
 })->name('api.app_version');
 // Mobile app apis
