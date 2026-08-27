@@ -3237,9 +3237,13 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $messageWamid = Arr::get($sendMessageResult, 'messages.0.id');
         if (! $messageWamid) {
             if ($initializeLogMessage) {
-                $initializeLogMessage->status =  'failed';
+                $initializeLogMessage->status = 'failed';
+                $initializeLogMessage->__data = array_merge((array)($initializeLogMessage->__data ?? []), [
+                    'error_message' => Arr::get($sendMessageResult, 'error.message') ?: __tr("Meta API error / 24-hour messaging window expired")
+                ]);
                 $initializeLogMessage->save();
             }
+            \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] WhatsApp API send failed for contact ' . $contact->_uid . ': ' . json_encode($sendMessageResult));
             return $this->engineFailedResponse([
                 'contact' => $contact,
             ], __tr('Failed to send message'));

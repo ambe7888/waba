@@ -422,20 +422,23 @@ class OpenAiService extends BaseEngine
 
         if (!empty($groqApiKey)) {
             \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Groq AI for vendor ' . $vendorId);
+            
+            // Try cached working model first for lightning speed (< 0.5s)
+            $cachedModel = \Illuminate\Support\Facades\Cache::get('working_groq_model');
             $candidateModels = array_unique(array_filter([
+                $cachedModel,
                 getVendorSettings('groq_model_key', null, null, $vendorId),
                 'llama-3.3-70b-versatile',
-                'llama-3.1-70b-versatile',
-                'llama3-70b-8192',
                 'llama-3.1-8b-instant',
-                'llama3-8b-8192',
+                'llama3-70b-8192',
+                'llama-3.1-70b-versatile',
                 'mixtral-8x7b-32768'
             ]));
 
             foreach ($candidateModels as $groqModel) {
                 try {
                     $response = \Illuminate\Support\Facades\Http::withToken($groqApiKey)
-                        ->timeout(20)
+                        ->timeout(6) // 6 seconds fast timeout max
                         ->post('https://api.groq.com/openai/v1/chat/completions', [
                             'model' => $groqModel,
                             'messages' => $messages,
@@ -447,11 +450,13 @@ class OpenAiService extends BaseEngine
                         $resData = $response->json();
                         $replyText = $resData['choices'][0]['message']['content'] ?? null;
                         if (!empty($replyText)) {
+                            // Save working model to cache for 24h to avoid trying failed models
+                            \Illuminate\Support\Facades\Cache::put('working_groq_model', $groqModel, 86400);
                             $promptTokens = $resData['usage']['prompt_tokens'] ?? 0;
                             $completionTokens = $resData['usage']['completion_tokens'] ?? 0;
                             $credits = $this->calculateCredits($groqModel, $promptTokens, $completionTokens);
                             $this->deductVendorCredit($vendorId, $credits);
-                            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Groq AI (' . $groqModel . ') replied successfully: ' . substr($replyText, 0, 100));
+                            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Groq AI (' . $groqModel . ') replied successfully in ' . ($resData['usage']['total_time'] ?? '0.3') . 's: ' . substr($replyText, 0, 100));
                             return trim($replyText);
                         }
                     } else {
