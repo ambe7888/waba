@@ -35,119 +35,104 @@
                         {{-- <h1>{{  __tr('WhatsApp Chat') }}</h1> --}}
                         {{-- <hr class="my-2"> --}}
                         <h2 class="lw-contacts-header"> <span class="btn btn-light btn-sm float-right d-md-none" @click.prevent="isContactListOpened = false"><i class="fa fa-arrow-left"></i> {{  __tr('Back to Chat') }}</span> </h2>
-                        <nav>
-                            <div class="nav nav-tabs lw-modern-tabs" id="nav-tab" role="tablist">
-                            @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
-                              <a class="nav-link {{ ($assigned ?? null) ? '' : 'active' }}" href="{{ route('vendor.chat_message.contact.view') }}" id="lw-all-contacts-tab"  data-target="#lwAllContactsTab" type="button" role="tab" aria-controls="lwAllContactsTab" aria-selected="true">{{  __tr('All') }} <span x-cloak x-show="unreadMessagesCount" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="unreadMessagesCount"></span></a>
-                            @endif
-                              <a href="{{ route('vendor.chat_message.contact.view', [
-                                'assigned' => 'to-me',
-                              ]) }}" class="nav-link {{ (($assigned ?? null) == 'to-me') ? 'active' : '' }}" id="lw-to-me-tab"  data-target="#lwAssignedToMeTab" type="button" role="tab" aria-controls="lwAssignedToMeTab" aria-selected="false">{{  __tr('Mine') }} <span x-cloak x-show="myAssignedUnreadMessagesCount" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="myAssignedUnreadMessagesCount"></span></a>
-                              @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
-                              <a href="{{ route('vendor.chat_message.contact.view', [
-                                'assigned' => 'unassigned',
-                              ]) }}" class="nav-link {{ ($assigned ?? null) == 'unassigned' ? 'active' : '' }}" id="lw-unassigned-tab"  data-target="#lwUnassignedTab" type="button" role="tab" aria-controls="lwUnassignedTab" aria-selected="false">{{  __tr('Unassigned') }} <span x-cloak x-show="myUnassignedUnreadMessagesCount" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="myUnassignedUnreadMessagesCount"></span></a>
-                              @if(!__isEmpty($vendorMessagingUsers) and ($vendorMessagingUsers->count() > 1))
-                              @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                 @if($vendorMessagingUser->_uid != getUserUID())
-                                 @if ((($assigned ?? null) == $vendorMessagingUser->_id) or ($vendorMessagingUsers->count() == 2))
-                                     <a href="{{ route('vendor.chat_message.contact.view', [
-                                 'assigned' => $vendorMessagingUser->_id,
-                               ]) }}" class="nav-link {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
-                               @break
-                                 @endif
-                               @endif
-                                 @endforeach
-                                 @if ($vendorMessagingUsers->count() > 2)
-                               <li class="nav-item dropdown">
-                                 <a class="nav-link dropdown-toggle lw-others-dropdown" style="background-color: #f8fafc; color: #0f172a; font-weight: 600; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" data-toggle="dropdown" href="#" role="button" aria-expanded="false"><i class="fas fa-ellipsis-h mr-1 text-muted"></i> {{  __tr('Others') }}</a>
-                                 <div class="dropdown-menu dropdown-menu-right">
-                                   @foreach ($vendorMessagingUsers as $vendorMessagingUser)
-                                 @if($vendorMessagingUser->_uid != getUserUID())
-                                  @if (($assigned ?? null) == $vendorMessagingUser->_id)
-                                     @continue
-                                  @endif
-                                 <a href="{{ route('vendor.chat_message.contact.view', [
-                                 'assigned' => $vendorMessagingUser->_id,
-                               ]) }}" class="dropdown-item {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}" id="lw-unassigned-tab"  data-target="#lwUnassignedTab" type="button" role="tab" aria-controls="lwUnassignedTab" aria-selected="false"> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }} <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark badge-white rounded-pill ml-1" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span></a>
-                               @endif
-                                 @endforeach
-                                 </div>
-                               </li>
-                               @endif
-                               @endif
-                             @endif
-                            </div>
-                        </nav>
-                        <div class="tab-content lw-contact-list-header" id="nav-tabContent" x-cloak>
-                            <div class="tab-pane fade show active pl-2" id="lwAllContactsTab" role="tabpanel" aria-labelledby="lw-all-contacts-tab" x-data="{isExpandedLabels:false}">
-                                @if (isset($allLabels) && count($allLabels) > 0)
-                                <div class="lw-labels-filter-section">
-                                    <div class="lw-section-title d-flex justify-content-between align-items-center mb-2">
-                                        <span><i class="fa fa-tags mr-1"></i> {{  __tr('Filter by labels') }}</span>
-                                        <span class="lw-expand-toggle">
-                                            <a href="#" x-show="!isExpandedLabels" x-on:click="isExpandedLabels = !isExpandedLabels">{{  __tr('Expand') }}</a>
-                                            <a href="#" x-show="isExpandedLabels" x-on:click="isExpandedLabels = !isExpandedLabels">{{  __tr('Collapse') }}</a>
-                                        </span>
-                                    </div>
-                                    <div x-on:click="function(){
-                                        _.defer(function() {
-                                            window.searchContacts();
-                                        });
-                                    }" class="btn-group-toggle my-1 lw-modern-labels-box" x-bind:class="isExpandedLabels ? 'lw-expanded-labels' : ''" data-toggle="buttons">
-                                        <label class="btn btn-outline-light btn-sm active">
-                                            <input class="lw-search-labels" type="radio" checked name="selected_label" value="" autocomplete="off"> <i class="fa fa-times ml-0"></i>
-                                        </label>
-                                        @foreach($allLabels as $label)
-                                        <label style="--lbl-bg: {{ $label['bg_color'] }}; --lbl-color: {{ $label['text_color'] }};" class="btn btn-sm my-1 lw-contact-list-label-tag">
-                                          <input class="lw-search-labels" type="radio" name="selected_label" value="{{ $label['_id'] }}" autocomplete="off"> {{ $label['title'] }}
-                                        </label>
-                                        @endforeach
+                        <div class="lw-contact-list-header px-2 pt-2" x-data="{isExpandedLabels:false}">
+                            <!-- Search Bar Row (3-Dots Dropdown + Search Input + Label Filter Funnel Button) -->
+                            <div class="d-flex align-items-center mb-2" style="gap: 8px;">
+                                <!-- 1. Left: 3-Dots Assignment Dropdown Button -->
+                                <div class="dropdown" style="flex-shrink: 0;">
+                                    <button class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center" type="button" id="lwChatFilterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width: 42px; height: 42px; background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #0f172a; padding: 0;" title="{{ __tr('Filtres d\'assignation') }}">
+                                        <i class="fas fa-ellipsis-v" style="font-size: 1.05rem; color: #334155;"></i>
+                                    </button>
+                                    <div class="dropdown-menu shadow-lg border-0" aria-labelledby="lwChatFilterDropdown" style="border-radius: 14px; min-width: 220px; font-size: 0.9rem; z-index: 1050;">
+                                        @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
+                                        <a class="dropdown-item py-2.5 d-flex align-items-center justify-content-between {{ ($assigned ?? null) ? '' : 'active' }}" href="{{ route('vendor.chat_message.contact.view') }}">
+                                            <span><i class="fas fa-comments text-primary mr-2.5"></i> {{ __tr('Tous') }}</span>
+                                            <span x-cloak x-show="unreadMessagesCount" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="unreadMessagesCount"></span>
+                                        </a>
+                                        @endif
+                                        <a class="dropdown-item py-2.5 d-flex align-items-center justify-content-between {{ (($assigned ?? null) == 'to-me') ? 'active' : '' }}" href="{{ route('vendor.chat_message.contact.view', ['assigned' => 'to-me']) }}">
+                                            <span><i class="fas fa-user text-info mr-2.5"></i> {{ __tr('Moi seul') }}</span>
+                                            <span x-cloak x-show="myAssignedUnreadMessagesCount" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="myAssignedUnreadMessagesCount"></span>
+                                        </a>
+                                        @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
+                                        <a class="dropdown-item py-2.5 d-flex align-items-center justify-content-between {{ ($assigned ?? null) == 'unassigned' ? 'active' : '' }}" href="{{ route('vendor.chat_message.contact.view', ['assigned' => 'unassigned']) }}">
+                                            <span><i class="fas fa-user-clock text-warning mr-2.5"></i> {{ __tr('Non assignés') }}</span>
+                                            <span x-cloak x-show="myUnassignedUnreadMessagesCount" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="myUnassignedUnreadMessagesCount"></span>
+                                        </a>
+                                        @if(!__isEmpty($vendorMessagingUsers) and ($vendorMessagingUsers->count() > 1))
+                                            <div class="dropdown-divider"></div>
+                                            <div class="dropdown-header small font-weight-800 text-uppercase text-muted" style="letter-spacing: 0.5px;">{{ __tr('Autres agents') }}</div>
+                                            @foreach ($vendorMessagingUsers as $vendorMessagingUser)
+                                                @if($vendorMessagingUser->_uid != getUserUID())
+                                                <a class="dropdown-item py-2 d-flex align-items-center justify-content-between {{ ($assigned ?? null) == $vendorMessagingUser->_id ? 'active' : '' }}" href="{{ route('vendor.chat_message.contact.view', ['assigned' => $vendorMessagingUser->_id]) }}">
+                                                    <span><i class="fas fa-user-tag text-muted mr-2.5"></i> {{ $vendorMessagingUser->first_name . ' ' . $vendorMessagingUser->last_name }}</span>
+                                                    <span x-cloak x-show="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="usersUnreadMessagesCounts['{{ $vendorMessagingUser->_uid }}']"></span>
+                                                </a>
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                        @endif
                                     </div>
                                 </div>
-                                @endif
-                                
-                                <div class="lw-modern-toggle-wrapper d-flex align-items-center" style="gap: 8px; cursor: pointer; user-select: none;"
-                                     @click.prevent="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });">
-                                    <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; cursor: pointer; flex-shrink: 0;" >
-                                        <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
-                                    </span>
-                                    <span x-show="!showUnreadContactsOnly" style="font-size: 0.8rem; color: #64748b; white-space: nowrap;">{{  __tr('Afficher tout') }}</span>
-                                    <span x-show="showUnreadContactsOnly" style="font-size: 0.8rem; color: #f97316; font-weight: 600; white-space: nowrap;">{{  __tr('Non lus uniquement') }}</span>
-                                    <abbr @click.stop title="{{  __tr('Once you get the response by the contact, they will be come in the chat list of this chat window, alternatively you can click on chat button of the contact list to chat with the contact.') }}">?</abbr>
-                                </div>
-                                <style>
-                                    .lw-toggle-switch.active { background: #f97316 !important; }
-                                    @media (max-width: 767.98px) {
-                                        .lw-contacts-header {
-                                            overflow: hidden; /* Clearfix for the float */
-                                            padding: 15px 20px !important;
-                                            background-color: #fff !important;
-                                            border-bottom: 1px solid #e2e8f0;
-                                            margin-bottom: 0 !important;
-                                            height: auto !important;
-                                        }
-                                        .lw-contacts-header .btn {
-                                            margin-top: 5px;
-                                            margin-bottom: 5px;
-                                        }
-                                        .lw-contact-list-block {
-                                            background-color: #fff !important; /* solid white to avoid seeing chat behind */
-                                        }
-                                        .lw-modern-tabs {
-                                            margin: 15px 15px 5px 15px !important;
-                                        }
-                                    }
-                                </style>
-                                
-                                <div class="form-group lw-modern-search-wrapper">
-                                    <i class="fa fa-search lw-search-icon"></i>
+
+                                <!-- 2. Center: Search Field -->
+                                <div class="flex-grow-1 position-relative">
+                                    <i class="fa fa-search lw-search-icon" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.92rem;"></i>
                                     <input x-model="search" x-on:keyup.debounce.500ms="function(value) {
                                         window.searchValue = this.search;
                                         window.searchContacts();
-                                    }" x-ref="searchField" placeholder="{{ __tr('type to search') }}" type="text" class="form-control lw-modern-search-input" style="padding-right: 30px !important;">
-                                    <i class="fa fa-times lw-clear-search-icon" x-show="search.length > 0" x-on:click="search = ''; window.searchValue = ''; window.searchContacts(); $refs.searchField.focus(); window.dispatchEvent(new CustomEvent('show-toast', { detail: { msg: '{{ __tr('Recherche effacée') }}', type: 'info' } }));" style="cursor: pointer; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; padding: 4px;" title="{{ __tr('Clear search') }}"></i>
+                                    }" x-ref="searchField" placeholder="{{ __tr('Rechercher...') }}" type="text" class="form-control rounded-pill border-0 shadow-sm font-weight-600" style="padding-left: 38px !important; padding-right: 32px !important; background: #ffffff; border: 1.5px solid #cbd5e1 !important; height: 42px; font-size: 0.92rem; color: #0f172a;">
+                                    <i class="fa fa-times lw-clear-search-icon" x-show="search.length > 0" x-on:click="search = ''; window.searchValue = ''; window.searchContacts(); $refs.searchField.focus();" style="cursor: pointer; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; padding: 4px;" title="{{ __tr('Clear search') }}"></i>
                                 </div>
+
+                                <!-- 3. Right: Label Filter Funnel Button -->
+                                @if (isset($allLabels) && count($allLabels) > 0)
+                                <button type="button" class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                                        :class="isExpandedLabels ? 'btn-primary text-white' : ''"
+                                        @click="isExpandedLabels = !isExpandedLabels"
+                                        style="width: 42px; height: 42px; background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #0f172a; padding: 0; flex-shrink: 0;"
+                                        title="{{ __tr('Filtrer par étiquettes') }}">
+                                    <i class="fas fa-filter" style="font-size: 0.95rem;" :style="isExpandedLabels ? 'color: #ffffff;' : 'color: #334155;'"></i>
+                                </button>
+                                @endif
+                            </div>
+
+                            <!-- Expanded Label Filter Drawer (When funnel button is clicked) -->
+                            @if (isset($allLabels) && count($allLabels) > 0)
+                            <div x-show="isExpandedLabels" class="p-3 mb-2 shadow-sm" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 14px;" x-transition x-cloak>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="font-weight-800 text-dark small"><i class="fa fa-tags mr-1.5 text-primary"></i> {{ __tr('Filtrer par étiquettes') }}</span>
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="isExpandedLabels = false"><i class="fa fa-times"></i></button>
+                                </div>
+                                <div x-on:click="function(){ _.defer(function() { window.searchContacts(); }); }" class="btn-group-toggle d-flex flex-wrap" style="gap: 4px;" data-toggle="buttons">
+                                    <label class="btn btn-outline-secondary btn-sm active mb-1 font-weight-700" style="border-radius: 8px;">
+                                        <input class="lw-search-labels" type="radio" checked name="selected_label" value="" autocomplete="off"> <i class="fa fa-times ml-0"></i> {{ __tr('Toutes') }}
+                                    </label>
+                                    @foreach($allLabels as $label)
+                                    <label style="--lbl-bg: {{ $label['bg_color'] }}; --lbl-color: {{ $label['text_color'] }}; background-color: {{ $label['bg_color'] }}; color: {{ $label['text_color'] }}; border-radius: 8px;" class="btn btn-sm mb-1 lw-contact-list-label-tag font-weight-700">
+                                      <input class="lw-search-labels" type="radio" name="selected_label" value="{{ $label['_id'] }}" autocomplete="off"> {{ $label['title'] }}
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- 4. Underneath Search Bar: Long Read/Unread Filter Toggle Bar -->
+                            <div class="lw-modern-toggle-wrapper d-flex align-items-center justify-content-between p-2.5 mb-3 shadow-sm"
+                                 style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; cursor: pointer; user-select: none; transition: all 0.2s ease;"
+                                 @click.prevent="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });">
+                                <div class="d-flex align-items-center" style="gap: 10px;">
+                                    <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; flex-shrink: 0;" >
+                                        <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
+                                    </span>
+                                    <span x-show="!showUnreadContactsOnly" class="font-weight-700" style="font-size: 0.85rem; color: #334155;">{{ __tr('Afficher toutes les discussions') }}</span>
+                                    <span x-show="showUnreadContactsOnly" class="font-weight-800" style="font-size: 0.85rem; color: #f97316;">{{ __tr('Non lus uniquement') }}</span>
+                                </div>
+                                <span class="badge badge-pill font-weight-700 px-2.5 py-1" :class="showUnreadContactsOnly ? 'badge-warning text-dark' : 'badge-light text-muted'" style="font-size: 0.78rem;">
+                                    <i class="fas" :class="showUnreadContactsOnly ? 'fa-envelope-open-text' : 'fa-list'"></i>
+                                </span>
+                            </div>
+                        </div>
 
                                 <div class="lw-modern-contact-list shadow-none" >
                                     

@@ -30,6 +30,10 @@ const files = [
   {
     local: 'resources/views/admin/notifications/index.blade.php',
     remote: '/home/whats-click/htdocs/whats-click.com/resources/views/admin/notifications/index.blade.php'
+  },
+  {
+    local: 'resources/views/whatsapp/chat.blade.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/resources/views/whatsapp/chat.blade.php'
   }
 ];
 
