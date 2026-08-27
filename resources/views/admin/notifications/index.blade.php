@@ -131,6 +131,24 @@
                             </div>
                         </div>
 
+                        <!-- Online Vendors Visible List Box (When Vendeurs en ligne is selected) -->
+                        <div x-show="audience === 'online'" class="mt-3 p-3" style="background: #fffbeb; border-radius: 12px; border: 1.5px solid #fcd34d;" x-cloak>
+                            <label class="form-label font-weight-800 small mb-2 text-warning d-flex align-items-center">
+                                <i class="fas fa-signal text-warning mr-1.5"></i> Vendeurs connectés / actifs (Dernières 24h) :
+                            </label>
+                            <div class="d-flex flex-wrap" style="gap: 8px;">
+                                @forelse($onlineVendors as $onv)
+                                    <span class="badge px-3 py-2 font-weight-700 shadow-sm" style="background: #ffffff; color: #92400e; border-radius: 10px; border: 1px solid #fde68a; font-size: 0.84rem;">
+                                        <span style="display:inline-block; width:9px; height:9px; background:#10b981; border-radius:50%; margin-right:6px; box-shadow: 0 0 6px #10b981;"></span>
+                                        {{ $onv->title }}
+                                        <small class="text-muted ml-1.5" style="font-weight: 500;">({{ $onv->updated_at->diffForHumans() }})</small>
+                                    </span>
+                                @empty
+                                    <span class="text-muted small font-weight-600"><i class="fas fa-info-circle mr-1"></i> Aucun vendeur actif sur les dernières 24h</span>
+                                @endforelse
+                            </div>
+                        </div>
+
                         <!-- Dropdown manual selection -->
                         <div x-show="audience === 'manual'" class="mt-3 p-3" style="background: #f1f5f9; border-radius: 12px; border: 1px solid #cbd5e1;" x-cloak>
                             <label class="form-label font-weight-800 small mb-2" style="color: #0f172a;"><i class="fas fa-store mr-1 text-primary"></i> Sélectionner le Vendeur :</label>
@@ -344,8 +362,8 @@
                         </table>
                     </div>
                     @if($notifications->hasPages())
-                        <div class="p-3 border-top bg-white">
-                            {{ $notifications->links() }}
+                        <div class="p-3 border-top bg-white d-flex justify-content-center">
+                            {{ $notifications->links('pagination::bootstrap-4') }}
                         </div>
                     @endif
                 </div>
@@ -359,5 +377,12 @@
 .transition-all { transition: all 0.2s ease-in-out; }
 .btn-white { background-color: #ffffff !important; }
 .border-dashed { border-style: dashed !important; }
+
+/* Clean Bootstrap Pagination Styling - Fix Giant SVG Arrows */
+.pagination { margin-bottom: 0 !important; }
+.pagination svg, .page-item svg, svg.w-5 { width: 14px !important; height: 14px !important; display: inline-block !important; vertical-align: middle; }
+.pagination .page-item .page-link { color: #0f172a !important; font-weight: 700 !important; border-radius: 8px !important; margin: 0 3px !important; border: 1.5px solid #e2e8f0 !important; padding: 6px 12px !important; }
+.pagination .page-item.active .page-link { background-color: #0f172a !important; border-color: #0f172a !important; color: #ffffff !important; }
+.pagination .page-item.disabled .page-link { color: #94a3b8 !important; background-color: #f8fafc !important; }
 </style>
 @endsection

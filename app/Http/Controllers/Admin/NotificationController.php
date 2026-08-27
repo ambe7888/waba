@@ -23,17 +23,17 @@ class NotificationController extends BaseController
 
         $totalVendorsCount = $vendors->count();
         // Vendors active in last 24h
-        $onlineVendorsCount = VendorModel::where('status', 1)
+        $onlineVendors = VendorModel::where('status', 1)
             ->where('updated_at', '>=', now()->subHours(24))
-            ->count();
-        if ($onlineVendorsCount === 0 && $totalVendorsCount > 0) {
-            $onlineVendorsCount = min(1, $totalVendorsCount);
-        }
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        $onlineVendorsCount = $onlineVendors->count();
 
         $totalDevicesCount = \App\Yantrana\Components\UserDevice\Models\UserDeviceModel::count();
 
         return view('admin.notifications.index', compact(
             'vendors',
+            'onlineVendors',
             'notifications',
             'totalVendorsCount',
             'onlineVendorsCount',
