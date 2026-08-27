@@ -415,6 +415,43 @@ class OpenAiService extends BaseEngine
             'content' => $question
         ];
 
+        // Check if Groq AI API Key is provided
+        $groqApiKey = getVendorSettings('groq_access_key', null, null, $vendorId)
+                    ?: getAppSettings('groq_api_key')
+                    ?: env('GROQ_API_KEY');
+
+        if (!empty($groqApiKey)) {
+            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Groq AI (Llama 3.3 70B) for vendor ' . $vendorId);
+            try {
+                $groqModel = getVendorSettings('groq_model_key', null, null, $vendorId) ?: 'llama-3.3-70b-versatile';
+                $response = \Illuminate\Support\Facades\Http::withToken($groqApiKey)
+                    ->timeout(20)
+                    ->post('https://api.groq.com/openai/v1/chat/completions', [
+                        'model' => $groqModel,
+                        'messages' => $messages,
+                        'temperature' => 0.7,
+                        'max_tokens' => 1000,
+                    ]);
+
+                if ($response->successful()) {
+                    $resData = $response->json();
+                    $replyText = $resData['choices'][0]['message']['content'] ?? null;
+                    if (!empty($replyText)) {
+                        $promptTokens = $resData['usage']['prompt_tokens'] ?? 0;
+                        $completionTokens = $resData['usage']['completion_tokens'] ?? 0;
+                        $credits = $this->calculateCredits($groqModel, $promptTokens, $completionTokens);
+                        $this->deductVendorCredit($vendorId, $credits);
+                        \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Groq AI replied successfully: ' . substr($replyText, 0, 100));
+                        return trim($replyText);
+                    }
+                } else {
+                    \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Groq API returned error status ' . $response->status() . ': ' . $response->body());
+                }
+            } catch (\Throwable $th) {
+                \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] Groq AI Error: ' . $th->getMessage() . ' | File: ' . $th->getFile() . ':' . $th->getLine());
+            }
+        }
+
         // Check if Google Gemini AI is requested or configured
         $aiProvider = getAppSettings('ai_provider', 'gemini');
         $geminiApiKey = getVendorSettings('gemini_access_key', null, null, $vendorId)

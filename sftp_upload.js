@@ -50,6 +50,18 @@ const files = [
   {
     local: 'app/Yantrana/Components/User/Repositories/UserRepository.php',
     remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/User/Repositories/UserRepository.php'
+  },
+  {
+    local: 'app/Yantrana/Components/WhatsAppService/Services/OpenAiService.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/WhatsAppService/Services/OpenAiService.php'
+  },
+  {
+    local: 'app/Yantrana/Support/app-helpers.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Support/app-helpers.php'
+  },
+  {
+    local: 'resources/views/vendors/settings/ai-chat-bot-setup.blade.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/resources/views/vendors/settings/ai-chat-bot-setup.blade.php'
   }
 ];
 

@@ -4125,13 +4125,15 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             }
 
             $aiBotReplyText = null;
-            // open ai & gemini
             $hasOpenAiKey = getVendorSettings('open_ai_access_key', null, null, $contact->vendors__id) 
                 || getVendorSettings('gemini_access_key', null, null, $contact->vendors__id)
+                || getVendorSettings('groq_access_key', null, null, $contact->vendors__id)
                 || getAppSettings('openai_api_key') 
                 || getAppSettings('gemini_api_key') 
+                || getAppSettings('groq_api_key') 
                 || env('OPENAI_API_KEY') 
-                || env('GEMINI_API_KEY');
+                || env('GEMINI_API_KEY')
+                || env('GROQ_API_KEY');
             if (!$aiBotReplyText and getVendorSettings('enable_open_ai_bot', null, null, $contact->vendors__id) and $hasOpenAiKey) {
                 \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] [Engine] Attempting AI bot reply for contact ' . $contact->_uid . ' on vendor ' . $contact->vendors__id . ', messageBody="' . Str::limit($messageBody, 50) . '"');
                 try {
