@@ -2,41 +2,53 @@
 <section>
     <h1>{!! __tr('Configuration et Intégrations') !!}</h1>
 
-    <!-- Global AI Setup (Google Gemini et OpenAI) -->
-    <fieldset x-data="{panelOpened:false}" x-cloak>
-        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('AI Setup') }}"> {{ __tr('Configuration IA Globale (Gemini et OpenAI)') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
+    <!-- Global AI Setup (Groq, Gemini et OpenAI) -->
+    <fieldset x-data="{panelOpened:false, selectedAiProvider: '{{ getAppSettings('ai_provider', 'groq') }}'}" x-cloak>
+        <legend @click="panelOpened = !panelOpened"><img width="150" src="{{ asset('imgs/openai-lockup.svg') }}" alt="{{ __tr('AI Setup') }}"> {{ __tr('Configuration IA Globale') }} <small class="text-muted">{{  __tr('Click to expand/collapse') }}</small></legend>
         <form x-show="panelOpened" class="lw-ajax-form lw-form" method="post" action="<?= route('manage.configuration.write', ['pageType' => 'misc_settings']) ?>">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="font-weight-bold">{{ __tr('Moteur IA Global par Défaut') }}</label>
-                    <select name="ai_provider" class="form-control">
-                        <option value="groq" {{ getAppSettings('ai_provider', 'groq') == 'groq' ? 'selected' : '' }}>⚡ Groq AI (Llama 3.3 70B - Gratuit, Ultra Rapide & Ultra Intelligent - Recommandé)</option>
-                        <option value="gemini" {{ getAppSettings('ai_provider') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide et Économique)</option>
-                        <option value="openai" {{ getAppSettings('ai_provider') == 'openai' ? 'selected' : '' }}>🔵 OpenAI ChatGPT (GPT-4o-mini / GPT-3.5)</option>
+                    <select name="ai_provider" class="form-control" x-model="selectedAiProvider">
+                        <option value="groq">⚡ Groq AI (Llama 3.3 70B - Gratuit, Ultra Rapide & Ultra Intelligent - Recommandé)</option>
+                        <option value="gemini">🟢 Google Gemini 1.5 Flash (Ultra Rapide et Économique)</option>
+                        <option value="openai">🔵 OpenAI ChatGPT (GPT-4o-mini / GPT-3.5)</option>
                     </select>
-                    <div class="text-sm text-info mt-1">
+                    <div class="text-sm text-info mt-1" x-show="selectedAiProvider === 'groq'">
                         {{ __tr('Groq AI avec Llama 3.3 70B est 100% gratuit et répond en moins d\'une seconde.') }}
                     </div>
+                    <div class="text-sm text-info mt-1" x-show="selectedAiProvider === 'gemini'">
+                        {{ __tr('Google Gemini est jusqu\'à 20x moins cher qu\'OpenAI avec un quota gratuit généreux.') }}
+                    </div>
+                    <div class="text-sm text-info mt-1" x-show="selectedAiProvider === 'openai'">
+                        {{ __tr('OpenAI nécessite un compte développeur payant sur platform.openai.com.') }}
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
+
+                <!-- Champ Groq (Affiché uniquement si Groq est sélectionné) -->
+                <div class="col-md-6 mb-3" x-show="selectedAiProvider === 'groq'">
                     <x-lw.input-field type="password" :label="__tr('Clé API Groq (Llama 3.3 70B)')" name="groq_api_key" value="{{ getAppSettings('groq_api_key') }}" />
                     <div class="text-sm text-info mt-1">
                         {{ __tr('Obtenez votre clé API gratuite sur console.groq.com.') }}
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+
+                <!-- Champ Gemini (Affiché uniquement si Gemini est sélectionné) -->
+                <div class="col-md-6 mb-3" x-show="selectedAiProvider === 'gemini'">
                     <x-lw.input-field type="password" :label="__tr('Clé API Google Gemini')" name="gemini_api_key" value="{{ getAppSettings('gemini_api_key') }}" />
                     <div class="text-sm text-info mt-1">
                         {{ __tr('Obtenez votre clé API gratuite sur Google AI Studio (aistudio.google.com).') }}
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+
+                <!-- Champs OpenAI (Affichés uniquement si OpenAI est sélectionné) -->
+                <div class="col-md-6 mb-3" x-show="selectedAiProvider === 'openai'">
                     <x-lw.input-field type="password" :label="__tr('OpenAI API Key (ChatGPT)')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" />
                     <div class="text-sm text-info mt-1">
-                        {{ __tr('Clé OpenAI facultative si Groq ou Gemini est activé.') }}
+                        {{ __tr('Obtenez votre clé API sur platform.openai.com.') }}
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6 mb-3" x-show="selectedAiProvider === 'openai'">
                     <x-lw.input-field type="text" :label="__tr('OpenAI Organization ID')" name="openai_organization_id" value="{{ getAppSettings('openai_organization_id') }}" />
                 </div>
             </div>
