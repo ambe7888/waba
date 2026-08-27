@@ -114,24 +114,9 @@ class DashboardController extends BaseController
         $userId   = getUserID();
         $cacheKey = "api_vendor_dashboard_{$vendorId}_{$userId}_" . md5(json_encode($filters));
 
-        // ── Cold cache: return a minimal skeleton and warm the cache async ──
-        if (!\Cache::has($cacheKey)) {
-            // Dispatch warm-up in background so next request is instant
-            $engine = $this->dashboardEngine;
-            $capturedFilters = $filters;
-            dispatch(function () use ($engine, $capturedFilters, $cacheKey) {
-                $data = $engine->prepareVendorDashboardData(null, $capturedFilters);
-                \Cache::put($cacheKey, $data, 300);
-            })->afterResponse();
-
-            return $this->processResponse(1, [], [
-                '_cache_warming' => true,
-                'vendorUserData' => auth()->user(),
-            ]);
-        }
-
-        // ── Warm cache: serve immediately ──
-        $data = \Cache::get($cacheKey);
+        $data = \Cache::remember($cacheKey, 300, function() use ($filters) {
+            return $this->dashboardEngine->prepareVendorDashboardData(null, $filters);
+        });
 
         // Always override cached user data with current user (never cache-shared)
         $data['vendorUserData']        = auth()->user();
