@@ -40,6 +40,21 @@
                                 <i class="fa fa-arrow-left mr-1.5 text-primary"></i> {{ __tr('Retour à la discussion') }}
                             </button>
                         </div>
+                        @php
+                            $currentAssignedName = __tr('Tous');
+                            if (($assigned ?? null) == 'to-me') {
+                                $currentAssignedName = __tr('Moi seul');
+                            } elseif (($assigned ?? null) == 'unassigned') {
+                                $currentAssignedName = __tr('Non assignés');
+                            } elseif (!empty($assigned) && !empty($vendorMessagingUsers)) {
+                                foreach ($vendorMessagingUsers as $vUser) {
+                                    if ($vUser->_id == $assigned) {
+                                        $currentAssignedName = $vUser->first_name . ' ' . $vUser->last_name;
+                                        break;
+                                    }
+                                }
+                            }
+                        @endphp
                         <div class="tab-content lw-contact-list-header" id="nav-tabContent" x-cloak>
                             <div class="tab-pane fade show active pl-2" id="lwAllContactsTab" role="tabpanel" aria-labelledby="lw-all-contacts-tab" x-data="{isExpandedLabels:false}">
                                 <div class="px-2 pt-2">
@@ -124,19 +139,24 @@
                                     </div>
                                     @endif
 
-                                    <!-- 4. Underneath Search Bar: Long Read/Unread Filter Toggle Bar -->
-                                    <div class="lw-modern-toggle-wrapper d-flex align-items-center justify-content-between p-2.5 mb-3 shadow-sm"
-                                         style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; cursor: pointer; user-select: none; transition: all 0.2s ease;"
+                                    <!-- 4. Underneath Search Bar: High-Contrast Toggle Bar with Active Assignment Badge -->
+                                    <div class="lw-modern-toggle-wrapper d-flex align-items-center justify-content-between p-2 mb-3 shadow-sm"
+                                         style="background: #ffffff; border: 1.5px solid #94a3b8; border-radius: 12px; cursor: pointer; user-select: none; transition: all 0.2s ease;"
                                          @click.prevent="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });">
                                         <div class="d-flex align-items-center" style="gap: 10px;">
-                                            <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 36px; height: 20px; background: #cbd5e1; border-radius: 20px; transition: background 0.25s ease; flex-shrink: 0;" >
-                                                <span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" :style="showUnreadContactsOnly ? 'transform: translateX(16px)' : ''"></span>
+                                            <!-- High Contrast Toggle Switch -->
+                                            <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 42px; height: 22px; background: #64748b; border-radius: 22px; transition: background 0.25s ease; flex-shrink: 0;" >
+                                                <span style="position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #ffffff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.3);" :style="showUnreadContactsOnly ? 'transform: translateX(20px)' : ''"></span>
                                             </span>
-                                            <span x-show="!showUnreadContactsOnly" class="font-weight-700" style="font-size: 0.85rem; color: #334155;">{{ __tr('Afficher toutes les discussions') }}</span>
-                                            <span x-show="showUnreadContactsOnly" class="font-weight-800" style="font-size: 0.85rem; color: #f97316;">{{ __tr('Non lus uniquement') }}</span>
+                                            <span class="font-weight-700" style="font-size: 0.85rem; color: #0f172a;">
+                                                <span x-show="!showUnreadContactsOnly">{{ __tr('Toutes les discussions') }}</span>
+                                                <span x-show="showUnreadContactsOnly" style="color: #ea580c; font-weight: 800;">{{ __tr('Non lues uniquement') }}</span>
+                                            </span>
                                         </div>
-                                        <span class="badge badge-pill font-weight-700 px-2.5 py-1" :class="showUnreadContactsOnly ? 'badge-warning text-dark' : 'badge-light text-muted'" style="font-size: 0.78rem;">
-                                            <i class="fas" :class="showUnreadContactsOnly ? 'fa-envelope-open-text' : 'fa-list'"></i>
+                                        
+                                        <!-- Active Assignment Filter Name Badge -->
+                                        <span class="badge px-2.5 py-1 font-weight-800 shadow-sm" style="font-size: 0.78rem; border-radius: 8px; background-color: #2aac32 !important; color: #ffffff !important; letter-spacing: 0.3px;" title="{{ __tr('Filtre actuel') }}">
+                                            <i class="fas fa-user-check mr-1" style="font-size: 0.72rem;"></i> {{ $currentAssignedName }}
                                         </span>
                                     </div>
                                 </div>
@@ -277,11 +297,11 @@
                                         {{-- </template> --}}
                                         @endif
                                     </template>
-                                    <div class="p-3 my-2 text-center" x-cloak x-show="contactsPaginatePage || (filteredContacts && filteredContacts.length >= 5)">
-                                        <button type="button" x-cloak class="btn btn-primary btn-block font-weight-700 shadow-sm d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px; background-color: #2aac32 !important; border-color: #2aac32 !important; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem;">
-                                            <i class="fa fa-download" x-show="!isLoadingMoreContacts"></i>
-                                            <i class="fa fa-spinner fa-spin" x-show="isLoadingMoreContacts" x-cloak></i>
-                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Chargement...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
+                                    <div class="p-3 my-3 text-center lw-load-more-box" style="position: relative; z-index: 105;">
+                                        <button type="button" x-cloak class="btn btn-block font-weight-800 shadow-md d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 10px; background-color: #0f172a !important; color: #ffffff !important; border: 2px solid #2aac32 !important; border-radius: 14px; padding: 12px 18px; font-size: 0.95rem; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);">
+                                            <i class="fa fa-download" style="font-size: 1.1rem; color: #2aac32 !important;" x-show="!isLoadingMoreContacts"></i>
+                                            <i class="fa fa-spinner fa-spin" style="font-size: 1.1rem; color: #2aac32 !important;" x-show="isLoadingMoreContacts" x-cloak></i>
+                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Chargement des discussions...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
                                         </button>
                                     </div>
                                 </div>
