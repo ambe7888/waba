@@ -10,11 +10,18 @@
                 <div class="col-md-6 mb-3">
                     <label class="font-weight-bold">{{ __tr('Moteur IA Global par Défaut') }}</label>
                     <select name="ai_provider" class="form-control">
-                        <option value="gemini" {{ getAppSettings('ai_provider', 'gemini') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide et Économique - Recommandé)</option>
+                        <option value="groq" {{ getAppSettings('ai_provider', 'groq') == 'groq' ? 'selected' : '' }}>⚡ Groq AI (Llama 3.3 70B - Gratuit, Ultra Rapide & Ultra Intelligent - Recommandé)</option>
+                        <option value="gemini" {{ getAppSettings('ai_provider') == 'gemini' ? 'selected' : '' }}>🟢 Google Gemini 1.5 Flash (Ultra Rapide et Économique)</option>
                         <option value="openai" {{ getAppSettings('ai_provider') == 'openai' ? 'selected' : '' }}>🔵 OpenAI ChatGPT (GPT-4o-mini / GPT-3.5)</option>
                     </select>
                     <div class="text-sm text-info mt-1">
-                        {{ __tr('Google Gemini est jusqu\'à 20x moins cher qu\'OpenAI avec un quota gratuit généreux.') }}
+                        {{ __tr('Groq AI avec Llama 3.3 70B est 100% gratuit et répond en moins d\'une seconde.') }}
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <x-lw.input-field type="password" :label="__tr('Clé API Groq (Llama 3.3 70B)')" name="groq_api_key" value="{{ getAppSettings('groq_api_key') }}" />
+                    <div class="text-sm text-info mt-1">
+                        {{ __tr('Obtenez votre clé API gratuite sur console.groq.com.') }}
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -26,7 +33,7 @@
                 <div class="col-md-6 mb-3">
                     <x-lw.input-field type="password" :label="__tr('OpenAI API Key (ChatGPT)')" name="openai_api_key" value="{{ getAppSettings('openai_api_key') }}" />
                     <div class="text-sm text-info mt-1">
-                        {{ __tr('Clé OpenAI facultative si Gemini est activé.') }}
+                        {{ __tr('Clé OpenAI facultative si Groq ou Gemini est activé.') }}
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -37,6 +44,7 @@
                 <button type="submit" class="btn btn-primary btn-user lw-btn-block-mobile">{{ __tr('Save') }}</button>
                 <button type="button" onclick="__DataRequest.post('{{ route('manage.configuration.test_ai_key') }}', {
                     ai_provider: document.querySelector('select[name=ai_provider]').value,
+                    groq_api_key: document.querySelector('input[name=groq_api_key]') ? document.querySelector('input[name=groq_api_key]').value : '',
                     gemini_api_key: document.querySelector('input[name=gemini_api_key]').value,
                     openai_api_key: document.querySelector('input[name=openai_api_key]').value
                 }, function(response) {

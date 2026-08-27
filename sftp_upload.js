@@ -62,6 +62,14 @@ const files = [
   {
     local: 'resources/views/vendors/settings/ai-chat-bot-setup.blade.php',
     remote: '/home/whats-click/htdocs/whats-click.com/resources/views/vendors/settings/ai-chat-bot-setup.blade.php'
+  },
+  {
+    local: 'resources/views/configuration/other.blade.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/resources/views/configuration/other.blade.php'
+  },
+  {
+    local: 'app/Yantrana/Components/Configuration/Controllers/ConfigurationController.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Configuration/Controllers/ConfigurationController.php'
   }
 ];
 
