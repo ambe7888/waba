@@ -213,22 +213,6 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                                 :label="__tr('Nom de votre Assistant IA')" name="open_ai_bot_name" value="{{ getVendorSettings('open_ai_bot_name') }}" />
                             </div>
 
-                            <!-- Groq AI Key Integration -->
-                            <div class="p-3 mb-4 rounded-lg" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px;">
-                                <div class="d-flex align-items-center mb-2" style="gap: 10px;">
-                                    <span class="badge px-3 py-1 font-weight-bold text-white" style="background: #f97316; border-radius: 20px; font-size: 0.8rem;">
-                                        ⚡ Groq AI (Llama 3.3 70B)
-                                    </span>
-                                    <span class="small font-weight-bold text-dark">{{ __tr('Moteur IA Gratuit, Ultra-Rapide & Ultra-Intelligent') }}</span>
-                                </div>
-                                <div class="form-group mb-2">
-                                    <x-lw.input-field placeholder="gsk_..."
-                                    type="text" id="lwGroqAccessKey" data-form-group-class="col-md-10 mb-0"
-                                    :label="__tr('Clé API Groq (Optionnel - Recommandé)')" name="groq_access_key" value="{{ getVendorSettings('groq_access_key') }}"
-                                    :helpText="__tr('Créez votre clé gratuite sur console.groq.com. Si cette clé est renseignée, WhatsClick utilisera gratuitement le modèle Llama 3.3 70B de Groq !')" />
-                                </div>
-                            </div>
-
                             <input type="hidden" name="open_ai_bot_data_source_type" value="text" />
                             <input type="hidden" name="open_ai_max_token" value="1000" />
 
