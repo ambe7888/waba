@@ -3008,7 +3008,13 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $fileUrl = $isProcessed->data('path');
             $fileName = $isProcessed->data('fileName');
             $fileOriginalName = Arr::get($rawUploadData, 'original_filename');
-            $mediaUploadedId = $this->whatsAppApiService->uploadMedia($isProcessed->data('filePath'), $isProcessed->data('fileMimeType'));
+            $uploadMimeType = $isProcessed->data('fileMimeType');
+            if ($mediaType === 'audio' || ($request->is_recorded_audio ?? null)) {
+                if (empty($uploadMimeType) || str_starts_with($uploadMimeType, 'video/')) {
+                    $uploadMimeType = 'audio/mp4';
+                }
+            }
+            $mediaUploadedId = $this->whatsAppApiService->uploadMedia($isProcessed->data('filePath'), $uploadMimeType);
             $isNewMediaId = true;
         } else {
             $fileName = $request->file_name ?? null;

@@ -745,6 +745,19 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
                     $mimeType = mime_content_type($file);
                 }
             }
+            // Fix Meta WhatsApp API error: "Unsupported Audio mime type video/mp4. Please use one of audio/ogg; codecs=opus, audio/mpeg, audio/amr, audio/mp4, audio/aac."
+            // Recorded audio on mobile/web (e.g. .m4a / .mp4 containers) is detected as video/mp4 by PHP mime_content_type.
+            if ($mimeType === 'video/mp4' || $mimeType === 'video/quicktime') {
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                if (in_array($ext, ['m4a', 'mp4', 'aac', 'mp3', 'ogg', 'amr', 'wav', 'opus', 'caf', 'weba', 'flac', 'm4b']) || empty($ext)) {
+                    $mimeType = 'audio/mp4';
+                }
+            } elseif ($mimeType === 'video/webm') {
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                if (in_array($ext, ['webm', 'weba', 'opus', 'ogg']) || empty($ext)) {
+                    $mimeType = 'audio/webm';
+                }
+            }
             $ch = curl_init();
             $url = $this->baseApiRequestEndpoint . $this->getServiceConfiguration('current_phone_number_id') . '/media';
             $data = [

@@ -1,0 +1,61 @@
+const { Client } = require('ssh2');
+const fs = require('fs');
+
+const conn = new Client();
+const files = [
+  {
+    local: 'app/Yantrana/Components/WhatsAppService/Services/WhatsAppApiService.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/WhatsAppService/Services/WhatsAppApiService.php'
+  },
+  {
+    local: 'app/Yantrana/Components/WhatsAppService/WhatsAppServiceEngine.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/WhatsAppService/WhatsAppServiceEngine.php'
+  },
+  {
+    local: 'app/Yantrana/Components/Dashboard/Controllers/DashboardController.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Dashboard/Controllers/DashboardController.php'
+  }
+];
+
+conn.on('ready', () => {
+  console.log('Connexion SSH au VPS établie.');
+  
+  // Upload files one by one
+  let fileIndex = 0;
+  
+  function uploadNext() {
+    if (fileIndex >= files.length) {
+      console.log('Tous les fichiers uploadés avec succès.');
+      conn.end();
+      return;
+    }
+    
+    const file = files[fileIndex++];
+    const content = fs.readFileSync(file.local, 'utf8');
+    
+    // Use SFTP to write the file directly
+    conn.sftp((err, sftp) => {
+      if (err) throw err;
+      const stream = sftp.createWriteStream(file.remote, { encoding: 'utf8' });
+      stream.on('close', () => {
+        console.log(`✓ ${file.local} uploadé`);
+        sftp.end();
+        uploadNext();
+      });
+      stream.on('error', (err) => {
+        console.error(`✗ Erreur pour ${file.local}:`, err);
+        sftp.end();
+        uploadNext();
+      });
+      stream.write(content);
+      stream.end();
+    });
+  }
+  
+  uploadNext();
+}).connect({
+  host: '31.70.111.91',
+  port: 22,
+  username: 'root',
+  password: 'fsd6415sf1'
+});
