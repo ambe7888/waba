@@ -3498,7 +3498,15 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $mediaMessageData ? true : false,
             $vendorId,
             [
-                'bot_reply' => $isTriggerFromQuickReply,
+                // This function is *always* an automated bot reply, so bot_reply
+                // must always be true — regardless of whether the trigger was a
+                // quick-reply button or a keyword/welcome/AI match.
+                // Previously this was set to $isTriggerFromQuickReply, which meant
+                // keyword/welcome/AI replies had bot_reply=false and caused
+                // processSendChatMessage to call markAsReadProcess, silently
+                // marking the incoming message as read before any agent opened it.
+                'bot_reply' => true,
+                'isTriggerFromQuickReply' => $isTriggerFromQuickReply,
                 'ai_bot_reply' => $options['ai_bot_reply'] ?? false,
                 'ai_error_triggered' => $options['ai_error_triggered'] ?? false,
                 'media_message_data' => $mediaMessageData,
@@ -3508,6 +3516,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             ]
         );
     }
+
 
     /**
      * Validate Bot Reply
