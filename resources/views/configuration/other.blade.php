@@ -57,13 +57,14 @@
                 <button type="button" onclick="__DataRequest.post('{{ route('manage.configuration.test_ai_key') }}', {
                     ai_provider: document.querySelector('select[name=ai_provider]').value,
                     groq_api_key: document.querySelector('input[name=groq_api_key]') ? document.querySelector('input[name=groq_api_key]').value : '',
-                    gemini_api_key: document.querySelector('input[name=gemini_api_key]').value,
-                    openai_api_key: document.querySelector('input[name=openai_api_key]').value
+                    gemini_api_key: document.querySelector('input[name=gemini_api_key]') ? document.querySelector('input[name=gemini_api_key]').value : '',
+                    openai_api_key: document.querySelector('input[name=openai_api_key]') ? document.querySelector('input[name=openai_api_key]').value : ''
                 }, function(response) {
+                    var msg = (response.data && response.data.message) ? response.data.message : (response.message || (response.data && response.data[1]) || (response.data && response.data[2]) || '{{ __tr("Résultat du test reçu") }}');
                     if (response.reaction_code == 1) {
-                        showSuccessMessage(response.message);
+                        showSuccessMessage(msg);
                     } else {
-                        showErrorMessage(response.message);
+                        showErrorMessage(msg);
                     }
                 })" class="btn btn-warning font-weight-bold shadow-sm" style="border-radius: 8px;">
                     <i class="fa fa-vial mr-1"></i> {{ __tr('🧪 Tester la Clé IA') }}

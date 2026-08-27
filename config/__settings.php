@@ -870,9 +870,19 @@ return [
             'ai_provider' => [
                 'key' => 'ai_provider',
                 'data_type' => 1,     // string
-                'default' => 'gemini',
+                'default' => 'groq',
                 'hide_value' => false,
                 'ignore_empty' => false,
+                'validation_rules' => [
+                    'nullable',
+                ],
+            ],
+            'groq_api_key' => [
+                'key' => 'groq_api_key',
+                'data_type' => 1,     // string
+                'default' => '',
+                'hide_value' => true,
+                'ignore_empty' => true,
                 'validation_rules' => [
                     'nullable',
                 ],

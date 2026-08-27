@@ -70,6 +70,10 @@ const files = [
   {
     local: 'app/Yantrana/Components/Configuration/Controllers/ConfigurationController.php',
     remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Configuration/Controllers/ConfigurationController.php'
+  },
+  {
+    local: 'config/__settings.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/config/__settings.php'
   }
 ];
 
