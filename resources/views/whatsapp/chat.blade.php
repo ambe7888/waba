@@ -277,11 +277,11 @@
                                         {{-- </template> --}}
                                         @endif
                                     </template>
-                                    <div class="p-4" x-show="contactsPaginatePage">
-                                        <button x-cloak class="btn btn-sm btn-block btn-secondary d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px;">
+                                    <div class="p-3 my-2 text-center" x-cloak x-show="contactsPaginatePage || (filteredContacts && filteredContacts.length >= 5)">
+                                        <button type="button" x-cloak class="btn btn-primary btn-block font-weight-700 shadow-sm d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px; background-color: #2aac32 !important; border-color: #2aac32 !important; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem;">
                                             <i class="fa fa-download" x-show="!isLoadingMoreContacts"></i>
                                             <i class="fa fa-spinner fa-spin" x-show="isLoadingMoreContacts" x-cloak></i>
-                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Loading...') }}' : '{{ __tr('Load More') }}'"></span>
+                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Chargement...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
                                         </button>
                                     </div>
                                 </div>

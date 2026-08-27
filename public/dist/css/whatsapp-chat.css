@@ -1543,35 +1543,52 @@
     background-color: transparent !important;
 }
 
-/* --- Mobile Menu Visibility Fix --- */
+/* --- Mobile Menu Visibility & Sticky Header Fix --- */
 @media (max-width: 767.98px) {
 
-    /* Push the contact list block below the top mobile navbar */
+    /* Push the contact list block below the top mobile navbar with proper padding */
     .card.lw-whatsapp-chat-block-container .lw-contact-list-block {
-        top: 60px !important;
-        height: calc(100% - 60px) !important;
+        top: 75px !important;
+        height: calc(100vh - 75px) !important;
+        height: calc(100dvh - 75px) !important;
         z-index: 1020 !important;
+        background-color: #ffffff !important;
+        padding-top: 10px !important;
+        overflow-y: auto !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+
+    /* Sticky search & filter header on mobile so it stays on top when scrolling */
+    .card.lw-whatsapp-chat-block-container .lw-contact-list-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1030 !important;
+        background-color: #ffffff !important;
+        padding-bottom: 6px !important;
+        border-bottom: 1.5px solid #e2e8f0;
     }
 
     /* Push the active chat window below the top mobile navbar */
     .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .chat-container.page {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
-        height: calc(100dvh - 60px) !important;
+        top: 75px !important;
+        height: calc(100vh - 75px) !important;
+        height: calc(100dvh - 75px) !important;
         z-index: 1010 !important;
     }
 
     /* Push the contact CRM details block below the top mobile navbar */
     .card.lw-whatsapp-chat-block-container .lw-contact-crm-block {
-        top: 60px !important;
-        height: calc(100% - 60px) !important;
+        top: 75px !important;
+        height: calc(100vh - 75px) !important;
         z-index: 1020 !important;
     }
 
     /* Adjust main card position on mobile to start below navbar */
     .card.lw-whatsapp-chat-block-container {
-        top: 60px !important;
-        height: calc(100vh - 60px) !important;
-        height: calc(100dvh - 60px) !important;
+        top: 75px !important;
+        height: calc(100vh - 75px) !important;
+        height: calc(100dvh - 75px) !important;
     }
 }
