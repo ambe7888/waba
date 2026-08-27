@@ -705,7 +705,7 @@ class WhatsAppServiceController extends BaseController
             }
         }
 
-        $processReaction = $this->whatsAppServiceEngine->contactChatData($contactUid);
+        $processReaction = $this->whatsAppServiceEngine->contactChatData($contactUid, true);
         updateClientModels([
             'whatsappMessageLogs' => $processReaction->data('whatsappMessageLogs'),
         ], $way);

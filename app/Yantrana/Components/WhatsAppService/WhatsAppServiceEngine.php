@@ -2246,8 +2246,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         }
         $contact = $this->contactRepository->getVendorContact($contactUid, $vendorId);
         abortIf(__isEmpty($contact));
-        // mark unread chats as read if any
-        $this->markAsReadProcess($contact, $vendorId);
+        // mark unread chats as read if any (only for manual agent actions, not bot replies)
+        if (empty($options['bot_reply']) && empty($options['ai_bot_reply'])) {
+            $this->markAsReadProcess($contact, $vendorId);
+        }
         $mediaData = [];
         $serviceName = getAppSettings('name');
 
@@ -2488,10 +2490,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         $currentPaginatedPage = request()->page;
 
         $contact = $this->contactRepository->getVendorContactWithUnreadDetails($contactUid, $vendorId, $assigned);
-        // if(!__isEmpty($contact)) {
-        // mark unread chats as read
-        $this->markAsReadProcess($contact, $vendorId);
-        // }
+        // mark unread chats as read only if a specific contact was selected by user
+        if (!empty($contactUid) && !__isEmpty($contact)) {
+            $this->markAsReadProcess($contact, $vendorId);
+        }
         $dataToSend = [
             // check if received incoming message from contact in last 24 hours
             // the direct message won't be delivered if not received any message by user in last 24 hours
@@ -2656,7 +2658,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      *
      * @return EngineResponse
      */
-    public function contactChatData(string|int $contactIdOrUid)
+    public function contactChatData(string|int $contactIdOrUid, bool $markAsRead = false)
     {
         $currentPaginatedPage = request()->page;
         $contact = is_string($contactIdOrUid)
@@ -2664,9 +2666,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             : $this->contactRepository->fetchIt($contactIdOrUid);
 
         if ($contact) {
-            // Only mark as read / reset the unread badge on the first page —
-            // fetching older messages shouldn't re-trigger that side effect.
-            if (!$currentPaginatedPage || (int) $currentPaginatedPage <= 1) {
+            // Only mark as read / reset the unread badge if explicitly requested (e.g. user opened conversation)
+            if ($markAsRead && (!$currentPaginatedPage || (int) $currentPaginatedPage <= 1)) {
                 $this->markAsReadProcess($contact, getVendorId());
             }
             $contactId = $contact->_id;
@@ -3143,8 +3144,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             dispatchStreamEventData('onChatBoxMessageSubmit', []);
             $options['message_log_id'] = $initializeLogMessage->_id;
         }
-        // do not mark messages as unread if bot replies sent or ai triggered
-        if ((Arr::get($options, 'ai_error_triggered') != true) and (Arr::get($options, 'bot_reply') != true)) {
+        // do not mark messages as read if bot replies sent, ai triggered, or automated system/campaign
+        if (empty($options['bot_reply']) && empty($options['ai_bot_reply']) && empty($options['ai_error_triggered']) && empty($options['is_system_message']) && empty($options['is_campaign'])) {
             // mark unread chats as read if any
             $this->markAsReadProcess($contact, $vendorId);
         }
