@@ -1008,9 +1008,19 @@
 /* Contact List Layout */
 .card.lw-whatsapp-chat-block-container .lw-modern-contact-list {
     background-color: transparent !important;
-    height: calc(78vh - 280px) !important;
+    height: auto !important;
+    max-height: calc(100vh - 240px) !important;
+    min-height: 450px;
     overflow-y: auto !important;
     padding-right: 2px;
+}
+
+@media (max-width: 767.98px) {
+    .card.lw-whatsapp-chat-block-container .lw-modern-contact-list {
+        height: auto !important;
+        max-height: none !important;
+        min-height: 350px;
+    }
 }
 
 .card.lw-whatsapp-chat-block-container .lw-modern-contact-list::-webkit-scrollbar {

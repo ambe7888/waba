@@ -34,7 +34,12 @@
                     <div class="col-sm-12 col-md-3 col-lg-3 col-xl-3 mb-4 lw-contact-list-block" x-show="isContactListOpened">
                         {{-- <h1>{{  __tr('WhatsApp Chat') }}</h1> --}}
                         {{-- <hr class="my-2"> --}}
-                        <h2 class="lw-contacts-header"> <span class="btn btn-light btn-sm float-right d-md-none" @click.prevent="isContactListOpened = false"><i class="fa fa-arrow-left"></i> {{  __tr('Back to Chat') }}</span> </h2>
+                        <!-- Mobile Top Line for Back Button -->
+                        <div class="d-md-none mb-2 w-100 clearfix">
+                            <button type="button" class="btn btn-sm btn-light font-weight-700 shadow-sm float-right" @click.prevent="isContactListOpened = false" style="border-radius: 20px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; padding: 5px 14px;">
+                                <i class="fa fa-arrow-left mr-1.5 text-primary"></i> {{ __tr('Retour à la discussion') }}
+                            </button>
+                        </div>
                         <div class="tab-content lw-contact-list-header" id="nav-tabContent" x-cloak>
                             <div class="tab-pane fade show active pl-2" id="lwAllContactsTab" role="tabpanel" aria-labelledby="lw-all-contacts-tab" x-data="{isExpandedLabels:false}">
                                 <div class="px-2 pt-2">
@@ -136,7 +141,7 @@
                                     </div>
                                 </div>
 
-                                <div class="lw-modern-contact-list shadow-none" >
+                                <div class="lw-modern-contact-list shadow-none" style="height: auto !important; max-height: calc(100vh - 240px) !important; min-height: 450px; overflow-y: auto;">
                                     
                                     <!-- Skeleton Loader -->
                                     <template x-if="isLoadingContacts && filteredContacts.length === 0">

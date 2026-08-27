@@ -34,6 +34,10 @@ const files = [
   {
     local: 'resources/views/whatsapp/chat.blade.php',
     remote: '/home/whats-click/htdocs/whats-click.com/resources/views/whatsapp/chat.blade.php'
+  },
+  {
+    local: 'public/dist/css/whatsapp-chat.css',
+    remote: '/home/whats-click/htdocs/whats-click.com/public/dist/css/whatsapp-chat.css'
   }
 ];
 
