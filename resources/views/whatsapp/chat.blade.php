@@ -144,9 +144,9 @@
                                          style="background: #ffffff; border: 1.5px solid #94a3b8; border-radius: 12px; cursor: pointer; user-select: none; transition: all 0.2s ease;"
                                          @click.prevent="showUnreadContactsOnly = !showUnreadContactsOnly; window.showUnreadContactsOnly = showUnreadContactsOnly ? 1 : 0; _.defer(function() { window.searchContacts(); });">
                                         <div class="d-flex align-items-center" style="gap: 10px;">
-                                            <!-- High Contrast Toggle Switch -->
-                                            <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" style="position: relative; display: inline-block; width: 42px; height: 22px; background: #64748b; border-radius: 22px; transition: background 0.25s ease; flex-shrink: 0;" >
-                                                <span style="position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #ffffff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.3);" :style="showUnreadContactsOnly ? 'transform: translateX(20px)' : ''"></span>
+                                            <!-- High Contrast Toggle Switch (Green ON, Gray OFF) -->
+                                            <span class="lw-toggle-switch" :class="{ 'active': showUnreadContactsOnly }" :style="showUnreadContactsOnly ? 'position: relative; display: inline-block; width: 44px; height: 22px; background-color: #16a34a !important; border-radius: 22px; transition: all 0.25s ease; flex-shrink: 0;' : 'position: relative; display: inline-block; width: 44px; height: 22px; background-color: #cbd5e1 !important; border-radius: 22px; transition: all 0.25s ease; flex-shrink: 0;'" >
+                                                <span style="position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #ffffff; border-radius: 50%; transition: transform 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.35);" :style="showUnreadContactsOnly ? 'transform: translateX(22px)' : ''"></span>
                                             </span>
                                             <span class="font-weight-700" style="font-size: 0.85rem; color: #0f172a;">
                                                 <span x-show="!showUnreadContactsOnly">{{ __tr('Toutes les discussions') }}</span>
@@ -298,10 +298,10 @@
                                         @endif
                                     </template>
                                     <div class="p-3 my-3 text-center lw-load-more-box" style="position: relative; z-index: 105;">
-                                        <button type="button" x-cloak class="btn btn-block font-weight-800 shadow-md d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 10px; background-color: #0f172a !important; color: #ffffff !important; border: 2px solid #2aac32 !important; border-radius: 14px; padding: 12px 18px; font-size: 0.95rem; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);">
-                                            <i class="fa fa-download" style="font-size: 1.1rem; color: #2aac32 !important;" x-show="!isLoadingMoreContacts"></i>
-                                            <i class="fa fa-spinner fa-spin" style="font-size: 1.1rem; color: #2aac32 !important;" x-show="isLoadingMoreContacts" x-cloak></i>
-                                            <span x-text="isLoadingMoreContacts ? '{{ __tr('Chargement des discussions...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
+                                        <button type="button" x-cloak class="btn btn-block shadow-sm d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px; background-color: #f0fdf4 !important; color: #16a34a !important; border: 1.5px solid #bbf7d0 !important; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem; font-weight: 400 !important;">
+                                            <i class="fa fa-download" style="font-size: 0.95rem; color: #16a34a !important;" x-show="!isLoadingMoreContacts"></i>
+                                            <i class="fa fa-spinner fa-spin" style="font-size: 0.95rem; color: #16a34a !important;" x-show="isLoadingMoreContacts" x-cloak></i>
+                                            <span style="font-weight: 400 !important; color: #16a34a !important;" x-text="isLoadingMoreContacts ? '{{ __tr('Chargement des discussions...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
                                         </button>
                                     </div>
                                 </div>
