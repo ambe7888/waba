@@ -372,6 +372,8 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     $query->where('messaged_at', '>', now()->subHours(24));
                 })
                 ->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
+                ->orderBy('updated_at', 'desc')
+                ->limit(100)
                 ->get(),
             'activeContacts24hCount' => \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
                 ->whereHas('lastIncomingMessage', function($query) {

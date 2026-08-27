@@ -171,6 +171,11 @@ $vendorViewBySuperAdmin = false;
                     </div>
                     <!-- Modal for Active Contacts -->
                     <x-lw.modal id="lwActiveContactsModal" :header="__tr('Contacts Actifs (Dernières 24h) (__count__)', ['__count__' => $activeContacts24hCount ?? 0])" modalSize="modal-md">
+                        @if(($activeContacts24hCount ?? 0) > 100)
+                            <div class="alert alert-info py-2 mb-0 rounded-0 border-0" style="font-size: 0.85rem;">
+                                <i class="fas fa-info-circle mr-1"></i> {{ __tr('Seuls les 100 derniers contacts actifs sont affichés ici.') }}
+                            </div>
+                        @endif
                         <div style="max-height: 400px; overflow-y: auto;">
                             @if(isset($activeContacts24h) && !$activeContacts24h->isEmpty())
                                 <div class="list-group list-group-flush">
