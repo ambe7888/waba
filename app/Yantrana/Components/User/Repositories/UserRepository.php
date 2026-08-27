@@ -150,65 +150,53 @@ class UserRepository extends AuthRepository implements UserRepositoryInterface
         ])->count();
     }
     /**
-     * Get vendor users who have the Messaging Permission
+     * Get vendor users who have the Messaging Permission / belong to vendor
      *
      * @param int $vendorId
      * @return Eloquent Collection
      */
     function getVendorMessagingUsers($vendorId) {
-        // only vendor users having messaging permission
+        // Fetch primary vendor owner user(s)
+        $vendorOwnerUsers = $this->fetchItAll([
+            'vendors__id' => $vendorId,
+            'status' => 1
+        ]);
+
+        // Fetch team member user IDs linked via vendor_users table
         $vendorMessagingUserIds = VendorUserModel::where([
             'vendors__id' => $vendorId,
-            '__data->permissions->messaging' => 'allow',
-        ])->get()->pluck('users__id')->toArray();
-        // get all the users
-        $vendorUsers = $this->fetchItAll([
-            'vendors__id' => $vendorId
-        ]);
-        if(!empty($vendorMessagingUserIds)) {
-            $vendorUsers = $vendorUsers->merge($this->fetchItAll($vendorMessagingUserIds, null, '_id', [
+        ])->pluck('users__id')->toArray();
+
+        if (!empty($vendorMessagingUserIds)) {
+            $teamMemberUsers = $this->fetchItAll($vendorMessagingUserIds, null, '_id', [
                 'where' => [
                     'status' => 1
                 ]
-            ]));
+            ]);
+            if ($teamMemberUsers && $teamMemberUsers->count()) {
+                $vendorOwnerUsers = $vendorOwnerUsers->merge($teamMemberUsers);
+            }
         }
-        return $vendorUsers;
+
+        return $vendorOwnerUsers->unique('_id')->values();
     }
 
     function fetchTeamMembers() 
     {
         $vendorId = getVendorId();
-        $vendorMessagingUserIds = VendorUserModel::where([
-            'vendors__id' => $vendorId
-        ])->get()->pluck('users__id')->toArray();
-        
-        $selectColumn = [
-            '_id', '_uid', 'first_name', 'last_name', 'vendors__id'
-        ];
-        
-        // get all the vendor users
-        $vendorUsers = $this->fetchItAll([
-            'vendors__id' => $vendorId
-        ], $selectColumn);
-        if(!empty($vendorMessagingUserIds)) {
-            $vendorUsers = $vendorUsers->merge($this->fetchItAll($vendorMessagingUserIds, $selectColumn, '_id', [
-                'where' => [
-                    'status' => 1
-                ]
-            ]));
-        }
-        return $vendorUsers;
+        return $this->getVendorMessagingUsers($vendorId);
     }
 
     /**
-     * Fetch agents/team members list for API (mobile app)
+     * Fetch agents/team members list for API (mobile app) including vendor owner
      *
      * @param int $vendorId
      * @return \Illuminate\Support\Collection
      */
     public function fetchAgentsList($vendorId)
     {
-        return $this->primaryModel::select([
+        // 1. Fetch team members linked via vendor_users
+        $teamMembers = $this->primaryModel::select([
             'users._id',
             'users._uid',
             'users.first_name',
@@ -220,11 +208,31 @@ class UserRepository extends AuthRepository implements UserRepositoryInterface
             'users.user_roles__id',
             'users.created_at',
         ])
-            ->leftJoin('vendor_users', 'users._id', '=', 'vendor_users.users__id')
+            ->join('vendor_users', 'users._id', '=', 'vendor_users.users__id')
             ->where('vendor_users.vendors__id', $vendorId)
+            ->where('users.status', 1)
             ->with('role')
-            ->orderBy('users.first_name')
             ->get();
+
+        // 2. Fetch primary vendor owner user(s)
+        $vendorOwners = $this->primaryModel::select([
+            'users._id',
+            'users._uid',
+            'users.first_name',
+            'users.last_name',
+            'users.username',
+            'users.email',
+            'users.mobile_number',
+            'users.status',
+            'users.user_roles__id',
+            'users.created_at',
+        ])
+            ->where('users.vendors__id', $vendorId)
+            ->where('users.status', 1)
+            ->with('role')
+            ->get();
+
+        return $vendorOwners->merge($teamMembers)->unique('_id')->sortBy('first_name')->values();
     }
 
     public function getRandomTemMember($vendorId)

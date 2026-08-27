@@ -46,6 +46,10 @@ const files = [
   {
     local: 'app/Yantrana/Components/Contact/ContactEngine.php',
     remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Contact/ContactEngine.php'
+  },
+  {
+    local: 'app/Yantrana/Components/User/Repositories/UserRepository.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/User/Repositories/UserRepository.php'
   }
 ];
 
