@@ -65,9 +65,25 @@ class DashboardController extends BaseController
      */
     public function vendorDashboardView()
     {
+        $vendorId = getVendorId();
+        $userId = getUserID();
+        $cacheKey = "vendor_dashboard_view_{$vendorId}_{$userId}";
+
+        $data = \Cache::remember($cacheKey, 300, function() {
+            return $this->dashboardEngine->prepareVendorDashboardData();
+        });
+
+        // Always override cached user data with current user
+        $data['vendorUserData'] = auth()->user();
+        if (!isVendorAdmin($vendorId)) {
+            $data['vendorUserPermissions'] = getUserAuthInfo('permissions') ?: [];
+        } else {
+            $data['vendorUserPermissions'] = [];
+        }
+
         return $this->loadView(
             'vendors.vendor-dashboard',
-            $this->dashboardEngine->prepareVendorDashboardData()
+            $data
         );
     }
 
@@ -83,7 +99,24 @@ class DashboardController extends BaseController
             'end_date' => $request->input('end_date'),
             'agent_id' => $request->input('agent_id'),
         ];
-        return $this->processResponse(1, [], $this->dashboardEngine->prepareVendorDashboardData(null, $filters));
+        
+        $vendorId = getVendorId();
+        $userId = getUserID();
+        $cacheKey = "api_vendor_dashboard_{$vendorId}_{$userId}_" . md5(json_encode($filters));
+
+        $data = \Cache::remember($cacheKey, 300, function() use ($filters) {
+            return $this->dashboardEngine->prepareVendorDashboardData(null, $filters);
+        });
+
+        // Always override cached user data with current user
+        $data['vendorUserData'] = auth()->user();
+        if (!isVendorAdmin($vendorId)) {
+            $data['vendorUserPermissions'] = getUserAuthInfo('permissions') ?: [];
+        } else {
+            $data['vendorUserPermissions'] = [];
+        }
+
+        return $this->processResponse(1, [], $data);
     }
 
     /**
