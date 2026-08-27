@@ -10,6 +10,7 @@
     message: '',
     imageUrl: '',
     clickUrl: '',
+    fileNameLabel: 'Choisir une image depuis l\'ordinateur...',
     totalVendors: {{ $totalVendorsCount ?? 0 }},
     onlineVendors: {{ $onlineVendorsCount ?? 0 }},
     get totalRecipientsCount() {
@@ -23,6 +24,17 @@
         if (this.audience === 'online') return 'Vendeurs en ligne';
         if (this.audience === 'manual') return 'Sélection manuelle';
         return 'Tout';
+    },
+    previewImage(event) {
+        var file = event.target.files[0];
+        if (file) {
+            this.fileNameLabel = file.name;
+            var reader = new FileReader();
+            reader.onload = (e) => {
+                this.imageUrl = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 }">
     @if(session('message'))
@@ -47,7 +59,7 @@
         </div>
     </div>
 
-    <form action="{{ route('central.notifications.store') }}" method="POST">
+    <form action="{{ route('central.notifications.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="audience_type" :value="audience">
         <input type="hidden" name="vendors__id" :value="selectedVendor">
@@ -180,10 +192,21 @@
                             <div class="text-muted text-right font-weight-600 small mt-1" style="font-size: 0.78rem; color: #64748b;" x-text="message.length + '/300'">0/300</div>
                         </div>
 
-                        <!-- Image URL (when With Image is selected) -->
+                        <!-- Image File / URL (when With Image is selected) -->
                         <div x-show="notifTypeTab === 'image'" class="form-group mb-3" x-cloak>
-                            <label class="form-label font-weight-800 small mb-1" style="color: #0f172a;">Image URL</label>
-                            <input type="url" name="image_url" x-model="imageUrl" class="form-control font-weight-600 py-3 px-3 shadow-sm" placeholder="https://example.com/banner.png" style="border-radius: 12px; font-size: 0.95rem; border: 1.5px solid #cbd5e1; color: #0f172a;">
+                            <label class="form-label font-weight-800 small mb-1" style="color: #0f172a;"><i class="fas fa-camera text-primary mr-1"></i> Sélectionner une Image (Fichier ou URL)</label>
+                            
+                            <!-- Local File Input Button -->
+                            <div class="mb-2">
+                                <label class="btn btn-outline-primary btn-block py-2.5 font-weight-700 shadow-sm cursor-pointer d-flex align-items-center justify-content-center" style="border-radius: 12px; border: 1.5px dashed #2563eb; background: #f8fafc; color: #1d4ed8;">
+                                    <i class="fas fa-cloud-upload-alt fa-lg mr-2"></i>
+                                    <span x-text="fileNameLabel">Choisir une image depuis l'ordinateur...</span>
+                                    <input type="file" name="image_file" accept="image/*" class="d-none" @change="previewImage($event)">
+                                </label>
+                            </div>
+
+                            <small class="text-muted d-block mb-1 font-weight-600" style="font-size: 0.78rem; color: #64748b;">Ou saisir directement une URL d'image :</small>
+                            <input type="url" name="image_url" x-model="imageUrl" class="form-control font-weight-600 py-3 px-3 shadow-sm" placeholder="https://example.com/image.png" style="border-radius: 12px; font-size: 0.9rem; border: 1.5px solid #cbd5e1; color: #0f172a;">
                         </div>
 
                         <!-- Click URL (optional) -->
@@ -221,8 +244,8 @@
                                 </div>
                             </div>
                             <template x-if="notifTypeTab === 'image' && imageUrl">
-                                <div class="mt-3 rounded-lg overflow-hidden" style="max-height: 140px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                    <img :src="imageUrl" class="w-100 h-100 style-cover" alt="Preview Image" style="object-fit: cover;">
+                                <div class="mt-3 rounded-lg overflow-hidden position-relative" style="max-height: 180px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                    <img :src="imageUrl" class="w-100 h-100 style-cover" alt="Preview Image" style="object-fit: cover; max-height: 180px;">
                                 </div>
                             </template>
                         </div>
@@ -316,7 +339,6 @@
                                             {{ __tr('Aucune notification envoyée pour le moment.') }}
                                         </td>
                                     </tr>
-                                @empty
                                 @endforelse
                             </tbody>
                         </table>

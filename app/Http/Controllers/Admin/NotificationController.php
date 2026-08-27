@@ -52,6 +52,7 @@ class NotificationController extends BaseController
             'type' => 'required|string|in:info,success,warning,danger',
             'audience_type' => 'nullable|string|in:all,online,manual',
             'vendors__id' => 'nullable|exists:vendors,_id',
+            'image_file' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'image_url' => 'nullable|url',
             'click_url' => 'nullable|string',
         ]);
@@ -61,6 +62,26 @@ class NotificationController extends BaseController
 
         if ($audienceType === 'manual') {
             $vendorId = $request->vendors__id ?: null;
+        }
+
+        $imageUrl = null;
+
+        // Process file upload if provided
+        if ($request->hasFile('image_file') && $request->file('image_file')->isValid()) {
+            try {
+                $file = $request->file('image_file');
+                $fileName = 'notif_' . time() . '_' . \Illuminate\Support\Str::random(8) . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('media-storage/notifications');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+                $file->move($destinationPath, $fileName);
+                $imageUrl = asset('media-storage/notifications/' . $fileName);
+            } catch (\Exception $e) {
+                \Log::error('Notification Image Upload Error: ' . $e->getMessage());
+            }
+        } elseif ($request->filled('image_url')) {
+            $imageUrl = $request->input('image_url');
         }
 
         $notification = VendorNotification::create([
@@ -76,7 +97,7 @@ class NotificationController extends BaseController
                 $payload = [
                     'notification_id' => (string) $notification->_id,
                     'type' => $request->type,
-                    'image_url' => $request->image_url,
+                    'image_url' => $imageUrl,
                     'click_url' => $request->click_url,
                 ];
 
