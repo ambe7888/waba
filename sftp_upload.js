@@ -42,6 +42,10 @@ const files = [
   {
     local: 'addons/WhatsJetDripCampaignAddon/Views/builder.blade.php',
     remote: '/home/whats-click/htdocs/whats-click.com/addons/WhatsJetDripCampaignAddon/Views/builder.blade.php'
+  },
+  {
+    local: 'app/Yantrana/Components/Contact/ContactEngine.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Contact/ContactEngine.php'
   }
 ];
 

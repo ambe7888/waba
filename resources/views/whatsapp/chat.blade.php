@@ -1090,7 +1090,7 @@
                                                 <span class="lw-crm-info-text" style="font-weight: 600;">{{ __tr('Assigné à') }}</span>
                                             </div>
                                             <div class="pl-0">
-                                                <x-lw.input-field id="lwCurrentlyAssignedUserUid" type="selectize" data-form-group-class="m-0" name="assigned_users_uid" class="custom-select custom-select-sm" data-selected="{{ $currentlyAssignedUserUid }}" x-model="currentlyAssignedUserUid" @change="$el.closest('form').querySelector('button[type=submit]').click()" style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; font-size: 15px; color: #1f2937; height: auto;">
+                                                <x-lw.input-field id="lwCurrentlyAssignedUserUid" type="selectize" data-form-group-class="m-0" name="assigned_users_uid" class="custom-select custom-select-sm" data-selected="{{ $currentlyAssignedUserUid }}" x-model="currentlyAssignedUserUid" onchange="$(this).closest('form').find('button[type=submit]').trigger('click');" @change="$(this).closest('form').find('button[type=submit]').trigger('click');" style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; font-size: 15px; color: #1f2937; height: auto;">
                                                     <x-slot name="selectOptions">
                                                         <option value="">{{  __tr('Unassigned') }}</option>
                                                         <option value="no_one">{{  __tr('Unassigned') }}</option>
@@ -2198,9 +2198,37 @@
     window.updateContactInfo = function(responseData) {
         var assignUserEl = $('#lwCurrentlyAssignedUserUid');
         if(assignUserEl.length && assignUserEl[0].selectize && responseData.data && responseData.data.currentlyAssignedUserUid !== undefined) {
-            assignUserEl[0].selectize.setValue(responseData.data.currentlyAssignedUserUid);
+            assignUserEl[0].selectize.setValue(responseData.data.currentlyAssignedUserUid, true);
         }
     };
+    window.assignTeamMember = function(responseData) {
+        if (responseData.reaction == 1) {
+            showSuccessMessage(responseData.message || '{{ __tr("Contact assigné avec succès.") }}');
+            var chatData = document.querySelector('[x-data="initialMessageData"]');
+            if (chatData) {
+                var alpineData = Alpine.$data(chatData) || chatData.__x?.$data;
+                if (alpineData) {
+                    if (responseData.data && responseData.data.currentlyAssignedUserUid !== undefined) {
+                        alpineData.currentlyAssignedUserUid = responseData.data.currentlyAssignedUserUid;
+                    }
+                    if (alpineData.contact && responseData.data && responseData.data.assigned_users__id !== undefined) {
+                        alpineData.contact.assigned_users__id = responseData.data.assigned_users__id;
+                    }
+                    if (responseData.client_models && responseData.client_models.whatsappMessageLogs) {
+                        alpineData.whatsappMessageLogs = responseData.client_models.whatsappMessageLogs;
+                    }
+                }
+            }
+            if (typeof window.searchContacts === 'function') {
+                window.searchContacts();
+            }
+        } else {
+            showErrorMessage(responseData.message || '{{ __tr("Erreur lors de l\'assignation du contact.") }}');
+        }
+    };
+    $(document).on('change', '#lwCurrentlyAssignedUserUid', function() {
+        $('#lwAssignSystemUserForm').find('button[type=submit]').trigger('click');
+    });
     window.onNewLabelCreated = function(responseData) {
         $('#lwLabelFieldTitle').val('');
         var chatData = document.querySelector('[x-data="initialMessageData"]');

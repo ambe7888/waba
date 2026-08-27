@@ -1590,22 +1590,26 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
                     'whatsappMessageLogs' => $this->whatsAppServiceEngine->contactChatData($contactDetails->_id)->data('whatsappMessageLogs'),
                 ], 'prepend');
 
-                return $this->engineSuccessResponse([], __tr('Request Successful.'));
+                return $this->engineSuccessResponse([
+                    'contact_uid' => $contactUid,
+                    'currentlyAssignedUserUid' => '',
+                    'assigned_users__id' => null,
+                ], __tr('Contact non assigné avec succès.'));
             }
-            return $this->engineFailedResponse([], __tr('Nothing to Update.'));
+            return $this->engineFailedResponse([], __tr('Aucune modification.'));
         }
         // get all the messaging vendor users
         $vendorMessagingUserUids = $this->userRepository->getVendorMessagingUsers($vendorId)->pluck('_uid')->toArray();
         // validate the vendor user
         if (!in_array($request->assigned_users_uid, $vendorMessagingUserUids)) {
-            return $this->engineFailedResponse([], __tr('Invalid user'));
+            return $this->engineFailedResponse([], __tr('Utilisateur invalide'));
         }
         // get the user details
         $user = $this->userRepository->fetchIt([
             '_uid' => $request->assigned_users_uid,
         ]);
         if (__isEmpty($user)) {
-            return $this->engineFailedResponse([], __tr('Failed to assign user'));
+            return $this->engineFailedResponse([], __tr('Échec de l\'assignation de l\'utilisateur'));
         }
         $systemMessageActions = [];
         $isCurrentlyAiBotEnabled = !$contactDetails->disable_ai_bot;
@@ -1678,10 +1682,14 @@ class ContactEngine extends BaseEngine implements ContactEngineInterface
             ], 'prepend');
 
             return $this->engineSuccessResponse([
-                'contact_uid' => $contactUid
-            ],  __tr('Request Successful.'));
+                'contact_uid' => $contactUid,
+                'currentlyAssignedUserUid' => $user->_uid,
+                'assigned_users__id' => $user->_id,
+            ],  __tr('Contact assigné avec succès à :userName.', [
+                'userName' => $user->first_name . ' ' . $user->last_name
+            ]));
         }
-        return $this->engineResponse(14, [], __tr('No changes'));
+        return $this->engineResponse(14, [], __tr('Aucune modification'));
     }
 
     /**
