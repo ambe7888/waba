@@ -421,34 +421,45 @@ class OpenAiService extends BaseEngine
                     ?: env('GROQ_API_KEY');
 
         if (!empty($groqApiKey)) {
-            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Groq AI (Llama 3.3 70B) for vendor ' . $vendorId);
-            try {
-                $groqModel = getVendorSettings('groq_model_key', null, null, $vendorId) ?: 'llama-3.3-70b-versatile';
-                $response = \Illuminate\Support\Facades\Http::withToken($groqApiKey)
-                    ->timeout(20)
-                    ->post('https://api.groq.com/openai/v1/chat/completions', [
-                        'model' => $groqModel,
-                        'messages' => $messages,
-                        'temperature' => 0.7,
-                        'max_tokens' => 1000,
-                    ]);
+            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Groq AI for vendor ' . $vendorId);
+            $candidateModels = array_unique(array_filter([
+                getVendorSettings('groq_model_key', null, null, $vendorId),
+                'llama-3.3-70b-versatile',
+                'llama-3.1-70b-versatile',
+                'llama3-70b-8192',
+                'llama-3.1-8b-instant',
+                'llama3-8b-8192',
+                'mixtral-8x7b-32768'
+            ]));
 
-                if ($response->successful()) {
-                    $resData = $response->json();
-                    $replyText = $resData['choices'][0]['message']['content'] ?? null;
-                    if (!empty($replyText)) {
-                        $promptTokens = $resData['usage']['prompt_tokens'] ?? 0;
-                        $completionTokens = $resData['usage']['completion_tokens'] ?? 0;
-                        $credits = $this->calculateCredits($groqModel, $promptTokens, $completionTokens);
-                        $this->deductVendorCredit($vendorId, $credits);
-                        \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Groq AI replied successfully: ' . substr($replyText, 0, 100));
-                        return trim($replyText);
+            foreach ($candidateModels as $groqModel) {
+                try {
+                    $response = \Illuminate\Support\Facades\Http::withToken($groqApiKey)
+                        ->timeout(20)
+                        ->post('https://api.groq.com/openai/v1/chat/completions', [
+                            'model' => $groqModel,
+                            'messages' => $messages,
+                            'temperature' => 0.7,
+                            'max_tokens' => 1000,
+                        ]);
+
+                    if ($response->successful()) {
+                        $resData = $response->json();
+                        $replyText = $resData['choices'][0]['message']['content'] ?? null;
+                        if (!empty($replyText)) {
+                            $promptTokens = $resData['usage']['prompt_tokens'] ?? 0;
+                            $completionTokens = $resData['usage']['completion_tokens'] ?? 0;
+                            $credits = $this->calculateCredits($groqModel, $promptTokens, $completionTokens);
+                            $this->deductVendorCredit($vendorId, $credits);
+                            \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Groq AI (' . $groqModel . ') replied successfully: ' . substr($replyText, 0, 100));
+                            return trim($replyText);
+                        }
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Groq API (' . $groqModel . ') returned error status ' . $response->status() . ': ' . $response->body());
                     }
-                } else {
-                    \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Groq API returned error status ' . $response->status() . ': ' . $response->body());
+                } catch (\Throwable $th) {
+                    \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] Groq AI Error with model ' . $groqModel . ': ' . $th->getMessage());
                 }
-            } catch (\Throwable $th) {
-                \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] Groq AI Error: ' . $th->getMessage() . ' | File: ' . $th->getFile() . ':' . $th->getLine());
             }
         }
 

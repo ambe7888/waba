@@ -107,28 +107,55 @@ class ConfigurationController extends BaseController
             if (empty($groqKey)) {
                 return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API Groq (gsk_...).')], ['message' => __tr('Veuillez d\'abord saisir votre clé API Groq (gsk_...).')]);
             }
+
+            $availableModels = [];
             try {
-                $response = \Http::withToken($groqKey)
-                    ->timeout(10)
-                    ->post('https://api.groq.com/openai/v1/chat/completions', [
-                        'model' => 'llama-3.3-70b-versatile',
-                        'messages' => [
-                            ['role' => 'user', 'content' => 'Réponds uniquement "OK" en un seul mot.']
-                        ]
-                    ]);
-                if ($response->successful()) {
-                    $text = $response->json()['choices'][0]['message']['content'] ?? 'OK';
-                    return $this->processResponse(1, [
-                        1 => __tr('✅ Clé Groq AI 100% Fonctionnelle (Modèle : Llama 3.3 70B) ! Réponse : __text__', ['__text__' => trim($text)])
-                    ], [
-                        'message' => __tr('✅ Clé Groq AI 100% Fonctionnelle (Modèle : Llama 3.3 70B) ! Réponse : __text__', ['__text__' => trim($text)])
-                    ]);
+                $modelsResponse = \Http::withToken($groqKey)->timeout(5)->get('https://api.groq.com/openai/v1/models');
+                if ($modelsResponse->successful()) {
+                    $modelsData = $modelsResponse->json()['data'] ?? [];
+                    foreach ($modelsData as $m) {
+                        if (isset($m['id'])) {
+                            $availableModels[] = $m['id'];
+                        }
+                    }
                 }
-                $errMsg = $response->json()['error']['message'] ?? $response->body();
-                return $this->processResponse(2, [2 => __tr('❌ Erreur Clé Groq : ') . $errMsg], ['message' => __tr('❌ Erreur Clé Groq : ') . $errMsg]);
-            } catch (\Exception $e) {
-                return $this->processResponse(2, [2 => __tr('❌ Erreur Clé Groq : ') . $e->getMessage()], ['message' => __tr('❌ Erreur Clé Groq : ') . $e->getMessage()]);
+            } catch (\Exception $e) {}
+
+            $candidateModels = !empty($availableModels) 
+                ? $availableModels 
+                : ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'llama3-70b-8192', 'llama-3.1-8b-instant', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
+
+            $lastErrorMsg = '';
+            foreach ($candidateModels as $modelName) {
+                try {
+                    $response = \Http::withToken($groqKey)
+                        ->timeout(10)
+                        ->post('https://api.groq.com/openai/v1/chat/completions', [
+                            'model' => $modelName,
+                            'messages' => [
+                                ['role' => 'user', 'content' => 'Réponds uniquement "OK" en un seul mot.']
+                            ]
+                        ]);
+
+                    if ($response->successful()) {
+                        $text = $response->json()['choices'][0]['message']['content'] ?? 'OK';
+                        return $this->processResponse(1, [
+                            1 => __tr('✅ Clé Groq AI 100% Fonctionnelle (Modèle : __model__) ! Réponse : __text__', ['__model__' => $modelName, '__text__' => trim($text)])
+                        ], [
+                            'message' => __tr('✅ Clé Groq AI 100% Fonctionnelle (Modèle : __model__) ! Réponse : __text__', ['__model__' => $modelName, '__text__' => trim($text)])
+                        ]);
+                    }
+                    $lastErrorMsg = $response->json()['error']['message'] ?? $response->body();
+                } catch (\Exception $e) {
+                    $lastErrorMsg = $e->getMessage();
+                }
             }
+
+            return $this->processResponse(2, [
+                2 => __tr('❌ Erreur Clé Groq : ') . $lastErrorMsg
+            ], [
+                'message' => __tr('❌ Erreur Clé Groq : ') . $lastErrorMsg
+            ]);
         } elseif ($provider === 'gemini') {
             if (empty($geminiKey)) {
                 return $this->processResponse(2, [2 => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')], ['message' => __tr('Veuillez d\'abord saisir votre clé API Google Gemini.')]);
