@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Guarded: on environments where this table was already created
-        // manually (outside of Laravel's migration tracking), skip instead
-        // of failing with a "table already exists" error.
         if (Schema::hasTable('contact_reminders')) {
+            if (!Schema::hasColumn('contact_reminders', '__data')) {
+                Schema::table('contact_reminders', function (Blueprint $table) {
+                    $table->longText('__data')->nullable()->after('status');
+                });
+            }
             return;
         }
 
