@@ -2553,9 +2553,11 @@ window.cancelContactReminder = function(contact) {
         }
     }">
         <div class="lw-form-modal-body p-4">
-            <div id="lwContactReminderActiveNotice" class="alert alert-warning mb-4 py-2 px-3" style="display:none; border-radius: 12px; border: 1.5px solid #fcd34d; background: #fffbeb;">
-                <i class="fas fa-exclamation-triangle text-warning mr-2"></i>
-                {{ __tr('A reminder is already scheduled for:') }} <strong id="lwReminderNoticeTime" class="text-dark"></strong>. {{ __tr('Saving a new reminder will overwrite the previous one.') }}
+            <div id="lwContactReminderActiveNotice" class="alert mb-4 py-2.5 px-3" style="display:none; border-radius: 12px; border: 1.5px solid #f59e0b; background: #fef3c7; color: #0f172a !important; font-size: 0.92rem; font-weight: 600;">
+                <i class="fas fa-exclamation-triangle text-warning mr-2" style="font-size: 1rem;"></i>
+                <span style="color: #0f172a !important;">Un rappel est déjà programmé pour le :</span> 
+                <strong id="lwReminderNoticeTime" style="color: #16a34a !important; font-weight: 800 !important; font-size: 0.95rem; margin: 0 4px;"></strong>. 
+                <span style="color: #0f172a !important;">Enregistrer un nouveau rappel écrasera le précédent.</span>
             </div>
 
             <!-- Shortcut Buttons -->
