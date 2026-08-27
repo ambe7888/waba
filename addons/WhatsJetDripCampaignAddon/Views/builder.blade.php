@@ -164,34 +164,47 @@
 
                 <!-- Modale d'Édition d'Étape -->
                 <div class="modal fade" id="editStepModal{{ $step->_uid }}" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                        <form action="{{ route('addon.WhatsJetDripCampaignAddon.update_step', $step->_uid) }}" method="POST">
-                            @csrf
-                            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-                                <div class="modal-header border-0 text-white" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%); padding: 20px 26px;">
-                                    <div>
-                                        <h4 class="modal-title font-weight-bold text-white mb-0">
-                                            <i class="fas fa-edit mr-2"></i>{{ __tr('Modifier l\'étape de la séquence') }}
-                                        </h4>
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-height: 90vh;">
+                        <div class="modal-content border-0 shadow-2xl" style="border-radius: 20px; overflow: hidden; max-height: 88vh; display: flex; flex-direction: column; background: #ffffff;">
+                            <form action="{{ route('addon.WhatsJetDripCampaignAddon.update_step', $step->_uid) }}" method="POST" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; margin: 0;">
+                                @csrf
+                                <div class="modal-header border-0 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #047857 0%, #10b981 100%); padding: 18px 24px; flex-shrink: 0;">
+                                    <div class="d-flex align-items-center" style="gap: 12px;">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); color: #ffffff;">
+                                            <i class="fas fa-edit" style="font-size: 1.1rem;"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="modal-title font-weight-bold text-white mb-0" style="font-size: 1.15rem;">
+                                                {{ __tr('Modifier l\'étape de la séquence') }}
+                                            </h4>
+                                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.85); font-weight: 500;">
+                                                {{ __tr('Ajustez les paramètres de cette étape') }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true" style="font-size: 1.6rem;">&times;</span>
+                                    <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Close" style="outline: none;">
+                                        <span aria-hidden="true" style="font-size: 1.8rem; line-height: 1;">&times;</span>
                                     </button>
                                 </div>
-                                <div class="modal-body p-4" style="background: #ffffff; max-height: calc(82vh - 140px); overflow-y: auto;">
+                                <div class="modal-body p-4" style="background: #ffffff; flex-grow: 1; overflow-y: auto;">
 
+                                    <!-- Row 1: Delay Value & Delay Unit -->
                                     <div class="row">
                                         <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label class="font-weight-bold text-dark" style="font-size: 0.9rem;">{{ __tr('Délai d\'attente') }} <small class="text-danger">*</small></label>
-                                                <input type="number" min="0" name="delay_value" class="form-control" required value="{{ $step->delay_value }}" style="border-radius: 8px; height: 44px;">
-                                                <small class="text-muted">{{ __tr('0 = Envoi immédiat lors du déclenchement.') }}</small>
+                                            <div class="form-group mb-3">
+                                                <label class="font-weight-700 text-dark" style="font-size: 0.88rem; color: #1e293b;">
+                                                    <i class="far fa-clock text-primary mr-1"></i> {{ __tr('Délai d\'attente') }} <small class="text-danger">*</small>
+                                                </label>
+                                                <input type="number" min="0" name="delay_value" class="form-control font-weight-600" required value="{{ $step->delay_value }}" style="border-radius: 10px; height: 44px; border: 1.5px solid #cbd5e1; font-size: 0.92rem;">
+                                                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">{{ __tr('0 = Envoi immédiat lors du déclenchement.') }}</small>
                                             </div>
                                         </div>
                                         <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label class="font-weight-bold text-dark" style="font-size: 0.9rem;">{{ __tr('Unité de temps') }} <small class="text-danger">*</small></label>
-                                                <select name="delay_type" class="form-control" required style="border-radius: 8px; height: 44px;">
+                                            <div class="form-group mb-3">
+                                                <label class="font-weight-700 text-dark" style="font-size: 0.88rem; color: #1e293b;">
+                                                    <i class="fas fa-calendar-alt text-primary mr-1"></i> {{ __tr('Unité de temps') }} <small class="text-danger">*</small>
+                                                </label>
+                                                <select name="delay_type" class="form-control font-weight-600" required style="border-radius: 10px; height: 44px; border: 1.5px solid #cbd5e1; font-size: 0.92rem;">
                                                     <option value="minutes" {{ $step->delay_type == 'minutes' ? 'selected' : '' }}>{{ __tr('Minutes') }}</option>
                                                     <option value="hours" {{ $step->delay_type == 'hours' ? 'selected' : '' }}>{{ __tr('Heures') }}</option>
                                                     <option value="days" {{ $step->delay_type == 'days' ? 'selected' : '' }}>{{ __tr('Jours') }}</option>
@@ -200,9 +213,14 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group mt-3">
-                                        <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fas fa-robot text-primary mr-1"></i> {{ __tr('Modèle Non-Meta (Message Pré-enregistré / Bot)') }}</label>
-                                        <select name="bot_replies__id" class="form-control" style="border-radius: 8px; height: 44px;">
+                                    <hr class="my-3" style="border-top: 1px dashed #cbd5e1;">
+
+                                    <!-- Section 1: Non-Meta Bot Model -->
+                                    <div class="p-3 mb-3 rounded-lg" style="background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px;">
+                                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #0369a1;">
+                                            <i class="fas fa-robot text-info mr-1.5"></i> {{ __tr('Option A : Modèle Non-Meta (Message Pré-enregistré / Bot)') }}
+                                        </label>
+                                        <select name="bot_replies__id" class="form-control font-weight-600" style="border-radius: 10px; height: 42px; border: 1.5px solid #93c5fd; background: #ffffff;">
                                             <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
                                             @if(isset($presetMessages))
                                                 @foreach($presetMessages as $presetMsg)
@@ -212,36 +230,47 @@
                                                 @endforeach
                                             @endif
                                         </select>
-                                        <small class="text-muted">{{ __tr('Recommandé : Envoyé directement sans validation Meta.') }}</small>
+                                        <small class="form-text text-muted mt-1" style="font-size: 0.78rem;">
+                                            <i class="fas fa-check-circle text-info mr-1"></i> {{ __tr('Recommandé pour les messages de la fenêtre 24h sans validation Meta.') }}
+                                        </small>
                                     </div>
 
-                                    <div class="form-group text-center my-3">
-                                        <span class="badge px-3 py-1 font-weight-bold text-muted" style="background: #f1f5f9; border-radius: 12px; font-size: 0.78rem;">{{ __tr('OU') }}</span>
+                                    <div class="text-center my-2 position-relative">
+                                        <span class="badge px-3 py-1 font-weight-800 text-muted" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.75rem;">{{ __tr('OU') }}</span>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fa fa-comment text-info mr-1"></i> {{ __tr('Message Personnalisé (Texte Libre)') }}</label>
-                                        <textarea id="lwDripCustomMessage{{ $step->_uid }}" name="custom_message" class="form-control" rows="3" style="border-radius: 8px;">{{ $step->custom_message }}</textarea>
-                                        <x-whatsapp-format-buttons inputId="lwDripCustomMessage{{ $step->_uid }}" />
+                                    <!-- Section 2: Custom Free Text Message -->
+                                    <div class="p-3 mb-3 rounded-lg" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px;">
+                                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #92400e;">
+                                            <i class="fa fa-comment text-warning mr-1.5"></i> {{ __tr('Option B : Message Personnalisé (Texte Libre)') }}
+                                        </label>
+                                        <textarea id="lwDripCustomMessage{{ $step->_uid }}" name="custom_message" class="form-control" rows="3" style="border-radius: 10px; border: 1.5px solid #fcd34d; font-size: 0.92rem; background: #ffffff;">{{ $step->custom_message }}</textarea>
+                                        <div class="mt-2">
+                                            <x-whatsapp-format-buttons inputId="lwDripCustomMessage{{ $step->_uid }}" />
+                                        </div>
                                     </div>
 
-                                    <div class="form-group text-center my-3">
-                                        <span class="badge px-3 py-1 font-weight-bold text-muted" style="background: #f1f5f9; border-radius: 12px; font-size: 0.78rem;">{{ __tr('OU') }}</span>
+                                    <div class="text-center my-2 position-relative">
+                                        <span class="badge px-3 py-1 font-weight-800 text-muted" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.75rem;">{{ __tr('OU') }}</span>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fab fa-whatsapp text-success mr-1"></i> {{ __tr('Modèle Meta WhatsApp') }}</label>
-                                        <select name="whatsapp_templates__id" class="form-control" style="border-radius: 8px; height: 44px;">
+                                    <!-- Section 3: WhatsApp Meta Template -->
+                                    <div class="p-3 rounded-lg" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 12px;">
+                                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #047857;">
+                                            <i class="fab fa-whatsapp text-success mr-1.5"></i> {{ __tr('Option C : Modèle Meta WhatsApp (Obligatoire après 24h)') }}
+                                        </label>
+                                        <select name="whatsapp_templates__id" class="form-control font-weight-600" style="border-radius: 10px; height: 42px; border: 1.5px solid #6ee7b7; background: #ffffff;">
                                             <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
                                             @foreach($templates as $template)
                                                 <option value="{{ $template->_id }}" {{ $step->whatsapp_templates__id == $template->_id ? 'selected' : '' }}>{{ $template->template_name }} ({{ $template->language }})</option>
                                             @endforeach
                                         </select>
                                     </div>
+
                                 </div>
-                                <div class="modal-footer border-0 p-3" style="background: #f8fafc;">
-                                    <button type="button" class="btn btn-outline-secondary font-weight-bold" data-dismiss="modal" style="border-radius: 8px; padding: 8px 18px;">{{ __tr('Annuler') }}</button>
-                                    <button type="submit" class="btn text-white font-weight-bold" style="background: #10b981; border: none; border-radius: 8px; padding: 8px 20px;" onclick="
+                                <div class="modal-footer border-0 p-3 d-flex align-items-center justify-content-end" style="background: #f8fafc; border-top: 1.5px solid #e2e8f0 !important; flex-shrink: 0; gap: 10px;">
+                                    <button type="button" class="btn btn-outline-secondary font-weight-700 px-4" data-dismiss="modal" style="border-radius: 10px; padding: 9px 20px;">{{ __tr('Annuler') }}</button>
+                                    <button type="submit" class="btn text-white font-weight-800 shadow-sm px-4" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; padding: 9px 24px;" onclick="
                                         var msgField = document.getElementById('lwDripCustomMessage{{ $step->_uid }}');
                                         if (msgField && msgField.value) {
                                             var hidden = document.createElement('input');
@@ -253,8 +282,8 @@
                                         }
                                     ">{{ __tr('Enregistrer les modifications') }}</button>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 @empty
@@ -279,34 +308,47 @@
 
 <!-- Modale de Création d'Étape -->
 <div class="modal fade" id="addStepModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <form action="{{ route('addon.WhatsJetDripCampaignAddon.store_step', $campaign->_uid) }}" method="POST">
-            @csrf
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-                <div class="modal-header border-0 text-white" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%); padding: 20px 26px;">
-                    <div>
-                        <h4 class="modal-title font-weight-bold text-white mb-0">
-                            <i class="fas fa-plus-circle mr-2"></i>{{ __tr('Ajouter une nouvelle étape à la séquence') }}
-                        </h4>
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document" style="max-height: 90vh;">
+        <div class="modal-content border-0 shadow-2xl" style="border-radius: 20px; overflow: hidden; max-height: 88vh; display: flex; flex-direction: column; background: #ffffff;">
+            <form action="{{ route('addon.WhatsJetDripCampaignAddon.store_step', $campaign->_uid) }}" method="POST" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; margin: 0;">
+                @csrf
+                <div class="modal-header border-0 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #047857 0%, #10b981 100%); padding: 18px 24px; flex-shrink: 0;">
+                    <div class="d-flex align-items-center" style="gap: 12px;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); color: #ffffff;">
+                            <i class="fas fa-plus-circle" style="font-size: 1.1rem;"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title font-weight-bold text-white mb-0" style="font-size: 1.15rem;">
+                                {{ __tr('Ajouter une étape à la séquence') }}
+                            </h4>
+                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.85); font-weight: 500;">
+                                {{ __tr('Configurez le délai d\'envoi et le type de message') }}
+                            </span>
+                        </div>
                     </div>
-                    <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true" style="font-size: 1.6rem;">&times;</span>
+                    <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Close" style="outline: none;">
+                        <span aria-hidden="true" style="font-size: 1.8rem; line-height: 1;">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body p-4" style="background: #ffffff; max-height: calc(82vh - 140px); overflow-y: auto;">
+                <div class="modal-body p-4" style="background: #ffffff; flex-grow: 1; overflow-y: auto;">
 
+                    <!-- Row 1: Delay Value & Delay Unit -->
                     <div class="row">
                         <div class="col-sm-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark" style="font-size: 0.9rem;">{{ __tr('Délai d\'attente') }} <small class="text-danger">*</small></label>
-                                <input type="number" min="0" name="delay_value" class="form-control" required value="1" style="border-radius: 8px; height: 44px;">
-                                <small class="text-muted">{{ __tr('0 = Envoi immédiat dès l\'abonnement.') }}</small>
+                            <div class="form-group mb-3">
+                                <label class="font-weight-700 text-dark" style="font-size: 0.88rem; color: #1e293b;">
+                                    <i class="far fa-clock text-primary mr-1"></i> {{ __tr('Délai d\'attente') }} <small class="text-danger">*</small>
+                                </label>
+                                <input type="number" min="0" name="delay_value" class="form-control font-weight-600" required value="1" style="border-radius: 10px; height: 44px; border: 1.5px solid #cbd5e1; font-size: 0.92rem;">
+                                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">{{ __tr('0 = Envoi immédiat dès l\'abonnement.') }}</small>
                             </div>
                         </div>
                         <div class="col-sm-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark" style="font-size: 0.9rem;">{{ __tr('Unité de temps') }} <small class="text-danger">*</small></label>
-                                <select name="delay_type" class="form-control" required style="border-radius: 8px; height: 44px;">
+                            <div class="form-group mb-3">
+                                <label class="font-weight-700 text-dark" style="font-size: 0.88rem; color: #1e293b;">
+                                    <i class="fas fa-calendar-alt text-primary mr-1"></i> {{ __tr('Unité de temps') }} <small class="text-danger">*</small>
+                                </label>
+                                <select name="delay_type" class="form-control font-weight-600" required style="border-radius: 10px; height: 44px; border: 1.5px solid #cbd5e1; font-size: 0.92rem;">
                                     <option value="minutes">{{ __tr('Minutes') }}</option>
                                     <option value="hours">{{ __tr('Heures') }}</option>
                                     <option value="days" selected>{{ __tr('Jours') }}</option>
@@ -315,48 +357,64 @@
                         </div>
                     </div>
 
-                    <div class="form-group mt-3">
-                         <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fas fa-robot text-primary mr-1"></i> {{ __tr('Modèle Non-Meta (Message Pré-enregistré / Bot)') }}</label>
-                         <select name="bot_replies__id" class="form-control" style="border-radius: 8px; height: 44px;">
-                             <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
-                             @if(isset($presetMessages))
-                                 @foreach($presetMessages as $presetMsg)
-                                     <option value="{{ $presetMsg->_id }}">
-                                         {{ $presetMsg->name ?: ($presetMsg->reply_trigger ?: 'Message #' . $presetMsg->_id) }}
-                                     </option>
-                                 @endforeach
-                             @endif
-                         </select>
-                         <small class="text-muted">{{ __tr('Recommandé : Message pré-enregistré pour la fenêtre 24h.') }}</small>
-                     </div>
+                    <hr class="my-3" style="border-top: 1px dashed #cbd5e1;">
 
-                     <div class="form-group text-center my-3">
-                         <span class="badge px-3 py-1 font-weight-bold text-muted" style="background: #f1f5f9; border-radius: 12px; font-size: 0.78rem;">{{ __tr('OU') }}</span>
-                     </div>
+                    <!-- Section 1: Non-Meta Bot Model -->
+                    <div class="p-3 mb-3 rounded-lg" style="background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px;">
+                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #0369a1;">
+                            <i class="fas fa-robot text-info mr-1.5"></i> {{ __tr('Option A : Modèle Non-Meta (Message Pré-enregistré / Bot)') }}
+                        </label>
+                        <select name="bot_replies__id" class="form-control font-weight-600" style="border-radius: 10px; height: 42px; border: 1.5px solid #93c5fd; background: #ffffff;">
+                            <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
+                            @if(isset($presetMessages))
+                                @foreach($presetMessages as $presetMsg)
+                                    <option value="{{ $presetMsg->_id }}">
+                                        {{ $presetMsg->name ?: ($presetMsg->reply_trigger ?: 'Message #' . $presetMsg->_id) }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <small class="form-text text-muted mt-1" style="font-size: 0.78rem;">
+                            <i class="fas fa-check-circle text-info mr-1"></i> {{ __tr('Recommandé pour les messages de la fenêtre 24h sans validation Meta.') }}
+                        </small>
+                    </div>
 
-                     <div class="form-group">
-                         <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fa fa-comment text-info mr-1"></i> {{ __tr('Message Personnalisé (Texte Libre)') }}</label>
-                         <textarea id="lwDripCustomMessage" name="custom_message" class="form-control" rows="3" placeholder="{{ __tr('Écrivez un message texte libre...') }}" style="border-radius: 8px;"></textarea>
-                         <x-whatsapp-format-buttons inputId="lwDripCustomMessage" />
-                     </div>
+                    <div class="text-center my-2 position-relative">
+                        <span class="badge px-3 py-1 font-weight-800 text-muted" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.75rem;">{{ __tr('OU') }}</span>
+                    </div>
 
-                     <div class="form-group text-center my-3">
-                         <span class="badge px-3 py-1 font-weight-bold text-muted" style="background: #f1f5f9; border-radius: 12px; font-size: 0.78rem;">{{ __tr('OU') }}</span>
-                     </div>
+                    <!-- Section 2: Custom Free Text Message -->
+                    <div class="p-3 mb-3 rounded-lg" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px;">
+                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #92400e;">
+                            <i class="fa fa-comment text-warning mr-1.5"></i> {{ __tr('Option B : Message Personnalisé (Texte Libre)') }}
+                        </label>
+                        <textarea id="lwDripCustomMessage" name="custom_message" class="form-control" rows="3" placeholder="{{ __tr('Écrivez un message texte libre...') }}" style="border-radius: 10px; border: 1.5px solid #fcd34d; font-size: 0.92rem; background: #ffffff;"></textarea>
+                        <div class="mt-2">
+                            <x-whatsapp-format-buttons inputId="lwDripCustomMessage" />
+                        </div>
+                    </div>
 
-                     <div class="form-group">
-                         <label class="font-weight-bold text-dark" style="font-size: 0.9rem;"><i class="fab fa-whatsapp text-success mr-1"></i> {{ __tr('Modèle Meta WhatsApp (Optionnel)') }}</label>
-                         <select name="whatsapp_templates__id" class="form-control" style="border-radius: 8px; height: 44px;">
-                             <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
-                             @foreach($templates as $template)
-                                 <option value="{{ $template->_id }}">{{ $template->template_name }} ({{ $template->language }})</option>
-                             @endforeach
-                         </select>
-                     </div>
+                    <div class="text-center my-2 position-relative">
+                        <span class="badge px-3 py-1 font-weight-800 text-muted" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.75rem;">{{ __tr('OU') }}</span>
+                    </div>
+
+                    <!-- Section 3: WhatsApp Meta Template -->
+                    <div class="p-3 rounded-lg" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 12px;">
+                        <label class="font-weight-700 text-dark mb-1 d-block" style="font-size: 0.88rem; color: #047857;">
+                            <i class="fab fa-whatsapp text-success mr-1.5"></i> {{ __tr('Option C : Modèle Meta WhatsApp (Obligatoire après 24h)') }}
+                        </label>
+                        <select name="whatsapp_templates__id" class="form-control font-weight-600" style="border-radius: 10px; height: 42px; border: 1.5px solid #6ee7b7; background: #ffffff;">
+                            <option value="">{{ __tr('-- Aucun (Optionnel) --') }}</option>
+                            @foreach($templates as $template)
+                                <option value="{{ $template->_id }}">{{ $template->template_name }} ({{ $template->language }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                 </div>
-                <div class="modal-footer border-0 p-3" style="background: #f8fafc;">
-                    <button type="button" class="btn btn-outline-secondary font-weight-bold" data-dismiss="modal" style="border-radius: 8px; padding: 8px 18px;">{{ __tr('Annuler') }}</button>
-                    <button type="submit" class="btn text-white font-weight-bold" style="background: #10b981; border: none; border-radius: 8px; padding: 8px 22px;" onclick="
+                <div class="modal-footer border-0 p-3 d-flex align-items-center justify-content-end" style="background: #f8fafc; border-top: 1.5px solid #e2e8f0 !important; flex-shrink: 0; gap: 10px;">
+                    <button type="button" class="btn btn-outline-secondary font-weight-700 px-4" data-dismiss="modal" style="border-radius: 10px; padding: 9px 20px;">{{ __tr('Annuler') }}</button>
+                    <button type="submit" class="btn text-white font-weight-800 shadow-sm px-4" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; padding: 9px 24px;" onclick="
                         var msgField = document.getElementById('lwDripCustomMessage');
                         if (msgField && msgField.value) {
                             var hidden = document.createElement('input');
@@ -368,8 +426,8 @@
                         }
                     ">{{ __tr('Ajouter l\'étape') }}</button>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 @endsection

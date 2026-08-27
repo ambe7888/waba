@@ -38,6 +38,10 @@ const files = [
   {
     local: 'public/dist/css/whatsapp-chat.css',
     remote: '/home/whats-click/htdocs/whats-click.com/public/dist/css/whatsapp-chat.css'
+  },
+  {
+    local: 'addons/WhatsJetDripCampaignAddon/Views/builder.blade.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/addons/WhatsJetDripCampaignAddon/Views/builder.blade.php'
   }
 ];
 
