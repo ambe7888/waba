@@ -94,14 +94,24 @@ class ContactReminderEngine extends BaseEngine
                     break;
                 case 'custom':
                     if (!empty($inputData['custom_datetime'])) {
-                        $scheduledAt = Carbon::parse($inputData['custom_datetime']);
+                        try {
+                            $scheduledAt = Carbon::parse($inputData['custom_datetime']);
+                            // If timezone offset was in the ISO string (e.g. Z), convert to app timezone
+                            $scheduledAt->setTimezone(config('app.timezone', date_default_timezone_get()));
+                        } catch (\Exception $e) {
+                            $scheduledAt = null;
+                        }
                     }
                     break;
             }
         }
 
         if (!$scheduledAt) {
-            return $this->engineFailedResponse([], __tr('Please select a valid date and time.'));
+            return $this->engineFailedResponse([], __tr('Veuillez sélectionner une date et une heure valides.'));
+        }
+
+        if ($scheduledAt->isPast() && ($inputData['preset_time'] ?? '') === 'custom') {
+            return $this->engineFailedResponse([], __tr('La date et l\'heure du rappel doivent être dans le futur.'));
         }
 
         $templateFields = [];
@@ -115,14 +125,26 @@ class ContactReminderEngine extends BaseEngine
             }
         }
 
+        $actionType = $inputData['action_type'] ?? 'notification';
+        $titleNote = trim($inputData['title_note'] ?? '');
+        if (empty($titleNote)) {
+            if ($actionType === 'template_message') {
+                $titleNote = 'Relance par modèle : ' . ($inputData['template_name'] ?? 'WhatsApp');
+            } elseif ($actionType === 'auto_message') {
+                $titleNote = 'Message WhatsApp automatique';
+            } else {
+                $titleNote = 'Rappel de relance interne';
+            }
+        }
+
         $reminderData = [
             '_uid' => Str::uuid()->toString(),
             'vendors__id' => $vendorId,
             'contacts__id' => $contact->_id,
             'users__id' => getUserId(),
             'scheduled_at' => $scheduledAt->format('Y-m-d H:i:s'),
-            'action_type' => $inputData['action_type'] ?? 'notification',
-            'title_note' => $inputData['title_note'] ?? '',
+            'action_type' => $actionType,
+            'title_note' => $titleNote,
             'template_name' => $inputData['template_name'] ?? null,
             'template_language' => $inputData['template_language'] ?? 'fr',
             'status' => 1, // 1 = pending

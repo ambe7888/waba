@@ -14,6 +14,14 @@ const files = [
   {
     local: 'app/Yantrana/Components/Dashboard/Controllers/DashboardController.php',
     remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Dashboard/Controllers/DashboardController.php'
+  },
+  {
+    local: 'app/Yantrana/Components/Contact/ContactReminderEngine.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Contact/ContactReminderEngine.php'
+  },
+  {
+    local: 'app/Yantrana/Components/Contact/Controllers/ContactReminderController.php',
+    remote: '/home/whats-click/htdocs/whats-click.com/app/Yantrana/Components/Contact/Controllers/ContactReminderController.php'
   }
 ];
 

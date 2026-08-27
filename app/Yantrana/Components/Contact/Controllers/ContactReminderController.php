@@ -38,7 +38,7 @@ class ContactReminderController extends BaseController
         $request->validate([
             'preset_time' => 'required|string',
             'action_type' => 'required|string|in:notification,auto_message,template_message',
-            'title_note' => 'required|string|max:1000',
+            'title_note' => 'nullable|string|max:1000',
         ]);
 
         $processReaction = $this->contactReminderEngine->processCreateReminder($request->all(), $contactUid);
