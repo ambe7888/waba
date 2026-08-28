@@ -123,7 +123,7 @@ class ConfigurationController extends BaseController
 
             $candidateModels = !empty($availableModels) 
                 ? $availableModels 
-                : ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'llama3-70b-8192', 'llama-3.1-8b-instant', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
+                : ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'groq/compound-mini', 'openai/gpt-oss-120b', 'groq/compound', 'llama3-70b-8192', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
 
             $lastErrorMsg = '';
             foreach ($candidateModels as $modelName) {
