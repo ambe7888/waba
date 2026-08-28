@@ -4968,13 +4968,12 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     {
         $updateData = [
             'unreadMessagesCount' => 0,
-            'myUnassignedUnreadMessagesCount' => 0,
+            'myUnassignedUnreadMessagesCount' => $this->whatsAppMessageLogRepository->getMyAssignedUnreadMessagesCount(null, null, null),
             'usersUnreadMessagesCount' => [],
             'myAssignedUnreadMessagesCount' => $this->whatsAppMessageLogRepository->getMyAssignedUnreadMessagesCount()
         ];
         if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only')) {
             $updateData['unreadMessagesCount'] = $this->whatsAppMessageLogRepository->getUnreadCount();
-            $updateData['myUnassignedUnreadMessagesCount'] = $this->whatsAppMessageLogRepository->getMyAssignedUnreadMessagesCount(null, null, null);
             $vendorMessagingUsers = $this->userRepository->getVendorMessagingUsers(getVendorId());
             foreach ($vendorMessagingUsers as $vendorMessagingUser) {
                 $updateData['usersUnreadMessagesCounts'][$vendorMessagingUser->_uid] = $this->whatsAppMessageLogRepository->getMyAssignedUnreadMessagesCount(null, null, $vendorMessagingUser->_id);

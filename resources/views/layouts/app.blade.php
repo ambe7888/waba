@@ -627,7 +627,7 @@ $currentAppTheme ='';
                         return true;
                     }
                 @endif
-                if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (data.assignedUserId == loggedInUserId)))) {
+                if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (!data.assignedUserId || data.assignedUserId == loggedInUserId)))) {
                     // Play sound & push notification for any new incoming message
                     if(data.isNewIncomingMessage) {
                         if($('#lwMessageAlertTone').length && $('#lwMessageAlertTone')[0]) {
@@ -675,7 +675,7 @@ $currentAppTheme ='';
                         __DataRequest.updateModels(data.eventModelUpdate);
                     }
                     @if(hasVendorAccess('messaging'))
-                    if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (data.assignedUserId == loggedInUserId)))) {
+                    if(!data.campaignUid && (!isRestrictedVendorUser || (isRestrictedVendorUser && (!data.assignedUserId || data.assignedUserId == loggedInUserId)))) {
                         // is incoming message
                         if(data.isNewIncomingMessage) {
                             // 1. Play soft audio chime

@@ -76,11 +76,11 @@
                                                     <span><i class="fas fa-user text-info mr-2.5"></i> {{ __tr('Moi seul') }}</span>
                                                     <span x-cloak x-show="myAssignedUnreadMessagesCount" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="myAssignedUnreadMessagesCount"></span>
                                                 </a>
-                                                @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
                                                 <a class="dropdown-item py-2.5 d-flex align-items-center justify-content-between {{ ($assigned ?? null) == 'unassigned' ? 'active' : '' }}" href="{{ route('vendor.chat_message.contact.view', ['assigned' => 'unassigned']) }}">
                                                     <span><i class="fas fa-user-clock text-warning mr-2.5"></i> {{ __tr('Non assignés') }}</span>
                                                     <span x-cloak x-show="myUnassignedUnreadMessagesCount" class="badge bg-yellow text-dark rounded-pill ml-2" x-text="myUnassignedUnreadMessagesCount"></span>
                                                 </a>
+                                                @if (isVendorAdmin(getVendorId()) or !hasVendorAccess('assigned_chats_only'))
                                                 @if(!__isEmpty($vendorMessagingUsers) and ($vendorMessagingUsers->count() > 1))
                                                     <div class="dropdown-divider"></div>
                                                     <div class="dropdown-header small font-weight-800 text-uppercase text-muted" style="letter-spacing: 0.5px;">{{ __tr('Autres agents') }}</div>

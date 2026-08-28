@@ -665,9 +665,11 @@ class WhatsAppServiceController extends BaseController
 
         validateVendorAccess('messaging');
         if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
-            request()->merge([
-                'assigned' => 'to-me'
-            ]);
+            if (request()->assigned !== 'unassigned') {
+                request()->merge([
+                    'assigned' => 'to-me'
+                ]);
+            }
         }
         $assigned = request()->assigned;
         $chatData = $this->whatsAppServiceEngine->chatData($contactUid, $assigned);
@@ -694,11 +696,13 @@ class WhatsAppServiceController extends BaseController
 
         if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
             $vendorId = getVendorId();
-            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
-                'vendors__id' => $vendorId,
-                '_uid' => $contactUid,
-                'user_author_id' => getUserID()
-            ])->first();
+            $userId = getUserID();
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->where('_uid', $contactUid)
+                ->where(function ($q) use ($userId) {
+                    $q->where('assigned_users__id', $userId)
+                      ->orWhereNull('assigned_users__id');
+                })->first();
 
             if (empty($contact)) {
                 return $this->processResponse(3, [3 => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')], ['message' => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')]);
@@ -742,11 +746,13 @@ class WhatsAppServiceController extends BaseController
 
         if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
             $vendorId = getVendorId();
-            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where([
-                'vendors__id' => $vendorId,
-                '_uid' => $contactUid,
-                'user_author_id' => getUserID()
-            ])->first();
+            $userId = getUserID();
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->where('_uid', $contactUid)
+                ->where(function ($q) use ($userId) {
+                    $q->where('assigned_users__id', $userId)
+                      ->orWhereNull('assigned_users__id');
+                })->first();
 
             if (empty($contact)) {
                 return $this->processResponse(3, [3 => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')], ['message' => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')]);
