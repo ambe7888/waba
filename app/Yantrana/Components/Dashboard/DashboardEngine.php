@@ -216,21 +216,29 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
         $totalCredits = $planCredits + $extraCredits;
         $displayCredits = $planCredits >= 99999999 ? __tr('Unlimited') : (string)$totalCredits;
 
+        $sevenDaysAgo = Carbon::today()->subDays(6)->startOfDay();
+        $todayEnd = Carbon::today()->endOfDay();
+
+        $historyRows = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+            ->whereBetween('created_at', [$sevenDaysAgo, $todayEnd])
+            ->selectRaw("
+                DATE(created_at) as log_date,
+                SUM(CASE WHEN is_incoming_message = 1 THEN 1 ELSE 0 END) as incoming,
+                SUM(CASE WHEN is_incoming_message != 1 THEN 1 ELSE 0 END) as outgoing
+            ")
+            ->groupBy('log_date')
+            ->get()
+            ->keyBy('log_date');
+
         $messageHistory = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $incoming = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 1)
-                ->whereDate('created_at', $date)
-                ->count();
-            $outgoing = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', '!=', 1)
-                ->whereDate('created_at', $date)
-                ->count();
+            $dateKey = $date->toDateString();
+            $row = $historyRows->get($dateKey);
             $messageHistory[] = [
                 'label' => $date->format('d/m'),
-                'incoming' => $incoming,
-                'outgoing' => $outgoing,
+                'incoming' => (int) ($row->incoming ?? 0),
+                'outgoing' => (int) ($row->outgoing ?? 0),
             ];
         }
 
@@ -283,13 +291,6 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
 
         $agents = [];
         if (!$isRestrictedVendorUser) {
-            // Agents are linked to their vendor via the vendor_users pivot
-            // table, not users.vendors__id (that column is only ever set for
-            // vendor admins - AuthRepository::storeUser() deliberately skips
-            // it for agents, see the vendors__id exclusion there). Filtering
-            // directly on users.vendors__id here silently matched zero rows
-            // for every vendor's agents, always showing 0 regardless of how
-            // many were actually invited.
             $agents = $this->userRepository->fetchAgentsList($vendorId)
                 ->where('status', 1)
                 ->where('user_roles__id', 3) // agents/team members only, not the vendor admin (2)
@@ -303,12 +304,6 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             $vendorUserPermissions = getUserAuthInfo('permissions') ?: [];
         }
 
-        // Campaigns is the one plan-limited feature that resets on a cycle
-        // (checkPlanUsages()/processCampaignCreate() gate it the same way) -
-        // unlike bot_replies/system_users, which are flat lifetime caps.
-        // totalCampaigns below stays a lifetime count (the campaign list
-        // screen's "Total des campagnes" reads it too), so this is exposed
-        // separately for the subscription tab's "X / Y this month" card.
         $campaignBillingCycle = app()->make(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class)
             ->getCurrentBillingCycleDates(getVendorCurrentActiveSubscription($vendorId)->created_at ?? $vendorModel->created_at);
         $campaignsThisBillingCycle = $this->campaignRepository->countIt([
@@ -316,6 +311,114 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             ['created_at', '>=', $campaignBillingCycle['start']],
             ['created_at', '<=', $campaignBillingCycle['end']],
         ]);
+
+        // 1 single query for campaign message totals
+        $campaignMsgStats = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+            ->where('is_incoming_message', 0)
+            ->whereNotNull('campaigns__id')
+            ->selectRaw("
+                COUNT(*) as total_sent,
+                SUM(CASE WHEN status IN ('delivered', 'read') THEN 1 ELSE 0 END) as total_delivered,
+                SUM(CASE WHEN status = 'read' THEN 1 ELSE 0 END) as total_read
+            ")
+            ->first();
+        $totalMessagesSent = (int) ($campaignMsgStats->total_sent ?? 0);
+        $totalDeliveredMessages = (int) ($campaignMsgStats->total_delivered ?? 0);
+        $totalMessagesRead = (int) ($campaignMsgStats->total_read ?? 0);
+
+        // Fast active contacts in 24h
+        $since24h = Carbon::now()->subHours(24);
+        if (\Schema::hasColumn('contacts', 'last_incoming_message_at')) {
+            $activeContactsQuery = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->where('last_incoming_message_at', '>', $since24h);
+        } else {
+            $activeContactsQuery = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->where('messaged_at', '>', $since24h);
+        }
+        $activeContacts24hCount = (clone $activeContactsQuery)->count();
+        $activeContacts24h = $activeContactsQuery->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
+            ->orderBy('updated_at', 'desc')
+            ->limit(100)
+            ->get();
+
+        // 1 single query for today & yesterday incoming/processed message totals
+        $todayStart = Carbon::today()->startOfDay();
+        $todayEnd = Carbon::today()->endOfDay();
+        $yesterdayStart = Carbon::yesterday()->startOfDay();
+        $yesterdayEnd = Carbon::yesterday()->endOfDay();
+
+        $dailyStats = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+            ->whereBetween('created_at', [$yesterdayStart, $todayEnd])
+            ->selectRaw("
+                SUM(CASE WHEN is_incoming_message = 1 AND created_at >= '{$todayStart}' THEN 1 ELSE 0 END) as received_today,
+                SUM(CASE WHEN is_incoming_message = 1 AND created_at BETWEEN '{$yesterdayStart}' AND '{$yesterdayEnd}' THEN 1 ELSE 0 END) as received_yesterday,
+                SUM(CASE WHEN is_system_message IS NULL AND created_at >= '{$todayStart}' THEN 1 ELSE 0 END) as processed_today,
+                SUM(CASE WHEN is_system_message IS NULL AND created_at BETWEEN '{$yesterdayStart}' AND '{$yesterdayEnd}' THEN 1 ELSE 0 END) as processed_yesterday
+            ")
+            ->first();
+
+        $messagesReceivedTodayCount = (int) ($dailyStats->received_today ?? 0);
+        $messagesReceivedYesterdayCount = (int) ($dailyStats->received_yesterday ?? 0);
+        $messagesProcessedTodayCount = (int) ($dailyStats->processed_today ?? 0);
+        $messagesProcessedYesterdayCount = (int) ($dailyStats->processed_yesterday ?? 0);
+
+        $messagesReceivedDiffPercent = $messagesReceivedYesterdayCount > 0 
+            ? (int) round((($messagesReceivedTodayCount - $messagesReceivedYesterdayCount) / $messagesReceivedYesterdayCount) * 100)
+            : ($messagesReceivedTodayCount > 0 ? 100 : 0);
+
+        $messagesProcessedDiffPercent = $messagesProcessedYesterdayCount > 0
+            ? (int) round((($messagesProcessedTodayCount - $messagesProcessedYesterdayCount) / $messagesProcessedYesterdayCount) * 100)
+            : ($messagesProcessedTodayCount > 0 ? 100 : 0);
+
+        $uniqueContactsTodayCount = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
+            ->where('is_incoming_message', 1)
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->distinct('contacts__id')
+            ->count('contacts__id');
+
+        $ordersCount = 0;
+        $ordersTodayCount = 0;
+        $ordersYesterdayCount = 0;
+        $ordersDiffPercent = 0;
+        $orderStats = [];
+        if (\Schema::hasTable('orders')) {
+            $ordersCount = \DB::table('orders')->where('vendors__id', $vendorId)->count();
+            $orderDailyStats = \DB::table('orders')->where('vendors__id', $vendorId)
+                ->whereBetween('created_at', [$yesterdayStart, $todayEnd])
+                ->selectRaw("
+                    SUM(CASE WHEN created_at >= '{$todayStart}' THEN 1 ELSE 0 END) as orders_today,
+                    SUM(CASE WHEN created_at BETWEEN '{$yesterdayStart}' AND '{$yesterdayEnd}' THEN 1 ELSE 0 END) as orders_yesterday,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+                ")
+                ->first();
+            $ordersTodayCount = (int) ($orderDailyStats->orders_today ?? 0);
+            $ordersYesterdayCount = (int) ($orderDailyStats->orders_yesterday ?? 0);
+            $ordersDiffPercent = $ordersYesterdayCount > 0
+                ? (int) round((($ordersTodayCount - $ordersYesterdayCount) / $ordersYesterdayCount) * 100)
+                : ($ordersTodayCount > 0 ? 100 : 0);
+            $orderStats = [
+                'pending' => (int) ($orderDailyStats->pending ?? 0),
+                'completed' => (int) ($orderDailyStats->completed ?? 0),
+            ];
+        }
+
+        $templateStatsRaw = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)
+            ->selectRaw("
+                SUM(CASE WHEN status = 'APPROVED' THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN category = 'MARKETING' THEN 1 ELSE 0 END) as marketing,
+                SUM(CASE WHEN category = 'UTILITY' THEN 1 ELSE 0 END) as utility
+            ")
+            ->first();
+        $templateStats = [
+            'approved' => (int) ($templateStatsRaw->approved ?? 0),
+            'pending' => (int) ($templateStatsRaw->pending ?? 0),
+            'rejected' => (int) ($templateStatsRaw->rejected ?? 0),
+            'marketing' => (int) ($templateStatsRaw->marketing ?? 0),
+            'utility' => (int) ($templateStatsRaw->utility ?? 0),
+        ];
 
         return array_merge([
             'campaignsThisBillingCycle' => $campaignsThisBillingCycle,
@@ -329,33 +432,9 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalContacts' => $this->contactRepository->totalContactsCountForVendor($vendorId),
             'totalGroups' => $this->contactGroupRepository->countIt($vendorWhereClause),
             'totalCampaigns' => $this->campaignRepository->countIt($vendorWhereClause),
-            // The mobile "Campagnes" screen's header stats (envoyés/livrés/lus)
-            // read these three keys, which never existed on this endpoint —
-            // they always fell back to 0 client-side. These are meant to be
-            // the literal sum, across every campaign, of the same three
-            // numbers each campaign's own detail screen shows (executedCount/
-            // totalDelivered/totalRead in CampaignEngine::prepareCampaignData()),
-            // so the definitions here are kept identical on purpose: sent =
-            // every campaign-linked outgoing log row regardless of status (a
-            // row only exists once a send actually went through), delivered =
-            // status is exactly 'delivered' or 'read', read = status is
-            // exactly 'read'. ('played', voice-note-listened, is a chat status
-            // that doesn't apply to template campaign sends and is excluded
-            // there too, so it's excluded here for the totals to actually add up.)
-            'totalMessagesSent' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 0)
-                ->whereNotNull('campaigns__id')
-                ->count(),
-            'totalDeliveredMessages' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 0)
-                ->whereNotNull('campaigns__id')
-                ->whereIn('status', ['delivered', 'read'])
-                ->count(),
-            'totalMessagesRead' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 0)
-                ->whereNotNull('campaigns__id')
-                ->where('status', 'read')
-                ->count(),
+            'totalMessagesSent' => $totalMessagesSent,
+            'totalDeliveredMessages' => $totalDeliveredMessages,
+            'totalMessagesRead' => $totalMessagesRead,
             'totalTemplates' => $this->whatsAppTemplateRepository->countIt($vendorWhereClause),
             'totalBotReplies' => $this->botReplyRepository->fetchBotReplyCountForDashboard($vendorId),
             'totalBotFlows' => $this->botFlowRepository->countIt($vendorWhereClause),
@@ -367,68 +446,25 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             'totalMessagesProcessed' => $this->whatsAppMessageLogRepository->countIt(
                 array_merge($vendorWhereClause, ['is_system_message' => null])
             ),
-            'activeContacts24h' => \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-                ->whereHas('lastIncomingMessage', function($query) {
-                    $query->where('messaged_at', '>', now()->subHours(24));
-                })
-                ->select('_id', '_uid', 'first_name', 'last_name', 'wa_id')
-                ->orderBy('updated_at', 'desc')
-                ->limit(100)
-                ->get(),
-            'activeContacts24hCount' => \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
-                ->whereHas('lastIncomingMessage', function($query) {
-                    $query->where('messaged_at', '>', now()->subHours(24));
-                })
-                ->count(),
+            'activeContacts24h' => $activeContacts24h,
+            'activeContacts24hCount' => $activeContacts24hCount,
             'unreadMessagesCount' => $this->whatsAppMessageLogRepository->getUnreadCount($vendorId),
             'unreadContactsCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
                 ->where('is_incoming_message', 1)
                 ->where('status', 'received')
                 ->distinct('contacts__id')
                 ->count('contacts__id'),
-            'messagesReceivedTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 1)
-                ->whereDate('created_at', Carbon::today())
-                ->count(),
-            'uniqueContactsTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 1)
-                ->whereDate('created_at', Carbon::today())
-                ->distinct('contacts__id')
-                ->count('contacts__id'),
-            'messagesReceivedYesterdayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->where('is_incoming_message', 1)
-                ->whereDate('created_at', Carbon::yesterday())
-                ->count(),
-            'messagesReceivedDiffPercent' => (function() use ($vendorId) {
-                $today = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->where('is_incoming_message', 1)->whereDate('created_at', Carbon::today())->count();
-                $yesterday = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->where('is_incoming_message', 1)->whereDate('created_at', Carbon::yesterday())->count();
-                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
-                return $today > 0 ? 100 : 0;
-            })(),
-            'ordersCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->count() : 0,
-            'ordersTodayCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::today())->count() : 0,
-            'ordersYesterdayCount' => \Schema::hasTable('orders') ? \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::yesterday())->count() : 0,
-            'ordersDiffPercent' => (function() use ($vendorId) {
-                if (!\Schema::hasTable('orders')) return 0;
-                $today = \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::today())->count();
-                $yesterday = \DB::table('orders')->where('vendors__id', $vendorId)->whereDate('created_at', Carbon::yesterday())->count();
-                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
-                return $today > 0 ? 100 : 0;
-            })(),
-            'messagesProcessedTodayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->whereNull('is_system_message')
-                ->whereDate('created_at', Carbon::today())
-                ->count(),
-            'messagesProcessedYesterdayCount' => WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-                ->whereNull('is_system_message')
-                ->whereDate('created_at', Carbon::yesterday())
-                ->count(),
-            'messagesProcessedDiffPercent' => (function() use ($vendorId) {
-                $today = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->whereNull('is_system_message')->whereDate('created_at', Carbon::today())->count();
-                $yesterday = WhatsAppMessageLogModel::where('vendors__id', $vendorId)->whereNull('is_system_message')->whereDate('created_at', Carbon::yesterday())->count();
-                if ($yesterday > 0) return round((($today - $yesterday) / $yesterday) * 100);
-                return $today > 0 ? 100 : 0;
-            })(),
+            'messagesReceivedTodayCount' => $messagesReceivedTodayCount,
+            'uniqueContactsTodayCount' => $uniqueContactsTodayCount,
+            'messagesReceivedYesterdayCount' => $messagesReceivedYesterdayCount,
+            'messagesReceivedDiffPercent' => $messagesReceivedDiffPercent,
+            'ordersCount' => $ordersCount,
+            'ordersTodayCount' => $ordersTodayCount,
+            'ordersYesterdayCount' => $ordersYesterdayCount,
+            'ordersDiffPercent' => $ordersDiffPercent,
+            'messagesProcessedTodayCount' => $messagesProcessedTodayCount,
+            'messagesProcessedYesterdayCount' => $messagesProcessedYesterdayCount,
+            'messagesProcessedDiffPercent' => $messagesProcessedDiffPercent,
             'vendorInfo' => $this->vendorEngine->getBasicSettings($vendorId),
             'whatsapp_setup' => [
                 'is_connected' => isWhatsAppBusinessAccountReady($vendorId),
@@ -456,17 +492,8 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                     'archived' => $cArchived,
                 ];
             })(),
-            'template_stats' => [
-                'approved' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'APPROVED')->count(),
-                'pending' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'PENDING')->count(),
-                'rejected' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('status', 'REJECTED')->count(),
-                'marketing' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('category', 'MARKETING')->count(),
-                'utility' => \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', $vendorId)->where('category', 'UTILITY')->count(),
-            ],
-            'order_stats' => \Schema::hasTable('orders') ? [
-                'pending' => \DB::table('orders')->where('vendors__id', $vendorId)->where('status', 'pending')->count(),
-                'completed' => \DB::table('orders')->where('vendors__id', $vendorId)->where('status', 'completed')->count(),
-            ] : [],
+            'template_stats' => $templateStats,
+            'order_stats' => $orderStats,
             'label_date_stats' => $labelStats,
             'agents' => $agents,
             'ai_credits' => [
