@@ -63,10 +63,14 @@ class OpenAiService extends BaseEngine
                      ?: getAppSettings('gemini_api_key')
                      ?: env('GEMINI_API_KEY');
 
+        $groqApiKey = getVendorSettings('groq_access_key', null, null, $vendorId)
+                    ?: getAppSettings('groq_api_key')
+                    ?: env('GROQ_API_KEY');
+
         if (!$apiKey) {
             $apiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
-            if (!$apiKey && !$geminiApiKey) {
-                throw new \Exception(__tr("Veuillez configurer une clé API IA (Google Gemini ou OpenAI) dans les paramètres."));
+            if (!$apiKey && !$geminiApiKey && !$groqApiKey) {
+                throw new \Exception(__tr("Veuillez configurer une clé API IA (Groq, Google Gemini ou OpenAI) dans les paramètres."));
             }
             if (!$apiKey) {
                 $apiKey = 'gemini-mode-placeholder';
@@ -213,8 +217,16 @@ class OpenAiService extends BaseEngine
      */
     private function findTopRelevantSections($question, $vendorId, $topN = 3)
     {
+        $openaiApiKey = getAppSettings('openai_api_key') ?: env('OPENAI_API_KEY');
+        if (empty($openaiApiKey)) {
+            return []; // Skip OpenAI embeddings call if no OpenAI key exists to avoid 30s timeout
+        }
         $this->initConfiguration($vendorId);
-        $questionEmbedding = $this->embedQuestion($question);
+        try {
+            $questionEmbedding = $this->embedQuestion($question);
+        } catch (\Throwable $e) {
+            return [];
+        }
         // $largeDataRecord = LargeData::first();
         // $sections = preg_split('/\n\n+/', $largeDataRecord->data);
         // $storedEmbeddings = json_decode($largeDataRecord->embedding);
