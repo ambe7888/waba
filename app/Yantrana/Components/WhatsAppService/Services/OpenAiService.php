@@ -433,6 +433,7 @@ class OpenAiService extends BaseEngine
                     ?: env('GROQ_API_KEY');
 
         if (!empty($groqApiKey)) {
+            $groqApiKey = trim($groqApiKey);
             \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] Calling Groq AI for vendor ' . $vendorId);
             
             // Try cached working model first for lightning speed (< 0.5s)
@@ -481,6 +482,7 @@ class OpenAiService extends BaseEngine
                     \Illuminate\Support\Facades\Log::error('[AI-BOT-DEBUG] Groq AI Error with model ' . $groqModel . ': ' . $th->getMessage());
                 }
             }
+            \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Groq API calls failed/empty for vendor ' . $vendorId . ' — falling back to Gemini/OpenAI');
         }
 
         // Check if Google Gemini AI is requested or configured
