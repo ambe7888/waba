@@ -3165,6 +3165,14 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $sendMessageResult = $this->whatsAppApiService->sendInteractiveMessage($contact->wa_id, $interactionMessageData, $contact->vendors__id, [
                 'business_scope_user_id' => $businessScopeUserId
             ]);
+            // Fallback: If Meta API rejects interactive message, fall back to plain text send!
+            if (empty(Arr::get($sendMessageResult, 'messages.0.id'))) {
+                \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Interactive message send failed, falling back to plain text send for contact ' . $contact->_uid . '. Error: ' . json_encode($sendMessageResult));
+                $sendMessageResult = $this->whatsAppApiService->sendMessage($contact->wa_id, (isDemo() ? "`{$serviceName} DEMO`\n\r\n\r " . $messageBody : '' . $messageBody), $vendorId, [
+                    'repliedToMessageWamid' => $options['messageWamid'],
+                    'business_scope_user_id' => $businessScopeUserId
+                ]);
+            }
         } elseif ($isMediaMessage) {
             /* $fileUrl = $fileName = $fileOriginalName = null;
             $rawUploadData = [];
@@ -3403,22 +3411,9 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             $ctaUrl = null;
             $interactiveType = null;
 
-            // Parse URL button: [URL_BUTTON: Button Text: https://example.com]
-            if (preg_match('/\[URL_BUTTON:\s*(.*?)\s*:\s*(https?:\/\/[^\s\]]+)\s*\]/is', $replyText, $matches)) {
-                $interactiveType = 'cta_url';
-                $buttonText = trim($matches[1]);
-                $buttonUrl = trim($matches[2]);
-                $ctaUrl = [
-                    'display_text' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
-                    'url' => $buttonUrl,
-                ];
-                $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/is', '', $replyText);
-            }
-            // Parse Quick Reply buttons: [BUTTON: Button Text]
+            // 1. Parse Quick Reply buttons: [BUTTON: Button Text]
             if (preg_match_all('/\[BUTTON:\s*([^\]]+)\]/i', $replyText, $matches)) {
-                if (!$interactiveType) {
-                    $interactiveType = 'button';
-                }
+                $interactiveType = 'button';
                 foreach ($matches[1] as $btnText) {
                     $cleanBtn = trim($btnText);
                     if (!empty($cleanBtn) && !in_array($cleanBtn, $buttons)) {
@@ -3428,7 +3423,19 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 $buttons = array_slice($buttons, 0, 3); // Meta limit is 3 buttons
                 $replyText = preg_replace('/\[BUTTON:\s*.*?\]/is', '', $replyText);
             }
-            // Fallback: If OpenAI/Gemini output has standard markdown link format [Text](Url), convert it to a cta_url button
+
+            // 2. Parse URL button: [URL_BUTTON: Button Text: https://example.com] if no quick reply buttons
+            if (!$interactiveType && preg_match('/\[URL_BUTTON:\s*(.*?)\s*:\s*(https?:\/\/[^\s\]]+)\s*\]/is', $replyText, $matches)) {
+                $interactiveType = 'cta_url';
+                $buttonText = trim($matches[1]);
+                $buttonUrl = trim($matches[2]);
+                $ctaUrl = [
+                    'display_text' => mb_substr($buttonText, 0, 20), // Meta limit is 20 chars
+                    'url' => $buttonUrl,
+                ];
+                $replyText = preg_replace('/\[URL_BUTTON:\s*.*?\s*\]/is', '', $replyText);
+            }
+            // 3. Fallback: If OpenAI/Gemini output has standard markdown link format [Text](Url), convert it to a cta_url button
             elseif (!$interactiveType && preg_match('/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/i', $replyText, $matches)) {
                 $interactiveType = 'cta_url';
                 $buttonText = trim($matches[1]);
