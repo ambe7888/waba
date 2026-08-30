@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/theme_service.dart';
 import '../config/app_config.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../widgets/update_dialog.dart';
 import 'support_tickets_screen.dart';
 import 'resource_list_screen.dart';
 import 'login_screen.dart';
@@ -648,18 +648,13 @@ class _AccountScreenState extends State<AccountScreen> {
                       : null,
                   showBadge: _updateInfo != null,
                   iconColor: const Color(0xFF22C55E),
-                  onTap: () async {
-                    final apkUrl = _updateInfo?['apk_url']?.toString() ??
-                        '${baseUrl}downloads/whatsclick-latest.apk';
-                    final url = Uri.parse(apkUrl);
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    } else {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Impossible d\'ouvrir le lien')),
-                      );
-                    }
+                  onTap: () {
+                    final info = _updateInfo ?? {
+                      'apk_url': '${baseUrl}downloads/whatsclick-latest.apk',
+                      'version': 'dernière version',
+                      'change_log': 'Amélioration des performances et corrections de bugs.',
+                    };
+                    UpdateDialog.show(context, info);
                   },
                   isDark: isDark,
                 ),
