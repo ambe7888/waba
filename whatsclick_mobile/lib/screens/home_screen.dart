@@ -73,9 +73,18 @@ class _HomeScreenState extends State<HomeScreen>
   DateTime? _filterEndDate;
 
   // Notification badge counts
-  int _unreadNewCount = 0; // nouveaux (unassigned)
+  int _unreadNewCount = 0; // tous (unreadMessagesCount)
   int _unreadMyCount = 0; // mes messages (assigned to me)
+  int _unreadUnassignedCount = 0; // non assignés (myUnassignedUnreadMessagesCount)
   int _unreadNotificationsCount = 0; // bell icon (support replies, campaigns, etc.)
+
+  // Agent restricted to "assigned chats only" (see chat.blade.php web
+  // equivalent): mirrors the backend's assigned_chats_only permission —
+  // these agents never see an "all contacts" view, only their own assigned
+  // chats plus unassigned ones, so the "Tous" chip is hidden entirely
+  // rather than silently rendering the same mine+unassigned subset under
+  // a misleading label.
+  bool _isRestrictedAgent = false;
 
   // Animation
   late AnimationController _fadeController;
@@ -103,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen>
       widget.pendingFilterNotifier!.value = null;
     }
     _loadContacts();
+    _loadRestrictionStatus();
     if (widget.updateInfoNotifier != null) {
       widget.updateInfoNotifier!.addListener(_onSharedUpdateInfoChanged);
       // In case the parent's check already finished before this screen
@@ -918,6 +928,23 @@ class _HomeScreenState extends State<HomeScreen>
     _loadContacts(reset: true);
   }
 
+  // Check whether this agent is restricted to assigned-chats-only, and if
+  // so hide the "Tous" chip and land on "Moi" by default instead — mirrors
+  // chat.blade.php's server-side default for the same permission.
+  Future<void> _loadRestrictionStatus() async {
+    final restricted = await ApiService().hasPermission('assigned_chats_only');
+    if (!mounted) return;
+    setState(() {
+      _isRestrictedAgent = restricted;
+      if (restricted && _assignedFilter == 'all') {
+        _assignedFilter = 'to-me';
+      }
+    });
+    if (restricted) {
+      _loadContacts(reset: true);
+    }
+  }
+
   // Fetch global unread counts for badge display
   Future<void> _refreshBadgeCounts() async {
     try {
@@ -926,6 +953,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _unreadNewCount = counts['unreadMessagesCount'] ?? 0;
           _unreadMyCount = counts['myAssignedUnreadMessagesCount'] ?? 0;
+          _unreadUnassignedCount = counts['myUnassignedUnreadMessagesCount'] ?? 0;
         });
       }
     } catch (_) {}
@@ -942,9 +970,11 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = ThemeService().isDark;
 
     int unreadCount = 0;
-    if (filter == 'all' || filter == 'unassigned') {
+    if (filter == 'all') {
       unreadCount = _unreadNewCount;
-    } else if (filter == 'mine') {
+    } else if (filter == 'unassigned') {
+      unreadCount = _unreadUnassignedCount;
+    } else if (filter == 'to-me') {
       unreadCount = _unreadMyCount;
     }
 
@@ -1259,8 +1289,10 @@ class _HomeScreenState extends State<HomeScreen>
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _buildSegmentButton('Tous', 'all'),
-                const SizedBox(width: 8),
+                if (!_isRestrictedAgent) ...[
+                  _buildSegmentButton('Tous', 'all'),
+                  const SizedBox(width: 8),
+                ],
                 _buildSegmentButton('Non lu', 'unread'),
                 const SizedBox(width: 8),
                 _buildSegmentButton('Moi', 'to-me'),

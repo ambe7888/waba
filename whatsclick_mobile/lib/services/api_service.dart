@@ -758,7 +758,7 @@ class ApiService {
   }
 
   /// Fetch unread message counts (for notification badges)
-  /// Returns: { 'unreadMessagesCount': int, 'myAssignedUnreadMessagesCount': int }
+  /// Returns: { 'unreadMessagesCount': int, 'myAssignedUnreadMessagesCount': int, 'myUnassignedUnreadMessagesCount': int }
   Future<Map<String, int>> fetchUnreadCounts() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/chat/unread-count');
     try {
@@ -773,13 +773,19 @@ class ApiService {
                 (models['unreadMessagesCount'] as num?)?.toInt() ?? 0,
             'myAssignedUnreadMessagesCount':
                 (models['myAssignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
+            'myUnassignedUnreadMessagesCount':
+                (models['myUnassignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
           };
         }
       }
     } catch (e) {
       if (kDebugMode) debugPrint('Fetch Unread Counts Error: $e');
     }
-    return {'unreadMessagesCount': 0, 'myAssignedUnreadMessagesCount': 0};
+    return {
+      'unreadMessagesCount': 0,
+      'myAssignedUnreadMessagesCount': 0,
+      'myUnassignedUnreadMessagesCount': 0,
+    };
   }
 
   /// Fetch support tickets
