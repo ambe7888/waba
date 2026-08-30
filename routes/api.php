@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.26',
+        'version' => '1.0.27',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Mise à jour v1.0.26 : Correction de l'affichage des discussions pour les agents avec accès restreint (accès aux discussions non assignées, compteurs de badges non lus corrigés).",
+        'change_log' => "Mise à jour v1.0.27 : Correction d'un bug où le compte vendeur principal était incorrectement considéré comme un agent restreint (accès chat assigné uniquement).",
     ]);
 })->name('api.app_version');
 // Mobile app apis

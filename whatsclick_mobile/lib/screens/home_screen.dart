@@ -932,7 +932,7 @@ class _HomeScreenState extends State<HomeScreen>
   // so hide the "Tous" chip and land on "Moi" by default instead — mirrors
   // chat.blade.php's server-side default for the same permission.
   Future<void> _loadRestrictionStatus() async {
-    final restricted = await ApiService().hasPermission('assigned_chats_only');
+    final restricted = await ApiService().isRestrictedToAssignedChats();
     if (!mounted) return;
     setState(() {
       _isRestrictedAgent = restricted;

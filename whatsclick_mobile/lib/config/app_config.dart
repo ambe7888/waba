@@ -2,7 +2,7 @@ const String baseUrl = 'https://whats-click.com/'; // Production server URL
 const String baseApiUrl = '${baseUrl}api/';
 
 // Version de l'application
-const String version = '1.0.26';
+const String version = '1.0.27';
 
 // Polling configuration
 const int pollingIntervalSeconds = 3;

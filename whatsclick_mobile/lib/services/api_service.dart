@@ -135,6 +135,31 @@ class ApiService {
     return false;
   }
 
+  /// Whether this agent is restricted to assigned-chats-only (mirrors the
+  /// backend's `!isVendorAdmin() and hasVendorAccess('assigned_chats_only')`
+  /// check). Deliberately NOT built on hasPermission(): that helper
+  /// shortcuts to true for any permission when roleId == 2, which is
+  /// correct for real capabilities ("admin can do everything") but wrong
+  /// here since this key is a restriction flag, not a capability - the
+  /// shortcut would make the vendor admin read as restricted instead of
+  /// never restricted.
+  Future<bool> isRestrictedToAssignedChats() async {
+    final roleId = await getUserRoleId();
+    if (roleId == 2) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final permissionsStr = prefs.getString('user_permissions');
+    if (permissionsStr != null && permissionsStr.isNotEmpty) {
+      try {
+        final permissions = jsonDecode(permissionsStr) as Map<String, dynamic>;
+        final value = permissions['assigned_chats_only'];
+        return value == 'allow' || value == true;
+      } catch (e) {
+        debugPrint('Erreur lors de la lecture des permissions : $e');
+      }
+    }
+    return false;
+  }
+
   Map<String, String> _getHeaders({bool requireAuth = true}) {
     final headers = {
       'Content-Type': 'application/json',
