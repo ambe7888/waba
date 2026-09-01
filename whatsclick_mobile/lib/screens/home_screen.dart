@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../services/api_service.dart';
@@ -1561,6 +1562,63 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+    void _showContactContextMenu(Contact contact) {
+      HapticFeedback.mediumImpact();
+      final isDark = ThemeService().isDark;
+      final rootContext = context;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.mark_chat_unread_outlined),
+                    title: const Text('Marquer comme non lu'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (contact.unreadCount > 0) return;
+                      final idx = _contacts.indexWhere((c) => c.uid == contact.uid);
+                      if (idx != -1) {
+                        setState(() {
+                          _contacts[idx] = _contacts[idx].copyWith(unreadCount: 1);
+                        });
+                        _applyFilters();
+                      }
+                      final success = await ApiService().markContactAsUnread(contact.uid);
+                      if (!success && mounted) {
+                        final revertIdx = _contacts.indexWhere((c) => c.uid == contact.uid);
+                        if (revertIdx != -1) {
+                          setState(() {
+                            _contacts[revertIdx] = _contacts[revertIdx].copyWith(unreadCount: 0);
+                          });
+                          _applyFilters();
+                        }
+                        if (rootContext.mounted) {
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            const SnackBar(content: Text('Impossible de marquer comme non lu')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     Widget _buildContactCard(
       Contact contact,
       int index,
@@ -1603,6 +1661,7 @@ class _HomeScreenState extends State<HomeScreen>
             
             _loadContacts(silent: true);
           },
+          onLongPress: () => _showContactContextMenu(contact),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(

@@ -2964,6 +2964,24 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     }
 
     /**
+     * Mark a conversation as unread (local badge only - does not touch
+     * WhatsApp read receipts, since those are a real Meta-facing signal).
+     *
+     * @param string $contactUid
+     * @return EngineResponse
+     */
+    public function processMarkContactAsUnread($contactUid)
+    {
+        $vendorId = getVendorId();
+        $contact = $this->contactRepository->getVendorContact($contactUid, $vendorId);
+        abortIf(__isEmpty($contact));
+
+        \App\Yantrana\Components\Contact\Support\ContactMessageStatsSync::markedUnread($contact->_id);
+
+        return $this->engineSuccessResponse([], __tr('Conversation marquée comme non lue'));
+    }
+
+    /**
      * Process Media Data
      *
      * @param request $request

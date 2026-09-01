@@ -428,6 +428,11 @@ Route::group([
             WhatsAppServiceController::class,
             'clearChatHistory',
         ])->name('app_api.vendor.chat_message.delete.process');
+        //mark conversation as unread
+        Route::post('/whatsapp/contact/chat/mark-unread/{contactUid}', [
+            WhatsAppServiceController::class,
+            'markContactAsUnread',
+        ])->name('app_api.vendor.chat_message.mark_unread.process');
             //create whatsapp contact label
          Route::post('/whatsapp/contact/create-label', [
             ContactController::class,

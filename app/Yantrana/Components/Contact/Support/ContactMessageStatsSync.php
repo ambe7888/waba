@@ -117,4 +117,25 @@ class ContactMessageStatsSync
             \Log::warning('ContactMessageStatsSync::markedAllRead failed for contact ' . $contactId . ': ' . $e->getMessage());
         }
     }
+
+    /**
+     * Flip a conversation to unread from the agent's side only.
+     *
+     * This never touches whatsapp_message_logs.status - that column mirrors
+     * real WhatsApp read receipts sent back to the customer, and there is no
+     * "un-read" signal in the Business API. Only bumps from 0 so it never
+     * clobbers a genuinely higher unread count from real incoming messages.
+     */
+    public static function markedUnread(?int $contactId): void
+    {
+        if (!$contactId) {
+            return;
+        }
+
+        try {
+            DB::update('UPDATE contacts SET unread_messages_count = 1 WHERE _id = ? AND unread_messages_count = 0', [$contactId]);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactMessageStatsSync::markedUnread failed for contact ' . $contactId . ': ' . $e->getMessage());
+        }
+    }
 }

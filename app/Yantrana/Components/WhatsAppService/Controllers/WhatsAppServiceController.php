@@ -772,6 +772,37 @@ class WhatsAppServiceController extends BaseController
     }
 
     /**
+     * Mark a conversation as unread
+     *
+     * @param BaseRequestTwo $request
+     * @param string $contactUid
+     * @return void
+     */
+    public function markContactAsUnread(BaseRequestTwo $request, $contactUid)
+    {
+        validateVendorAccess('messaging');
+
+        if(!isVendorAdmin(getVendorId()) and hasVendorAccess('assigned_chats_only')) {
+            $vendorId = getVendorId();
+            $userId = getUserID();
+            $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->where('_uid', $contactUid)
+                ->where(function ($q) use ($userId) {
+                    $q->where('assigned_users__id', $userId)
+                      ->orWhereNull('assigned_users__id');
+                })->first();
+
+            if (empty($contact)) {
+                return $this->processResponse(3, [3 => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')], ['message' => __tr('Accès refusé. Cette discussion ne vous est pas assignée.')]);
+            }
+        }
+
+        $processReaction = $this->whatsAppServiceEngine->processMarkContactAsUnread($contactUid);
+
+        return $this->processResponse($processReaction);
+    }
+
+    /**
      * Change Template
      *
      * @param BaseRequestTwo $request

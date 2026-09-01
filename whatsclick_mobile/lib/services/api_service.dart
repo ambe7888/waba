@@ -813,6 +813,25 @@ class ApiService {
     };
   }
 
+  /// Mark a conversation as unread (local badge only)
+  Future<bool> markContactAsUnread(String contactUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/mark-unread/$contactUid');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 15));
+      _checkUnauthorized(response);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) debugPrint('Mark Contact As Unread Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch support tickets
   Future<Map<String, dynamic>?> fetchSupportTickets({int page = 1}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets?page=$page');
