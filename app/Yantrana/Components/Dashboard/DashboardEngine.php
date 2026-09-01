@@ -370,11 +370,20 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
             ? (int) round((($messagesProcessedTodayCount - $messagesProcessedYesterdayCount) / $messagesProcessedYesterdayCount) * 100)
             : ($messagesProcessedTodayCount > 0 ? 100 : 0);
 
-        $uniqueContactsTodayCount = WhatsAppMessageLogModel::where('vendors__id', $vendorId)
-            ->where('is_incoming_message', 1)
-            ->whereBetween('created_at', [$todayStart, $todayEnd])
-            ->distinct('contacts__id')
-            ->count('contacts__id');
+        $uniqueContactsTodayStats = \DB::table('whatsapp_message_logs as wl')
+            ->join('contacts as c', 'c._id', '=', 'wl.contacts__id')
+            ->where('wl.vendors__id', $vendorId)
+            ->where('wl.is_incoming_message', 1)
+            ->whereBetween('wl.created_at', [$todayStart, $todayEnd])
+            ->selectRaw("
+                COUNT(DISTINCT CASE WHEN c.created_at >= ? THEN c._id END) as new_count,
+                COUNT(DISTINCT CASE WHEN c.created_at < ? THEN c._id END) as returning_count
+            ", [$todayStart, $todayStart])
+            ->first();
+
+        $newContactsTodayCount = (int) ($uniqueContactsTodayStats->new_count ?? 0);
+        $returningContactsTodayCount = (int) ($uniqueContactsTodayStats->returning_count ?? 0);
+        $uniqueContactsTodayCount = $newContactsTodayCount + $returningContactsTodayCount;
 
         $ordersCount = 0;
         $ordersTodayCount = 0;
@@ -456,6 +465,8 @@ class DashboardEngine extends BaseEngine implements DashboardEngineInterface
                 ->count('contacts__id'),
             'messagesReceivedTodayCount' => $messagesReceivedTodayCount,
             'uniqueContactsTodayCount' => $uniqueContactsTodayCount,
+            'newContactsTodayCount' => $newContactsTodayCount,
+            'returningContactsTodayCount' => $returningContactsTodayCount,
             'messagesReceivedYesterdayCount' => $messagesReceivedYesterdayCount,
             'messagesReceivedDiffPercent' => $messagesReceivedDiffPercent,
             'ordersCount' => $ordersCount,

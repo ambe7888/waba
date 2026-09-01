@@ -314,6 +314,7 @@ $vendorViewBySuperAdmin = false;
                                     </div>
                                     <p class="mt-3 mb-0 text-muted text-xs">
                                         <span class="font-weight-bold text-dark">{{ __tr('__count__ clients uniques aujourd\'hui', ['__count__' => $uniqueContactsTodayCount ?? 0]) }}</span>
+                                        <span class="text-muted">({{ __tr('dont __new__ nouveaux, __returning__ anciens', ['__new__' => $newContactsTodayCount ?? 0, '__returning__' => $returningContactsTodayCount ?? 0]) }})</span>
                                     </p>
                                 </div>
                             </div>
