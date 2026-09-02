@@ -251,17 +251,52 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <!-- Row 2: Phone and Unread Badge -->
+                                                    <!-- Row 2: Last Message Preview (or Phone fallback) and Unread Badge -->
                                                     <div class="lw-contact-meta-row d-flex align-items-center justify-content-between">
-                                                        <span class="lw-contact-phone">
-                                                            <span x-show="contactItem.full_name">
+                                                        <span class="lw-contact-phone text-truncate d-flex align-items-center" style="min-width: 0; gap: 3px;">
+                                                            <!-- Delivery ticks: only on our own messages, never on what the contact sent -->
+                                                            <template x-if="contactItem.lastMessage && contactItem.lastMessage.preview_text && !contactItem.lastMessage.is_incoming_message">
+                                                                <span class="d-inline-flex" style="flex-shrink: 0;">
+                                                                    <template x-if="['read','played'].includes(contactItem.lastMessage.status)">
+                                                                        <i class="fas fa-check-double" style="color: #53bdeb; font-size: 11px;"></i>
+                                                                    </template>
+                                                                    <template x-if="contactItem.lastMessage.status === 'delivered'">
+                                                                        <i class="fas fa-check-double" style="color: #94a3b8; font-size: 11px;"></i>
+                                                                    </template>
+                                                                    <template x-if="contactItem.lastMessage.status === 'sent'">
+                                                                        <i class="fas fa-check" style="color: #94a3b8; font-size: 11px;"></i>
+                                                                    </template>
+                                                                    <template x-if="contactItem.lastMessage.status === 'failed'">
+                                                                        <i class="fas fa-exclamation-circle" style="color: #dc2626; font-size: 11px;"></i>
+                                                                    </template>
+                                                                    <template x-if="['initialize','accepted'].includes(contactItem.lastMessage.status)">
+                                                                        <i class="fas fa-clock" style="color: #94a3b8; font-size: 10px;"></i>
+                                                                    </template>
+                                                                </span>
+                                                            </template>
+                                                            <!-- Media kind marker (photo/video/document/...) -->
+                                                            <template x-if="contactItem.lastMessage && ['image','video','audio','voice','document','sticker','location'].includes(contactItem.lastMessage.preview_type)">
+                                                                <i class="fas" :class="{
+                                                                    'fa-camera': contactItem.lastMessage.preview_type === 'image',
+                                                                    'fa-video': contactItem.lastMessage.preview_type === 'video',
+                                                                    'fa-headphones': contactItem.lastMessage.preview_type === 'audio',
+                                                                    'fa-microphone': contactItem.lastMessage.preview_type === 'voice',
+                                                                    'fa-file-alt': contactItem.lastMessage.preview_type === 'document',
+                                                                    'fa-smile': contactItem.lastMessage.preview_type === 'sticker',
+                                                                    'fa-map-marker-alt': contactItem.lastMessage.preview_type === 'location',
+                                                                }" style="color: #94a3b8; font-size: 11px; flex-shrink: 0;"></i>
+                                                            </template>
+                                                            <!-- Last message preview -->
+                                                            <span class="text-truncate" x-show="contactItem.lastMessage && contactItem.lastMessage.preview_text" x-text="contactItem.lastMessage?.preview_text"></span>
+                                                            <!-- Phone fallback when there is no message yet -->
+                                                            <span x-show="!(contactItem.lastMessage && contactItem.lastMessage.preview_text) && contactItem.full_name">
                                                                 @if(hasVendorAccess('hide_contact_phone_numbers'))
                                                                     <span x-text="contactItem.wa_id"></span>
                                                                 @else
                                                                     <span x-text="__Utils.formatAsLocaleNumber(Number(contactItem.wa_id))"></span>
                                                                 @endif
                                                             </span>
-                                                            <span x-show="!contactItem.full_name" class="lw-contact-phone-placeholder">&nbsp;</span>
+                                                            <span x-show="!(contactItem.lastMessage && contactItem.lastMessage.preview_text) && !contactItem.full_name" class="lw-contact-phone-placeholder">&nbsp;</span>
                                                         </span>
                                                         <span x-show="contactItem && contactItem.unread_messages_count"
                                                               class="lw-contact-unread-badge lw-unread-pulse-badge ml-2"
