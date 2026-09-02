@@ -270,41 +270,41 @@
                                                     </div>
 
                                                     <!-- Row 2.2: Last Message Preview -->
-                                                    <template x-if="contactItem.lastMessage && contactItem.lastMessage.preview_text">
+                                                    <template x-if="contactItem.last_message && contactItem.last_message.preview_text">
                                                         <div class="lw-contact-last-message d-flex align-items-center text-truncate" style="margin-top: 3px; gap: 3px; font-size: 0.8rem; color: #64748b;">
                                                             <!-- Delivery ticks: only on our own messages, never on what the contact sent -->
-                                                            <template x-if="!contactItem.lastMessage.is_incoming_message">
+                                                            <template x-if="!contactItem.last_message.is_incoming_message">
                                                                 <span class="d-inline-flex" style="flex-shrink: 0;">
-                                                                    <template x-if="['read','played'].includes(contactItem.lastMessage.status)">
+                                                                    <template x-if="['read','played'].includes(contactItem.last_message.status)">
                                                                         <i class="fas fa-check-double" style="color: #53bdeb; font-size: 11px;"></i>
                                                                     </template>
-                                                                    <template x-if="contactItem.lastMessage.status === 'delivered'">
+                                                                    <template x-if="contactItem.last_message.status === 'delivered'">
                                                                         <i class="fas fa-check-double" style="color: #94a3b8; font-size: 11px;"></i>
                                                                     </template>
-                                                                    <template x-if="contactItem.lastMessage.status === 'sent'">
+                                                                    <template x-if="contactItem.last_message.status === 'sent'">
                                                                         <i class="fas fa-check" style="color: #94a3b8; font-size: 11px;"></i>
                                                                     </template>
-                                                                    <template x-if="contactItem.lastMessage.status === 'failed'">
+                                                                    <template x-if="contactItem.last_message.status === 'failed'">
                                                                         <i class="fas fa-exclamation-circle" style="color: #dc2626; font-size: 11px;"></i>
                                                                     </template>
-                                                                    <template x-if="['initialize','accepted'].includes(contactItem.lastMessage.status)">
+                                                                    <template x-if="['initialize','accepted'].includes(contactItem.last_message.status)">
                                                                         <i class="fas fa-clock" style="color: #94a3b8; font-size: 10px;"></i>
                                                                     </template>
                                                                 </span>
                                                             </template>
                                                             <!-- Media kind marker (photo/video/document/...) -->
-                                                            <template x-if="['image','video','audio','voice','document','sticker','location'].includes(contactItem.lastMessage.preview_type)">
+                                                            <template x-if="['image','video','audio','voice','document','sticker','location'].includes(contactItem.last_message.preview_type)">
                                                                 <i class="fas" :class="{
-                                                                    'fa-camera': contactItem.lastMessage.preview_type === 'image',
-                                                                    'fa-video': contactItem.lastMessage.preview_type === 'video',
-                                                                    'fa-headphones': contactItem.lastMessage.preview_type === 'audio',
-                                                                    'fa-microphone': contactItem.lastMessage.preview_type === 'voice',
-                                                                    'fa-file-alt': contactItem.lastMessage.preview_type === 'document',
-                                                                    'fa-smile': contactItem.lastMessage.preview_type === 'sticker',
-                                                                    'fa-map-marker-alt': contactItem.lastMessage.preview_type === 'location',
+                                                                    'fa-camera': contactItem.last_message.preview_type === 'image',
+                                                                    'fa-video': contactItem.last_message.preview_type === 'video',
+                                                                    'fa-headphones': contactItem.last_message.preview_type === 'audio',
+                                                                    'fa-microphone': contactItem.last_message.preview_type === 'voice',
+                                                                    'fa-file-alt': contactItem.last_message.preview_type === 'document',
+                                                                    'fa-smile': contactItem.last_message.preview_type === 'sticker',
+                                                                    'fa-map-marker-alt': contactItem.last_message.preview_type === 'location',
                                                                 }" style="color: #94a3b8; font-size: 11px; flex-shrink: 0;"></i>
                                                             </template>
-                                                            <span class="text-truncate" x-text="contactItem.lastMessage.preview_text"></span>
+                                                            <span class="text-truncate" x-text="contactItem.last_message.preview_text"></span>
                                                         </div>
                                                     </template>
 

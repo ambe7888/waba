@@ -5152,8 +5152,10 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         }
 
         // Media: caption when there is one, otherwise the app draws an icon
-        // plus the label for this type.
-        $mediaType = data_get($data, 'media_values.type');
+        // plus the label for this type. A template sent with a media header
+        // (image/video) stores it under header_type instead of type - same
+        // shape otherwise, so it falls back here rather than through empty.
+        $mediaType = data_get($data, 'media_values.type') ?: data_get($data, 'media_values.header_type');
         if (!empty($mediaType)) {
             $caption = trim((string) data_get($data, 'media_values.caption', ''));
             $labels = [
