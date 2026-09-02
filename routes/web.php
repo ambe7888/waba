@@ -973,6 +973,11 @@ Route::middleware([
                     'clearChatHistory',
                 ])->name('vendor.chat_message.delete.process');
 
+                Route::post('/contact/chat/mark-unread/{contactUid}', [
+                    WhatsAppServiceController::class,
+                    'markContactAsUnread',
+                ])->name('vendor.chat_message.mark_unread.process');
+
                 Route::get('/preset-messages-non-template', [
                         CampaignController::class,
                         'showNonTemplatePresetMessages',

@@ -203,9 +203,10 @@
                                         @if (($assigned ?? null))
                                         {{-- <template x-if="contactItem.assigned_users__id == '{{ getUserId() }}'"> --}}
                                         @endif
-                                        <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly" 
-                                           :data-messaged-at="contactItem.last_message?.messaged_at" 
+                                        <a x-show="(contact && contact._uid == contactItem._uid) || (showUnreadContactsOnly && contactItem.unread_messages_count) || !showUnreadContactsOnly"
+                                           :data-messaged-at="contactItem.last_message?.messaged_at"
                                            @click="isContactListOpened = false; whatsappMessageLogs = []; messagePaginatePage = 0; contact = contactItem; assignedLabelIds = (contactItem.labels || []).map(function(l) { return l._id; }); appFuncs.resetForm(); window.history.pushState({}, '', '{{ route('vendor.chat_message.contact.view') }}/' + contactItem._uid);"
+                                           @contextmenu.prevent="openContactContextMenu(contactItem, $event)"
                                            :class="[(contact && (contact._uid == contactItem._uid)) ? 'lw-contact-card-selected' : '']"
                                            :href="__Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid', 'assigned' => ($assigned ?? '')]) }}',{'contactUid': contactItem._uid})"
                                            class="lw-contact-card lw-ajax-link-action lw-action-change-url" data-callback="updateContactInfo">
@@ -345,6 +346,18 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Right-click context menu on a discussion card -->
+                        <div x-show="contextMenuContact" x-cloak @click.outside="contextMenuContact = null" @contextmenu.prevent="contextMenuContact = null"
+                             :style="'position: fixed; top: ' + contextMenuY + 'px; left: ' + contextMenuX + 'px; z-index: 2000; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; min-width: 200px; overflow: hidden;'"
+                             class="shadow-lg">
+                            <a href="#" class="d-flex align-items-center text-decoration-none px-3 py-2" style="color: #1e293b; font-size: 0.9rem;"
+                               @click.prevent="markContactAsUnread(contextMenuContact)"
+                               onmouseover="this.style.backgroundColor='#f8fafc';" onmouseout="this.style.backgroundColor='transparent';">
+                                <i class="fas fa-envelope mr-2" style="color: #64748b; width: 16px;"></i>
+                                {{ __tr('Marquer comme non lu') }}
+                            </a>
                         </div>
                     </div>
                     <div class="page chat-container col-sm-12 col-md-6 col-lg-6 col-xl-6 d-flex flex-column" :class="[(!contact) ? 'lw-disabled-block-content' : '', isContactListOpened ? 'd-none d-md-block' : '']" x-cloak>
@@ -2046,6 +2059,30 @@
             assignedLabelIds: [],
             allLabels: @json($allLabels),
             replyingToMessage: null,
+            contextMenuContact: null,
+            contextMenuX: 0,
+            contextMenuY: 0,
+            openContactContextMenu: function(contactItem, event) {
+                this.contextMenuContact = contactItem;
+                this.contextMenuX = event.clientX;
+                this.contextMenuY = event.clientY;
+            },
+            markContactAsUnread: function(contactItem) {
+                this.contextMenuContact = null;
+                if (!contactItem || contactItem.unread_messages_count) {
+                    return;
+                }
+                var self = this;
+                var target = self.contacts[contactItem._uid] || contactItem;
+                target.unread_messages_count = 1;
+                var url = '{{ route("vendor.chat_message.mark_unread.process", ["contactUid" => "CONTACT_UID"]) }}'.replace('CONTACT_UID', contactItem._uid);
+                __DataRequest.post(url, {}, function(response) {
+                    var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                    if (!isSuccess) {
+                        target.unread_messages_count = 0;
+                    }
+                });
+            },
             setReply: function(messageLog) {
                 this.replyingToMessage = messageLog;
                 setTimeout(function() {
