@@ -338,10 +338,10 @@
                                         @endif
                                     </template>
                                     <div class="p-3 my-3 text-center lw-load-more-box" style="position: relative; z-index: 105;">
-                                        <button type="button" x-cloak class="btn btn-block shadow-sm d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px; background-color: #f0fdf4 !important; color: #16a34a !important; border: 1.5px solid #bbf7d0 !important; border-radius: 12px; padding: 10px 16px; font-size: 0.9rem; font-weight: 400 !important;">
-                                            <i class="fa fa-download" style="font-size: 0.95rem; color: #16a34a !important;" x-show="!isLoadingMoreContacts"></i>
-                                            <i class="fa fa-spinner fa-spin" style="font-size: 0.95rem; color: #16a34a !important;" x-show="isLoadingMoreContacts" x-cloak></i>
-                                            <span style="font-weight: 400 !important; color: #16a34a !important;" x-text="isLoadingMoreContacts ? '{{ __tr('Chargement des discussions...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
+                                        <button type="button" x-cloak class="btn btn-block d-flex justify-content-center align-items-center" @click="loadMoreContacts" x-bind:disabled="isLoadingMoreContacts" style="gap: 8px; background-color: #16a34a !important; color: #ffffff !important; border: none; border-radius: 12px; padding: 11px 16px; font-size: 0.9rem; font-weight: 600 !important; box-shadow: 0 4px 10px -2px rgba(22, 163, 74, 0.4) !important;">
+                                            <i class="fa fa-download" style="font-size: 0.95rem; color: #ffffff !important;" x-show="!isLoadingMoreContacts"></i>
+                                            <i class="fa fa-spinner fa-spin" style="font-size: 0.95rem; color: #ffffff !important;" x-show="isLoadingMoreContacts" x-cloak></i>
+                                            <span style="font-weight: 600 !important; color: #ffffff !important;" x-text="isLoadingMoreContacts ? '{{ __tr('Chargement des discussions...') }}' : '{{ __tr('Charger plus de discussions') }}'"></span>
                                         </button>
                                     </div>
                                 </div>
