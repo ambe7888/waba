@@ -820,12 +820,13 @@ class ECommerceController extends BaseController
         }
 
         $lines[] = '------';
-        $lines[] = '💰 *Total :* ' . number_format((float) ($details['total_price'] ?? 0), 0, ',', ' ') . ' ' . $currency;
 
         if (!empty($details['additional_fee'])) {
             $feeLabel = $details['additional_fee_label'] ?: __tr('Frais additionnels / Livraison');
             $lines[] = '🚚 *' . $feeLabel . ' :* ' . number_format((float) $details['additional_fee'], 0, ',', ' ') . ' ' . $currency;
         }
+
+        $lines[] = '💰 *Total :* ' . number_format((float) ($details['total_price'] ?? 0), 0, ',', ' ') . ' ' . $currency;
 
         if (!empty($details['delivery_address'])) {
             $lines[] = '📍 *Adresse :* ' . $details['delivery_address'];
@@ -833,6 +834,12 @@ class ECommerceController extends BaseController
 
         if (!empty($details['delivery_date'])) {
             $lines[] = '🗓️ *Livraison prévue :* ' . $details['delivery_date'];
+        }
+
+        $vendorTitle = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId)->title ?? '';
+        if (!empty($vendorTitle)) {
+            $lines[] = '';
+            $lines[] = __tr('__vendorTitle__ vous remercie 🙏', ['__vendorTitle__' => $vendorTitle]);
         }
 
         $sendRequest = [
