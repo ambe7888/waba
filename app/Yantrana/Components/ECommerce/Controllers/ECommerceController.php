@@ -762,6 +762,24 @@ class ECommerceController extends BaseController
             'status' => 'validated',
         ]);
 
+        $orderRef = '#' . substr($newOrder->_uid, 0, 8);
+        $systemMsg = "📦 Nouvelle commande créée {$orderRef} (" . number_format($totalPrice, 0, ',', ' ') . ' CFA)';
+        storeWhatsAppLogChatHistory([
+            'status' => 'initialize',
+            'contacts__id' => $contact->_id,
+            'vendors__id' => $vendorId,
+            'contact_wa_id' => $contact->wa_id,
+            'is_system_message' => 1,
+            'is_incoming_message' => 0,
+            'messaged_at' => now(),
+            'message' => $systemMsg,
+            '__data' => [
+                'system_message_data' => [
+                    'message' => $systemMsg
+                ]
+            ]
+        ]);
+
         $newOrder->load('contact');
 
         return $this->processResponse(1, [
