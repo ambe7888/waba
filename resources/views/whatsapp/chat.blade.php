@@ -161,7 +161,7 @@
                                     </div>
                                 </div>
 
-                                <div class="lw-modern-contact-list shadow-none" style="height: auto !important; max-height: calc(100vh - 240px) !important; overflow-y: auto;">
+                                <div class="lw-modern-contact-list shadow-none" style="height: auto !important; max-height: calc(100vh - 240px) !important; overflow-y: auto; padding-bottom: 24px;">
                                     
                                     <!-- Skeleton Loader -->
                                     <template x-if="isLoadingContacts && filteredContacts.length === 0">
