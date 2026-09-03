@@ -795,9 +795,21 @@ class ECommerceController extends BaseController
         $contact = $order->contact;
         $currency = $details['currency'] ?? 'CFA';
 
+        // Same labels/values as the status dropdown in the orders panel, so
+        // resending after a status change reflects it faithfully.
+        $statusLabels = [
+            'validated' => __tr('Nouvelle'),
+            'confirmed' => __tr('Confirmée'),
+            'processing' => __tr('En préparation'),
+            'shipped' => __tr('En livraison'),
+            'delivered' => __tr('Livrée'),
+            'cancelled' => __tr('Annulée'),
+        ];
+
         $lines = [
             '*Résumé de votre commande — ' . ($contact->full_name ?: $contact->wa_id) . '*',
             '📞 ' . $contact->wa_id,
+            '📦 *Statut :* ' . ($statusLabels[$order->status] ?? $order->status),
             '------',
         ];
 
