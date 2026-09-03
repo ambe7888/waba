@@ -1295,6 +1295,21 @@
                                             });
                                         }
                                     },
+                                    isSendingOrderSummary: false,
+                                    sendOrderSummary(orderUid) {
+                                        var self = this;
+                                        this.isSendingOrderSummary = true;
+                                        __DataRequest.post('{{ route("vendor.ecommerce.orders.send_summary", ["orderUid" => "ORDER_UID"]) }}'.replace('ORDER_UID', orderUid), {}, function(response) {
+                                            self.isSendingOrderSummary = false;
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                            var msg = response.message || (response.data && response.data.message) || (isSuccess ? 'Résumé envoyé au client.' : 'Erreur lors de l\'envoi.');
+                                            if (isSuccess) {
+                                                showSuccessMessage(msg);
+                                            } else {
+                                                showErrorMessage(msg);
+                                            }
+                                        });
+                                    },
                                     getOrderTotal(ord) {
                                         if (!ord || !ord.order_details) return 0;
                                         var details = ord.order_details;
@@ -1641,10 +1656,15 @@
                                                 <div class="text-xs text-dark mb-1 font-weight-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="getOrderSummaryText(ord)"></div>
                                                 <div class="text-xs text-muted mb-2" x-text="new Date(ord.created_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})"></div>
 
-                                                <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center mb-2" style="gap: 12px;">
                                                     <button type="button" @click="openOrderReceiptModal(ord)" class="btn btn-sm btn-link p-0 text-xs font-weight-bold text-emerald" style="color: #10b981;">
                                                         <i class="fa fa-receipt mr-1"></i> {{ __tr('Voir Reçu') }}
                                                     </button>
+                                                    <button type="button" @click="sendOrderSummary(ord._uid)" :disabled="isSendingOrderSummary" class="btn btn-sm btn-link p-0 text-xs font-weight-bold" style="color: #16a34a;" title="{{ __tr('Envoyer le résumé au client sur WhatsApp') }}">
+                                                        <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Envoyer au client') }}
+                                                    </button>
+                                                </div>
+                                                <div class="d-flex align-items-center justify-content-end">
                                                     <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px; height: 26px; padding: 2px 6px; width: 110px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
                                                         <option value="validated">Nouvelle</option>
                                                         <option value="confirmed">Confirmer</option>

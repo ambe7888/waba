@@ -773,6 +773,77 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * Send a formatted order summary directly to the contact on WhatsApp
+     */
+    public function sendOrderSummaryMessage($orderUid)
+    {
+        if (!hasVendorAccess('manage_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
+        $vendorId = getVendorId();
+        $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+            'vendors__id' => $vendorId,
+            '_uid' => $orderUid,
+        ])->with('contact')->first();
+
+        if (empty($order) || empty($order->contact)) {
+            return $this->processResponse(2, [2 => __tr('Commande introuvable.')], ['message' => __tr('Commande introuvable.')]);
+        }
+
+        $details = $order->order_details ?? [];
+        $contact = $order->contact;
+        $currency = $details['currency'] ?? 'CFA';
+
+        $lines = [
+            '*Résumé de votre commande — ' . ($contact->full_name ?: $contact->wa_id) . '*',
+            '📞 ' . $contact->wa_id,
+            '------',
+        ];
+
+        foreach (($details['items'] ?? []) as $item) {
+            $itemCurrency = $item['currency'] ?? $currency;
+            $lines[] = '🛒 ' . ($item['name'] ?? __tr('Produit')) . ' x' . ($item['quantity'] ?? 1)
+                . ' — ' . number_format((float) ($item['price'] ?? 0), 0, ',', ' ') . ' ' . $itemCurrency;
+        }
+
+        $lines[] = '------';
+        $lines[] = '💰 *Total :* ' . number_format((float) ($details['total_price'] ?? 0), 0, ',', ' ') . ' ' . $currency;
+
+        if (!empty($details['additional_fee'])) {
+            $feeLabel = $details['additional_fee_label'] ?: __tr('Frais additionnels / Livraison');
+            $lines[] = '🚚 *' . $feeLabel . ' :* ' . number_format((float) $details['additional_fee'], 0, ',', ' ') . ' ' . $currency;
+        }
+
+        if (!empty($details['delivery_address'])) {
+            $lines[] = '📍 *Adresse :* ' . $details['delivery_address'];
+        }
+
+        if (!empty($details['delivery_date'])) {
+            $lines[] = '🗓️ *Livraison prévue :* ' . $details['delivery_date'];
+        }
+
+        $sendRequest = [
+            'messageBody' => implode("\n", $lines),
+            'contactUid' => $contact->_uid,
+        ];
+
+        $phoneNumbers = getVendorSettings('whatsapp_phone_numbers', null, null, $vendorId) ?: [];
+        $currentPhoneNumberId = !empty($phoneNumbers) ? ($phoneNumbers[0]['id'] ?? null) : null;
+        fromPhoneNumberIdForRequest($currentPhoneNumberId);
+
+        $whatsAppServiceEngine = app(\App\Yantrana\Components\WhatsAppService\WhatsAppServiceEngine::class);
+        $processReaction = $whatsAppServiceEngine->processSendChatMessage(
+            $sendRequest,
+            false,
+            $vendorId,
+            ['from_phone_number_id' => $currentPhoneNumberId]
+        );
+
+        return $this->processResponse($processReaction);
+    }
+
+    /**
      * Create Test Order for testing notifications and order flow
      */
     public function createTestOrder(Request $request)

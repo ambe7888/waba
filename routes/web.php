@@ -1290,6 +1290,11 @@ Route::middleware([
                 'createManualOrder',
             ])->name('vendor.ecommerce.orders.create_manual');
 
+            Route::post('/ecommerce/orders/send-summary/{orderUid}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'sendOrderSummaryMessage',
+            ])->name('vendor.ecommerce.orders.send_summary');
+
             Route::post('/ecommerce/orders/create-test-order', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'createTestOrder',
