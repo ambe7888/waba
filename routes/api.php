@@ -484,6 +484,11 @@ Route::group([
             'deleteOrder',
         ])->name('app_api.vendor.ecommerce.orders.delete');
 
+        Route::post('/ecommerce/orders/send-summary/{orderUid}', [
+            \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+            'sendOrderSummaryMessage',
+        ])->name('app_api.vendor.ecommerce.orders.send_summary');
+
         // Canned replies
         Route::get('/canned-replies', [
             \App\Yantrana\Components\WhatsAppService\Controllers\CannedReplyController::class,
