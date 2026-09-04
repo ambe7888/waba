@@ -153,6 +153,17 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     }
   }
 
+  Future<void> _sendOrderSummary(Map<String, dynamic> order) async {
+    final uid = order['_uid']?.toString();
+    if (uid == null) return;
+    final success = await ApiService().sendOrderSummaryMessage(uid);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(success ? 'Résumé envoyé au client.' : "Erreur lors de l'envoi."),
+      backgroundColor: success ? const Color(0xFF10B981) : Colors.red,
+    ));
+  }
+
   Future<void> _confirmDelete(Map<String, dynamic> order) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -524,6 +535,11 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     if (v != null) _changeStatus(order, v);
                   },
                 ),
+              IconButton(
+                icon: Icon(Icons.send_rounded, color: ThemeService.primaryColor, size: 20),
+                tooltip: 'Envoyer au client',
+                onPressed: () => _sendOrderSummary(order),
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                 onPressed: () => _confirmDelete(order),

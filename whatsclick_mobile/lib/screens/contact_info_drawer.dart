@@ -155,6 +155,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
     );
   }
 
+  Future<void> _sendOrderSummary(Map<String, dynamic> order) async {
+    final success = await ApiService().sendOrderSummaryMessage(order['_uid']);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(success ? 'Résumé envoyé au client.' : "Erreur lors de l'envoi."),
+    ));
+  }
+
   void _confirmDeleteOrder(Map<String, dynamic> order) {
     showDialog(
       context: context,
@@ -1584,11 +1592,14 @@ class _ContactInfoDrawerState extends State<ContactInfoDrawer> {
                                             } else if (value == 'edit') {
                                               Navigator.pop(context); // Close Drawer
                                               widget.onEditOrder?.call(order);
+                                            } else if (value == 'send') {
+                                              _sendOrderSummary(order);
                                             } else if (value == 'delete') {
                                               _confirmDeleteOrder(order);
                                             }
                                           },
                                           itemBuilder: (context) => [
+                                            const PopupMenuItem(value: 'send', child: Text('Envoyer au client', style: TextStyle(fontSize: 13))),
                                             const PopupMenuItem(value: 'status', child: Text('Changer le statut', style: TextStyle(fontSize: 13))),
                                             const PopupMenuItem(value: 'edit', child: Text('Modifier', style: TextStyle(fontSize: 13))),
                                             const PopupMenuItem(value: 'delete', child: Text('Supprimer', style: TextStyle(fontSize: 13, color: Colors.red))),

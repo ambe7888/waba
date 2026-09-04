@@ -2209,6 +2209,27 @@ class ApiService {
     }
   }
 
+  /// Send a formatted order summary to the customer on WhatsApp
+  Future<bool> sendOrderSummaryMessage(String orderUid) async {
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/send-summary/$orderUid');
+    try {
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
+
+      _checkUnauthorized(response);
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['reaction'] == 1;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) debugPrint('Send Order Summary Error: $e');
+      return false;
+    }
+  }
+
   /// Fetch all canned replies
   Future<List<Map<String, dynamic>>> fetchCannedReplies() async {
     final url = Uri.parse('${baseApiUrl}vendor/canned-replies');
