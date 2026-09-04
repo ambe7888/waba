@@ -1480,7 +1480,7 @@
                                         }
                                         return sub;
                                     },
-                                    getOrderTotal() {
+                                    getOrderFormTotal() {
                                         return this.getOrderSubtotal() + (Number(this.orderAdditionalFee) || 0);
                                     },
                                     saveManualOrder() {
@@ -1612,7 +1612,7 @@
                                             </div>
                                             <div class="d-flex justify-content-between text-emerald font-weight-bold border-top pt-1" style="color: #059669;">
                                                 <span>{{ __tr('Total Commande:') }}</span>
-                                                <span x-text="getOrderTotal().toLocaleString() + ' CFA'"></span>
+                                                <span x-text="getOrderFormTotal().toLocaleString() + ' CFA'"></span>
                                             </div>
                                         </div>
 
