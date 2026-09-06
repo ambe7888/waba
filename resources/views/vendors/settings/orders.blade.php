@@ -231,7 +231,7 @@ $teamMembers = \DB::table('users')
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
                     <div class="input-group">
-                        <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch">
+                        <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input="resetOrdersPage()">
                         <div class="input-group-append">
                             <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                         </div>
@@ -240,7 +240,7 @@ $teamMembers = \DB::table('users')
 
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter">
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
                         <option value="validated">{{ __tr('Nouvelle / Validée') }}</option>
                         <option value="confirmed">{{ __tr('Confirmée') }}</option>
@@ -253,7 +253,7 @@ $teamMembers = \DB::table('users')
 
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter">
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Toutes les sources & agents') }}</option>
                         <option value="whatsapp">🤖 {{ __tr('Bot / IA WhatsApp') }}</option>
                         <option value="manuel">👤 {{ __tr('Vendeur Manuel') }}</option>
@@ -266,9 +266,9 @@ $teamMembers = \DB::table('users')
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique (Date)') }}</label>
                     <div class="d-flex align-items-center" style="gap: 5px;">
-                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter">
+                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter" @change="resetOrdersPage()">
                         <template x-if="orderDateFilter">
-                            <button type="button" @click="orderDateFilter = ''" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Réinitialiser la date') }}">&times;</button>
+                            <button type="button" @click="orderDateFilter = ''; resetOrdersPage();" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Réinitialiser la date') }}">&times;</button>
                         </template>
                     </div>
                 </div>
@@ -278,18 +278,26 @@ $teamMembers = \DB::table('users')
             <div class="d-flex align-items-center justify-content-between flex-wrap mb-4 pb-2 border-bottom no-print" style="gap: 10px;">
                 <div class="d-flex align-items-center" style="gap: 10px;">
                     <span class="small font-weight-bold text-muted">{{ __tr('Trier par date:') }}</span>
-                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 200px;" x-model="orderDateSort">
+                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 200px;" x-model="orderDateSort" @change="resetOrdersPage()">
                         <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
                         <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
 
-                    <button type="button" @click="setTodayFilter()" class="btn btn-sm btn-outline-primary font-weight-bold" style="border-radius: 8px;">
+                    <button type="button" @click="setTodayFilter(); resetOrdersPage();" class="btn btn-sm btn-outline-primary font-weight-bold" style="border-radius: 8px;">
                         <i class="fa fa-calendar-day mr-1"></i> {{ __tr('Commandes du jour') }}
                     </button>
+
+                    <span class="small font-weight-bold text-muted ml-2">{{ __tr('Par page:') }}</span>
+                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 100px;" x-model.number="ordersPerPage" @change="resetOrdersPage()">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                    </select>
                 </div>
 
                 <div class="small font-weight-bold text-dark">
-                    <span class="badge badge-emerald text-white px-2 py-1" style="background: #10b981; font-size: 0.85rem;" x-text="getFilteredOrders().length + ' commande(s) affichée(s)'"></span>
+                    <span class="badge badge-emerald text-white px-2 py-1" style="background: #10b981; font-size: 0.85rem;" x-text="getFilteredOrders().length + ' commande(s) au total'"></span>
                 </div>
             </div>
 
@@ -307,7 +315,7 @@ $teamMembers = \DB::table('users')
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="order in getFilteredOrders()" :key="order._uid">
+                        <template x-for="order in getPaginatedOrders()" :key="order._uid">
                             <tr>
                                 <td class="align-middle">
                                     <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
@@ -386,6 +394,21 @@ $teamMembers = \DB::table('users')
                 <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
                     <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
                     <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande ne correspond à votre recherche.') }}</p>
+                </div>
+
+                <!-- Pagination -->
+                <div x-show="getFilteredOrders().length > 0" class="d-flex align-items-center justify-content-between flex-wrap mt-3 no-print" style="gap: 10px;">
+                    <span class="small text-muted font-weight-bold"
+                          x-text="'{{ __tr('Affichage') }} ' + (((ordersCurrentPage - 1) * ordersPerPage) + 1) + '-' + Math.min(ordersCurrentPage * ordersPerPage, getFilteredOrders().length) + ' {{ __tr('sur') }} ' + getFilteredOrders().length"></span>
+                    <div class="d-flex align-items-center" style="gap: 6px;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage <= 1" @click="ordersCurrentPage--">
+                            <i class="fa fa-chevron-left"></i> {{ __tr('Précédent') }}
+                        </button>
+                        <span class="small font-weight-bold text-dark px-2" x-text="'{{ __tr('Page') }} ' + ordersCurrentPage + ' / ' + getOrdersPageCount()"></span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage >= getOrdersPageCount()" @click="ordersCurrentPage++">
+                            {{ __tr('Suivant') }} <i class="fa fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -663,6 +686,23 @@ function ordersPageData() {
         orderSourceFilter: '',
         orderDateFilter: '',
         orderDateSort: 'desc',
+        ordersPerPage: 100,
+        ordersCurrentPage: 1,
+        resetOrdersPage: function() {
+            this.ordersCurrentPage = 1;
+        },
+        getOrdersPageCount: function() {
+            return Math.max(1, Math.ceil(this.getFilteredOrders().length / this.ordersPerPage));
+        },
+        getPaginatedOrders: function() {
+            var filtered = this.getFilteredOrders();
+            var pageCount = this.getOrdersPageCount();
+            if (this.ordersCurrentPage > pageCount) {
+                this.ordersCurrentPage = pageCount;
+            }
+            var start = (this.ordersCurrentPage - 1) * this.ordersPerPage;
+            return filtered.slice(start, start + this.ordersPerPage);
+        },
         newOrderContactId: '',
         newOrderItems: [
             { product_id: '', quantity: 1, custom_price: '' }
