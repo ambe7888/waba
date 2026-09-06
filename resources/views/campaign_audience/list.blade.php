@@ -34,7 +34,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                     <th data-orderable="false" data-name="contacts_formatted"><?= __tr('Contacts') ?></th>
                     <th data-orderable="false" data-name="groups_formatted"><?= __tr('Groupes') ?></th>
                     <th data-orderable="false" data-name="labels_formatted"><?= __tr('Étiquettes') ?></th>
-                    <th data-orderable="true" data-name="created_at"><?= __tr('Créé le') ?></th>
+                    <th data-orderable="false" data-name="created_at_formatted"><?= __tr('Créé le') ?></th>
                     <th data-template="#audienceActionsTemplate" data-name="_uid"><?= __tr('Actions') ?></th>
                 </x-lw.datatable>
             </div>
@@ -65,7 +65,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 <!-- Create / Edit Audience Modal -->
 <div class="modal fade" id="lwCreateAudienceModal" tabindex="-1" role="dialog" aria-labelledby="lwCreateAudienceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="lwCreateAudienceModalLabel"><?= __tr('Créer / Modifier Audience') ?></h5>
@@ -178,7 +178,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
 
 <!-- View Audience Contacts Modal -->
 <div class="modal fade" id="lwViewAudienceContactsModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><?= __tr('Contacts de l\'audience') ?> : <span id="lwViewAudienceTitle"></span></h5>
@@ -384,12 +384,24 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
     var lwAudienceContactsState = { audienceUid: null, page: 1 };
 
     function viewAudienceContacts(audienceUid, title) {
+        // Close any other open modal first -- Bootstrap 4 can leave a stray
+        // backdrop behind when a second modal opens before the first fully
+        // finishes hiding, which blocks clicks on the whole page.
+        $('.modal.show').not('#lwViewAudienceContactsModal').modal('hide');
+
         lwAudienceContactsState.audienceUid = audienceUid;
         lwAudienceContactsState.page = 1;
         $('#lwViewAudienceTitle').text(title);
         $('#lwViewAudienceContactsModal').modal('show');
         loadAudienceContactsPage();
     }
+
+    $('#lwViewAudienceContactsModal').on('hidden.bs.modal', function() {
+        if ($('.modal.show').length === 0) {
+            $('body').removeClass('modal-open');
+            $('.modal-backdrop').remove();
+        }
+    });
 
     function loadAudienceContactsPage() {
         $('#lwAudienceContactsLoading').removeClass('d-none');

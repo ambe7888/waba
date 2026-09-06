@@ -121,6 +121,10 @@ class CampaignAudienceRepository extends BaseRepository
                 $row['groups_raw'] = $row['groups'] ?: [];
                 $row['labels_raw'] = $row['labels'] ?: [];
 
+                $row['created_at_formatted'] = !empty($row['created_at'])
+                    ? \Carbon\Carbon::parse($row['created_at'])->format('d/m/Y H:i')
+                    : '-';
+
                 $isAllContacts = in_array('all_contacts', $row['contacts'] ?: []);
                 $row['is_all_contacts'] = $isAllContacts;
 
