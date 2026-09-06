@@ -365,7 +365,7 @@
                         <div class="marvel-device nexus5 flex-grow-1 d-flex flex-column w-100" style="height: auto !important;">
                             <div class="screen flex-grow-1 d-flex flex-column" style="height: auto !important;">
                                 <div class="screen-container flex-grow-1 d-flex flex-column" style="height: auto !important;">
-                                    <div class="chat flex-grow-1 d-flex flex-column" id="lwChatWindowBox" style="height: auto !important;">
+                                    <div class="chat flex-grow-1 d-flex flex-column" id="lwChatWindowBox" style="height: auto !important; background-color: #efeae2 !important; background-image: url('{{ asset('imgs/wa-message-bg.png') }}') !important; background-repeat: repeat !important;">
                                         {{-- <template x-if="contact"> --}}
                                             <div class="d-flex flex-column flex-grow-1 w-100">
                                                 <template x-if="contact">
