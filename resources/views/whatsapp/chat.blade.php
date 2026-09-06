@@ -7,6 +7,9 @@
 ])
 @push('head')
 {!! __yesset('dist/css/whatsapp-chat.css', true) !!}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 @endpush
 <div x-data="initialMessageData" @chat-message-sent.window="cancelReply()"> 
 {{-- @if ($contact) --}}
@@ -771,75 +774,78 @@
                     <style>
                         /* Sidebar block styling */
                         .lw-contact-crm-block {
-                            background-color: #f8fafc !important;
-                            border-left: 1px solid #e2e8f0 !important;
-                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            background-color: #efeadd !important;
+                            border-left: 1px solid rgba(22, 36, 29, 0.08) !important;
+                            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                         }
 
-                        /* Card container for sections */
+                        /* Card container for sections (flat, divider-only, matching the approved mockup's rail) */
                         .lw-crm-card {
-                            background: #ffffff;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 12px;
-                            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-                            margin: 12px;
-                            padding: 18px;
-                            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                            background: transparent;
+                            border: none;
+                            border-bottom: 1px solid rgba(22, 36, 29, 0.08);
+                            border-radius: 0;
+                            box-shadow: none;
+                            margin: 0;
+                            padding: 16px 20px;
+                            transition: none;
                             position: relative;
                         }
 
                         .lw-crm-card:hover {
-                            transform: translateY(-1px);
-                            box-shadow: 0 4px 12px -2px rgba(148, 163, 184, 0.12), 0 2px 6px -1px rgba(148, 163, 184, 0.08);
-                            border-color: #cbd5e1;
+                            transform: none;
+                            box-shadow: none;
+                            border-color: rgba(22, 36, 29, 0.08);
                         }
 
                         /* Profile specific card */
                         .lw-crm-profile-card {
                             text-align: center;
-                            padding: 24px 18px;
+                            padding: 26px 20px 18px;
                         }
 
                         /* Avatar styling */
                         .lw-crm-avatar {
-                            width: 96px;
-                            height: 96px;
-                            border-radius: 16px;
-                            font-size: 38px;
+                            width: 68px;
+                            height: 68px;
+                            border-radius: 50%;
+                            font-size: 1.3rem;
                             font-weight: 700;
-                            background: #1B6F20;
+                            background: #0c6b53;
                             color: #ffffff;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            margin: 0 auto 16px auto;
-                            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
-                            letter-spacing: 1px;
+                            margin: 0 auto 12px auto;
+                            box-shadow: none;
+                            letter-spacing: 0.5px;
                         }
 
                         .lw-crm-contact-name {
-                            font-size: 1.15rem;
-                            font-weight: 700;
-                            color: #0f172a;
-                            margin-bottom: 4px;
+                            font-family: 'Fraunces', Georgia, serif;
+                            font-size: 1.05rem;
+                            font-weight: 600;
+                            color: #16241d;
+                            margin-bottom: 2px;
                         }
 
                         .lw-crm-contact-phone {
-                            font-size: 0.88rem;
-                            color: #64748b;
-                            font-weight: 500;
+                            font-family: 'IBM Plex Mono', monospace;
+                            font-size: 0.78rem;
+                            color: #64705f;
+                            font-weight: 400;
                         }
 
-                        /* Section Headings with border-left accent */
+                        /* Section Headings, matching the mockup's plain muted-ink rail labels */
                         .lw-crm-section-header {
-                            border-left: 3px solid #1B6F20;
-                            padding-left: 10px;
-                            font-size: 0.8rem;
-                            font-weight: 700;
+                            border-left: none;
+                            padding-left: 0;
+                            font-size: 0.7rem;
+                            font-weight: 800;
                             text-transform: uppercase;
-                            letter-spacing: 0.05em;
-                            color: #1B6F20;
-                            margin-bottom: 16px;
+                            letter-spacing: 0.06em;
+                            color: #64705f;
+                            margin-bottom: 12px;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
@@ -866,8 +872,8 @@
                             width: 32px;
                             height: 32px;
                             border-radius: 8px;
-                            background-color: #f1f5f9;
-                            color: #64748b;
+                            background-color: #e2f0ea;
+                            color: #094e3c;
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -878,13 +884,13 @@
                         }
 
                         .lw-crm-info-row:hover .lw-crm-icon-badge {
-                            background-color: #e2e8f0;
-                            color: #0f172a;
+                            background-color: #d3e7dc;
+                            color: #094e3c;
                         }
 
                         .lw-crm-info-text {
                             font-size: 0.92rem;
-                            color: #334155;
+                            color: #16241d;
                             font-weight: 500;
                             word-break: break-all;
                         }
@@ -910,7 +916,7 @@
                             left: 0;
                             right: 0;
                             bottom: 0;
-                            background-color: #e2e8f0;
+                            background-color: #d8d2c1;
                             transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
                             border-radius: 24px;
                         }
@@ -929,7 +935,7 @@
                         }
 
                         .lw-ios-switch input:checked + .lw-ios-slider {
-                            background-color: #1B6F20;
+                            background-color: #0c6b53;
                         }
 
                         .lw-ios-switch input:checked + .lw-ios-slider:before {
@@ -944,9 +950,9 @@
                             width: 32px;
                             height: 32px;
                             border-radius: 50%;
-                            background-color: #f8fafc;
-                            border: 1px solid #e2e8f0;
-                            color: #64748b;
+                            background-color: #ffffff;
+                            border: 1px solid rgba(22, 36, 29, 0.1);
+                            color: #64705f;
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -955,10 +961,10 @@
                         }
 
                         .lw-crm-edit-btn:hover {
-                            background-color: #f1f5f9;
-                            color: #1B6F20;
+                            background-color: #e2f0ea;
+                            color: #094e3c;
                             transform: scale(1.05);
-                            border-color: #cbd5e1;
+                            border-color: rgba(12, 107, 83, 0.25);
                         }
 
                         /* Round action button (e.g. plus button) */
@@ -966,9 +972,9 @@
                             width: 28px;
                             height: 28px;
                             border-radius: 50%;
-                            background-color: #f1f5f9;
-                            border: 1px solid #e2e8f0;
-                            color: #64748b;
+                            background-color: #ffffff;
+                            border: 1px solid rgba(22, 36, 29, 0.1);
+                            color: #64705f;
                             display: inline-flex;
                             align-items: center;
                             justify-content: center;
@@ -979,10 +985,10 @@
                         }
 
                         .lw-crm-btn-round:hover {
-                            background-color: #e2e8f0;
-                            color: #1B6F20;
+                            background-color: #e2f0ea;
+                            color: #094e3c;
                             transform: scale(1.05);
-                            border-color: #cbd5e1;
+                            border-color: rgba(12, 107, 83, 0.25);
                         }
 
                         /* Interactive elements (Selectize) */
@@ -992,18 +998,18 @@
                         }
 
                         .lw-crm-card .selectize-input {
-                            border: 1px solid #e2e8f0 !important;
+                            border: 1px solid rgba(22, 36, 29, 0.12) !important;
                             border-radius: 8px !important;
-                            background: #f8fafc !important;
+                            background: #ffffff !important;
                             box-shadow: none !important;
                             padding: 8px 12px !important;
                             transition: all 0.2s ease;
                         }
 
                         .lw-crm-card .selectize-input.focus {
-                            border-color: #1B6F20 !important;
+                            border-color: #0c6b53 !important;
                             background: #ffffff !important;
-                            box-shadow: 0 0 0 3px rgba(27, 111, 32, 0.15) !important;
+                            box-shadow: 0 0 0 3px rgba(12, 107, 83, 0.15) !important;
                         }
 
                         /* Custom switch wa alignment wrapper */
@@ -1021,16 +1027,16 @@
                         /* Notes section styles */
                         .lw-crm-notes-display {
                             font-size: 0.92rem;
-                            color: #334155;
+                            color: #16241d;
                             line-height: 1.5;
-                            background: #f8fafc;
+                            background: #ffffff;
                             border-radius: 8px;
                             padding: 12px;
-                            border: 1px dashed #cbd5e1;
+                            border: 1px dashed rgba(22, 36, 29, 0.18);
                         }
 
                         .lw-crm-action-link {
-                            color: #1B6F20;
+                            color: #0c6b53;
                             font-weight: 600;
                             transition: color 0.15s ease;
                             cursor: pointer;
@@ -1038,7 +1044,7 @@
                         }
 
                         .lw-crm-action-link:hover {
-                            color: #114b15;
+                            color: #094e3c;
                         }
                     </style>
                     <div class="col-sm-12 col-md-3 col-lg-3 col-xl-3 lw-contact-crm-block p-0 m-0" :class="(!contact) ? 'lw-disabled-block-content' : ''" x-show="isContactCrmBlockOpened" style="overflow-y: auto; height: 100%;">
