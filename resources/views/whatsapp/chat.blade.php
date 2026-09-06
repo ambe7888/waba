@@ -365,7 +365,7 @@
                         <div class="marvel-device nexus5 flex-grow-1 d-flex flex-column w-100" style="height: auto !important;">
                             <div class="screen flex-grow-1 d-flex flex-column" style="height: auto !important;">
                                 <div class="screen-container flex-grow-1 d-flex flex-column" style="height: auto !important;">
-                                    <div class="chat flex-grow-1 d-flex flex-column" id="lwChatWindowBox" style="height: auto !important; background-color: #efeae2 !important; background-image: url('{{ asset('imgs/wa-message-bg.png') }}') !important; background-repeat: repeat !important;">
+                                    <div class="chat flex-grow-1 d-flex flex-column" id="lwChatWindowBox" style="height: auto !important;">
                                         {{-- <template x-if="contact"> --}}
                                             <div class="d-flex flex-column flex-grow-1 w-100">
                                                 <template x-if="contact">
@@ -498,7 +498,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="conversation" style="background-color: rgba(255, 255, 255, 0.82) !important;">
+                                                <div class="conversation">
                                                     <div class="conversation-container" id="lwConversionChatContainer">
                                                             <div class="w-100" id="lwEndOfChats">&shy;</div>
                                                             <template x-for="whatsappMessageLogItem in whatsappMessageLogs">
