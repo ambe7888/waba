@@ -173,6 +173,89 @@ class CampaignAudienceRepository extends BaseRepository
     }
 
     /**
+     * Resolve and paginate the actual contacts targeted by one audience
+     *
+     * @param string $audienceUid
+     * @param int $page
+     * @param int $perPage
+     *
+     * @return array|null - null if audience not found for this vendor
+     *---------------------------------------------------------------- */
+    public function fetchAudienceContactsPaginated($audienceUid, $page = 1, $perPage = 50)
+    {
+        $vendorId = getVendorId();
+        $audience = CampaignAudienceModel::where('vendors__id', $vendorId)
+            ->where('_uid', $audienceUid)
+            ->first();
+
+        if (!$audience) {
+            return null;
+        }
+
+        $contactIds = collect($audience->contacts ?: []);
+        $isAllContacts = $contactIds->contains('all_contacts');
+
+        if ($isAllContacts) {
+            $total = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->count();
+            return [
+                'is_all_contacts' => true,
+                'total' => $total,
+                'page' => 1,
+                'per_page' => $perPage,
+                'contacts' => [],
+            ];
+        }
+
+        $groupIds = collect($audience->groups ?: []);
+        $labelIds = collect($audience->labels ?: []);
+
+        $groupContactIds = collect();
+        if ($groupIds->isNotEmpty()) {
+            $groupContactIds = \Illuminate\Support\Facades\DB::table('group_contacts')
+                ->whereIn('contact_groups__id', $groupIds->all())
+                ->pluck('contacts__id');
+        }
+
+        $labelContactIds = collect();
+        if ($labelIds->isNotEmpty()) {
+            $labelContactIds = \Illuminate\Support\Facades\DB::table('contact_labels')
+                ->whereIn('labels__id', $labelIds->all())
+                ->pluck('contacts__id');
+        }
+
+        $allTargetContactIds = $contactIds->filter(fn ($id) => $id !== 'all_contacts')
+            ->merge($groupContactIds)
+            ->merge($labelContactIds)
+            ->unique()
+            ->values();
+
+        $total = $allTargetContactIds->count();
+        $pageIds = $allTargetContactIds->slice(($page - 1) * $perPage, $perPage)->all();
+
+        $contacts = [];
+        if (!empty($pageIds)) {
+            $contacts = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+                ->whereIn('_id', $pageIds)
+                ->select('_id', 'first_name', 'last_name', 'wa_id')
+                ->get()
+                ->map(function ($c) {
+                    return [
+                        'name' => trim($c->first_name . ' ' . $c->last_name) ?: '-',
+                        'wa_id' => $c->wa_id,
+                    ];
+                })->toArray();
+        }
+
+        return [
+            'is_all_contacts' => false,
+            'total' => $total,
+            'page' => (int) $page,
+            'per_page' => (int) $perPage,
+            'contacts' => $contacts,
+        ];
+    }
+
+    /**
      * Store Audience
      *
      * @param array $inputData

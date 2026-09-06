@@ -97,6 +97,26 @@ class CampaignAudienceController extends BaseController
     }
 
     /**
+     * View the resolved, paginated list of contacts targeted by an audience
+     *
+     * @param BaseRequest $request
+     * @param string $audienceUid
+     * @return json object
+     *---------------------------------------------------------------- */
+    public function viewContacts(BaseRequest $request, $audienceUid)
+    {
+        validateVendorAccess('manage_campaigns');
+        $page = max(1, (int) $request->get('page', 1));
+        $result = $this->campaignAudienceEngine->fetchAudienceContacts($audienceUid, $page, 50);
+
+        if ($result === null) {
+            return response()->json(['reaction' => 0, 'message' => __tr('Audience not found.')], 404);
+        }
+
+        return response()->json(array_merge(['reaction' => 1], $result));
+    }
+
+    /**
      * Process Delete Audience
      *
      * @param string $audienceUid

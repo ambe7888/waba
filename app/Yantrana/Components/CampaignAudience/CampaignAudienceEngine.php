@@ -70,6 +70,19 @@ class CampaignAudienceEngine extends BaseEngine
     }
 
     /**
+     * Fetch the resolved, paginated list of contacts targeted by an audience
+     *
+     * @param string $audienceUid
+     * @param int $page
+     * @param int $perPage
+     * @return array|null
+     *---------------------------------------------------------------- */
+    public function fetchAudienceContacts($audienceUid, $page = 1, $perPage = 50)
+    {
+        return $this->campaignAudienceRepository->fetchAudienceContactsPaginated($audienceUid, $page, $perPage);
+    }
+
+    /**
      * Process delete audience
      *
      * @param string $audienceUid

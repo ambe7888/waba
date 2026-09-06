@@ -49,6 +49,7 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
             <i class="fas fa-ellipsis-v"></i>
         </button>
         <div class="dropdown-menu dropdown-menu-right">
+            <a class="dropdown-item" href="#" onclick="viewAudienceContacts('<%- __tData._uid %>', '<%- __tData.title %>'); return false;"><i class="fa fa-users"></i> <?= __tr('Voir les contacts') ?></a>
             @if($hasManageAccess)
             <a class="dropdown-item lw-ajax-link-action" href="#" onclick="editAudience('<%- __tData._uid %>', '<%- __tData.title %>', <%- JSON.stringify(__tData.contacts_raw) %>, <%- JSON.stringify(__tData.groups_raw) %>, <%- JSON.stringify(__tData.labels_raw) %>); return false;"><i class="fa fa-edit"></i> <?= __tr('Modifier') ?></a>
             <a data-method="post" data-callback="appFuncs.modelSuccessCallback" data-callback-params="{{ json_encode(['datatableId' => '#lwAudienceList']) }}" href="<%= __Utils.apiURL('{{ route('vendor.campaign_audience.write.delete', ['audienceUid' => 'audienceUid']) }}', {'audienceUid': __tData._uid}) %>" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwDeleteAudience-template"><i class="fa fa-trash text-danger"></i> <?= __tr('Supprimer') ?></a>
@@ -98,7 +99,6 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                         <strong><?= __tr('Mode Base Complète Activé !') ?></strong> <?= __tr('Cette audience ciblera l\'intégralité de vos contacts actuels et futurs.') ?>
                     </div>
 
-                    <div id="audienceSpecificTargetSection">
                     <div id="audienceSpecificTargetSection">
                         <!-- Contacts Individuels -->
                         <div class="form-group mb-4">
@@ -167,12 +167,56 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
                             @endif
                         </div>
                     </div>
-                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= __tr('Fermer') ?></button>
                     <button type="submit" class="btn btn-primary font-weight-bold" style="background: #10b981; border: none;"><?= __tr('Enregistrer l\'Audience') ?></button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Audience Contacts Modal -->
+<div class="modal fade" id="lwViewAudienceContactsModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><?= __tr('Contacts de l\'audience') ?> : <span id="lwViewAudienceTitle"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="lwAudienceContactsLoading" class="text-center text-muted py-4">
+                    <i class="fa fa-spinner fa-spin mr-2"></i> <?= __tr('Chargement...') ?>
+                </div>
+                <div id="lwAudienceContactsAllNotice" class="alert alert-success d-none">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <strong><span id="lwAudienceContactsAllCount"></span></strong> <?= __tr('contact(s) — cette audience cible l\'intégralité de vos contacts (actuels et futurs).') ?>
+                </div>
+                <div id="lwAudienceContactsEmptyNotice" class="text-muted small italic p-3 border rounded bg-light d-none">
+                    <?= __tr('Aucun contact ne correspond aux critères de cette audience pour le moment.') ?>
+                </div>
+                <table id="lwAudienceContactsTable" class="table table-sm table-hover d-none">
+                    <thead>
+                        <tr>
+                            <th><?= __tr('Nom') ?></th>
+                            <th><?= __tr('Numéro WhatsApp') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lwAudienceContactsBody"></tbody>
+                </table>
+                <div id="lwAudienceContactsPagination" class="d-flex align-items-center justify-content-between mt-2 d-none">
+                    <span class="small text-muted" id="lwAudienceContactsSummary"></span>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="lwAudienceContactsPrev"><i class="fa fa-chevron-left"></i> <?= __tr('Précédent') ?></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="lwAudienceContactsNext"><?= __tr('Suivant') ?> <i class="fa fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= __tr('Fermer') ?></button>
+            </div>
         </div>
     </div>
 </div>
@@ -335,6 +379,72 @@ $hasManageAccess = hasVendorAccess('manage_campaigns');
         updateAudienceSelectionCounts();
         $('#lwCreateAudienceModal').modal('show');
     }
+
+    // ── View Audience Contacts ──
+    var lwAudienceContactsState = { audienceUid: null, page: 1 };
+
+    function viewAudienceContacts(audienceUid, title) {
+        lwAudienceContactsState.audienceUid = audienceUid;
+        lwAudienceContactsState.page = 1;
+        $('#lwViewAudienceTitle').text(title);
+        $('#lwViewAudienceContactsModal').modal('show');
+        loadAudienceContactsPage();
+    }
+
+    function loadAudienceContactsPage() {
+        $('#lwAudienceContactsLoading').removeClass('d-none');
+        $('#lwAudienceContactsAllNotice, #lwAudienceContactsEmptyNotice, #lwAudienceContactsTable, #lwAudienceContactsPagination').addClass('d-none');
+
+        $.ajax({
+            url: '{{ route("vendor.campaign_audience.contacts.view", ["audienceUid" => "AUDIENCE_UID"]) }}'.replace('AUDIENCE_UID', lwAudienceContactsState.audienceUid),
+            type: 'GET',
+            data: { page: lwAudienceContactsState.page },
+            dataType: 'json',
+            success: function(res) {
+                $('#lwAudienceContactsLoading').addClass('d-none');
+                if (!res || res.reaction != 1) {
+                    $('#lwAudienceContactsEmptyNotice').removeClass('d-none');
+                    return;
+                }
+                if (res.is_all_contacts) {
+                    $('#lwAudienceContactsAllCount').text(res.total);
+                    $('#lwAudienceContactsAllNotice').removeClass('d-none');
+                    return;
+                }
+                if (!res.contacts || res.contacts.length === 0) {
+                    $('#lwAudienceContactsEmptyNotice').removeClass('d-none');
+                    return;
+                }
+                var body = $('#lwAudienceContactsBody').empty();
+                res.contacts.forEach(function(c) {
+                    body.append('<tr><td>' + $('<div>').text(c.name).html() + '</td><td>' + $('<div>').text(c.wa_id || '-').html() + '</td></tr>');
+                });
+                $('#lwAudienceContactsTable').removeClass('d-none');
+
+                var start = (res.page - 1) * res.per_page + 1;
+                var end = Math.min(res.page * res.per_page, res.total);
+                $('#lwAudienceContactsSummary').text('{{ __tr("Affichage") }} ' + start + '-' + end + ' {{ __tr("sur") }} ' + res.total);
+                $('#lwAudienceContactsPrev').prop('disabled', res.page <= 1);
+                $('#lwAudienceContactsNext').prop('disabled', (res.page * res.per_page) >= res.total);
+                $('#lwAudienceContactsPagination').removeClass('d-none');
+            },
+            error: function() {
+                $('#lwAudienceContactsLoading').addClass('d-none');
+                $('#lwAudienceContactsEmptyNotice').removeClass('d-none');
+            }
+        });
+    }
+
+    $('#lwAudienceContactsPrev').on('click', function() {
+        if (lwAudienceContactsState.page > 1) {
+            lwAudienceContactsState.page--;
+            loadAudienceContactsPage();
+        }
+    });
+    $('#lwAudienceContactsNext').on('click', function() {
+        lwAudienceContactsState.page++;
+        loadAudienceContactsPage();
+    });
 
     $('#lwCreateAudienceModal').on('show.bs.modal hidden.bs.modal', function () {
         setTimeout(updateAudienceSelectionCounts, 100);

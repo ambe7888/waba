@@ -770,6 +770,12 @@ Route::middleware([
                             'processDelete',
                         ])->name('vendor.campaign_audience.write.delete');
 
+                        // Resolved, paginated list of contacts targeted by an audience
+                        Route::get('/{audienceUid}/contacts', [
+                            \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
+                            'viewContacts',
+                        ])->name('vendor.campaign_audience.contacts.view');
+
                         // AJAX search contacts for Selectize remote loading
                         Route::get('/contacts/search', [
                             \App\Yantrana\Components\CampaignAudience\Controllers\CampaignAudienceController::class,
