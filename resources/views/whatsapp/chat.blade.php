@@ -18,13 +18,60 @@
         background-color: #f5f2ea !important;
     }
     #lwChatWindowBox .conversation {
-        background-color: #f0ece0 !important;
+        background-color: #f5f2ea !important;
+        background-image:
+            radial-gradient(circle at 20% 18%, rgba(12, 107, 83, 0.05) 0, transparent 42%),
+            radial-gradient(circle at 82% 68%, rgba(173, 127, 43, 0.05) 0, transparent 40%) !important;
     }
     #lwChatWindowBox .user-bar {
-        background: #094e3c !important;
+        background: #ffffff !important;
+        color: #16241d !important;
+        border-bottom: 1px solid rgba(22, 36, 29, 0.08) !important;
+    }
+    #lwChatWindowBox .user-bar .back i {
+        color: #16241d !important;
+    }
+    #lwChatWindowBox .user-bar .avatar {
+        background: #0c6b53 !important;
+        border: none !important;
+        color: #ffffff !important;
+    }
+    #lwChatWindowBox .user-bar .name,
+    #lwChatWindowBox .user-bar .contact-name-main span:first-child {
+        color: #16241d !important;
+    }
+    #lwChatWindowBox .user-bar .contact-name-main a,
+    #lwChatWindowBox .user-bar .contact-name-main > span:nth-child(2) {
+        color: #64705f !important;
+        font-family: 'IBM Plex Mono', monospace;
+    }
+    #lwChatWindowBox .user-bar .badge-info {
+        background: #e2f0ea !important;
+        color: #094e3c !important;
+        border: 1px solid rgba(12, 107, 83, 0.25) !important;
+    }
+    #lwChatWindowBox .user-bar .badge-warning {
+        background: #f6ecd7 !important;
+        color: #ad7f2b !important;
+        border: 1px solid rgba(173, 127, 43, 0.3) !important;
+    }
+    #lwChatWindowBox .user-bar .lw-whatsapp-bar-icon-btn,
+    #lwChatWindowBox .user-bar .lw-whatsapp-bar-icon-btn .fa-search,
+    #lwChatWindowBox .user-bar .lw-whatsapp-bar-icon-btn .fa-ellipsis-v,
+    #lwChatWindowBox .user-bar .text-white {
+        color: #64705f !important;
+    }
+    #lwChatWindowBox .user-bar .lw-whatsapp-bar-icon-btn {
+        border-radius: 10px;
+        padding: 6px;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    #lwChatWindowBox .user-bar .lw-whatsapp-bar-icon-btn:hover {
+        background: #efeadd;
+        color: #16241d !important;
     }
     .card.lw-whatsapp-chat-block-container .lw-contact-avatar-modern {
-        background: linear-gradient(135deg, #0c6b53 0%, #094e3c 100%) !important;
+        background: #0c6b53 !important;
     }
     .card.lw-whatsapp-chat-block-container .message.received {
         color: #2b2620;
