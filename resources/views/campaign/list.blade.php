@@ -20,28 +20,28 @@ $listRoute = $type === 'meta' ? 'vendor.campaign.read.list' : 'vendor.campaign.r
 ?>
 <div class="container-fluid pt-4 pb-4">
     <!-- Barre d'action avec boutons bien visibles -->
-    <div class="row mb-3 align-items-center">
-        <div class="col-md-5 mb-2 mb-md-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 p-3" style="background: #ffffff; border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.07); gap: 12px;">
+        <div>
             @if($status == 'archived')
-                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'active', 'type' => $type]) }}" class="btn btn-success font-weight-bold btn-sm text-white shadow-sm" style="border-radius: 8px;">
+                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'active', 'type' => $type]) }}" class="btn btn-success font-weight-bold text-white" style="border-radius: 10px; padding: 0.6rem 1.1rem; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);">
                     <i class="fas fa-arrow-left mr-1"></i> {{ __tr('Retour aux Campagnes Actives') }}
                 </a>
             @else
-                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'archived', 'type' => $type]) }}" class="btn btn-warning text-white font-weight-bold btn-sm shadow-sm" style="border-radius: 8px;">
+                <a href="{{ route('vendor.campaign.read.list_view', ['status' => 'archived', 'type' => $type]) }}" class="btn btn-warning text-white font-weight-bold" style="border-radius: 10px; padding: 0.6rem 1.1rem; box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3);">
                     <i class="fas fa-archive mr-1"></i> {{ __tr('Voir les Archives') }}
                 </a>
             @endif
         </div>
-        <div class="col-md-7 text-md-right">
+        <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
             @if(class_exists('\Addons\WhatsJetDripCampaignAddon\Models\DripCampaign'))
-            <a class="btn text-white btn-sm font-weight-bold mr-1 shadow-sm" href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}" style="background: #8b5cf6; border-radius: 8px;">
+            <a class="btn text-white font-weight-bold" href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}" style="background: #8b5cf6; border-radius: 10px; padding: 0.6rem 1.1rem; box-shadow: 0 3px 8px rgba(139, 92, 246, 0.35);">
                 <i class="fas fa-clock mr-1"></i> {{ __tr('Campagnes Drip') }}
             </a>
             @endif
-            <a class="btn btn-primary btn-sm font-weight-bold mr-1 shadow-sm" href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}" style="border-radius: 8px;">
+            <a class="btn text-white font-weight-bold" href="{{ route('vendor.campaign.new.view', ['campaignType' => 'non-template']) }}" style="background: #2563eb; border: none; border-radius: 10px; padding: 0.6rem 1.1rem; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);">
                 <i class="fas fa-bolt mr-1"></i> {{ __tr('Nouvelle Campagne Libre') }}
             </a>
-            <a class="btn btn-success btn-sm font-weight-bold shadow-sm" href="{{ route('vendor.campaign.new.view') }}" style="border-radius: 8px; background: #10b981; border: none;">
+            <a class="btn text-white font-weight-bold" href="{{ route('vendor.campaign.new.view') }}" style="border-radius: 10px; padding: 0.6rem 1.1rem; background: #10b981; border: none; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);">
                 <i class="fas fa-plus mr-1"></i> {{ __tr('Créer une Campagne') }}
             </a>
         </div>
