@@ -5,7 +5,21 @@ $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
     ->where('vendors__id', $vendorId)
     ->latest()
     ->get();
+// Contact's active_reminder/active_drip_campaign are accessors that each
+// run their own DB query on access - fine for the single contact shown in
+// a chat header, but every contact on this page pays that cost when the
+// list gets JSON-encoded below. Measured on vendor 32 (26,471 contacts):
+// 52,942 hidden queries and 28.7s just to encode $contactsList, neither
+// field used anywhere on this page.
+$orders->each(function ($order) {
+    if ($order->contact) {
+        $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
+    }
+});
 $contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
+$contactsList->each(function ($contact) {
+    $contact->makeHidden(['active_reminder', 'active_drip_campaign']);
+});
 $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
 $teamMembers = \DB::table('users')
     ->join('vendor_users', 'vendor_users.users__id', '=', 'users._id')

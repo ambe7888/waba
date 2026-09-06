@@ -1125,6 +1125,17 @@ Route::group([
                 ->where('vendors__id', $vendorId)
                 ->latest()
                 ->get();
+            // Each order's contact carries active_reminder/active_drip_campaign
+            // accessors that run their own DB query on every access - fine for
+            // the one contact shown in a chat header, but this page serializes
+            // every order's contact, so with 241 orders that was 482 hidden
+            // queries and ~290ms just to json_encode the response (measured on
+            // vendor 32). Neither field is used on the orders list.
+            $orders->each(function ($order) {
+                if ($order->contact) {
+                    $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
+                }
+            });
             return response()->json([
                 'is_feature_available' => (bool) (vendorPlanDetails('ecommerce_catalog', 1, $vendorId)['is_limit_available'] ?? false),
                 'orders' => $orders,
