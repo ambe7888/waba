@@ -6,11 +6,14 @@
 ----------------------------------------------------------------------------- */
 @endphp
 
-@extends('layouts.app', ['title' => __tr('Settings')])
+@php
+$pageTitle = ($pageType == 'orders') ? __tr('Commandes') : __tr('Settings');
+@endphp
+@extends('layouts.app', ['title' => $pageTitle])
 
 @section('content')
     @include('users.partials.header', [
-    'title' => __tr('Settings'),
+    'title' => $pageTitle,
     'description' => '',
     'class' => 'col-lg-7'
     ])
