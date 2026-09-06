@@ -561,7 +561,7 @@ $groupDescription = $groupUid ? $currentGroup->description : '';
             <!-- Datatable Card with Optimized Compact Columns -->
             <div class="card lw-contact-page-card border-0 overflow-hidden">
                 <div class="table-responsive py-2">
-                    <x-lw.datatable data-page-length="500" id="lwContactList" class="table table-hover align-items-center mb-0" :url="route('vendor.contact.read.list', ['groupUid' => $groupUid])">
+                    <x-lw.datatable data-page-length="100" id="lwContactList" class="table table-hover align-items-center mb-0" :url="route('vendor.contact.read.list', ['groupUid' => $groupUid])">
                         <th style="width: 1px;padding:0;" data-name="none"></th>
                         <th style="width: 40px;" data-name="none" data-template="#lwSelectMultipleContactsCheckbox"><i class="far fa-check-square"></i></th>
                         <th data-orderable="true" data-name="first_name">{{ __tr('First Name') }}</th>

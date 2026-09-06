@@ -653,6 +653,46 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * AJAX search contacts for the manual-order form's Selectize picker.
+     *
+     * Replaces embedding every contact in the orders page - vendor 32
+     * (26,471 contacts) turned that into an 18MB payload and 26k <option>
+     * elements for Alpine to render, which stayed slow even after the
+     * N+1 fix on the initial query.
+     */
+    public function searchContacts(Request $request)
+    {
+        if (!hasVendorAccess('manage_orders')) {
+            return response()->json([]);
+        }
+
+        $vendorId = getVendorId();
+        $search = trim($request->get('q', ''));
+
+        $query = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->select('_id', 'first_name', 'last_name', 'wa_id');
+
+        if ($search !== '') {
+            $escapedSearch = str_replace(['%', '_'], ['\\%', '\\_'], $search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('first_name', 'LIKE', "%{$escapedSearch}%")
+                  ->orWhere('last_name', 'LIKE', "%{$escapedSearch}%")
+                  ->orWhere('wa_id', 'LIKE', "%{$escapedSearch}%");
+            });
+        }
+
+        $limit = $search === '' ? 1000 : 200;
+        $contacts = $query->orderBy('first_name')->limit($limit)->get();
+
+        return response()->json($contacts->map(function ($c) {
+            return [
+                'value' => (string) $c->_id,
+                'text' => trim($c->first_name . ' ' . $c->last_name) . ' (+' . $c->wa_id . ')',
+            ];
+        }));
+    }
+
+    /**
      * Create Manual Order by Vendor
      */
     public function createManualOrder(Request $request)

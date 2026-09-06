@@ -1290,6 +1290,11 @@ Route::middleware([
                 'createManualOrder',
             ])->name('vendor.ecommerce.orders.create_manual');
 
+            Route::get('/ecommerce/orders/search-contacts', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'searchContacts',
+            ])->name('vendor.ecommerce.orders.search_contacts');
+
             Route::post('/ecommerce/orders/send-summary/{orderUid}', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'sendOrderSummaryMessage',

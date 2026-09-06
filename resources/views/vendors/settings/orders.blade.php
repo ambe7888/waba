@@ -16,10 +16,11 @@ $orders->each(function ($order) {
         $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
     }
 });
-$contactsList = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)->orderBy('first_name')->get();
-$contactsList->each(function ($contact) {
-    $contact->makeHidden(['active_reminder', 'active_drip_campaign']);
-});
+// The contact picker used to embed every contact ($contactsList, all
+// 26,471 of them for vendor 32) into the page as an 18MB JSON payload and
+// 26k <option> elements. Replaced by a Selectize remote-search field
+// (searchContacts()/vendor.ecommerce.orders.search_contacts) that only
+// ever loads a page's worth of matches - nothing to fetch here anymore.
 $productsList = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->orderBy('name')->get();
 $teamMembers = \DB::table('users')
     ->join('vendor_users', 'vendor_users.users__id', '=', 'users._id')
@@ -131,7 +132,7 @@ $teamMembers = \DB::table('users')
 }
 </style>
 
-<div class="container-fluid pb-5" x-data="ordersPageData()">
+<div class="container-fluid pb-5" x-data="ordersPageData()" id="lwOrdersPageRoot">
 
     <!-- Header Section -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
@@ -404,11 +405,8 @@ $teamMembers = \DB::table('users')
                     <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                         <div class="form-group mb-3">
                             <label class="font-weight-bold text-dark">{{ __tr('Sélectionner le Client WhatsApp *') }}</label>
-                            <select class="form-control custom-input-white p-2" x-model="newOrderContactId" required>
+                            <select id="lwOrderContactSelectize" class="form-control custom-input-white p-2" required>
                                 <option value="">-- {{ __tr('Choisir un client') }} --</option>
-                                <template x-for="c in allContacts" :key="c._id">
-                                    <option :value="c._id" x-text="(c.first_name + ' ' + c.last_name + ' (' + c.wa_id + ')')"></option>
-                                </template>
                             </select>
                         </div>
 
@@ -658,7 +656,6 @@ $teamMembers = \DB::table('users')
 function ordersPageData() {
     return {
         allOrders: {!! json_encode($orders) !!},
-        allContacts: {!! json_encode($contactsList) !!},
         allProducts: {!! json_encode($productsList) !!},
         teamMembers: {!! json_encode($teamMembers) !!},
         orderSearch: '',
@@ -1101,4 +1098,49 @@ function ordersPageData() {
         }
     };
 }
+</script>
+
+<script>
+(function() {
+    var orderContactSelectize = null;
+    var orderContactSearchTimer = null;
+
+    $('#createManualOrderModal').on('shown.bs.modal', function() {
+        if (orderContactSelectize) return;
+        orderContactSelectize = $('#lwOrderContactSelectize').selectize({
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            maxOptions: 1000,
+            preload: 'focus',
+            create: false,
+            placeholder: '{{ __tr("Cliquez pour voir la liste ou tapez un nom/numéro...") }}',
+            load: function(query, callback) {
+                clearTimeout(orderContactSearchTimer);
+                orderContactSearchTimer = setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route("vendor.ecommerce.orders.search_contacts") }}',
+                        type: 'GET',
+                        data: { q: query || '' },
+                        dataType: 'json',
+                        error: function() { callback(); },
+                        success: function(res) { callback(res); }
+                    });
+                }, 150);
+            },
+            onChange: function(value) {
+                var root = document.getElementById('lwOrdersPageRoot');
+                if (root) {
+                    Alpine.$data(root).newOrderContactId = value || '';
+                }
+            }
+        })[0].selectize;
+    });
+
+    $('#createManualOrderModal').on('hidden.bs.modal', function() {
+        if (orderContactSelectize) {
+            orderContactSelectize.clear(true);
+        }
+    });
+})();
 </script>
