@@ -93,6 +93,9 @@ $groupDescription = $groupUid ? $currentGroup->description : '';
     #lwContactList tbody tr:hover {
         background-color: rgba(37, 99, 235, 0.05) !important;
     }
+    #lwContactList tbody tr:has(input.lw-checkboxes:checked) {
+        background-color: rgba(37, 99, 235, 0.1) !important;
+    }
     .lw-contact-action-group .btn {
         padding: 0.35rem 0.65rem;
         font-size: 0.8rem;
@@ -513,6 +516,8 @@ $groupDescription = $groupUid ? $currentGroup->description : '';
                             <i class="fas fa-filter mr-1"></i> {{ __tr('Filtres avancés') }}
                         </a>
                         @endif
+
+                        <span x-show="selectedContacts.length" x-cloak class="badge badge-pill badge-primary font-weight-bold" style="font-size: 0.8rem; padding: 0.5rem 0.9rem;" x-text="selectedContacts.length + ' {{ __tr('sélectionné(s)') }}'"></span>
                     </div>
 
                     <!-- Right Toolbar: Delete All / Vider le groupe -->
@@ -815,7 +820,7 @@ $groupDescription = $groupUid ? $currentGroup->description : '';
     
     // Row click selection
     $('#lwContactList tbody').on('click', 'tr', function(e) {
-        if ($(e.target).closest('a, button, input, select, .dropdown-menu, label').length) {
+        if ($(e.target).closest('a, button, input, select, .dropdown-menu, label, .lw-checkbox-cell-wrapper').length) {
             return;
         }
         var checkbox = $(this).find('input[type="checkbox"].lw-checkboxes');
