@@ -498,7 +498,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="conversation" style="background-color: rgba(255, 255, 255, 0.35) !important;">
+                                                <div class="conversation" style="background-color: rgba(255, 255, 255, 0.82) !important;">
                                                     <div class="conversation-container" id="lwConversionChatContainer">
                                                             <div class="w-100" id="lwEndOfChats">&shy;</div>
                                                             <template x-for="whatsappMessageLogItem in whatsappMessageLogs">
