@@ -793,10 +793,18 @@ function ordersPageData() {
         },
 
         setTodayFilter: function() {
+            // UTC, not the browser's local date: created_at is stored and
+            // compared in UTC below, and the server (app timezone UTC)
+            // is what every other "today" stat in this app is computed
+            // against. Using the browser's local calendar day here made
+            // this button pick a date that could be a day off from what
+            // orders actually have, depending on the viewer's timezone -
+            // showing 0 results despite orders existing for the real
+            // "today".
             var today = new Date();
-            var yyyy = today.getFullYear();
-            var mm = String(today.getMonth() + 1).padStart(2, '0');
-            var dd = String(today.getDate()).padStart(2, '0');
+            var yyyy = today.getUTCFullYear();
+            var mm = String(today.getUTCMonth() + 1).padStart(2, '0');
+            var dd = String(today.getUTCDate()).padStart(2, '0');
             this.orderDateFilter = yyyy + '-' + mm + '-' + dd;
         },
 
@@ -820,15 +828,15 @@ function ordersPageData() {
                 var matchesSource = !self.orderSourceFilter || 
                     orderSource.toLowerCase().indexOf(self.orderSourceFilter.toLowerCase()) !== -1;
 
-                // Date filter (YYYY-MM-DD match)
+                // Date filter (YYYY-MM-DD match, in UTC - see setTodayFilter)
                 var matchesDate = true;
                 if (self.orderDateFilter && o.created_at) {
                     try {
                         var d = new Date(o.created_at);
                         if (!isNaN(d.getTime())) {
-                            var yyyy = d.getFullYear();
-                            var mm = String(d.getMonth() + 1).padStart(2, '0');
-                            var dd = String(d.getDate()).padStart(2, '0');
+                            var yyyy = d.getUTCFullYear();
+                            var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+                            var dd = String(d.getUTCDate()).padStart(2, '0');
                             var orderCreatedStr = yyyy + '-' + mm + '-' + dd;
                             matchesDate = (orderCreatedStr === self.orderDateFilter);
                         } else {
