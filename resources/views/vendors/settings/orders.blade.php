@@ -29,30 +29,115 @@ $teamMembers = \DB::table('users')
     ->get();
 @endphp
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-.sharp-card {
-    border: 2px solid #cbd5e1 !important;
-    border-radius: 16px !important;
-    background: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+#lwOrdersPageRoot {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-.order-status-badge {
-    font-size: 0.78rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 20px;
+#lwOrdersPageRoot h1,
+#lwOrdersPageRoot h5 {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: -0.01em;
+}
+.sharp-card {
+    border: 1px solid #e4e7ec !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+}
+.lw-kpi-num {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+.lw-kpi-label {
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.04em;
 }
+.order-status-badge {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.76rem;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.order-status-badge.st-new { background: #fdf1dc; color: #92600a; }
+.order-status-badge.st-confirmed { background: #e3ebff; color: #1e4ed8; }
+.order-status-badge.st-processing { background: #efe6ff; color: #6d28d9; }
+.order-status-badge.st-delivered { background: #e1f5ec; color: #04704e; }
+.order-status-badge.st-cancelled { background: #fbe6e4; color: #b3231b; }
 .custom-input-white {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    border: 2px solid #94a3b8 !important;
+    background: #f7f8fa !important;
+    color: #10151f !important;
+    border: 1px solid #e4e7ec !important;
     border-radius: 10px !important;
+    font-family: 'Manrope', sans-serif;
 }
 .custom-input-white:focus {
-    border-color: #10b981 !important;
-    box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.25) !important;
+    border-color: #059669 !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+}
+.lw-orders-ref, .lw-orders-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.lw-orders-th {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #626a79;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e4e7ec !important;
+}
+.lw-orders-table td {
+    border-color: #e4e7ec !important;
+}
+.lw-orders-table tbody tr:hover {
+    background: #f7f8fa;
+}
+.lw-btn-modern {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 10px !important;
+    padding: 0.5rem 1rem;
+}
+.lw-btn-modern.primary {
+    background: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+}
+.lw-btn-modern.outline {
+    background: #ffffff !important;
+    border: 1px solid #e4e7ec !important;
+    color: #10151f !important;
+}
+.lw-count-pill {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #10151f;
+    color: #ffffff;
+    padding: 0.32rem 0.85rem;
+    border-radius: 999px;
+}
+.lw-today-btn {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #04704e;
+    background: #e1f5ec;
+    border: none;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
 }
 
 /* PERFECT CSS PRINT STYLES */
@@ -142,17 +227,17 @@ $teamMembers = \DB::table('users')
         </div>
         <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
             @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
-            <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn btn-emerald font-weight-bold text-white shadow-sm" style="background: #10b981; border: none; border-radius: 10px;">
-                <i class="fa fa-plus-circle mr-1"></i> {{ __tr('Enregistrer une Commande') }}
+            <button type="button" @click="$('#createManualOrderModal').modal('show')" class="btn lw-btn-modern primary">
+                {{ __tr('Enregistrer une Commande') }}
             </button>
             @endif
 
-            <button type="button" @click="exportOrdersCSV()" class="btn btn-outline-success font-weight-bold" style="border-radius: 10px; border-color: #10b981; color: #10b981;">
-                <i class="fa fa-file-excel mr-1"></i> {{ __tr('Exporter Excel / CSV') }}
+            <button type="button" @click="exportOrdersCSV()" class="btn lw-btn-modern outline">
+                {{ __tr('Exporter Excel / CSV') }}
             </button>
 
-            <button type="button" @click="printOrdersListOnly()" class="btn btn-outline-dark font-weight-bold" style="border-radius: 10px;">
-                <i class="fa fa-print mr-1"></i> {{ __tr('Imprimer la Liste') }}
+            <button type="button" @click="printOrdersListOnly()" class="btn lw-btn-modern outline">
+                {{ __tr('Imprimer la Liste') }}
             </button>
         </div>
     </div>
@@ -162,58 +247,30 @@ $teamMembers = \DB::table('users')
     <!-- Top Key Metrics Cards -->
     <div class="row mb-4 no-print">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card sharp-card p-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Total Commandes') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.length"></h3>
-                    </div>
-                    <div class="icon-circle text-primary p-3 rounded-circle" style="background: #eff6ff;">
-                        <i class="fa fa-shopping-bag fa-lg"></i>
-                    </div>
-                </div>
+            <div class="card sharp-card p-3" style="border-left: 3px solid #059669 !important;">
+                <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Total Commandes') }}</small>
+                <div class="lw-kpi-num text-dark" x-text="allOrders.length"></div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card sharp-card p-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Nouvelles (Validées)') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.filter(o => o.status === 'validated').length"></h3>
-                    </div>
-                    <div class="icon-circle text-warning p-3 rounded-circle" style="background: #fffbeb;">
-                        <i class="fa fa-clock fa-lg"></i>
-                    </div>
-                </div>
+            <div class="card sharp-card p-3" style="border-left: 3px solid #92600a !important;">
+                <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Nouvelles (Validées)') }}</small>
+                <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'validated').length"></div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card sharp-card p-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('En Cours / Livraison') }}</small>
-                        <h3 class="font-weight-bold text-dark mb-0" x-text="allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length"></h3>
-                    </div>
-                    <div class="icon-circle text-info p-3 rounded-circle" style="background: #f0f9ff;">
-                        <i class="fa fa-truck fa-lg"></i>
-                    </div>
-                </div>
+            <div class="card sharp-card p-3" style="border-left: 3px solid #6d28d9 !important;">
+                <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('En Cours / Livraison') }}</small>
+                <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length"></div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card sharp-card p-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Commandes Livrées') }}</small>
-                        <h3 class="font-weight-bold text-emerald mb-0" style="color: #10b981;" x-text="allOrders.filter(o => o.status === 'delivered').length"></h3>
-                    </div>
-                    <div class="icon-circle text-emerald p-3 rounded-circle" style="background: #ecfdf5; color: #10b981;">
-                        <i class="fa fa-check-circle fa-lg"></i>
-                    </div>
-                </div>
+            <div class="card sharp-card p-3" style="border-left: 3px solid #04704e !important;">
+                <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Commandes Livrées') }}</small>
+                <div class="lw-kpi-num" style="color: #04704e;" x-text="allOrders.filter(o => o.status === 'delivered').length"></div>
             </div>
         </div>
     </div>
@@ -221,7 +278,7 @@ $teamMembers = \DB::table('users')
     <!-- MAIN ORDERS TABLE CARD -->
     <div class="card sharp-card mb-4" id="printableOrdersListArea">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0 no-print">
-            <h5 class="font-weight-bold text-dark mb-1"><i class="fa fa-list text-emerald mr-2"></i>{{ __tr('Liste Complète des Commandes') }}</h5>
+            <h5 class="font-weight-bold text-dark mb-1">{{ __tr('Liste Complète des Commandes') }}</h5>
             <p class="text-muted small mb-0">{{ __tr('Filtrez par date, statut ou agent/source, puis cliquez sur le reçu pour voir les infos détaillées') }}</p>
         </div>
 
@@ -230,12 +287,7 @@ $teamMembers = \DB::table('users')
             <div class="row mb-3 no-print">
                 <div class="col-md-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control p-3 custom-input-white" style="border-radius: 10px 0 0 10px !important;" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input="resetOrdersPage()">
-                        <div class="input-group-append">
-                            <span class="input-group-text bg-white" style="border: 2px solid #94a3b8; border-left: none; border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
-                        </div>
-                    </div>
+                    <input type="text" class="form-control p-3 custom-input-white" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input="resetOrdersPage()">
                 </div>
 
                 <div class="col-md-3 mb-3">
@@ -255,10 +307,10 @@ $teamMembers = \DB::table('users')
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Toutes les sources & agents') }}</option>
-                        <option value="whatsapp">🤖 {{ __tr('Bot / IA WhatsApp') }}</option>
-                        <option value="manuel">👤 {{ __tr('Vendeur Manuel') }}</option>
+                        <option value="whatsapp">{{ __tr('Bot / IA WhatsApp') }}</option>
+                        <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
                         <template x-for="u in teamMembers" :key="u._id">
-                            <option :value="u.first_name + ' ' + u.last_name" x-text="'👨‍💼 Agent: ' + u.first_name + ' ' + u.last_name"></option>
+                            <option :value="u.first_name + ' ' + u.last_name" x-text="'Agent : ' + u.first_name + ' ' + u.last_name"></option>
                         </template>
                     </select>
                 </div>
@@ -283,8 +335,8 @@ $teamMembers = \DB::table('users')
                         <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
                     </select>
 
-                    <button type="button" @click="setTodayFilter(); resetOrdersPage();" class="btn btn-sm btn-outline-primary font-weight-bold" style="border-radius: 8px;">
-                        <i class="fa fa-calendar-day mr-1"></i> {{ __tr('Commandes du jour') }}
+                    <button type="button" @click="setTodayFilter(); resetOrdersPage();" class="btn lw-today-btn">
+                        {{ __tr('Commandes du jour') }}
                     </button>
 
                     <span class="small font-weight-bold text-muted ml-2">{{ __tr('Par page:') }}</span>
@@ -296,46 +348,46 @@ $teamMembers = \DB::table('users')
                     </select>
                 </div>
 
-                <div class="small font-weight-bold text-dark">
-                    <span class="badge badge-emerald text-white px-2 py-1" style="background: #10b981; font-size: 0.85rem;" x-text="getFilteredOrders().length + ' commande(s) au total'"></span>
+                <div>
+                    <span class="lw-count-pill" x-text="getFilteredOrders().length + ' commande(s) au total'"></span>
                 </div>
             </div>
 
             <!-- Orders Table -->
             <div class="table-responsive">
-                <table class="table table-hover align-items-center mb-0" style="border-radius: 12px; overflow: hidden; border: 1.5px solid #cbd5e1;">
-                    <thead class="text-muted small text-uppercase" style="background: #f8fafc !important;">
+                <table class="table table-hover align-items-center mb-0 lw-orders-table" style="border-radius: 12px; overflow: hidden; border: 1px solid #e4e7ec;">
+                    <thead>
                         <tr>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Réf / Date') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Client WhatsApp') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Articles & Montant Total') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Source / Agent') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;">{{ __tr('Statut Actuel') }}</th>
-                            <th style="border-bottom: 2px solid #cbd5e1;" class="text-right no-print">{{ __tr('Actions') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Réf / Date') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Client WhatsApp') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Source / Agent') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Statut Actuel') }}</th>
+                            <th class="lw-orders-th text-right no-print">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="order in getPaginatedOrders()" :key="order._uid">
                             <tr>
                                 <td class="align-middle">
-                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold text-emerald text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
+                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
                                     </button>
-                                    <small class="text-muted d-block" x-text="formatDate(order.created_at)"></small>
+                                    <small class="text-muted d-block lw-orders-mono" x-text="formatDate(order.created_at)"></small>
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
                                     <template x-if="order.contact && order.contact._uid">
-                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="text-emerald font-weight-bold small" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
-                                            <i class="fab fa-whatsapp mr-1"></i><span x-text="order.contact.wa_id"></span>
+                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="font-weight-bold small lw-orders-mono" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                            <span x-text="order.contact.wa_id"></span>
                                         </a>
                                     </template>
                                 </td>
                                 <td class="align-middle">
-                                    <div class="font-weight-bold text-dark" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <div class="small text-dark font-weight-bold mt-1">
+                                    <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
+                                    <div class="small text-muted mt-1">
                                         <template x-for="(it, i) in getItems(order)" :key="i">
-                                            <div class="text-truncate" style="max-width: 280px;" x-text="'• ' + (it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
+                                            <div class="text-truncate" style="max-width: 280px;" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
                                         </template>
                                         <template x-if="getItems(order).length === 0">
                                             <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
@@ -346,13 +398,13 @@ $teamMembers = \DB::table('users')
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
                                 </td>
                                 <td class="align-middle">
-                                    <span class="order-status-badge text-white"
+                                    <span class="order-status-badge"
                                           :class="{
-                                              'bg-success': order.status === 'delivered',
-                                              'bg-info': order.status === 'shipped' || order.status === 'processing',
-                                              'bg-primary': order.status === 'confirmed',
-                                              'bg-warning text-dark': order.status === 'validated',
-                                              'bg-danger': order.status === 'cancelled'
+                                              'st-delivered': order.status === 'delivered',
+                                              'st-processing': order.status === 'shipped' || order.status === 'processing',
+                                              'st-confirmed': order.status === 'confirmed',
+                                              'st-new': order.status === 'validated',
+                                              'st-cancelled': order.status === 'cancelled'
                                           }"
                                           x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : '{{ __tr('Nouvelle') }}')))">
                                     </span>
@@ -360,12 +412,12 @@ $teamMembers = \DB::table('users')
                                 <td class="align-middle text-right no-print">
                                     <div class="d-inline-flex align-items-center" style="gap: 8px;">
                                         <button type="button" @click="viewOrderDetails(order)" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;" title="{{ __tr('Voir le reçu officiel') }}">
-                                            <i class="fa fa-receipt mr-1"></i> {{ __tr('Reçu') }}
+                                            {{ __tr('Reçu') }}
                                         </button>
 
                                         <template x-if="order.contact && order.contact._uid">
                                             <a :href="getChatUrl(order.contact._uid)" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
-                                                <i class="fab fa-whatsapp"></i>
+                                                {{ __tr('WhatsApp') }}
                                             </a>
                                         </template>
 
@@ -382,7 +434,7 @@ $teamMembers = \DB::table('users')
                                         
                                         @if (hasVendorAccess('manage_orders', 'delete_orders'))
                                         <button type="button" @click="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Supprimer') }}">
-                                            <i class="fa fa-trash-alt"></i>
+                                            {{ __tr('Supprimer') }}
                                         </button>
                                         @endif
                                     </div>
@@ -392,21 +444,20 @@ $teamMembers = \DB::table('users')
                     </tbody>
                 </table>
                 <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
-                    <i class="fa fa-shopping-basket fa-3x text-muted mb-3 d-block"></i>
                     <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande ne correspond à votre recherche.') }}</p>
                 </div>
 
                 <!-- Pagination -->
                 <div x-show="getFilteredOrders().length > 0" class="d-flex align-items-center justify-content-between flex-wrap mt-3 no-print" style="gap: 10px;">
-                    <span class="small text-muted font-weight-bold"
+                    <span class="small text-muted lw-orders-mono"
                           x-text="'{{ __tr('Affichage') }} ' + (((ordersCurrentPage - 1) * ordersPerPage) + 1) + '-' + Math.min(ordersCurrentPage * ordersPerPage, getFilteredOrders().length) + ' {{ __tr('sur') }} ' + getFilteredOrders().length"></span>
                     <div class="d-flex align-items-center" style="gap: 6px;">
                         <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage <= 1" @click="ordersCurrentPage--">
-                            <i class="fa fa-chevron-left"></i> {{ __tr('Précédent') }}
+                            {{ __tr('Précédent') }}
                         </button>
-                        <span class="small font-weight-bold text-dark px-2" x-text="'{{ __tr('Page') }} ' + ordersCurrentPage + ' / ' + getOrdersPageCount()"></span>
+                        <span class="small font-weight-bold text-dark px-2 lw-orders-mono" x-text="'{{ __tr('Page') }} ' + ordersCurrentPage + ' / ' + getOrdersPageCount()"></span>
                         <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage >= getOrdersPageCount()" @click="ordersCurrentPage++">
-                            {{ __tr('Suivant') }} <i class="fa fa-chevron-right"></i>
+                            {{ __tr('Suivant') }}
                         </button>
                     </div>
                 </div>
@@ -933,8 +984,8 @@ function ordersPageData() {
 
             var src = details.source || details.created_by_vendor || '';
             if (!src) return 'WhatsApp';
-            if (src === 'whatsapp_ai') return '🤖 Bot / IA WhatsApp';
-            if (src === 'manual' || src === 'manuel') return '👤 Vendeur Manuel';
+            if (src === 'whatsapp_ai') return 'Bot / IA WhatsApp';
+            if (src === 'manual' || src === 'manuel') return 'Vendeur Manuel';
             return src;
         },
 
