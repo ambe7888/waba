@@ -14,10 +14,13 @@
     .card.lw-whatsapp-chat-block-container {
         font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .chat {
+    #lwChatWindowBox {
         background-color: #f5f2ea !important;
     }
-    .card.lw-whatsapp-chat-block-container .user-bar {
+    #lwChatWindowBox .conversation {
+        background-color: #f0ece0 !important;
+    }
+    #lwChatWindowBox .user-bar {
         background: #094e3c !important;
     }
     .card.lw-whatsapp-chat-block-container .lw-contact-avatar-modern {
