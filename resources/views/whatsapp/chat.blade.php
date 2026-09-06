@@ -7,6 +7,64 @@
 ])
 @push('head')
 {!! __yesset('dist/css/whatsapp-chat.css', true) !!}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+    .card.lw-whatsapp-chat-block-container {
+        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .card.lw-whatsapp-chat-block-container .lw-whatsapp-chat-window .chat {
+        background-color: #f5f2ea !important;
+    }
+    .card.lw-whatsapp-chat-block-container .user-bar {
+        background: #094e3c !important;
+    }
+    .card.lw-whatsapp-chat-block-container .lw-contact-avatar-modern {
+        background: linear-gradient(135deg, #0c6b53 0%, #094e3c 100%) !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.received {
+        color: #2b2620;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent {
+        background: #dcecE4 !important;
+        color: #12332a !important;
+        border: 1px solid rgba(12, 107, 83, 0.15) !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent .lw-plain-message-text {
+        color: #12332a !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent .metadata .time {
+        color: rgba(18, 51, 42, 0.55) !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent .metadata .tick img,
+    .card.lw-whatsapp-chat-block-container .message.sent .metadata .tick svg,
+    .card.lw-whatsapp-chat-block-container .message.sent .metadata .tick i {
+        filter: none !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent .lw-reply-btn {
+        color: rgba(18, 51, 42, 0.55) !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent .lw-reply-btn:hover {
+        color: #12332a !important;
+    }
+    .card.lw-whatsapp-chat-block-container .lw-highlight-replied-message {
+        background: rgba(12, 107, 83, 0.15) !important;
+        border: 1px solid rgba(12, 107, 83, 0.3) !important;
+    }
+    .card.lw-whatsapp-chat-block-container .message.sent.lw-highlight-replied-message {
+        background: #bfe0d1 !important;
+    }
+    .card.lw-whatsapp-chat-block-container .metadata .time {
+        font-family: 'IBM Plex Mono', monospace;
+    }
+    .card.lw-whatsapp-chat-block-container .conversation-compose .send .circle {
+        background: #0c6b53 !important;
+    }
+    .card.lw-whatsapp-chat-block-container .conversation-compose .send .circle:hover {
+        background: #094e3c !important;
+    }
+</style>
 @endpush
 <div x-data="initialMessageData" @chat-message-sent.window="cancelReply()"> 
 {{-- @if ($contact) --}}
