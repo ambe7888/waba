@@ -4516,8 +4516,12 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if ($messageType == 'interactive') {
                 $deliveryButtonId = Arr::get($messageObject, '0.interactive.button_reply.id');
                 if ($deliveryButtonId && preg_match('/^delivery_(delivered|failed)_(.+)$/', $deliveryButtonId, $deliveryMatches)) {
-                    app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
-                        ->updateOrderDeliveryStatus($deliveryMatches[2], $deliveryMatches[1], $vendorId, 'driver_reply');
+                    try {
+                        app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
+                            ->updateOrderDeliveryStatus($deliveryMatches[2], $deliveryMatches[1], $vendorId, 'driver_reply');
+                    } catch (\Throwable $e) {
+                        // Never let a delivery-status bug take down webhook processing.
+                    }
                     return false;
                 }
             }

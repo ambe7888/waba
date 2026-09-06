@@ -159,7 +159,11 @@ class DeliveryEngine extends BaseEngine
                 }
             }
 
-            $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
+            try {
+                $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
+            } catch (\Throwable $e) {
+                $sendResult = false;
+            }
             if (!$sendResult) {
                 $messageFailures[] = substr($order->_uid, 0, 8);
             }
