@@ -2384,12 +2384,8 @@
             this.hidePicker();
         },
         keyUp: function (editor, event) {
-            if (event && event.which == 13 && !event.shiftKey && $.trim(this.getText())) { // On Enter
-                $('.lw-input-emoji').val(this.getText());
-                $('#whatsAppMessengerForm').submit();
-                this.hidePicker();
-                window.chatFormReset();
-            }
+            // Enter now only inserts a line break (its native behaviour in
+            // this editable area) - sending is the green button's job only.
         }
     }
 }); 
