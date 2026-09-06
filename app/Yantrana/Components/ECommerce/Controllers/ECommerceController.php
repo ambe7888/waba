@@ -516,7 +516,7 @@ class ECommerceController extends BaseController
 
         $vendorId = getVendorId();
         $request->validate([
-            'status' => 'required|string|in:validated,confirmed,processing,shipped,delivered,cancelled',
+            'status' => 'required|string|in:validated,confirmed,processing,shipped,delivered,cancelled,in_delivery,delivery_failed',
         ]);
 
         $order = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
@@ -550,6 +550,8 @@ class ECommerceController extends BaseController
                     'shipped' => __tr('En livraison'),
                     'delivered' => __tr('Livrée'),
                     'cancelled' => __tr('Annulée'),
+                    'in_delivery' => __tr('En cours de livraison'),
+                    'delivery_failed' => __tr('Livraison échouée'),
                 ];
                 $statusName = $statusLabels[$request->status] ?? $request->status;
                 // Status updates are tracked via the order object itself.
@@ -569,6 +571,28 @@ class ECommerceController extends BaseController
             'message' => __tr('Statut de la commande mis à jour avec succès.'),
             'order' => $order
         ]);
+    }
+
+    /**
+     * Assign one or more orders to a delivery driver
+     */
+    public function assignOrdersToDriver(Request $request)
+    {
+        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
+        $request->validate([
+            'order_uids' => 'required|array|min:1',
+            'order_uids.*' => 'string',
+            'driver_uid' => 'required|string',
+        ]);
+
+        $vendorId = getVendorId();
+        $deliveryEngine = app(\App\Yantrana\Components\Delivery\DeliveryEngine::class);
+        $processReaction = $deliveryEngine->assignDriverToOrders($request->order_uids, $request->driver_uid, $vendorId);
+
+        return $this->processResponse($processReaction, [], [], true);
     }
 
     /**
@@ -862,6 +886,8 @@ class ECommerceController extends BaseController
             'shipped' => __tr('En livraison'),
             'delivered' => __tr('Livrée'),
             'cancelled' => __tr('Annulée'),
+            'in_delivery' => __tr('En cours de livraison'),
+            'delivery_failed' => __tr('Livraison échouée'),
         ];
 
         $lines = [

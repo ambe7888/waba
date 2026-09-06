@@ -4509,6 +4509,18 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if ($messageType == 'request_welcome') {
                 return false;
             }
+            // Delivery driver quick-reply ("Livré" / "Non livré") -- these come from a
+            // driver's phone number, not a customer, so this is handled and the webhook
+            // stops here, before any contact record would otherwise be created/updated
+            // for that driver's number below.
+            if ($messageType == 'interactive') {
+                $deliveryButtonId = Arr::get($messageObject, '0.interactive.button_reply.id');
+                if ($deliveryButtonId && preg_match('/^delivery_(delivered|failed)_(.+)$/', $deliveryButtonId, $deliveryMatches)) {
+                    app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
+                        ->updateOrderDeliveryStatus($deliveryMatches[2], $deliveryMatches[1], $vendorId, 'driver_reply');
+                    return false;
+                }
+            }
             // deleted message
             /**
              * @link https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples#status--message-deleted

@@ -56,6 +56,11 @@ return [
                 'description' => __tr('E-commerce et Catalogue'),
                 'limit' => 0, // 0 for none, 1 for enable
             ],
+            'delivery_management' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('Gestion des Livraisons'),
+                'limit' => 0, // 0 for none, 1 for enable
+            ],
         ],
     ],
     'paid' => [ // do not change this key
@@ -113,6 +118,11 @@ return [
                 'ecommerce_catalog' => [
                     'type' => 'switch', // on or off
                     'description' => __tr('E-commerce et Catalogue'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
+                'delivery_management' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Gestion des Livraisons'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
@@ -187,6 +197,11 @@ return [
                     'description' => __tr('E-commerce et Catalogue'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
+                'delivery_management' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Gestion des Livraisons'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
@@ -257,6 +272,11 @@ return [
                 'ecommerce_catalog' => [
                     'type' => 'switch', // on or off
                     'description' => __tr('E-commerce et Catalogue'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'delivery_management' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Gestion des Livraisons'),
                     'limit' => 1, // 0 for none, 1 for enable
                 ],
             ],

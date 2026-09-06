@@ -3,6 +3,7 @@ namespace App\Yantrana\Components\ECommerce\Models;
 
 use App\Yantrana\Base\BaseModel;
 use App\Yantrana\Components\Contact\Models\ContactModel;
+use App\Yantrana\Components\Delivery\Models\DeliveryDriverModel;
 
 class OrderModel extends BaseModel
 {
@@ -23,7 +24,9 @@ class OrderModel extends BaseModel
         '_id' => 'integer',
         'vendors__id' => 'integer',
         'contacts__id' => 'integer',
+        'assigned_driver__id' => 'integer',
         'order_details' => 'array',
+        'delivery_assigned_at' => 'datetime',
     ];
 
     /**
@@ -35,6 +38,8 @@ class OrderModel extends BaseModel
         'contacts__id',
         'order_details',
         'status',
+        'assigned_driver__id',
+        'delivery_assigned_at',
     ];
 
     /**
@@ -43,5 +48,13 @@ class OrderModel extends BaseModel
     public function contact()
     {
         return $this->belongsTo(ContactModel::class, 'contacts__id', '_id');
+    }
+
+    /**
+     * Relation to the assigned delivery driver
+     */
+    public function driver()
+    {
+        return $this->belongsTo(DeliveryDriverModel::class, 'assigned_driver__id', '_id');
     }
 }

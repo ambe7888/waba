@@ -1311,6 +1311,49 @@ Route::middleware([
                 'createTestOrder',
             ])->name('vendor.ecommerce.test_order');
 
+            Route::post('/ecommerce/orders/assign-driver', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'assignOrdersToDriver',
+            ])->name('vendor.ecommerce.orders.assign_driver');
+
+            // Delivery management (drivers + tracking)
+            Route::prefix('/delivery')->group(function () {
+                Route::get('/drivers', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'showDriversView',
+                ])->name('vendor.delivery.drivers.view');
+
+                Route::get('/drivers/list-data', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'driversDataTable',
+                ])->name('vendor.delivery.drivers.list');
+
+                Route::post('/drivers/process/{driverUid?}', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'processAddOrUpdateDriver',
+                ])->name('vendor.delivery.drivers.write.process');
+
+                Route::post('/drivers/{driverUid}/delete', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'processDeleteDriver',
+                ])->name('vendor.delivery.drivers.write.delete');
+
+                Route::get('/tracking', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'showTrackingView',
+                ])->name('vendor.delivery.tracking.view');
+
+                Route::get('/tracking/list-data', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'trackingDataTable',
+                ])->name('vendor.delivery.tracking.list');
+
+                Route::post('/tracking/{orderUid}/status', [
+                    \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
+                    'updateDeliveryStatusManually',
+                ])->name('vendor.delivery.tracking.write.status');
+            });
+
             Route::post('/webhook/external-order/{vendorUid}', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'externalOrderWebhook',

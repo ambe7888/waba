@@ -27,6 +27,13 @@ $teamMembers = \DB::table('users')
     ->where('vendor_users.vendors__id', $vendorId)
     ->select('users._id', 'users.first_name', 'users.last_name', 'users.username')
     ->get();
+$deliveryManagementEnabled = vendorPlanDetails('delivery_management', 1, $vendorId)['is_limit_available'];
+$deliveryDrivers = $deliveryManagementEnabled
+    ? \App\Yantrana\Components\Delivery\Models\DeliveryDriverModel::where('vendors__id', $vendorId)
+        ->where('is_active', true)
+        ->orderBy('first_name')
+        ->get(['_uid', '_id', 'first_name', 'last_name', 'zone'])
+    : collect();
 @endphp
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,6 +80,8 @@ $teamMembers = \DB::table('users')
 .order-status-badge.st-processing { background: #efe6ff; color: #6d28d9; }
 .order-status-badge.st-delivered { background: #e1f5ec; color: #04704e; }
 .order-status-badge.st-cancelled { background: #fbe6e4; color: #b3231b; }
+.order-status-badge.st-in-delivery { background: #dbeafe; color: #1e40af; }
+.order-status-badge.st-delivery-failed { background: #fde2e1; color: #9f1239; }
 .custom-input-white {
     background: #f7f8fa !important;
     color: #10151f !important;
@@ -348,7 +357,17 @@ $teamMembers = \DB::table('users')
                     </select>
                 </div>
 
-                <div>
+                <div class="d-flex align-items-center" style="gap: 10px;">
+                    @if($deliveryManagementEnabled)
+                    <template x-if="selectedOrderUids.length > 0">
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            <span class="lw-count-pill" style="background: #04704e;" x-text="selectedOrderUids.length + ' sélectionnée(s)'"></span>
+                            <button type="button" class="btn lw-btn-modern primary" style="padding: 0.32rem 0.85rem; font-size: 0.8rem;" @click="openAssignDriverModal(selectedOrderUids.slice())">
+                                {{ __tr('Assigner à un livreur') }}
+                            </button>
+                        </div>
+                    </template>
+                    @endif
                     <span class="lw-count-pill" x-text="getFilteredOrders().length + ' commande(s) au total'"></span>
                 </div>
             </div>
@@ -358,6 +377,11 @@ $teamMembers = \DB::table('users')
                 <table class="table table-hover align-items-center mb-0 lw-orders-table" style="border-radius: 12px; overflow: hidden; border: 1px solid #e4e7ec;">
                     <thead>
                         <tr>
+                            @if($deliveryManagementEnabled)
+                            <th class="lw-orders-th" style="width: 40px;">
+                                <input type="checkbox" :checked="isAllOnPageSelected()" @click="toggleSelectAllOnPage()">
+                            </th>
+                            @endif
                             <th class="lw-orders-th">{{ __tr('Réf / Date') }}</th>
                             <th class="lw-orders-th">{{ __tr('Client WhatsApp') }}</th>
                             <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
@@ -369,6 +393,11 @@ $teamMembers = \DB::table('users')
                     <tbody>
                         <template x-for="order in getPaginatedOrders()" :key="order._uid">
                             <tr>
+                                @if($deliveryManagementEnabled)
+                                <td class="align-middle">
+                                    <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)">
+                                </td>
+                                @endif
                                 <td class="align-middle">
                                     <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
@@ -404,9 +433,11 @@ $teamMembers = \DB::table('users')
                                               'st-processing': order.status === 'shipped' || order.status === 'processing',
                                               'st-confirmed': order.status === 'confirmed',
                                               'st-new': order.status === 'validated',
-                                              'st-cancelled': order.status === 'cancelled'
+                                              'st-cancelled': order.status === 'cancelled',
+                                              'st-in-delivery': order.status === 'in_delivery',
+                                              'st-delivery-failed': order.status === 'delivery_failed'
                                           }"
-                                          x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : '{{ __tr('Nouvelle') }}')))">
+                                          x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : (order.status === 'in_delivery' ? '{{ __tr('En cours de livraison') }}' : (order.status === 'delivery_failed' ? '{{ __tr('Livraison échouée') }}' : '{{ __tr('Nouvelle') }}')))))">
                                     </span>
                                 </td>
                                 <td class="align-middle text-right no-print">
@@ -421,6 +452,12 @@ $teamMembers = \DB::table('users')
                                             </a>
                                         </template>
 
+                                        @if($deliveryManagementEnabled && hasVendorAccess('manage_orders', 'add_edit_orders'))
+                                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px;" title="{{ __tr('Assigner à un livreur') }}">
+                                            {{ __tr('Livreur') }}
+                                        </button>
+                                        @endif
+
                                         @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
                                         <select class="form-control form-control-sm font-weight-bold custom-input-white" style="border-radius: 8px !important; width: 130px;" :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
                                             <option value="validated">{{ __tr('Nouvelle') }}</option>
@@ -429,6 +466,8 @@ $teamMembers = \DB::table('users')
                                             <option value="shipped">{{ __tr('En livraison') }}</option>
                                             <option value="delivered">{{ __tr('Livrée') }}</option>
                                             <option value="cancelled">{{ __tr('Annuler') }}</option>
+                                            <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
+                                            <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
                                         </select>
                                         @endif
                                         
@@ -464,6 +503,46 @@ $teamMembers = \DB::table('users')
             </div>
         </div>
     </div>
+
+    @if($deliveryManagementEnabled)
+    <!-- MODAL: ASSIGN ORDER(S) TO A DELIVERY DRIVER -->
+    <div class="modal fade" id="assignDriverModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold">{{ __tr('Assigner à un livreur') }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small" x-text="assignDriverTargets.length + ' {{ __tr('commande(s) sélectionnée(s)') }}'"></p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">{{ __tr('Choisir un livreur') }}</label>
+                        <select class="form-control custom-input-white" x-model="assignDriverSelectedId">
+                            <option value="">-- {{ __tr('Sélectionner') }} --</option>
+                            <template x-for="driver in deliveryDrivers" :key="driver._uid">
+                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '')"></option>
+                            </template>
+                        </select>
+                        <template x-if="deliveryDrivers.length === 0">
+                            <small class="text-muted d-block mt-1">
+                                {{ __tr('Aucun livreur enregistré.') }}
+                                <a href="{{ route('vendor.delivery.drivers.view') }}" target="_blank">{{ __tr('Ajouter un livreur') }}</a>
+                            </small>
+                        </template>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Fermer') }}</button>
+                    <button type="button" class="btn lw-btn-modern primary" :disabled="!assignDriverSelectedId || isAssigningDriver" @click="submitAssignDriver()">
+                        {{ __tr('Assigner et notifier par WhatsApp') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- MODAL 1: CREATE MANUAL ORDER BY VENDOR -->
     <div class="modal fade" id="createManualOrderModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
@@ -754,6 +833,76 @@ function ordersPageData() {
             var start = (this.ordersCurrentPage - 1) * this.ordersPerPage;
             return filtered.slice(start, start + this.ordersPerPage);
         },
+
+        deliveryDrivers: {!! json_encode($deliveryDrivers) !!},
+        selectedOrderUids: [],
+        assignDriverTargets: [],
+        assignDriverSelectedId: '',
+        isAssigningDriver: false,
+        isOrderSelected: function(uid) {
+            return this.selectedOrderUids.indexOf(uid) !== -1;
+        },
+        toggleOrderSelected: function(uid) {
+            var idx = this.selectedOrderUids.indexOf(uid);
+            if (idx !== -1) {
+                this.selectedOrderUids.splice(idx, 1);
+            } else {
+                this.selectedOrderUids.push(uid);
+            }
+        },
+        isAllOnPageSelected: function() {
+            var page = this.getPaginatedOrders();
+            if (page.length === 0) return false;
+            var self = this;
+            return page.every(function(o) { return self.selectedOrderUids.indexOf(o._uid) !== -1; });
+        },
+        toggleSelectAllOnPage: function() {
+            var page = this.getPaginatedOrders();
+            var self = this;
+            if (this.isAllOnPageSelected()) {
+                page.forEach(function(o) {
+                    var idx = self.selectedOrderUids.indexOf(o._uid);
+                    if (idx !== -1) self.selectedOrderUids.splice(idx, 1);
+                });
+            } else {
+                page.forEach(function(o) {
+                    if (self.selectedOrderUids.indexOf(o._uid) === -1) {
+                        self.selectedOrderUids.push(o._uid);
+                    }
+                });
+            }
+        },
+        openAssignDriverModal: function(orderUids) {
+            this.assignDriverTargets = orderUids;
+            this.assignDriverSelectedId = '';
+            $('#assignDriverModal').modal('show');
+        },
+        submitAssignDriver: function() {
+            if (!this.assignDriverSelectedId || this.assignDriverTargets.length === 0) return;
+            var self = this;
+            this.isAssigningDriver = true;
+            __DataRequest.post('{{ route('vendor.ecommerce.orders.assign_driver') }}', {
+                order_uids: this.assignDriverTargets,
+                driver_uid: this.assignDriverSelectedId
+            }, function(response) {
+                self.isAssigningDriver = false;
+                var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                var msg = response.message || (response.data && response.data.message) || (isSuccess ? 'Commande(s) assignée(s).' : 'Erreur.');
+                if (isSuccess) {
+                    showSuccessMessage(msg);
+                    self.assignDriverTargets.forEach(function(uid) {
+                        var order = self.allOrders.find(function(o) { return o._uid === uid; });
+                        if (order) { order.status = 'in_delivery'; }
+                        var idx = self.selectedOrderUids.indexOf(uid);
+                        if (idx !== -1) self.selectedOrderUids.splice(idx, 1);
+                    });
+                    $('#assignDriverModal').modal('hide');
+                } else {
+                    showErrorMessage(msg);
+                }
+            });
+        },
+
         newOrderContactId: '',
         newOrderItems: [
             { product_id: '', quantity: 1, custom_price: '' }

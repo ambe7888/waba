@@ -359,6 +359,7 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
             'body_text' => '',
             'footer_text' => '',
             'buttons' => [],
+            'button_ids' => [],
             'cta_url' => null,
             'action' => null,
             'list_data' => null,
@@ -424,7 +425,7 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
                     $buttons[] = [
                         'type' => 'reply',
                         'reply' => [
-                            'id' => 'button-id' . $buttonIndex,
+                            'id' => $messageData['button_ids'][$buttonIndex - 1] ?? ('button-id' . $buttonIndex),
                             'title' => $button,
                         ],
                     ];

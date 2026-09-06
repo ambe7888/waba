@@ -448,6 +448,29 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
+                @if (vendorPlanDetails('delivery_management', 1)['is_limit_available'] and hasVendorAccess('manage_orders'))
+                @php
+                    $activeDeliveriesCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+                        'vendors__id' => getVendorId(),
+                        'status' => 'in_delivery'
+                    ])->count();
+                @endphp
+                <li class="nav-item">
+                    <a class="nav-link <?= (request()->routeIs('vendor.delivery.*')) ? 'active' : '' ?>"
+                        href="<?= route('vendor.delivery.tracking.view') ?>">
+                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
+                            <i class="fa fa-truck m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
+                            @if($activeDeliveriesCount > 0)
+                            <span class="badge badge-info rounded-pill shadow-sm text-white font-weight-bold"
+                                  style="position: absolute; top: -5px; left: -5px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
+                                {{ $activeDeliveriesCount }}
+                            </span>
+                            @endif
+                        </div>
+                        <span class="nav-link-text ml--2">{{ __tr('Livraison') }}</span>
+                    </a>
+                </li>
+                @endif
                 @if (hasVendorAccess('manage_campaigns'))
                 <li class="nav-item">
                     <a class="nav-link" href="#vendorCampaignSubmenuNav" data-toggle="collapse" role="button"
