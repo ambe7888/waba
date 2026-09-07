@@ -98,7 +98,7 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-body">
-                    <x-lw.datatable id="lwDeliveryTrackingList" :url="route('vendor.delivery.tracking.list', ['status_filter' => $statusFilter, 'driver_filter' => $driverFilter])">
+                    <x-lw.datatable id="lwDeliveryTrackingList" :url="route('vendor.delivery.tracking.list', ['statusFilter' => $statusFilter, 'driverFilter' => $driverFilter ?: 'all'])">
                         <th data-orderable="true" data-name="_uid" data-template="#deliveryRefTemplate">{{ __tr('Réf / Assignée le') }}</th>
                         <th data-orderable="false" data-name="client_formatted">{{ __tr('Client') }}</th>
                         <th data-orderable="false" data-name="address_formatted">{{ __tr('Adresse de livraison') }}</th>

@@ -1348,7 +1348,12 @@ Route::middleware([
                     'showTrackingView',
                 ])->name('vendor.delivery.tracking.view');
 
-                Route::get('/tracking/list-data', [
+                // Filters are path segments, not query params: the shared
+                // datatable JS builds its own AJAX query string by naively
+                // appending "?" + params to this URL, which breaks (a
+                // second "?" corrupts the following param's value) if the
+                // base URL already has a query string of its own.
+                Route::get('/tracking/list-data/{statusFilter}/{driverFilter}', [
                     \App\Yantrana\Components\Delivery\Controllers\DeliveryController::class,
                     'trackingDataTable',
                 ])->name('vendor.delivery.tracking.list');

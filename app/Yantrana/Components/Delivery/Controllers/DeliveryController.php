@@ -118,13 +118,13 @@ class DeliveryController extends BaseController
      * @param BaseRequest $request
      * @return json object
      *---------------------------------------------------------------- */
-    public function trackingDataTable(BaseRequest $request)
+    public function trackingDataTable(BaseRequest $request, $statusFilter, $driverFilter)
     {
         validateVendorAccess('manage_orders');
-        $statusFilter = in_array($request->get('status_filter'), ['in_delivery', 'delivered', 'delivery_failed', 'all'])
-            ? $request->get('status_filter')
+        $statusFilter = in_array($statusFilter, ['in_delivery', 'delivered', 'delivery_failed', 'all'])
+            ? $statusFilter
             : 'in_delivery';
-        $driverFilter = $request->get('driver_filter') ?: null;
+        $driverFilter = ($driverFilter && $driverFilter !== 'all') ? $driverFilter : null;
         return $this->deliveryEngine->prepareTrackingDataTable($statusFilter, $driverFilter);
     }
 
