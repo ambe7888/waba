@@ -1747,7 +1747,7 @@ $appName = getAppSettings('name');
                             <li><i class="fa fa-check check"></i> <span>{{ __tr('Formation et assistance dédiée') }}</span></li>
                         </ul>
 
-                        <a href="https://wa.me/2250100008857?text=Bonjour,%20je%20souhaite%20plus%20d'informations%20sur%20le%20plan%20personnalisé" target="_blank" class="btn-plan btn-plan-outline text-decoration-none">
+                        <a href="https://wa.me/15559360520?text=Bonjour,%20je%20souhaite%20plus%20d'informations%20sur%20le%20plan%20personnalisé" target="_blank" class="btn-plan btn-plan-outline text-decoration-none">
                             {{ __tr('Contactez-nous') }}
                         </a>
                     </div>
