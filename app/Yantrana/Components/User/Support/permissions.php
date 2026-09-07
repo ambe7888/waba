@@ -153,6 +153,24 @@ return [
             ],
         ],
     ],
+    'delivery' => [
+        'title' => __tr('Gestion des Livraisons'),
+        'description' => __tr('Autoriser/Refuser l\'accès au suivi des livraisons et à la gestion des livreurs'),
+        'permissions' => [
+            'manage_drivers' => [
+                'title' => __tr('Gérer les Livreurs (Ajouter, Modifier, Supprimer)'),
+                'description' => __tr('Autoriser la création, modification et suppression des fiches livreurs'),
+            ],
+            'assign_orders_to_driver' => [
+                'title' => __tr('Assigner des Commandes à un Livreur'),
+                'description' => __tr('Autoriser l\'assignation et la réassignation de commandes à un livreur'),
+            ],
+            'update_delivery_status' => [
+                'title' => __tr('Mettre à Jour le Statut de Livraison'),
+                'description' => __tr('Autoriser le marquage manuel d\'une commande comme livrée ou non livrée'),
+            ],
+        ],
+    ],
     'manage_support_tickets' => [
         'title' => __tr('Support Client & Tickets'),
         'description' => __tr('Autoriser/Refuser l\'accès à la création et au traitement des tickets de support'),

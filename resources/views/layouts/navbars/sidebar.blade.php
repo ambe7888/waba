@@ -446,7 +446,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
-                @if (vendorPlanDetails('delivery_management', 1)['is_limit_available'] and hasVendorAccess('manage_orders'))
+                @if (vendorPlanDetails('delivery_management', 1)['is_limit_available'] and hasVendorAccess('delivery'))
                 @php
                     $activeDeliveriesCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
                         'vendors__id' => getVendorId(),

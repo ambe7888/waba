@@ -31,7 +31,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function showDriversView()
     {
-        validateVendorAccess('manage_orders');
+        validateVendorAccess('delivery');
         return $this->loadView('delivery.drivers');
     }
 
@@ -42,7 +42,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function driversDataTable()
     {
-        validateVendorAccess('manage_orders');
+        validateVendorAccess('delivery');
         return $this->deliveryEngine->prepareDriversDataTable();
     }
 
@@ -55,7 +55,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function processAddOrUpdateDriver(BaseRequest $request, $driverUid = null)
     {
-        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+        if (!hasVendorAccess('delivery', 'manage_drivers')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
 
@@ -81,7 +81,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function processDeleteDriver($driverUid)
     {
-        if (!hasVendorAccess('manage_orders', 'delete_orders')) {
+        if (!hasVendorAccess('delivery', 'manage_drivers')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
 
@@ -96,7 +96,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function showTrackingView(\Illuminate\Http\Request $request)
     {
-        validateVendorAccess('manage_orders');
+        validateVendorAccess('delivery');
         $vendorId = getVendorId();
         $drivers = \App\Yantrana\Components\Delivery\Models\DeliveryDriverModel::where('vendors__id', $vendorId)
             ->where('is_active', true)
@@ -120,7 +120,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function trackingDataTable(BaseRequest $request, $statusFilter, $driverFilter)
     {
-        validateVendorAccess('manage_orders');
+        validateVendorAccess('delivery');
         $statusFilter = in_array($statusFilter, ['in_delivery', 'delivered', 'delivery_failed', 'all'])
             ? $statusFilter
             : 'in_delivery';
@@ -137,7 +137,7 @@ class DeliveryController extends BaseController
      *---------------------------------------------------------------- */
     public function updateDeliveryStatusManually(BaseRequest $request, $orderUid)
     {
-        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+        if (!hasVendorAccess('delivery', 'update_delivery_status')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
 

@@ -1708,7 +1708,7 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                     <button type="button" @click="sendOrderSummary(ord._uid)" :disabled="isSendingOrderSummary" class="btn btn-sm btn-link p-0 text-xs font-weight-bold" style="color: #16a34a;" title="{{ __tr('Envoyer le résumé au client sur WhatsApp') }}">
                                                         <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Envoyer au client') }}
                                                     </button>
-                                                    @if($lwChatDeliveryManagementEnabled)
+                                                    @if($lwChatDeliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                                                     <button type="button" @click="openAssignDriverModal(ord._uid)" class="btn btn-sm btn-link p-0 text-xs font-weight-bold" style="color: #1e40af;" title="{{ __tr('Assigner à un livreur') }}">
                                                         <i class="fa fa-truck mr-1"></i> {{ __tr('Assigner à un livreur') }}
                                                     </button>
@@ -1840,7 +1840,7 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                         </div>
                                     </div>
 
-                                    @if($lwChatDeliveryManagementEnabled)
+                                    @if($lwChatDeliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                                     <!-- CHAT ASSIGN DRIVER MODAL -->
                                     <div class="modal fade" id="chatAssignDriverModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
                                         <div class="modal-dialog modal-dialog-centered" role="document">

@@ -637,7 +637,7 @@ class ECommerceController extends BaseController
      */
     public function assignOrdersToDriver(Request $request)
     {
-        if (!hasVendorAccess('manage_orders', 'add_edit_orders')) {
+        if (!hasVendorAccess('delivery', 'assign_orders_to_driver')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
 

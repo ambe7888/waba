@@ -30,9 +30,11 @@
                 <a href="{{ route('vendor.delivery.tracking.view') }}" class="btn btn-outline-primary btn-sm lw-btn mr-2">
                     <i class="fa fa-truck"></i> {{ __tr('Suivi des livraisons') }}
                 </a>
+                @if(hasVendorAccess('delivery', 'manage_drivers'))
                 <button type="button" class="btn btn-primary btn-sm lw-btn" data-toggle="modal" data-target="#lwCreateDriverModal">
                     <i class="fa fa-plus"></i> {{ __tr('Ajouter un livreur') }}
                 </button>
+                @endif
             </div>
         </div>
     </div>
@@ -62,6 +64,7 @@
 
 <!-- Driver Actions Template -->
 <script type="text/template" id="driverActionsTemplate">
+    @if(hasVendorAccess('delivery', 'manage_drivers'))
     <div class="btn-group">
         <button type="button" class="btn btn-black btn-sm dropdown-toggle lw-datatable-action-dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <i class="fas fa-ellipsis-v"></i>
@@ -71,6 +74,9 @@
             <a data-method="post" data-callback="appFuncs.modelSuccessCallback" data-callback-params="{{ json_encode(['datatableId' => '#lwDriversList']) }}" href="<%= __Utils.apiURL('{{ route('vendor.delivery.drivers.write.delete', ['driverUid' => 'driverUid']) }}', {'driverUid': __tData._uid}) %>" class="dropdown-item lw-ajax-link-action-via-confirm" data-confirm="#lwDeleteDriver-template"><i class="fa fa-trash text-danger"></i> {{ __tr('Supprimer') }}</a>
         </div>
     </div>
+    @else
+    <span class="text-muted small">—</span>
+    @endif
 </script>
 
 <script type="text/template" id="lwDeleteDriver-template">

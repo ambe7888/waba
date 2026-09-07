@@ -125,6 +125,7 @@
 </script>
 
 <script type="text/template" id="deliveryActionsTemplate">
+    @if(hasVendorAccess('delivery', 'update_delivery_status'))
     <% if (__tData.status === 'in_delivery') { %>
     <div class="d-inline-flex align-items-center" style="gap: 6px;">
         <button type="button" class="btn btn-sm btn-outline-success font-weight-bold" onclick="markDelivery('<%- __tData._uid %>', 'delivered')">
@@ -137,6 +138,9 @@
     <% } else { %>
     <span class="text-muted small">—</span>
     <% } %>
+    @else
+    <span class="text-muted small">—</span>
+    @endif
 </script>
 
 @push('appScripts')

@@ -415,7 +415,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                 </div>
 
                 <div class="d-flex align-items-center" style="gap: 10px;">
-                    @if($deliveryManagementEnabled)
+                    @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                     <template x-if="selectedOrderUids.length > 0">
                         <div class="d-flex align-items-center" style="gap: 8px;">
                             <span class="lw-count-pill" style="background: #04704e;" x-text="selectedOrderUids.length + ' sélectionnée(s)'"></span>
@@ -529,7 +529,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                                 </td>
                                 <td class="align-middle text-right no-print">
                                     <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
-                                        @if($deliveryManagementEnabled && hasVendorAccess('manage_orders', 'add_edit_orders'))
+                                        @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                                         <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px; white-space: nowrap;" title="{{ __tr('Assigner à un livreur') }}">
                                             <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
                                         </button>
@@ -577,7 +577,7 @@ $deliveryDrivers = $deliveryManagementEnabled
         </div>
     </div>
 
-    @if($deliveryManagementEnabled)
+    @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
     <!-- MODAL: ASSIGN ORDER(S) TO A DELIVERY DRIVER -->
     <div class="modal fade" id="assignDriverModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
         <div class="modal-dialog modal-dialog-centered" role="document">
