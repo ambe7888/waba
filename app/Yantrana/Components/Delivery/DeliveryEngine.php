@@ -150,7 +150,7 @@ class DeliveryEngine extends BaseEngine
                 $contact = $order->contact;
                 $orderRef = '#' . substr($order->_uid, 0, 8);
                 $systemMsg = __tr('🚚 Commande __ref__ assignée au livreur __driver__', [
-                    '__ref__' => $orderRef,
+                    '__ref__' => orderRefLink($order),
                     '__driver__' => $driver->full_name,
                 ]);
                 storeWhatsAppLogChatHistory([
@@ -305,8 +305,8 @@ class DeliveryEngine extends BaseEngine
 
         if ($order->contacts__id) {
             $systemMsg = $action === 'delivered'
-                ? __tr('✅ Commande __ref__ livrée par __driver__', ['__ref__' => $orderRef, '__driver__' => $driverName])
-                : __tr('⚠️ Commande __ref__ signalée non livrée par __driver__', ['__ref__' => $orderRef, '__driver__' => $driverName]);
+                ? __tr('✅ Commande __ref__ livrée par __driver__', ['__ref__' => orderRefLink($order), '__driver__' => $driverName])
+                : __tr('⚠️ Commande __ref__ signalée non livrée par __driver__', ['__ref__' => orderRefLink($order), '__driver__' => $driverName]);
 
             storeWhatsAppLogChatHistory([
                 'status' => 'initialize',

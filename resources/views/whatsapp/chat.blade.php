@@ -8,7 +8,16 @@
 @push('head')
 {!! __yesset('dist/css/whatsapp-chat.css', true) !!}
 @endpush
-<div x-data="initialMessageData" @chat-message-sent.window="cancelReply()"> 
+@php
+$lwChatDeliveryManagementEnabled = vendorPlanDetails('delivery_management', 1, getVendorId())['is_limit_available'];
+$lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
+    ? \App\Yantrana\Components\Delivery\Models\DeliveryDriverModel::where('vendors__id', getVendorId())
+        ->where('is_active', true)
+        ->orderBy('first_name')
+        ->get(['_uid', '_id', 'first_name', 'last_name', 'zone', 'last_message_at'])
+    : collect();
+@endphp
+<div x-data="initialMessageData" @chat-message-sent.window="cancelReply()">
 {{-- @if ($contact) --}}
 <div class="container-fluid lw-chat-main-container" x-data="{myAssignedUnreadMessagesCount:null,myUnassignedUnreadMessagesCount:null,showUnreadContactsOnly:false,usersUnreadMessagesCounts:{}}">
     <!-- Lightbox Overlay -->
@@ -1525,6 +1534,42 @@
                                                 showErrorMessage(errMsg);
                                             }
                                         });
+                                    },
+                                    deliveryDrivers: {!! json_encode($lwChatDeliveryDrivers) !!},
+                                    assignDriverTargetOrderUid: '',
+                                    assignDriverSelectedId: '',
+                                    isAssigningDriver: false,
+                                    openAssignDriverModal(orderUid) {
+                                        this.assignDriverTargetOrderUid = orderUid;
+                                        this.assignDriverSelectedId = '';
+                                        this.$nextTick(function() {
+                                            $('#chatAssignDriverModal').appendTo('body').modal('show');
+                                        });
+                                    },
+                                    getSelectedDriverWindowOpen() {
+                                        var driver = this.deliveryDrivers.find(function(d) { return d._uid === this.assignDriverSelectedId; }.bind(this));
+                                        return driver ? !!driver.is_24h_window_open : true;
+                                    },
+                                    submitAssignDriver() {
+                                        if (!this.assignDriverSelectedId || !this.assignDriverTargetOrderUid) return;
+                                        var self = this;
+                                        this.isAssigningDriver = true;
+                                        __DataRequest.post('{{ route('vendor.ecommerce.orders.assign_driver') }}', {
+                                            order_uids: [this.assignDriverTargetOrderUid],
+                                            driver_uid: this.assignDriverSelectedId
+                                        }, function(response) {
+                                            self.isAssigningDriver = false;
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                            var msg = response.message || (response.data && response.data.message) || (isSuccess ? 'Commande assignée.' : 'Erreur.');
+                                            if (isSuccess) {
+                                                showSuccessMessage(msg);
+                                                var ord = self.ordersList.find(function(o) { return o._uid === self.assignDriverTargetOrderUid; });
+                                                if (ord) { ord.status = 'in_delivery'; }
+                                                $('#chatAssignDriverModal').modal('hide');
+                                            } else {
+                                                showErrorMessage(msg);
+                                            }
+                                        });
                                     }
                                 }" x-init="fetchOrders(); fetchProducts();" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchOrders()">
                                     <div class="lw-crm-section-header d-flex justify-content-between align-items-center mb-2">
@@ -1633,7 +1678,7 @@
                                         <template x-for="ord in ordersList" :key="ord._uid">
                                             <div class="p-2 border rounded mb-2 shadow-sm" style="border-radius: 10px; background: #ffffff; border: 1.5px solid #cbd5e1 !important;">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
+                                                    <a href="#" @click.prevent="openOrderReceiptModal(ord)" class="font-weight-bold text-xs" style="color:#059669;text-decoration:underline;" x-text="'#' + ord._uid.substring(0, 8)"></a>
                                                     <div class="d-flex align-items-center">
                                                         <span class="badge text-white" 
                                                               :class="{
@@ -1663,6 +1708,11 @@
                                                     <button type="button" @click="sendOrderSummary(ord._uid)" :disabled="isSendingOrderSummary" class="btn btn-sm btn-link p-0 text-xs font-weight-bold" style="color: #16a34a;" title="{{ __tr('Envoyer le résumé au client sur WhatsApp') }}">
                                                         <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Envoyer au client') }}
                                                     </button>
+                                                    @if($lwChatDeliveryManagementEnabled)
+                                                    <button type="button" @click="openAssignDriverModal(ord._uid)" class="btn btn-sm btn-link p-0 text-xs font-weight-bold" style="color: #1e40af;" title="{{ __tr('Assigner à un livreur') }}">
+                                                        <i class="fa fa-truck mr-1"></i> {{ __tr('Assigner à un livreur') }}
+                                                    </button>
+                                                    @endif
                                                 </div>
                                                 <div class="d-flex align-items-center justify-content-end">
                                                     <select class="form-control form-control-sm text-xs font-weight-bold custom-input-white" style="border-radius: 6px; height: 26px; padding: 2px 6px; width: 110px;" :value="ord.status" @change="updateStatus(ord._uid, $event.target.value)">
@@ -1789,6 +1839,53 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    @if($lwChatDeliveryManagementEnabled)
+                                    <!-- CHAT ASSIGN DRIVER MODAL -->
+                                    <div class="modal fade" id="chatAssignDriverModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>
+                                        <div class="modal-dialog modal-dialog-centered" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title font-weight-bold">{{ __tr('Assigner à un livreur') }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="form-group">
+                                                        <label class="font-weight-bold">{{ __tr('Choisir un livreur') }}</label>
+                                                        <select class="form-control custom-input-white" x-model="assignDriverSelectedId">
+                                                            <option value="">-- {{ __tr('Sélectionner') }} --</option>
+                                                            <template x-for="driver in deliveryDrivers" :key="driver._uid">
+                                                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '') + (driver.is_24h_window_open ? '' : ' · en attente de contact')"></option>
+                                                            </template>
+                                                        </select>
+                                                        <template x-if="deliveryDrivers.length === 0">
+                                                            <small class="text-muted d-block mt-1">
+                                                                {{ __tr('Aucun livreur enregistré.') }}
+                                                                <a href="{{ route('vendor.delivery.drivers.view') }}" target="_blank">{{ __tr('Ajouter un livreur') }}</a>
+                                                            </small>
+                                                        </template>
+                                                        <template x-if="assignDriverSelectedId && !getSelectedDriverWindowOpen()">
+                                                            <div class="mt-2 p-3" style="background: #fdf6e8; border: 1px solid #f0dfb0; border-radius: 10px;">
+                                                                <div class="font-weight-bold" style="color: #92600a; font-size: 0.85rem;">{{ __tr('Notification WhatsApp indisponible pour le moment') }}</div>
+                                                                <p class="mb-0 mt-1" style="color: #7a5206; font-size: 0.82rem;">
+                                                                    {{ __tr('WhatsApp exige qu\'un contact vous ait écrit au cours des dernières 24 heures pour qu\'une notification automatique puisse lui être délivrée. La commande sera bien assignée, mais ce livreur ne recevra pas le message tant qu\'il ne vous aura pas écrit (ex: « Bonjour, je suis disponible pour les livraisons »).') }}
+                                                                </p>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer" style="position: static !important; width: auto !important;">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Fermer') }}</button>
+                                                    <button type="button" class="btn lw-btn-modern primary" :disabled="!assignDriverSelectedId || isAssigningDriver" @click="submitAssignDriver()">
+                                                        {{ __tr('Assigner et notifier par WhatsApp') }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
                                 @endif
 

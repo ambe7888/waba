@@ -1321,6 +1321,11 @@ Route::middleware([
                 'listOrdersJson',
             ])->name('vendor.ecommerce.orders.list_json');
 
+            Route::get('/ecommerce/orders/receipt/{orderRef}', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'showOrderReceiptJson',
+            ])->name('vendor.ecommerce.orders.receipt_json');
+
             // Delivery management (drivers + tracking)
             Route::prefix('/delivery')->group(function () {
                 Route::get('/drivers', [

@@ -114,7 +114,7 @@
 </div>
 
 <script type="text/template" id="deliveryRefTemplate">
-    <span class="font-weight-bold text-dark"><%- '#' + __tData._uid.substring(0, 8) %></span>
+    <a href="#" onclick="window.showOrderReceipt && window.showOrderReceipt('<%- __tData._uid %>'); return false;" class="font-weight-bold" style="color:#059669;text-decoration:underline;"><%- '#' + __tData._uid.substring(0, 8) %></a>
     <small class="text-muted d-block"><%- __tData.assigned_at_formatted %></small>
 </script>
 

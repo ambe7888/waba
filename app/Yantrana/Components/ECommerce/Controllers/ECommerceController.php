@@ -599,6 +599,40 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * Fetch one order (with contact + driver) for the global "click any
+     * order reference to see its receipt instantly" popup used across the
+     * app (tracking page, chat system-message notes, etc). Accepts either
+     * the full order _uid or the 8-char prefix shown everywhere as "#xxxxxxxx".
+     *
+     * @param string $orderRef
+     * @return json object
+     *---------------------------------------------------------------- */
+    public function showOrderReceiptJson($orderRef)
+    {
+        if (!hasVendorAccess('manage_orders')) {
+            return response()->json(['reaction' => 0, 'message' => __tr('Action non autorisée.')], 403);
+        }
+
+        $vendorId = getVendorId();
+        $query = \App\Yantrana\Components\ECommerce\Models\OrderModel::with(['contact', 'driver'])
+            ->where('vendors__id', $vendorId);
+
+        $order = strlen($orderRef) >= 32
+            ? $query->where('_uid', $orderRef)->first()
+            : $query->where('_uid', 'LIKE', $orderRef . '%')->first();
+
+        if (!$order) {
+            return response()->json(['reaction' => 0, 'message' => __tr('Commande introuvable.')], 404);
+        }
+
+        if ($order->contact) {
+            $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
+        }
+
+        return response()->json(array_merge(['reaction' => 1], $order->toArray()));
+    }
+
+    /**
      * Assign one or more orders to a delivery driver
      */
     public function assignOrdersToDriver(Request $request)
@@ -857,8 +891,7 @@ class ECommerceController extends BaseController
             broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
         }
 
-        $orderRef = '#' . substr($newOrder->_uid, 0, 8);
-        $systemMsg = "📦 Nouvelle commande créée {$orderRef} (" . number_format($totalPrice, 0, ',', ' ') . ' CFA)';
+        $systemMsg = "📦 Nouvelle commande créée " . orderRefLink($newOrder) . " (" . number_format($totalPrice, 0, ',', ' ') . ' CFA)';
         storeWhatsAppLogChatHistory([
             'status' => 'initialize',
             'contacts__id' => $contact->_id,
@@ -1094,8 +1127,7 @@ class ECommerceController extends BaseController
         // Store system message log in chat history
         $totalPrice = $request->total_price ?: ($request->price ?: 0);
         $currency = $request->currency ?: 'CFA';
-        $orderRef = '#' . substr($newOrder->_uid, 0, 8);
-        $systemMsg = "📦 Nouvelle commande créée {$orderRef} ({$totalPrice} {$currency})";
+        $systemMsg = "📦 Nouvelle commande créée " . orderRefLink($newOrder) . " ({$totalPrice} {$currency})";
 
         storeWhatsAppLogChatHistory([
             'status' => 'initialize',

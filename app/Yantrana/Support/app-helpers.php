@@ -1747,6 +1747,23 @@ if (! function_exists('broadcastNewOrderViaVendorBroadcast')) {
         ]);
     }
 }
+if (! function_exists('orderRefLink')) {
+    /**
+     * HTML for a clickable "#xxxxxxxx" order reference that opens the
+     * global instant-receipt popup (window.showOrderReceipt, defined in
+     * layouts/app.blade.php). Only used inside system-message notes, which
+     * render as raw HTML (x-html) in the chat UI and are never transmitted
+     * to the customer over WhatsApp -- safe to embed markup in.
+     *
+     * @param \App\Yantrana\Components\ECommerce\Models\OrderModel $order
+     * @return string
+     */
+    function orderRefLink($order)
+    {
+        $shortRef = substr($order->_uid, 0, 8);
+        return '<a href="#" onclick="window.showOrderReceipt &amp;&amp; window.showOrderReceipt(\'' . $order->_uid . '\'); return false;" style="color:#059669;text-decoration:underline;font-weight:600;">#' . $shortRef . '</a>';
+    }
+}
 if (! function_exists('getViaSharedUrl')) {
     /**
      * Get the url via Ngrok shared url

@@ -460,6 +460,204 @@ $currentAppTheme ='';
         </audio>
     </template>
 
+    @if(hasVendorAccess('manage_orders'))
+    {{-- Global Order Receipt Modal: opened from any clickable order reference app-wide via window.showOrderReceipt(orderUid) --}}
+    <div class="modal fade" id="lwGlobalOrderReceiptModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="modal-header text-white p-4" style="background: #10b981;">
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <div>
+                            <h5 class="modal-title font-weight-bold mb-1 text-white" id="lwGlobalReceiptTitle">{{ __tr('Reçu de commande') }}</h5>
+                            <span class="badge badge-light font-weight-bold px-3 py-1" id="lwGlobalReceiptDate" style="border-radius: 12px;"></span>
+                        </div>
+                        <button type="button" class="close text-white opacity-100" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true" style="font-size: 1.8rem; color: #ffffff;">&times;</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body p-4" style="max-height: 80vh; overflow-y: auto;">
+                    <div id="lwGlobalReceiptLoading" class="text-center py-5 text-muted">
+                        <i class="fa fa-spinner fa-spin mr-2"></i> {{ __tr('Chargement du reçu...') }}
+                    </div>
+                    <div id="lwGlobalReceiptError" class="alert alert-danger" style="display:none;"></div>
+                    <div id="lwGlobalReceiptBody" style="display:none;">
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
+                                    <h6 class="font-weight-bold text-uppercase text-muted small mb-2">{{ __tr('Informations Client') }}</h6>
+                                    <h6 class="font-weight-bold text-dark mb-1" id="lwGlobalReceiptClientName"></h6>
+                                    <p class="mb-1" id="lwGlobalReceiptAddressWrap" style="display:none;"><strong>{{ __tr('Livraison à:') }}</strong> <span id="lwGlobalReceiptAddress"></span></p>
+                                    <p class="mb-2"><span class="badge text-white" id="lwGlobalReceiptStatus"></span></p>
+                                    <a href="#" target="_blank" id="lwGlobalReceiptChatLink" class="text-emerald font-weight-bold small d-inline-block" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
+                                        <i class="fab fa-whatsapp mr-1"></i> {{ __tr('Retourner à la conversation du client') }}
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background: #f1f5f9; border: 1.5px solid #cbd5e1;">
+                                    <h6 class="font-weight-bold text-uppercase text-muted small mb-2">{{ __tr('Détails Commande') }}</h6>
+                                    <p class="small text-dark mb-1"><strong>{{ __tr('Référence:') }}</strong> <span id="lwGlobalReceiptRef"></span></p>
+                                    <p class="small text-dark mb-1" id="lwGlobalReceiptDriverWrap" style="display:none;"><strong>{{ __tr('Livreur:') }}</strong> <span id="lwGlobalReceiptDriver"></span></p>
+                                    <p class="small text-dark mb-0"><strong>{{ __tr('Montant total:') }}</strong> <span class="font-weight-bold" style="color:#059669;" id="lwGlobalReceiptTotal"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive mb-2">
+                            <table class="table table-bordered mb-0" style="border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1;">
+                                <thead class="bg-light text-uppercase small font-weight-bold text-dark">
+                                    <tr>
+                                        <th>{{ __tr('Article / Produit') }}</th>
+                                        <th class="text-center" style="width: 100px;">{{ __tr('Quantité') }}</th>
+                                        <th class="text-right" style="width: 140px;">{{ __tr('Prix Unitaire') }}</th>
+                                        <th class="text-right" style="width: 160px;">{{ __tr('Sous-Total') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lwGlobalReceiptItems"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var statusLabels = {
+                'validated': "{{ __tr('Nouvelle / Validée') }}",
+                'confirmed': "{{ __tr('Confirmée') }}",
+                'processing': "{{ __tr('En préparation') }}",
+                'shipped': "{{ __tr('En livraison') }}",
+                'delivered': "{{ __tr('Livrée') }}",
+                'cancelled': "{{ __tr('Annulée') }}",
+                'in_delivery': "{{ __tr('En cours de livraison') }}",
+                'delivery_failed': "{{ __tr('Livraison échouée') }}"
+            };
+            var statusColors = {
+                'delivered': '#10b981',
+                'shipped': '#0ea5e9',
+                'in_delivery': '#1e40af',
+                'processing': '#0ea5e9',
+                'confirmed': '#2563eb',
+                'validated': '#d97706',
+                'cancelled': '#dc2626',
+                'delivery_failed': '#9f1239'
+            };
+
+            function getItems(order) {
+                var details = order.order_details;
+                if (!details || typeof details !== 'object') return [];
+                var rawItems = details.items || details.product_items || details.products || [];
+                if (!Array.isArray(rawItems)) return [];
+                return rawItems;
+            }
+
+            function getTotal(order) {
+                var details = order.order_details;
+                if (details && details.total_price !== undefined && details.total_price !== null) {
+                    return Number(details.total_price) || 0;
+                }
+                if (details && details.total !== undefined && details.total !== null) {
+                    return Number(details.total) || 0;
+                }
+                var items = getItems(order);
+                var sum = 0;
+                items.forEach(function(item) {
+                    sum += (Number(item.price || 0) * Number(item.quantity || 1));
+                });
+                return sum + (details && details.additional_fee ? Number(details.additional_fee) : 0);
+            }
+
+            function getAddress(order) {
+                var details = order.order_details;
+                if (!details || typeof details !== 'object') return '';
+                return details.delivery_address || details.shipping_address || details.address || '';
+            }
+
+            window.showOrderReceipt = function(orderUid) {
+                if (!orderUid) return;
+                $('#lwGlobalReceiptLoading').show();
+                $('#lwGlobalReceiptBody').hide();
+                $('#lwGlobalReceiptError').hide();
+                $('#lwGlobalOrderReceiptModal').modal('show');
+
+                var url = '{{ route("vendor.ecommerce.orders.receipt_json", ["orderRef" => "ORDER_REF"]) }}'.replace('ORDER_REF', orderUid);
+                $.ajax({
+                    type: 'get',
+                    url: url,
+                    error: function(errorResponse) {
+                        var responseJSON = errorResponse.responseJSON || {};
+                        $('#lwGlobalReceiptLoading').hide();
+                        $('#lwGlobalReceiptError').text(responseJSON.message || "{{ __tr('Commande introuvable.') }}").show();
+                    },
+                    success: function(response) {
+                    var order = response;
+                    $('#lwGlobalReceiptLoading').hide();
+                    if (!order || (response.reaction !== undefined && response.reaction != 1)) {
+                        $('#lwGlobalReceiptError').text((response && response.message) || "{{ __tr('Commande introuvable.') }}").show();
+                        return;
+                    }
+                    $('#lwGlobalReceiptBody').show();
+
+                    var shortRef = '#' + order._uid.substring(0, 8);
+                    $('#lwGlobalReceiptTitle').text("{{ __tr('Reçu de commande') }} " + shortRef);
+                    $('#lwGlobalReceiptRef').text(shortRef);
+                    $('#lwGlobalReceiptDate').text(order.created_at ? new Date(order.created_at).toLocaleString() : '');
+
+                    var clientName = order.contact ? ((order.contact.first_name || '') + ' ' + (order.contact.last_name || '')).trim() : '';
+                    $('#lwGlobalReceiptClientName').text(clientName || "{{ __tr('Client Inconnu') }}");
+
+                    if (order.contact && order.contact._uid) {
+                        var chatUrl = '{{ route("vendor.chat_message.contact.view", ["contactUid" => "CONTACT_UID"]) }}'.replace('CONTACT_UID', order.contact._uid);
+                        $('#lwGlobalReceiptChatLink').attr('href', chatUrl).show();
+                    } else {
+                        $('#lwGlobalReceiptChatLink').hide();
+                    }
+
+                    var address = getAddress(order);
+                    if (address) {
+                        $('#lwGlobalReceiptAddress').text(address);
+                        $('#lwGlobalReceiptAddressWrap').show();
+                    } else {
+                        $('#lwGlobalReceiptAddressWrap').hide();
+                    }
+
+                    var statusLabel = statusLabels[order.status] || order.status;
+                    $('#lwGlobalReceiptStatus').text(statusLabel).css('background-color', statusColors[order.status] || '#6b7280');
+
+                    if (order.driver && order.driver.full_name) {
+                        $('#lwGlobalReceiptDriver').text(order.driver.full_name);
+                        $('#lwGlobalReceiptDriverWrap').show();
+                    } else {
+                        $('#lwGlobalReceiptDriverWrap').hide();
+                    }
+
+                    $('#lwGlobalReceiptTotal').text(getTotal(order).toLocaleString() + ' CFA');
+
+                    var itemsHtml = '';
+                    var items = getItems(order);
+                    if (items.length === 0) {
+                        itemsHtml = '<tr><td colspan="4" class="text-center py-3 text-muted">{{ __tr("Détails des articles enregistrés.") }}</td></tr>';
+                    } else {
+                        items.forEach(function(item) {
+                            var qty = Number(item.quantity || 1);
+                            var price = Number(item.price || 0);
+                            itemsHtml += '<tr>' +
+                                '<td class="align-middle font-weight-bold text-dark">' + $('<div>').text(item.name || "{{ __tr('Produit') }}").html() + '</td>' +
+                                '<td class="align-middle text-center font-weight-bold">x' + qty + '</td>' +
+                                '<td class="align-middle text-right">' + price.toLocaleString() + ' CFA</td>' +
+                                '<td class="align-middle text-right font-weight-bold text-dark">' + (price * qty).toLocaleString() + ' CFA</td>' +
+                                '</tr>';
+                        });
+                    }
+                    $('#lwGlobalReceiptItems').html(itemsHtml);
+                    }
+                });
+            };
+        })();
+    </script>
+    @endif
+
     {{-- Global View Stack --}}
     @stack('globalViewsStack')
     {{-- /Global View Stack --}}
