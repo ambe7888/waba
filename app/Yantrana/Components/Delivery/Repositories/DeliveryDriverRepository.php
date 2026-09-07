@@ -88,7 +88,13 @@ class DeliveryDriverRepository extends BaseRepository
         ];
         $query = OrderModel::where('vendors__id', $vendorId)
             ->whereNotNull('assigned_driver__id')
-            ->with(['contact', 'driver']);
+            // Scoped columns only -- the full contact record carries a large
+            // AI-conversation-summary text field that's irrelevant here and
+            // needlessly bloats every row of this datatable's response.
+            ->with([
+                'contact:_id,first_name,last_name,wa_id',
+                'driver:_id,first_name,last_name,phone',
+            ]);
 
         if (!empty($driverUidFilter)) {
             $query->whereHas('driver', function ($q) use ($driverUidFilter) {
