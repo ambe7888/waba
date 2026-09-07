@@ -15,7 +15,7 @@
 <div class="container-fluid mt-lg--6">
     <div class="row mb-3">
         <div class="col-xl-12">
-            <div class="float-right" style="gap: 10px;" class="d-flex">
+            <div class="float-right d-flex" style="gap: 10px;">
                 <a href="{{ route('vendor.delivery.tracking.view') }}" class="btn btn-outline-primary btn-sm lw-btn mr-2">
                     <i class="fa fa-truck"></i> {{ __tr('Suivi des livraisons') }}
                 </a>

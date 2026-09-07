@@ -59,6 +59,9 @@ class DeliveryDriverRepository extends BaseRepository
             }
         }
 
+        $data['recordsTotal'] = $data['total'] ?? 0;
+        $data['recordsFiltered'] = $data['total'] ?? 0;
+
         return $data;
     }
 
@@ -102,6 +105,9 @@ class DeliveryDriverRepository extends BaseRepository
                     : '-';
             }
         }
+
+        $data['recordsTotal'] = $data['total'] ?? 0;
+        $data['recordsFiltered'] = $data['total'] ?? 0;
 
         return $data;
     }
