@@ -7,6 +7,17 @@
 
 @extends('layouts.app', ['title' => __tr('Livreurs')])
 @section('content')
+<style>
+/* The app-wide .modal .modal-footer rule is position:fixed;bottom:0 --
+   meant for tall, scrolling forms, but it detaches a SHORT modal's
+   footer from its (short) card, pinning it near the bottom of the
+   viewport instead. Restore normal in-flow footer positioning for
+   the driver create/edit modal specifically. */
+#lwCreateDriverModal .modal-footer {
+    position: static !important;
+    width: auto !important;
+}
+</style>
 @include('users.partials.header', [
     'title' => __tr('Livraison — Livreurs'),
     'description' => __tr('Gérez votre équipe de livreurs et suivez leur charge de livraisons en cours.'),
@@ -35,7 +46,10 @@
                         <th data-orderable="false" data-name="phone">{{ __tr('Numéro') }}</th>
                         <th data-orderable="false" data-name="zone">{{ __tr('Zone') }}</th>
                         <th data-orderable="false" data-name="vehicle_type">{{ __tr('Engin') }}</th>
-                        <th data-orderable="false" data-name="active_deliveries_count">{{ __tr('Livraisons en cours') }}</th>
+                        <th data-orderable="false" data-name="active_deliveries_count">{{ __tr('En cours') }}</th>
+                        <th data-orderable="false" data-name="delivered_count">{{ __tr('Livrées') }}</th>
+                        <th data-orderable="false" data-name="failed_count">{{ __tr('Non livrées') }}</th>
+                        <th data-orderable="false" data-name="success_rate_formatted">{{ __tr('Taux de réussite') }}</th>
                         <th data-orderable="false" data-name="status_formatted">{{ __tr('Statut') }}</th>
                         <th data-template="#driverActionsTemplate" data-name="_uid">{{ __tr('Actions') }}</th>
                     </x-lw.datatable>

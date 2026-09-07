@@ -1,7 +1,7 @@
 @php
 $vendorId = getVendorId();
 $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
-$orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
+$orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with(['contact', 'driver'])
     ->where('vendors__id', $vendorId)
     ->latest()
     ->get();
@@ -66,6 +66,15 @@ $deliveryDrivers = $deliveryManagementEnabled
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
+/* The app-wide .modal .modal-footer rule is position:fixed;bottom:0 --
+   meant for tall, scrolling forms, but it detaches a SHORT modal's
+   footer from its (short) card, pinning it near the bottom of the
+   viewport instead. Restore normal in-flow footer positioning for the
+   assign-driver modal specifically. */
+#assignDriverModal .modal-footer {
+    position: static !important;
+    width: auto !important;
+}
 .order-status-badge {
     font-family: 'Manrope', sans-serif;
     font-size: 0.76rem;
@@ -82,6 +91,41 @@ $deliveryDrivers = $deliveryManagementEnabled
 .order-status-badge.st-cancelled { background: #fbe6e4; color: #b3231b; }
 .order-status-badge.st-in-delivery { background: #dbeafe; color: #1e40af; }
 .order-status-badge.st-delivery-failed { background: #fde2e1; color: #9f1239; }
+.order-status-select {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.76rem;
+    padding: 0.32rem 1.6rem 0.32rem 0.75rem;
+    border-radius: 999px !important;
+    font-weight: 700;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    height: auto !important;
+}
+.order-status-select.st-new { background-color: #fdf1dc !important; color: #92600a !important; }
+.order-status-select.st-confirmed { background-color: #e3ebff !important; color: #1e4ed8 !important; }
+.order-status-select.st-processing { background-color: #efe6ff !important; color: #6d28d9 !important; }
+.order-status-select.st-delivered { background-color: #e1f5ec !important; color: #04704e !important; }
+.order-status-select.st-cancelled { background-color: #fbe6e4 !important; color: #b3231b !important; }
+.order-status-select.st-in-delivery { background-color: #dbeafe !important; color: #1e40af !important; }
+.order-status-select.st-delivery-failed { background-color: #fde2e1 !important; color: #9f1239 !important; }
+.lw-order-driver-name {
+    font-size: 0.72rem;
+    color: #626a79;
+    margin-top: 4px;
+    display: block;
+}
+.lw-order-address {
+    font-size: 0.84rem;
+    color: #10151f;
+    max-width: 220px;
+}
+.lw-orders-table tbody tr.lw-order-row-selected {
+    background: #e1f5ec;
+}
+.lw-orders-table tbody tr.lw-order-row-selected:hover {
+    background: #d3e7dc;
+}
 .custom-input-white {
     background: #f7f8fa !important;
     color: #10151f !important;
@@ -384,18 +428,19 @@ $deliveryDrivers = $deliveryManagementEnabled
                             @endif
                             <th class="lw-orders-th">{{ __tr('Réf / Date') }}</th>
                             <th class="lw-orders-th">{{ __tr('Client WhatsApp') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Adresse de livraison') }}</th>
                             <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
                             <th class="lw-orders-th">{{ __tr('Source / Agent') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Statut Actuel') }}</th>
+                            <th class="lw-orders-th">{{ __tr('Statut') }}</th>
                             <th class="lw-orders-th text-right no-print">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="order in getPaginatedOrders()" :key="order._uid">
-                            <tr>
+                            <tr @if($deliveryManagementEnabled) @click="$event.target.closest('a, button, select, input, .dropdown-menu') ? null : toggleOrderSelected(order._uid)" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''" style="cursor: pointer;" @endif>
                                 @if($deliveryManagementEnabled)
                                 <td class="align-middle">
-                                    <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)">
+                                    <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
                                 </td>
                                 @endif
                                 <td class="align-middle">
@@ -413,6 +458,9 @@ $deliveryDrivers = $deliveryManagementEnabled
                                     </template>
                                 </td>
                                 <td class="align-middle">
+                                    <div class="lw-order-address" x-text="getAddress(order) || '—'"></div>
+                                </td>
+                                <td class="align-middle">
                                     <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
                                     <div class="small text-muted mt-1">
                                         <template x-for="(it, i) in getItems(order)" :key="i">
@@ -427,6 +475,28 @@ $deliveryDrivers = $deliveryManagementEnabled
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
                                 </td>
                                 <td class="align-middle">
+                                    @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
+                                    <select class="order-status-select"
+                                            :class="{
+                                                'st-delivered': order.status === 'delivered',
+                                                'st-processing': order.status === 'shipped' || order.status === 'processing',
+                                                'st-confirmed': order.status === 'confirmed',
+                                                'st-new': order.status === 'validated',
+                                                'st-cancelled': order.status === 'cancelled',
+                                                'st-in-delivery': order.status === 'in_delivery',
+                                                'st-delivery-failed': order.status === 'delivery_failed'
+                                            }"
+                                            :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
+                                        <option value="validated">{{ __tr('Nouvelle') }}</option>
+                                        <option value="confirmed">{{ __tr('Confirmée') }}</option>
+                                        <option value="processing">{{ __tr('En préparation') }}</option>
+                                        <option value="shipped">{{ __tr('En livraison') }}</option>
+                                        <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
+                                        <option value="delivered">{{ __tr('Livrée') }}</option>
+                                        <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
+                                        <option value="cancelled">{{ __tr('Annulée') }}</option>
+                                    </select>
+                                    @else
                                     <span class="order-status-badge"
                                           :class="{
                                               'st-delivered': order.status === 'delivered',
@@ -439,43 +509,33 @@ $deliveryDrivers = $deliveryManagementEnabled
                                           }"
                                           x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : (order.status === 'in_delivery' ? '{{ __tr('En cours de livraison') }}' : (order.status === 'delivery_failed' ? '{{ __tr('Livraison échouée') }}' : '{{ __tr('Nouvelle') }}')))))">
                                     </span>
+                                    @endif
+                                    <template x-if="order.driver">
+                                        <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
+                                    </template>
                                 </td>
                                 <td class="align-middle text-right no-print">
-                                    <div class="d-inline-flex align-items-center" style="gap: 8px;">
-                                        <button type="button" @click="viewOrderDetails(order)" class="btn btn-sm btn-outline-emerald font-weight-bold" style="border-radius: 8px; color: #10b981; border-color: #10b981;" title="{{ __tr('Voir le reçu officiel') }}">
-                                            {{ __tr('Reçu') }}
-                                        </button>
-
-                                        <template x-if="order.contact && order.contact._uid">
-                                            <a :href="getChatUrl(order.contact._uid)" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
-                                                {{ __tr('WhatsApp') }}
-                                            </a>
-                                        </template>
-
+                                    <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
                                         @if($deliveryManagementEnabled && hasVendorAccess('manage_orders', 'add_edit_orders'))
-                                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px;" title="{{ __tr('Assigner à un livreur') }}">
-                                            {{ __tr('Livreur') }}
+                                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px; white-space: nowrap;" title="{{ __tr('Assigner à un livreur') }}">
+                                            <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
                                         </button>
                                         @endif
 
-                                        @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
-                                        <select class="form-control form-control-sm font-weight-bold custom-input-white" style="border-radius: 8px !important; width: 130px;" :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
-                                            <option value="validated">{{ __tr('Nouvelle') }}</option>
-                                            <option value="confirmed">{{ __tr('Confirmer') }}</option>
-                                            <option value="processing">{{ __tr('En préparation') }}</option>
-                                            <option value="shipped">{{ __tr('En livraison') }}</option>
-                                            <option value="delivered">{{ __tr('Livrée') }}</option>
-                                            <option value="cancelled">{{ __tr('Annuler') }}</option>
-                                            <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
-                                            <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
-                                        </select>
-                                        @endif
-                                        
-                                        @if (hasVendorAccess('manage_orders', 'delete_orders'))
-                                        <button type="button" @click="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Supprimer') }}">
-                                            {{ __tr('Supprimer') }}
-                                        </button>
-                                        @endif
+                                        <div class="dropdown d-inline-block">
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; width: 34px; font-weight: 700;" title="{{ __tr('Plus d\'actions') }}">
+                                                ⋮
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-right shadow-sm">
+                                                <a href="#" @click.prevent="viewOrderDetails(order)" class="dropdown-item">{{ __tr('Voir le reçu') }}</a>
+                                                <template x-if="order.contact && order.contact._uid">
+                                                    <a :href="getChatUrl(order.contact._uid)" target="_blank" class="dropdown-item">{{ __tr('Ouvrir WhatsApp') }}</a>
+                                                </template>
+                                                @if (hasVendorAccess('manage_orders', 'delete_orders'))
+                                                <a href="#" @click.prevent="deleteOrder(order._uid)" class="dropdown-item text-danger">{{ __tr('Supprimer') }}</a>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -1098,6 +1158,16 @@ function ordersPageData() {
                     price: price
                 };
             });
+        },
+
+        getAddress: function(order) {
+            if (!order || !order.order_details) return '';
+            var details = order.order_details;
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { return ''; }
+            }
+            if (!details || typeof details !== 'object') return '';
+            return details.delivery_address || '';
         },
 
         getTotal: function(order) {

@@ -44,17 +44,24 @@ class DeliveryDriverRepository extends BaseRepository
 
         if (!empty($data['data'])) {
             $driverIds = array_column($data['data'], '_id');
-            $activeCounts = OrderModel::where('vendors__id', $vendorId)
+            $countsByStatus = OrderModel::where('vendors__id', $vendorId)
                 ->whereIn('assigned_driver__id', $driverIds)
-                ->where('status', 'in_delivery')
-                ->selectRaw('assigned_driver__id, count(*) as cnt')
-                ->groupBy('assigned_driver__id')
-                ->pluck('cnt', 'assigned_driver__id')
-                ->toArray();
+                ->whereIn('status', ['in_delivery', 'delivered', 'delivery_failed'])
+                ->selectRaw('assigned_driver__id, status, count(*) as cnt')
+                ->groupBy('assigned_driver__id', 'status')
+                ->get()
+                ->groupBy('assigned_driver__id');
 
             foreach ($data['data'] as &$row) {
                 $row['full_name'] = trim($row['first_name'] . ' ' . $row['last_name']);
-                $row['active_deliveries_count'] = $activeCounts[$row['_id']] ?? 0;
+                $rowCounts = $countsByStatus->get($row['_id'], collect())->pluck('cnt', 'status');
+                $delivered = $rowCounts->get('delivered', 0);
+                $failed = $rowCounts->get('delivery_failed', 0);
+                $total = $delivered + $failed;
+                $row['active_deliveries_count'] = $rowCounts->get('in_delivery', 0);
+                $row['delivered_count'] = $delivered;
+                $row['failed_count'] = $failed;
+                $row['success_rate_formatted'] = $total > 0 ? round(($delivered / $total) * 100) . '%' : '—';
                 $row['status_formatted'] = $row['is_active'] ? __tr('Actif') : __tr('Inactif');
             }
         }
@@ -66,21 +73,28 @@ class DeliveryDriverRepository extends BaseRepository
     }
 
     /**
-     * Fetch datatable source for the delivery-tracking page (orders currently in delivery)
+     * Fetch datatable source for the delivery-tracking page
      *
+     * @param string $statusFilter - 'in_delivery' (default), 'delivered', 'delivery_failed', or 'all'
      * @return array
      *---------------------------------------------------------------- */
-    public function fetchTrackingDataTableSource()
+    public function fetchTrackingDataTableSource($statusFilter = 'in_delivery')
     {
         $vendorId = getVendorId();
         $dataTableConfig = [
             'searchable' => [],
         ];
-        $data = OrderModel::where('vendors__id', $vendorId)
-            ->where('status', 'in_delivery')
-            ->with(['contact', 'driver'])
-            ->dataTables($dataTableConfig)
-            ->toArray();
+        $query = OrderModel::where('vendors__id', $vendorId)
+            ->whereNotNull('assigned_driver__id')
+            ->with(['contact', 'driver']);
+
+        if (in_array($statusFilter, ['in_delivery', 'delivered', 'delivery_failed'])) {
+            $query->where('status', $statusFilter);
+        } else {
+            $query->whereIn('status', ['in_delivery', 'delivered', 'delivery_failed']);
+        }
+
+        $data = $query->dataTables($dataTableConfig)->toArray();
 
         if (!empty($data['data'])) {
             foreach ($data['data'] as &$row) {
@@ -110,6 +124,34 @@ class DeliveryDriverRepository extends BaseRepository
         $data['recordsFiltered'] = $data['total'] ?? 0;
 
         return $data;
+    }
+
+    /**
+     * Recap counts for the delivery-tracking page (in progress / delivered /
+     * failed / total ever assigned to a driver)
+     *
+     * @param int $vendorId
+     * @return array
+     *---------------------------------------------------------------- */
+    public function fetchDeliveryRecapCounts($vendorId)
+    {
+        $counts = OrderModel::where('vendors__id', $vendorId)
+            ->whereNotNull('assigned_driver__id')
+            ->whereIn('status', ['in_delivery', 'delivered', 'delivery_failed'])
+            ->selectRaw('status, count(*) as cnt')
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+
+        $inDelivery = $counts->get('in_delivery', 0);
+        $delivered = $counts->get('delivered', 0);
+        $failed = $counts->get('delivery_failed', 0);
+
+        return [
+            'in_delivery' => $inDelivery,
+            'delivered' => $delivered,
+            'delivery_failed' => $failed,
+            'all' => $inDelivery + $delivered + $failed,
+        ];
     }
 
     /**

@@ -39,11 +39,23 @@ class DeliveryEngine extends BaseEngine
     /**
      * Prepare delivery-tracking datatable data
      *
+     * @param string $statusFilter
      * @return array
      *---------------------------------------------------------------- */
-    public function prepareTrackingDataTable()
+    public function prepareTrackingDataTable($statusFilter = 'in_delivery')
     {
-        return $this->deliveryDriverRepository->fetchTrackingDataTableSource();
+        return $this->deliveryDriverRepository->fetchTrackingDataTableSource($statusFilter);
+    }
+
+    /**
+     * Recap counts for the delivery-tracking page
+     *
+     * @param int $vendorId
+     * @return array
+     *---------------------------------------------------------------- */
+    public function fetchDeliveryRecapCounts($vendorId)
+    {
+        return $this->deliveryDriverRepository->fetchDeliveryRecapCounts($vendorId);
     }
 
     /**

@@ -585,7 +585,7 @@ class ECommerceController extends BaseController
         }
 
         $vendorId = getVendorId();
-        $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
+        $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with(['contact', 'driver'])
             ->where('vendors__id', $vendorId)
             ->latest()
             ->get();

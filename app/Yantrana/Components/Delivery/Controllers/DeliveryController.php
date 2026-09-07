@@ -94,7 +94,7 @@ class DeliveryController extends BaseController
      *
      * @return view
      *---------------------------------------------------------------- */
-    public function showTrackingView()
+    public function showTrackingView(\Illuminate\Http\Request $request)
     {
         validateVendorAccess('manage_orders');
         $vendorId = getVendorId();
@@ -102,20 +102,28 @@ class DeliveryController extends BaseController
             ->where('is_active', true)
             ->orderBy('first_name')
             ->get();
+        $statusFilter = in_array($request->get('status_filter'), ['in_delivery', 'delivered', 'delivery_failed', 'all'])
+            ? $request->get('status_filter')
+            : 'in_delivery';
+        $recapCounts = $this->deliveryEngine->fetchDeliveryRecapCounts($vendorId);
         // Viewing this page acknowledges any delivered/failed outcomes, clearing the sidebar bubble.
         $this->deliveryEngine->markDeliveryOutcomesSeen($vendorId);
-        return $this->loadView('delivery.tracking', compact('drivers'));
+        return $this->loadView('delivery.tracking', compact('drivers', 'statusFilter', 'recapCounts'));
     }
 
     /**
      * Prepare delivery-tracking datatable data
      *
+     * @param BaseRequest $request
      * @return json object
      *---------------------------------------------------------------- */
-    public function trackingDataTable()
+    public function trackingDataTable(BaseRequest $request)
     {
         validateVendorAccess('manage_orders');
-        return $this->deliveryEngine->prepareTrackingDataTable();
+        $statusFilter = in_array($request->get('status_filter'), ['in_delivery', 'delivered', 'delivery_failed', 'all'])
+            ? $request->get('status_filter')
+            : 'in_delivery';
+        return $this->deliveryEngine->prepareTrackingDataTable($statusFilter);
     }
 
     /**
