@@ -437,12 +437,10 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>">
                         <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
                             <i class="fa fa-shopping-bag m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                            @if($pendingOrdersCount > 0)
-                            <span class="badge badge-warning rounded-pill shadow-sm text-dark font-weight-bold" 
+                            <span id="lwPendingOrdersBadge" class="badge badge-warning rounded-pill shadow-sm text-dark font-weight-bold <?= $pendingOrdersCount > 0 ? '' : 'd-none' ?>"
                                   style="position: absolute; top: -5px; left: -5px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
                                 {{ $pendingOrdersCount }}
                             </span>
-                            @endif
                         </div>
                         <span class="nav-link-text ml--2">{{ __tr('Commandes') }}</span>
                     </a>

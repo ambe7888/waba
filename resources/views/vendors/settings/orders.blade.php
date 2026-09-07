@@ -1392,3 +1392,18 @@ function ordersPageData() {
     });
 })();
 </script>
+
+@push('vendorChannelBroadcastStack')
+if (data.eventModelUpdate && data.eventModelUpdate.new_order) {
+    var lwOrdersRoot = document.getElementById('lwOrdersPageRoot');
+    if (lwOrdersRoot && typeof showInfoMessage === 'function') {
+        var newOrderInfo = data.eventModelUpdate.new_order;
+        showInfoMessage("{{ __tr('Nouvelle commande') }} " + newOrderInfo.order_ref + (newOrderInfo.client_name ? (" — " + newOrderInfo.client_name) : '') + " (" + newOrderInfo.total_formatted + ")");
+    }
+    if (lwOrdersRoot) {
+        $.getJSON('{{ route("vendor.ecommerce.orders.list_json") }}', function(freshOrders) {
+            Alpine.$data(lwOrdersRoot).allOrders = freshOrders;
+        });
+    }
+}
+@endpush

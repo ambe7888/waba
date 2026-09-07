@@ -574,6 +574,31 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * Fresh list of orders as JSON, same shape as the orders page's initial
+     * load -- used to refresh the Alpine list live when a new order comes in
+     * (AI/bot, catalog, manual, or an external webhook) without a full reload.
+     */
+    public function listOrdersJson()
+    {
+        if (!hasVendorAccess('manage_orders')) {
+            return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+
+        $vendorId = getVendorId();
+        $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with('contact')
+            ->where('vendors__id', $vendorId)
+            ->latest()
+            ->get();
+        $orders->each(function ($order) {
+            if ($order->contact) {
+                $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
+            }
+        });
+
+        return response()->json($orders);
+    }
+
+    /**
      * Assign one or more orders to a delivery driver
      */
     public function assignOrdersToDriver(Request $request)
@@ -826,6 +851,12 @@ class ECommerceController extends BaseController
             'status' => 'validated',
         ]);
 
+        $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        if ($vendorForBroadcast) {
+            $newOrder->setRelation('contact', $contact);
+            broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
+        }
+
         $orderRef = '#' . substr($newOrder->_uid, 0, 8);
         $systemMsg = "📦 Nouvelle commande créée {$orderRef} (" . number_format($totalPrice, 0, ',', ' ') . ' CFA)';
         storeWhatsAppLogChatHistory([
@@ -1053,6 +1084,12 @@ class ECommerceController extends BaseController
             'order_details' => $orderDetails,
             'status' => 'validated',
         ]);
+
+        $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($vendorId);
+        if ($vendorForBroadcast) {
+            $newOrder->setRelation('contact', $contact);
+            broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
+        }
 
         // Store system message log in chat history
         $totalPrice = $request->total_price ?: ($request->price ?: 0);

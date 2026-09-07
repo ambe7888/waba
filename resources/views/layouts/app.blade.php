@@ -654,6 +654,32 @@ $currentAppTheme ='';
                         }
                     }
 
+                    // New order created (AI/bot, WhatsApp Catalog, manual, or external webhook) -- live badge + toast + desktop notification
+                    @if(hasVendorAccess('manage_orders'))
+                    if (data.eventModelUpdate && data.eventModelUpdate.new_order) {
+                        var newOrderInfo = data.eventModelUpdate.new_order;
+                        var pendingOrdersBadge = document.getElementById('lwPendingOrdersBadge');
+                        if (pendingOrdersBadge) {
+                            pendingOrdersBadge.textContent = (parseInt(pendingOrdersBadge.textContent, 10) || 0) + 1;
+                            pendingOrdersBadge.classList.remove('d-none');
+                        }
+                        var newOrderMsg = "{{ __tr('Nouvelle commande') }} " + newOrderInfo.order_ref + (newOrderInfo.client_name ? (" — " + newOrderInfo.client_name) : '') + " (" + newOrderInfo.total_formatted + ")";
+                        if (typeof showInfoMessage === 'function' && !document.getElementById('lwOrdersPageRoot')) {
+                            // avoid a duplicate toast on the orders page itself, which shows its own via vendorChannelBroadcastStack
+                            showInfoMessage(newOrderMsg);
+                        }
+                        if (!isWindowTabActive && "Notification" in window && Notification.permission === "granted") {
+                            try {
+                                new Notification("{{ __tr('__siteName__ - Nouvelle commande', ['__siteName__' => getAppSettings('name')]) }}", {
+                                    body: newOrderMsg,
+                                    icon: "{{ asset('imgs/favicon.ico') }}",
+                                    tag: 'order-' + newOrderInfo.order_uid
+                                });
+                            } catch(err) {}
+                        }
+                    }
+                    @endif
+
                     // Delivery status update (driver assigned / delivered / not delivered) -- live badges + toast + desktop notification
                     if (data.eventModelUpdate && data.eventModelUpdate.delivery_status_update) {
                         var deliveryUpdate = data.eventModelUpdate.delivery_status_update;

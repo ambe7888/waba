@@ -4058,8 +4058,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 }
             }
 
-            // Check if customer sent a confirmation phrase
-            $isConfirmationPhrase = preg_match('/(?:valider\s+la\s+commande|je\s+confirme|oui\s+je\s+valide|confirmer\s+la\s+commande|valider)/i', $cleanMsg);
+            // Check if customer sent a confirmation phrase. Kept loose (bare
+            // "valider"/"confirmer" match) since the confirmation button's
+            // label is deliberately short to avoid WhatsApp's 20-char title
+            // truncation mangling a longer phrase.
+            $isConfirmationPhrase = preg_match('/(?:valider\s+la\s+commande|je\s+confirme|oui\s+je\s+valide|confirmer\s+la\s+commande|valider|confirmer)/i', $cleanMsg);
 
             if (!$productToOrder && $isConfirmationPhrase) {
                 // Find latest product in catalog
@@ -4068,7 +4071,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
             // Action A: Order Request -> Ask for final confirmation with Interactive Button!
             if (!empty($targetProdName) && $productToOrder && !$isConfirmationPhrase) {
-                $confirmMsg = "📦 *Confirmation de votre Commande*\n\nVous êtes sur le point de commander :\n- *Produit:* {$productToOrder->name}\n- *Prix:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nCliquez sur le bouton ci-dessous pour valider votre commande :\n\n[BUTTON: ✅ Valider la commande]\n[BUTTON: ❌ Annuler]";
+                $confirmMsg = "📦 *Confirmation de votre Commande*\n\nVous êtes sur le point de commander :\n- *Produit:* {$productToOrder->name}\n- *Prix:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nCliquez sur le bouton ci-dessous pour valider votre commande :\n\n[BUTTON: ✅ Valider]\n[BUTTON: ❌ Annuler]";
                 $this->sendReplyBotMessage($contact->_uid, $confirmMsg, $contact->vendors__id, null, [
                     'ai_bot_reply' => true,
                     'from_phone_number_id' => $options['fromPhoneNumberId'],
@@ -4109,6 +4112,26 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 }
 
                 if (!empty($foundProducts)) {
+                    // Avoid double-creating an order if the customer or the AI
+                    // repeats a confirmation phrase for one already just placed.
+                    $recentDuplicateOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
+                        ->where('contacts__id', $contact->_id)
+                        ->where('created_at', '>=', now()->subMinutes(10))
+                        ->latest()
+                        ->first();
+
+                    if ($recentDuplicateOrder) {
+                        $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
+                        $this->sendReplyBotMessage($contact->_uid, __tr('Votre commande *#__ref__* est déjà enregistrée, merci ! 🙏', [
+                            '__ref__' => substr($recentDuplicateOrder->_uid, 0, 8),
+                        ]), $contact->vendors__id, null, [
+                            'ai_bot_reply' => true,
+                            'from_phone_number_id' => $fromPhoneId,
+                            'messageWamid' => $options['messageWamid'] ?? null,
+                        ]);
+                        return true;
+                    }
+
                     $itemsArr = [];
                     $itemsSummaryText = "";
                     foreach ($foundProducts as $p) {
@@ -4134,6 +4157,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     ]);
 
                     // Orders are displayed in the dedicated orders section — no need to write to contact_notes
+                    $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+                    if ($vendorForBroadcast) {
+                        $newOrder->setRelation('contact', $contact);
+                        broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
+                    }
 
                     $clientName = trim($contact->full_name) ?: 'Client';
                     $receiptMsg = "🎉 *Commande confirmée et enregistrée avec succès !*\n\n" .
@@ -4170,24 +4198,42 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                     \Illuminate\Support\Facades\Log::info('[AI-BOT-DEBUG] [Engine] AI reply result: ' . ($aiBotReplyText ? 'GOT REPLY (' . strlen($aiBotReplyText) . ' chars)' : 'EMPTY/NULL'));
                     // check if got the reply
                     if ($aiBotReplyText) {
-                        // Auto-create order in DB if AI confirms the order
-                        if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande)/i', $aiBotReplyText)) {
-                            $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
-                            if ($productToOrder) {
-                                $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                                    'vendors__id' => $contact->vendors__id,
-                                    'contacts__id' => $contact->_id,
-                                    'order_details' => [
-                                        'source' => 'whatsapp_ai',
-                                        'items' => [
-                                            ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
+                        // Auto-create order in DB if AI confirms the order. Widened
+                        // beyond the original 2 phrases -- the AI doesn't reliably
+                        // say those exact words, it also confirms with wording like
+                        // "Votre commande a bien été enregistrée" / "commande validée".
+                        if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande|commande\s+(?:a\s+)?(?:bien\s+)?(?:été\s+)?enregistrée|commande\s+(?:est\s+)?(?:bien\s+)?valid[ée]e?)/i', $aiBotReplyText)) {
+                            // Avoid double-creating an order if a confirmation-sounding
+                            // reply follows one already just placed for this contact.
+                            $recentDuplicateOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
+                                ->where('contacts__id', $contact->_id)
+                                ->where('created_at', '>=', now()->subMinutes(10))
+                                ->latest()
+                                ->first();
+
+                            if (!$recentDuplicateOrder) {
+                                $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
+                                if ($productToOrder) {
+                                    $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+                                        'vendors__id' => $contact->vendors__id,
+                                        'contacts__id' => $contact->_id,
+                                        'order_details' => [
+                                            'source' => 'whatsapp_ai',
+                                            'items' => [
+                                                ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
+                                            ],
+                                            'total_price' => $productToOrder->price,
+                                            'currency' => 'CFA',
                                         ],
-                                        'total_price' => $productToOrder->price,
-                                        'currency' => 'CFA',
-                                    ],
-                                    'status' => 'validated',
-                                ]);
-                                // Orders are displayed in the dedicated orders section
+                                        'status' => 'validated',
+                                    ]);
+                                    // Orders are displayed in the dedicated orders section
+                                    $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+                                    if ($vendorForBroadcast) {
+                                        $newOrder->setRelation('contact', $contact);
+                                        broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
+                                    }
+                                }
                             }
                         }
 
@@ -4601,6 +4647,8 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         updateModelsViaVendorBroadcast($vendorUid, [
                             'contact' => $contact
                         ]);
+                        $newOrder->setRelation('contact', $contact);
+                        broadcastNewOrderViaVendorBroadcast($vendorUid, $newOrder);
                     }
                 }
                 if (!$messageBody && Arr::get($messageObject, '0.interactive.type') == 'call_permission_reply') {

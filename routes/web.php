@@ -1316,6 +1316,11 @@ Route::middleware([
                 'assignOrdersToDriver',
             ])->name('vendor.ecommerce.orders.assign_driver');
 
+            Route::get('/ecommerce/orders/list-json', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'listOrdersJson',
+            ])->name('vendor.ecommerce.orders.list_json');
+
             // Delivery management (drivers + tracking)
             Route::prefix('/delivery')->group(function () {
                 Route::get('/drivers', [

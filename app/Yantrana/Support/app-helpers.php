@@ -1718,6 +1718,35 @@ if (! function_exists('reloadViewViaVendorBroadcast')) {
         ]));
     }
 }
+if (! function_exists('broadcastNewOrderViaVendorBroadcast')) {
+    /**
+     * Notify the vendor's dashboard in real time that a new order was created,
+     * regardless of which flow created it (AI/bot conversation, WhatsApp
+     * Catalog, manual entry, or an external webhook).
+     *
+     * @param string $vendorUid
+     * @param \App\Yantrana\Components\ECommerce\Models\OrderModel $order
+     * @return array|null
+     */
+    function broadcastNewOrderViaVendorBroadcast(string $vendorUid, $order)
+    {
+        $details = $order->order_details ?? [];
+        if (is_string($details)) {
+            $decoded = json_decode($details, true);
+            $details = is_array($decoded) ? $decoded : [];
+        }
+        $contact = $order->contact ?? null;
+
+        return updateModelsViaVendorBroadcast($vendorUid, [
+            'new_order' => [
+                'order_uid' => $order->_uid,
+                'order_ref' => '#' . substr($order->_uid, 0, 8),
+                'client_name' => $contact ? trim(($contact->first_name ?? '') . ' ' . ($contact->last_name ?? '')) : null,
+                'total_formatted' => number_format((float) ($details['total_price'] ?? 0), 0, ',', ' ') . ' ' . ($details['currency'] ?? 'CFA'),
+            ],
+        ]);
+    }
+}
 if (! function_exists('getViaSharedUrl')) {
     /**
      * Get the url via Ngrok shared url

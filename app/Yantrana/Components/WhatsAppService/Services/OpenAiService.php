@@ -314,7 +314,7 @@ class OpenAiService extends BaseEngine
             "3. ASK FOR DELIVERY DATE ONLY: When taking delivery details, ask ONLY for (1) Nom complet, (2) Adresse/Lieu de livraison, (3) Téléphone, et (4) Date de livraison. DO NOT ASK FOR DELIVERY TIME (NE DEMANDE JAMAIS L'HEURE DE LIVRAISON). The date alone is sufficient.\n" .
             "4. BUTTON FORMATTING:\n" .
             "   - When recommending products: Append [BUTTON: 🛍️ Commander]\n" .
-            "   - When presenting an order summary (récapitulatif / résumé): ALWAYS append [BUTTON: ✅ Confirmer la commande] so the customer can validate with 1 click.";
+            "   - When presenting an order summary (récapitulatif / résumé): ALWAYS append [BUTTON: ✅ Confirmer] so the customer can validate with 1 click (keep this button label SHORT -- WhatsApp truncates button text past 20 characters, and a longer label like 'Confirmer la commande' gets cut off mid-word, breaking the order confirmation).";
 
         $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);
         if ($botDataSourceType == 'assistant' && (!$assistantId || !Str::startsWith($assistantId, 'asst_'))) {
