@@ -4201,8 +4201,12 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         // Auto-create order in DB if AI confirms the order. Widened
                         // beyond the original 2 phrases -- the AI doesn't reliably
                         // say those exact words, it also confirms with wording like
-                        // "Votre commande a bien été enregistrée" / "commande validée".
-                        if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande|commande\s+(?:a\s+)?(?:bien\s+)?(?:été\s+)?enregistrée|commande\s+(?:est\s+)?(?:bien\s+)?valid[ée]e?)/i', $aiBotReplyText)) {
+                        // "Votre commande a été transmise et enregistrée avec succès"
+                        // or "C'est parfaitement validé". Proximity match (commande
+                        // ... enregistrée/validée within ~40 chars) rather than a
+                        // rigid word sequence, since extra words in between (as in
+                        // that example) broke a stricter pattern.
+                        if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande|commande.{0,40}?enregistrée|commande.{0,40}?valid[ée]e?)/i', $aiBotReplyText)) {
                             // Avoid double-creating an order if a confirmation-sounding
                             // reply follows one already just placed for this contact.
                             $recentDuplicateOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
