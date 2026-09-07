@@ -213,6 +213,43 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     }
 
     /**
+     * Find which of the vendor's catalog products are actually named in the
+     * recent conversation (the customer's messages and/or the AI's own
+     * récapitulatif), so an auto-created order reflects what was really
+     * discussed instead of guessing "whatever was added to the catalog most
+     * recently".
+     *
+     * @param int $vendorId
+     * @param int $contactId
+     * @param string $extraText - additional text to search (e.g. the current message or AI reply)
+     * @return \Illuminate\Support\Collection|array
+     */
+    private function findMentionedProductsInConversation($vendorId, $contactId, $extraText = '')
+    {
+        $vendorProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
+        if ($vendorProducts->isEmpty()) {
+            return [];
+        }
+
+        $recentText = $extraText;
+        $chatLogs = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::where('contacts__id', $contactId)
+            ->latest()
+            ->take(15)
+            ->get();
+        foreach ($chatLogs as $log) {
+            $recentText .= " " . $log->message;
+        }
+
+        $foundProducts = [];
+        foreach ($vendorProducts as $prod) {
+            if (!empty($prod->name) && mb_stripos($recentText, $prod->name) !== false) {
+                $foundProducts[] = $prod;
+            }
+        }
+        return $foundProducts;
+    }
+
+    /**
      * Get Contact Info
      *
      * @param  string  $contactUid
@@ -4082,33 +4119,17 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
             // Action B: Order Confirmation -> Create real multi-item order in DB with grand total calculation!
             if ($isConfirmationPhrase) {
-                $vendorProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->get();
-                $foundProducts = [];
+                $foundProducts = $this->findMentionedProductsInConversation($contact->vendors__id, $contact->_id, $messageBody);
                 $grandTotal = 0;
-
-                // Scan recent messages for mentioned catalog products
-                $recentText = $messageBody;
-                $chatLogs = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::where('contacts__id', $contact->_id)
-                    ->latest()
-                    ->take(12)
-                    ->get();
-                foreach ($chatLogs as $log) {
-                    $recentText .= " " . $log->message;
-                }
-
-                foreach ($vendorProducts as $prod) {
-                    if (mb_stripos($recentText, $prod->name) !== false) {
-                        $foundProducts[] = $prod;
-                        $grandTotal += $prod->price;
-                    }
+                foreach ($foundProducts as $p) {
+                    $grandTotal += $p->price;
                 }
 
                 if (empty($foundProducts)) {
-                    $latestProd = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
-                    if ($latestProd) {
-                        $foundProducts[] = $latestProd;
-                        $grandTotal = $latestProd->price;
-                    }
+                    // Don't guess which product to order -- that's exactly how a
+                    // customer asking for a "casserole" ends up with a "mixeur"
+                    // on their order. Alert the vendor to check manually instead.
+                    logSystemVendorChatMessage($contact, 'WARNING', __tr("Le client semble avoir confirmé une commande, mais aucun produit du catalogue n'a été reconnu dans la conversation. Vérifiez et créez la commande manuellement si besoin."));
                 }
 
                 if (!empty($foundProducts)) {
@@ -4216,17 +4237,30 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                                 ->first();
 
                             if (!$recentDuplicateOrder) {
-                                $productToOrder = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $contact->vendors__id)->latest()->first();
-                                if ($productToOrder) {
+                                // Match products actually named in the conversation
+                                // (the AI's own récapitulatif almost always names
+                                // them) instead of guessing "whatever was added to
+                                // the catalog most recently" -- that's exactly how
+                                // a customer asking for a "casserole" would end up
+                                // with a "mixeur" on their order.
+                                $foundProducts = $this->findMentionedProductsInConversation($contact->vendors__id, $contact->_id, $aiBotReplyText);
+
+                                if (empty($foundProducts)) {
+                                    logSystemVendorChatMessage($contact, 'WARNING', __tr("Le client semble avoir confirmé une commande, mais aucun produit du catalogue n'a été reconnu dans la conversation. Vérifiez et créez la commande manuellement si besoin."));
+                                } else {
+                                    $itemsArr = [];
+                                    $grandTotal = 0;
+                                    foreach ($foundProducts as $p) {
+                                        $itemsArr[] = ['name' => $p->name, 'quantity' => 1, 'price' => $p->price, 'currency' => 'CFA'];
+                                        $grandTotal += $p->price;
+                                    }
                                     $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
                                         'vendors__id' => $contact->vendors__id,
                                         'contacts__id' => $contact->_id,
                                         'order_details' => [
                                             'source' => 'whatsapp_ai',
-                                            'items' => [
-                                                ['name' => $productToOrder->name, 'quantity' => 1, 'price' => $productToOrder->price, 'currency' => 'CFA']
-                                            ],
-                                            'total_price' => $productToOrder->price,
+                                            'items' => $itemsArr,
+                                            'total_price' => $grandTotal,
                                             'currency' => 'CFA',
                                         ],
                                         'status' => 'validated',
