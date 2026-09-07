@@ -654,6 +654,46 @@ $currentAppTheme ='';
                         }
                     }
 
+                    // Delivery status update (driver assigned / delivered / not delivered) -- live badges + toast + desktop notification
+                    if (data.eventModelUpdate && data.eventModelUpdate.delivery_status_update) {
+                        var deliveryUpdate = data.eventModelUpdate.delivery_status_update;
+                        var activeBadge = document.getElementById('lwActiveDeliveriesBadge');
+                        var deliveredBadge = document.getElementById('lwDeliveredOutcomesBadge');
+                        var deliveryMsg = '';
+                        if (deliveryUpdate.event === 'assigned') {
+                            deliveryMsg = "{{ __tr('Commande') }} " + deliveryUpdate.order_ref + " {{ __tr('assignée à') }} " + deliveryUpdate.driver_name;
+                            if (activeBadge) {
+                                activeBadge.textContent = (parseInt(activeBadge.textContent, 10) || 0) + 1;
+                                activeBadge.classList.remove('d-none');
+                            }
+                        } else if (deliveryUpdate.event === 'delivered' || deliveryUpdate.event === 'failed') {
+                            deliveryMsg = deliveryUpdate.event === 'delivered'
+                                ? ("{{ __tr('Commande') }} " + deliveryUpdate.order_ref + " {{ __tr('livrée par') }} " + deliveryUpdate.driver_name)
+                                : ("{{ __tr('Commande') }} " + deliveryUpdate.order_ref + " {{ __tr('signalée non livrée par') }} " + deliveryUpdate.driver_name);
+                            if (activeBadge) {
+                                var remaining = Math.max(0, (parseInt(activeBadge.textContent, 10) || 0) - 1);
+                                activeBadge.textContent = remaining;
+                                activeBadge.classList.toggle('d-none', remaining <= 0);
+                            }
+                            if (deliveredBadge && window.location.pathname.indexOf('/delivery/tracking') === -1) {
+                                deliveredBadge.textContent = (parseInt(deliveredBadge.textContent, 10) || 0) + 1;
+                                deliveredBadge.classList.remove('d-none');
+                            }
+                        }
+                        if (deliveryMsg && typeof showInfoMessage === 'function') {
+                            showInfoMessage(deliveryMsg);
+                        }
+                        if (deliveryMsg && !isWindowTabActive && "Notification" in window && Notification.permission === "granted") {
+                            try {
+                                new Notification("{{ __tr('__siteName__ - Livraison', ['__siteName__' => getAppSettings('name')]) }}", {
+                                    body: deliveryMsg,
+                                    icon: "{{ asset('imgs/favicon.ico') }}",
+                                    tag: 'delivery-' + deliveryUpdate.order_uid
+                                });
+                            } catch(err) {}
+                        }
+                    }
+
                     // Only prepend chat messages & mark as read if the user currently HAS THIS SPECIFIC CONTACT OPEN IN THE CHAT WINDOW
                     var activeChatContactUid = $('#lwWhatsAppChatWindow').length ? ($('#lwWhatsAppChatWindow').attr('data-contact-uid') || $('#lwWhatsAppChatWindow').data('contact-uid')) : null;
                     if(isWindowTabActive && data.contactUid && activeChatContactUid && activeChatContactUid === data.contactUid) {

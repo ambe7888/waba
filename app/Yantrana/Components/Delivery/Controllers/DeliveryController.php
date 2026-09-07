@@ -102,6 +102,8 @@ class DeliveryController extends BaseController
             ->where('is_active', true)
             ->orderBy('first_name')
             ->get();
+        // Viewing this page acknowledges any delivered/failed outcomes, clearing the sidebar bubble.
+        $this->deliveryEngine->markDeliveryOutcomesSeen($vendorId);
         return $this->loadView('delivery.tracking', compact('drivers'));
     }
 

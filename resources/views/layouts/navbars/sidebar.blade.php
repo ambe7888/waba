@@ -454,18 +454,22 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         'vendors__id' => getVendorId(),
                         'status' => 'in_delivery'
                     ])->count();
+                    $unseenDeliveryOutcomesCount = app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
+                        ->countUnseenDeliveryOutcomes(getVendorId());
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link <?= (request()->routeIs('vendor.delivery.*')) ? 'active' : '' ?>"
                         href="<?= route('vendor.delivery.tracking.view') ?>">
                         <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
                             <i class="fa fa-truck m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                            @if($activeDeliveriesCount > 0)
-                            <span class="badge badge-info rounded-pill shadow-sm text-white font-weight-bold"
+                            <span id="lwActiveDeliveriesBadge" class="badge badge-info rounded-pill shadow-sm text-white font-weight-bold <?= $activeDeliveriesCount > 0 ? '' : 'd-none' ?>"
                                   style="position: absolute; top: -5px; left: -5px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
                                 {{ $activeDeliveriesCount }}
                             </span>
-                            @endif
+                            <span id="lwDeliveredOutcomesBadge" title="{{ __tr('Livraisons terminées à consulter') }}" class="badge badge-success rounded-pill shadow-sm text-white font-weight-bold <?= $unseenDeliveryOutcomesCount > 0 ? '' : 'd-none' ?>"
+                                  style="position: absolute; top: -5px; right: -8px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
+                                {{ $unseenDeliveryOutcomesCount }}
+                            </span>
                         </div>
                         <span class="nav-link-text ml--2">{{ __tr('Livraison') }}</span>
                     </a>

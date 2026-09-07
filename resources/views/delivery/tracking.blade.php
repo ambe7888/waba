@@ -87,4 +87,12 @@
     }
 </script>
 @endpush
+
+@push('vendorChannelBroadcastStack')
+if (data.eventModelUpdate && data.eventModelUpdate.delivery_status_update) {
+    if (window.lwDataTablesInstance && window.lwDataTablesInstance.lwDeliveryTrackingList) {
+        window.lwDataTablesInstance.lwDeliveryTrackingList.ajax.reload(null, false);
+    }
+}
+@endpush
 @endsection

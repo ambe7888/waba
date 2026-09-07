@@ -155,6 +155,12 @@ class DeliveryEngine extends BaseEngine
                 if ($vendor) {
                     updateModelsViaVendorBroadcast($vendor->_uid, [
                         'contact' => $contact,
+                        'delivery_status_update' => [
+                            'order_uid' => $order->_uid,
+                            'order_ref' => $orderRef,
+                            'event' => 'assigned',
+                            'driver_name' => $driver->full_name,
+                        ],
                     ]);
                 }
             }
@@ -264,11 +270,13 @@ class DeliveryEngine extends BaseEngine
         }
 
         $order->status = $action === 'delivered' ? 'delivered' : 'delivery_failed';
+        $order->delivery_outcome_seen_at = null;
         $order->save();
 
+        $orderRef = '#' . substr($order->_uid, 0, 8);
+        $driverName = $order->driver->full_name ?? __tr('le livreur');
+
         if ($order->contacts__id) {
-            $orderRef = '#' . substr($order->_uid, 0, 8);
-            $driverName = $order->driver->full_name ?? __tr('le livreur');
             $systemMsg = $action === 'delivered'
                 ? __tr('✅ Commande __ref__ livrée par __driver__', ['__ref__' => $orderRef, '__driver__' => $driverName])
                 : __tr('⚠️ Commande __ref__ signalée non livrée par __driver__', ['__ref__' => $orderRef, '__driver__' => $driverName]);
@@ -288,15 +296,53 @@ class DeliveryEngine extends BaseEngine
                     ],
                 ],
             ]);
+        }
 
-            $vendor = VendorModel::find($vendorId);
-            if ($vendor) {
-                updateModelsViaVendorBroadcast($vendor->_uid, [
-                    'contact' => $order->contact,
-                ]);
-            }
+        $vendor = VendorModel::find($vendorId);
+        if ($vendor) {
+            updateModelsViaVendorBroadcast($vendor->_uid, [
+                'contact' => $order->contact,
+                'delivery_status_update' => [
+                    'order_uid' => $order->_uid,
+                    'order_ref' => $orderRef,
+                    'event' => $action === 'delivered' ? 'delivered' : 'failed',
+                    'driver_name' => $driverName,
+                ],
+            ]);
         }
 
         return true;
+    }
+
+    /**
+     * Count delivered/failed deliveries the vendor hasn't acknowledged yet
+     * (used for the sidebar "Livraison" notification bubble)
+     *
+     * @param int $vendorId
+     * @return int
+     *---------------------------------------------------------------- */
+    public function countUnseenDeliveryOutcomes($vendorId)
+    {
+        return OrderModel::where('vendors__id', $vendorId)
+            ->whereNotNull('assigned_driver__id')
+            ->whereIn('status', ['delivered', 'delivery_failed'])
+            ->whereNull('delivery_outcome_seen_at')
+            ->count();
+    }
+
+    /**
+     * Mark all delivered/failed deliveries as seen (called when the vendor
+     * opens the delivery tracking page)
+     *
+     * @param int $vendorId
+     * @return void
+     *---------------------------------------------------------------- */
+    public function markDeliveryOutcomesSeen($vendorId)
+    {
+        OrderModel::where('vendors__id', $vendorId)
+            ->whereNotNull('assigned_driver__id')
+            ->whereIn('status', ['delivered', 'delivery_failed'])
+            ->whereNull('delivery_outcome_seen_at')
+            ->update(['delivery_outcome_seen_at' => now()]);
     }
 }

@@ -27,6 +27,7 @@ class OrderModel extends BaseModel
         'assigned_driver__id' => 'integer',
         'order_details' => 'array',
         'delivery_assigned_at' => 'datetime',
+        'delivery_outcome_seen_at' => 'datetime',
     ];
 
     /**
@@ -40,6 +41,7 @@ class OrderModel extends BaseModel
         'status',
         'assigned_driver__id',
         'delivery_assigned_at',
+        'delivery_outcome_seen_at',
     ];
 
     /**
