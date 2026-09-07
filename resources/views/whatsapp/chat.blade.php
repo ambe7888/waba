@@ -1535,7 +1535,7 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                             }
                                         });
                                     },
-                                    deliveryDrivers: {!! json_encode($lwChatDeliveryDrivers) !!},
+                                    deliveryDrivers: {{ json_encode($lwChatDeliveryDrivers) }},
                                     assignDriverTargetOrderUid: '',
                                     assignDriverSelectedId: '',
                                     isAssigningDriver: false,
