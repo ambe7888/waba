@@ -1678,7 +1678,7 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                         <template x-for="ord in ordersList" :key="ord._uid">
                                             <div class="p-2 border rounded mb-2 shadow-sm" style="border-radius: 10px; background: #ffffff; border: 1.5px solid #cbd5e1 !important;">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <a href="#" @click.prevent="openOrderReceiptModal(ord)" class="font-weight-bold text-xs" style="color:#059669;text-decoration:underline;" x-text="'#' + ord._uid.substring(0, 8)"></a>
+                                                    <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
                                                     <div class="d-flex align-items-center">
                                                         <span class="badge text-white" 
                                                               :class="{
