@@ -595,7 +595,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                         <select class="form-control custom-input-white" x-model="assignDriverSelectedId">
                             <option value="">-- {{ __tr('Sélectionner') }} --</option>
                             <template x-for="driver in deliveryDrivers" :key="driver._uid">
-                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '') + (driver.is_24h_window_open ? '' : ' ⚠ fenêtre 24h fermée')"></option>
+                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '') + (driver.is_24h_window_open ? '' : ' · en attente de contact')"></option>
                             </template>
                         </select>
                         <template x-if="deliveryDrivers.length === 0">
@@ -605,9 +605,16 @@ $deliveryDrivers = $deliveryManagementEnabled
                             </small>
                         </template>
                         <template x-if="assignDriverSelectedId && !getSelectedDriverWindowOpen()">
-                            <small class="d-block mt-2 p-2" style="background: #fdf1dc; color: #92600a; border-radius: 8px;">
-                                {{ __tr('Ce livreur n\'a pas écrit depuis plus de 24h (ou jamais) : WhatsApp ne permet pas d\'envoyer de notification hors de cette fenêtre. La commande sera quand même assignée, mais demandez au livreur de vous envoyer un message pour recevoir la notification.') }}
-                            </small>
+                            <div class="mt-2 p-3" style="background: #fdf6e8; border: 1px solid #f0dfb0; border-radius: 10px;">
+                                <div class="font-weight-bold" style="color: #92600a; font-size: 0.85rem;">{{ __tr('Notification WhatsApp indisponible pour le moment') }}</div>
+                                <p class="mb-2 mt-1" style="color: #7a5206; font-size: 0.82rem;">
+                                    {{ __tr('WhatsApp exige qu\'un contact vous ait écrit au cours des dernières 24 heures pour qu\'une notification automatique puisse lui être délivrée. Ce livreur n\'est pas (ou plus) dans cette fenêtre — la commande sera bien assignée, mais il ne recevra pas le message tant qu\'il ne vous aura pas écrit.') }}
+                                </p>
+                                <p class="mb-0" style="color: #7a5206; font-size: 0.82rem;">
+                                    {{ __tr('Demandez-lui de vous envoyer un simple message, par exemple :') }}
+                                    <em>« {{ __tr('Bonjour, je suis disponible pour les livraisons.') }} »</em>
+                                </p>
+                            </div>
                         </template>
                     </div>
                 </div>

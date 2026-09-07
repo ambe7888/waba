@@ -63,7 +63,7 @@ class DeliveryDriverRepository extends BaseRepository
                 $row['failed_count'] = $failed;
                 $row['success_rate_formatted'] = $total > 0 ? round(($delivered / $total) * 100) . '%' : '—';
                 $row['status_formatted'] = $row['is_active'] ? __tr('Actif') : __tr('Inactif');
-                $row['window_formatted'] = !empty($row['is_24h_window_open']) ? __tr('Ouverte') : __tr('Fermée');
+                $row['window_formatted'] = !empty($row['is_24h_window_open']) ? __tr('Joignable') : __tr('En attente de contact');
             }
         }
 

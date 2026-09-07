@@ -196,14 +196,14 @@ class DeliveryEngine extends BaseEngine
         }
 
         if (!$windowOpen) {
-            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s) à __driver__, mais aucune notification WhatsApp n\'a pu être envoyée : la fenêtre de 24h est fermée (le livreur n\'a pas écrit depuis plus de 24h, ou jamais). Demandez-lui d\'envoyer un message (ex. "Je suis disponible") pour rouvrir la fenêtre, puis réassignez.', [
+            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s) à __driver__. La notification WhatsApp n\'a pas pu être délivrée : ce livreur doit d\'abord vous écrire pour activer la fenêtre de messagerie de 24 heures. Demandez-lui de vous envoyer un message, par exemple « Bonjour, je suis disponible pour les livraisons », puis renvoyez la notification.', [
                 '__count__' => $assignedCount,
                 '__driver__' => $driver->full_name,
             ]));
         }
 
         if (!empty($messageFailures)) {
-            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s), mais le message WhatsApp au livreur a échoué pour : __refs__', [
+            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s), mais la notification WhatsApp n\'a pas pu être délivrée au livreur pour : __refs__', [
                 '__count__' => $assignedCount,
                 '__refs__' => implode(', #', $messageFailures),
             ]));
