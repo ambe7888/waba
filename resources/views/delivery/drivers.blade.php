@@ -50,6 +50,7 @@
                         <th data-orderable="false" data-name="delivered_count">{{ __tr('Livrées') }}</th>
                         <th data-orderable="false" data-name="failed_count">{{ __tr('Non livrées') }}</th>
                         <th data-orderable="false" data-name="success_rate_formatted">{{ __tr('Taux de réussite') }}</th>
+                        <th data-orderable="false" data-name="window_formatted">{{ __tr('Fenêtre 24h') }}</th>
                         <th data-orderable="false" data-name="status_formatted">{{ __tr('Statut') }}</th>
                         <th data-template="#driverActionsTemplate" data-name="_uid">{{ __tr('Actions') }}</th>
                     </x-lw.datatable>

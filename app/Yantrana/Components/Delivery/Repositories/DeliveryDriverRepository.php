@@ -63,6 +63,7 @@ class DeliveryDriverRepository extends BaseRepository
                 $row['failed_count'] = $failed;
                 $row['success_rate_formatted'] = $total > 0 ? round(($delivered / $total) * 100) . '%' : '—';
                 $row['status_formatted'] = $row['is_active'] ? __tr('Actif') : __tr('Inactif');
+                $row['window_formatted'] = !empty($row['is_24h_window_open']) ? __tr('Ouverte') : __tr('Fermée');
             }
         }
 
@@ -76,9 +77,10 @@ class DeliveryDriverRepository extends BaseRepository
      * Fetch datatable source for the delivery-tracking page
      *
      * @param string $statusFilter - 'in_delivery' (default), 'delivered', 'delivery_failed', or 'all'
+     * @param string|null $driverUidFilter - restrict to one driver's _uid
      * @return array
      *---------------------------------------------------------------- */
-    public function fetchTrackingDataTableSource($statusFilter = 'in_delivery')
+    public function fetchTrackingDataTableSource($statusFilter = 'in_delivery', $driverUidFilter = null)
     {
         $vendorId = getVendorId();
         $dataTableConfig = [
@@ -87,6 +89,12 @@ class DeliveryDriverRepository extends BaseRepository
         $query = OrderModel::where('vendors__id', $vendorId)
             ->whereNotNull('assigned_driver__id')
             ->with(['contact', 'driver']);
+
+        if (!empty($driverUidFilter)) {
+            $query->whereHas('driver', function ($q) use ($driverUidFilter) {
+                $q->where('_uid', $driverUidFilter);
+            });
+        }
 
         if (in_array($statusFilter, ['in_delivery', 'delivered', 'delivery_failed'])) {
             $query->where('status', $statusFilter);

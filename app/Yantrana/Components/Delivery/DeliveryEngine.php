@@ -40,11 +40,12 @@ class DeliveryEngine extends BaseEngine
      * Prepare delivery-tracking datatable data
      *
      * @param string $statusFilter
+     * @param string|null $driverUidFilter
      * @return array
      *---------------------------------------------------------------- */
-    public function prepareTrackingDataTable($statusFilter = 'in_delivery')
+    public function prepareTrackingDataTable($statusFilter = 'in_delivery', $driverUidFilter = null)
     {
-        return $this->deliveryDriverRepository->fetchTrackingDataTableSource($statusFilter);
+        return $this->deliveryDriverRepository->fetchTrackingDataTableSource($statusFilter, $driverUidFilter);
     }
 
     /**
@@ -132,6 +133,11 @@ class DeliveryEngine extends BaseEngine
 
         $assignedCount = 0;
         $messageFailures = [];
+        // WhatsApp only allows free-form (non-template) messages within 24h
+        // of the recipient's own last message -- checked once for the whole
+        // batch since it's the same driver, so a closed window can be
+        // reported clearly instead of failing silently order by order.
+        $windowOpen = $driver->is_24h_window_open;
 
         foreach ($orders as $order) {
             $order->assigned_driver__id = $driver->_id;
@@ -177,14 +183,23 @@ class DeliveryEngine extends BaseEngine
                 }
             }
 
-            try {
-                $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
-            } catch (\Throwable $e) {
-                $sendResult = false;
+            if ($windowOpen) {
+                try {
+                    $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
+                } catch (\Throwable $e) {
+                    $sendResult = false;
+                }
+                if (!$sendResult) {
+                    $messageFailures[] = substr($order->_uid, 0, 8);
+                }
             }
-            if (!$sendResult) {
-                $messageFailures[] = substr($order->_uid, 0, 8);
-            }
+        }
+
+        if (!$windowOpen) {
+            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s) à __driver__, mais aucune notification WhatsApp n\'a pu être envoyée : la fenêtre de 24h est fermée (le livreur n\'a pas écrit depuis plus de 24h, ou jamais). Demandez-lui d\'envoyer un message (ex. "Je suis disponible") pour rouvrir la fenêtre, puis réassignez.', [
+                '__count__' => $assignedCount,
+                '__driver__' => $driver->full_name,
+            ]));
         }
 
         if (!empty($messageFailures)) {

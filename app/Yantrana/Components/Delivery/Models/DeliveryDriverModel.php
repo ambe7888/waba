@@ -23,6 +23,7 @@ class DeliveryDriverModel extends BaseModel
         '_id' => 'integer',
         'vendors__id' => 'integer',
         'is_active' => 'boolean',
+        'last_message_at' => 'datetime',
     ];
 
     /**
@@ -38,6 +39,7 @@ class DeliveryDriverModel extends BaseModel
         'address',
         'vehicle_type',
         'is_active',
+        'last_message_at',
     ];
 
     /**
@@ -45,6 +47,7 @@ class DeliveryDriverModel extends BaseModel
      */
     protected $appends = [
         'full_name',
+        'is_24h_window_open',
     ];
 
     /**
@@ -61,5 +64,15 @@ class DeliveryDriverModel extends BaseModel
     public function getFullNameAttribute()
     {
         return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    /**
+     * Whether WhatsApp's 24h customer-service window is currently open for
+     * this driver (i.e. a free-form/interactive message can actually be
+     * delivered, as opposed to a pre-approved template).
+     */
+    public function getIs24hWindowOpenAttribute()
+    {
+        return !empty($this->last_message_at) && $this->last_message_at->diffInHours(now()) < 24;
     }
 }

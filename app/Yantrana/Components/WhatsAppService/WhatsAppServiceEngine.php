@@ -4593,18 +4593,39 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             if ($messageType == 'request_welcome') {
                 return false;
             }
-            // Delivery driver quick-reply ("Livré" / "Non livré") -- these come from a
-            // driver's phone number, not a customer, so this is handled and the webhook
-            // stops here, before any contact record would otherwise be created/updated
-            // for that driver's number below.
-            if ($messageType == 'interactive') {
-                $deliveryButtonId = Arr::get($messageObject, '0.interactive.button_reply.id');
-                if ($deliveryButtonId && preg_match('/^delivery_(delivered|failed)_(.+)$/', $deliveryButtonId, $deliveryMatches)) {
-                    try {
-                        app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
-                            ->updateOrderDeliveryStatus($deliveryMatches[2], $deliveryMatches[1], $vendorId, 'driver_reply');
-                    } catch (\Throwable $e) {
-                        // Never let a delivery-status bug take down webhook processing.
+            // Any message from a known delivery driver's WhatsApp number --
+            // handled here and the webhook stops, before any contact record
+            // would otherwise be created/updated for that driver's number
+            // below. This also tracks last_message_at for the 24h customer
+            // service window rule: a driver notification is a free-form
+            // (non-template) message, so it can only be delivered within 24h
+            // of the driver's own last message to the business.
+            if (!$isFromBizAppReplied) {
+                try {
+                    $normalizedWaId = preg_replace('/\D/', '', (string) $waId);
+                    $driver = \App\Yantrana\Components\Delivery\Models\DeliveryDriverModel::where('vendors__id', $vendorId)
+                        ->get()
+                        ->first(function ($d) use ($normalizedWaId) {
+                            return $normalizedWaId !== '' && preg_replace('/\D/', '', (string) $d->phone) === $normalizedWaId;
+                        });
+                } catch (\Throwable $e) {
+                    $driver = null;
+                }
+
+                if ($driver) {
+                    $driver->last_message_at = now();
+                    $driver->save();
+
+                    if ($messageType == 'interactive') {
+                        $deliveryButtonId = Arr::get($messageObject, '0.interactive.button_reply.id');
+                        if ($deliveryButtonId && preg_match('/^delivery_(delivered|failed)_(.+)$/', $deliveryButtonId, $deliveryMatches)) {
+                            try {
+                                app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
+                                    ->updateOrderDeliveryStatus($deliveryMatches[2], $deliveryMatches[1], $vendorId, 'driver_reply');
+                            } catch (\Throwable $e) {
+                                // Never let a delivery-status bug take down webhook processing.
+                            }
+                        }
                     }
                     return false;
                 }

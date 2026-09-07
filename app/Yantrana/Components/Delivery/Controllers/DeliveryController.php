@@ -105,10 +105,11 @@ class DeliveryController extends BaseController
         $statusFilter = in_array($request->get('status_filter'), ['in_delivery', 'delivered', 'delivery_failed', 'all'])
             ? $request->get('status_filter')
             : 'in_delivery';
+        $driverFilter = $request->get('driver_filter') ?: '';
         $recapCounts = $this->deliveryEngine->fetchDeliveryRecapCounts($vendorId);
         // Viewing this page acknowledges any delivered/failed outcomes, clearing the sidebar bubble.
         $this->deliveryEngine->markDeliveryOutcomesSeen($vendorId);
-        return $this->loadView('delivery.tracking', compact('drivers', 'statusFilter', 'recapCounts'));
+        return $this->loadView('delivery.tracking', compact('drivers', 'statusFilter', 'driverFilter', 'recapCounts'));
     }
 
     /**
@@ -123,7 +124,8 @@ class DeliveryController extends BaseController
         $statusFilter = in_array($request->get('status_filter'), ['in_delivery', 'delivered', 'delivery_failed', 'all'])
             ? $request->get('status_filter')
             : 'in_delivery';
-        return $this->deliveryEngine->prepareTrackingDataTable($statusFilter);
+        $driverFilter = $request->get('driver_filter') ?: null;
+        return $this->deliveryEngine->prepareTrackingDataTable($statusFilter, $driverFilter);
     }
 
     /**

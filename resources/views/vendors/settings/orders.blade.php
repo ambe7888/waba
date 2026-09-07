@@ -32,7 +32,7 @@ $deliveryDrivers = $deliveryManagementEnabled
     ? \App\Yantrana\Components\Delivery\Models\DeliveryDriverModel::where('vendors__id', $vendorId)
         ->where('is_active', true)
         ->orderBy('first_name')
-        ->get(['_uid', '_id', 'first_name', 'last_name', 'zone'])
+        ->get(['_uid', '_id', 'first_name', 'last_name', 'zone', 'last_message_at'])
     : collect();
 @endphp
 
@@ -377,6 +377,19 @@ $deliveryDrivers = $deliveryManagementEnabled
                         </template>
                     </div>
                 </div>
+
+                @if($deliveryManagementEnabled)
+                <div class="col-md-3 mb-3">
+                    <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par livreur') }}</label>
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDriverFilter" @change="resetOrdersPage()">
+                        <option value="">{{ __tr('Tous les livreurs') }}</option>
+                        <option value="unassigned">{{ __tr('Non assignée') }}</option>
+                        <template x-for="driver in deliveryDrivers" :key="driver._uid">
+                            <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '')"></option>
+                        </template>
+                    </select>
+                </div>
+                @endif
             </div>
 
             <!-- Sort & Quick Filters Row 2 -->
@@ -582,13 +595,18 @@ $deliveryDrivers = $deliveryManagementEnabled
                         <select class="form-control custom-input-white" x-model="assignDriverSelectedId">
                             <option value="">-- {{ __tr('Sélectionner') }} --</option>
                             <template x-for="driver in deliveryDrivers" :key="driver._uid">
-                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '')"></option>
+                                <option :value="driver._uid" x-text="driver.first_name + ' ' + (driver.last_name || '') + (driver.zone ? ' — ' + driver.zone : '') + (driver.is_24h_window_open ? '' : ' ⚠ fenêtre 24h fermée')"></option>
                             </template>
                         </select>
                         <template x-if="deliveryDrivers.length === 0">
                             <small class="text-muted d-block mt-1">
                                 {{ __tr('Aucun livreur enregistré.') }}
                                 <a href="{{ route('vendor.delivery.drivers.view') }}" target="_blank">{{ __tr('Ajouter un livreur') }}</a>
+                            </small>
+                        </template>
+                        <template x-if="assignDriverSelectedId && !getSelectedDriverWindowOpen()">
+                            <small class="d-block mt-2 p-2" style="background: #fdf1dc; color: #92600a; border-radius: 8px;">
+                                {{ __tr('Ce livreur n\'a pas écrit depuis plus de 24h (ou jamais) : WhatsApp ne permet pas d\'envoyer de notification hors de cette fenêtre. La commande sera quand même assignée, mais demandez au livreur de vous envoyer un message pour recevoir la notification.') }}
                             </small>
                         </template>
                     </div>
@@ -874,6 +892,7 @@ function ordersPageData() {
         orderSearch: '',
         orderStatusFilter: '',
         orderSourceFilter: '',
+        orderDriverFilter: '',
         orderDateFilter: '',
         orderDateSort: 'desc',
         ordersPerPage: 100,
@@ -936,6 +955,10 @@ function ordersPageData() {
             this.assignDriverTargets = orderUids;
             this.assignDriverSelectedId = '';
             $('#assignDriverModal').modal('show');
+        },
+        getSelectedDriverWindowOpen: function() {
+            var driver = this.deliveryDrivers.find(function(d) { return d._uid === this.assignDriverSelectedId; }.bind(this));
+            return driver ? !!driver.is_24h_window_open : true;
         },
         submitAssignDriver: function() {
             if (!this.assignDriverSelectedId || this.assignDriverTargets.length === 0) return;
@@ -1088,6 +1111,10 @@ function ordersPageData() {
                 var matchesSource = !self.orderSourceFilter || 
                     orderSource.toLowerCase().indexOf(self.orderSourceFilter.toLowerCase()) !== -1;
 
+                // Driver filter ('' = all, 'unassigned' = no driver, else a driver _uid)
+                var matchesDriver = !self.orderDriverFilter ||
+                    (self.orderDriverFilter === 'unassigned' ? !o.driver : (o.driver && o.driver._uid === self.orderDriverFilter));
+
                 // Date filter (YYYY-MM-DD match, in UTC - see setTodayFilter)
                 var matchesDate = true;
                 if (self.orderDateFilter && o.created_at) {
@@ -1107,7 +1134,7 @@ function ordersPageData() {
                     }
                 }
 
-                return matchesSearch && matchesStatus && matchesSource && matchesDate;
+                return matchesSearch && matchesStatus && matchesSource && matchesDriver && matchesDate;
             });
 
             result.sort(function(a, b) {

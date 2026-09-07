@@ -77,12 +77,20 @@
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-xl-12 lw-delivery-tabs">
-            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'in_delivery']) }}" class="{{ $statusFilter === 'in_delivery' ? 'active' : '' }}">{{ __tr('En cours') }}</a>
-            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'delivered']) }}" class="{{ $statusFilter === 'delivered' ? 'active' : '' }}">{{ __tr('Livrées') }}</a>
-            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'delivery_failed']) }}" class="{{ $statusFilter === 'delivery_failed' ? 'active' : '' }}">{{ __tr('Non livrées') }}</a>
-            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'all']) }}" class="{{ $statusFilter === 'all' ? 'active' : '' }}">{{ __tr('Toutes') }}</a>
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-8 lw-delivery-tabs mb-2">
+            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'in_delivery', 'driver_filter' => $driverFilter]) }}" class="{{ $statusFilter === 'in_delivery' ? 'active' : '' }}">{{ __tr('En cours') }}</a>
+            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'delivered', 'driver_filter' => $driverFilter]) }}" class="{{ $statusFilter === 'delivered' ? 'active' : '' }}">{{ __tr('Livrées') }}</a>
+            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'delivery_failed', 'driver_filter' => $driverFilter]) }}" class="{{ $statusFilter === 'delivery_failed' ? 'active' : '' }}">{{ __tr('Non livrées') }}</a>
+            <a href="{{ route('vendor.delivery.tracking.view', ['status_filter' => 'all', 'driver_filter' => $driverFilter]) }}" class="{{ $statusFilter === 'all' ? 'active' : '' }}">{{ __tr('Toutes') }}</a>
+        </div>
+        <div class="col-md-4 mb-2">
+            <select class="form-control form-control-sm" onchange="window.location.href = '{{ route('vendor.delivery.tracking.view') }}?status_filter={{ $statusFilter }}&driver_filter=' + this.value">
+                <option value="">{{ __tr('Tous les livreurs') }}</option>
+                @foreach($drivers as $driver)
+                <option value="{{ $driver->_uid }}" {{ $driverFilter === $driver->_uid ? 'selected' : '' }}>{{ $driver->full_name }}</option>
+                @endforeach
+            </select>
         </div>
     </div>
 
@@ -90,7 +98,7 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-body">
-                    <x-lw.datatable id="lwDeliveryTrackingList" :url="route('vendor.delivery.tracking.list', ['status_filter' => $statusFilter])">
+                    <x-lw.datatable id="lwDeliveryTrackingList" :url="route('vendor.delivery.tracking.list', ['status_filter' => $statusFilter, 'driver_filter' => $driverFilter])">
                         <th data-orderable="true" data-name="_uid" data-template="#deliveryRefTemplate">{{ __tr('Réf / Assignée le') }}</th>
                         <th data-orderable="false" data-name="client_formatted">{{ __tr('Client') }}</th>
                         <th data-orderable="false" data-name="address_formatted">{{ __tr('Adresse de livraison') }}</th>
@@ -142,7 +150,8 @@
                 function(response) {
                     var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
                     if (isSuccess) {
-                        showSuccessMessage(response.message || (response.data && response.data.message) || "{{ __tr('Statut mis à jour.') }}");
+                        var movedToTab = action === 'delivered' ? "{{ __tr('Livrées') }}" : "{{ __tr('Non livrées') }}";
+                        showSuccessMessage((response.message || (response.data && response.data.message) || "{{ __tr('Statut mis à jour.') }}") + " {{ __tr('— retrouvez-la dans l\'onglet') }} « " + movedToTab + " ».");
                         if (window.lwDataTablesInstance && window.lwDataTablesInstance.lwDeliveryTrackingList) {
                             window.lwDataTablesInstance.lwDeliveryTrackingList.ajax.reload(null, false);
                         }
