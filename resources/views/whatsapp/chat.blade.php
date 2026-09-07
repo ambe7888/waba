@@ -1868,9 +1868,9 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                         </template>
                                                         <template x-if="assignDriverSelectedId && !getSelectedDriverWindowOpen()">
                                                             <div class="mt-2 p-3" style="background: #fdf6e8; border: 1px solid #f0dfb0; border-radius: 10px;">
-                                                                <div class="font-weight-bold" style="color: #92600a; font-size: 0.85rem;">{{ __tr('Notification WhatsApp indisponible pour le moment') }}</div>
+                                                                <div class="font-weight-bold" style="color: #92600a; font-size: 0.85rem;">{{ __tr('Ce livreur ne vous a pas écrit récemment') }}</div>
                                                                 <p class="mb-0 mt-1" style="color: #7a5206; font-size: 0.82rem;">
-                                                                    {{ __tr('WhatsApp exige qu\'un contact vous ait écrit au cours des dernières 24 heures pour qu\'une notification automatique puisse lui être délivrée. La commande sera bien assignée, mais ce livreur ne recevra pas le message tant qu\'il ne vous aura pas écrit (ex: « Bonjour, je suis disponible pour les livraisons »).') }}
+                                                                    {{ __tr('WhatsApp recommande qu\'un contact vous ait écrit au cours des dernières 24 heures pour qu\'une notification automatique lui soit délivrée. La commande sera assignée et la notification sera tout de même envoyée — mais si ce livreur ne la reçoit pas, demandez-lui de vous écrire (ex: « Bonjour, je suis disponible pour les livraisons »).') }}
                                                                 </p>
                                                             </div>
                                                         </template>

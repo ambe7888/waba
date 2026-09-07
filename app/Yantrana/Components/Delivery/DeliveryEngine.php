@@ -134,9 +134,12 @@ class DeliveryEngine extends BaseEngine
         $assignedCount = 0;
         $messageFailures = [];
         // WhatsApp only allows free-form (non-template) messages within 24h
-        // of the recipient's own last message -- checked once for the whole
-        // batch since it's the same driver, so a closed window can be
-        // reported clearly instead of failing silently order by order.
+        // of the recipient's own last message, but our own last_message_at
+        // tracking can be stale or incomplete (e.g. the driver wrote before
+        // we started tracking it) -- so this is only used to decide the
+        // WORDING of the response, never to skip the send attempt itself.
+        // The real API call is always made and its actual result is what
+        // determines success/failure.
         $windowOpen = $driver->is_24h_window_open;
 
         foreach ($orders as $order) {
@@ -183,30 +186,24 @@ class DeliveryEngine extends BaseEngine
                 }
             }
 
-            if ($windowOpen) {
-                try {
-                    $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
-                } catch (\Throwable $e) {
-                    $sendResult = false;
-                }
-                if (!$sendResult) {
-                    $messageFailures[] = substr($order->_uid, 0, 8);
-                }
+            try {
+                $sendResult = $this->sendDeliveryAssignmentMessage($order, $driver, $vendorId);
+            } catch (\Throwable $e) {
+                $sendResult = false;
+            }
+            if (!$sendResult) {
+                $messageFailures[] = substr($order->_uid, 0, 8);
             }
         }
 
-        if (!$windowOpen) {
-            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s) à __driver__. La notification WhatsApp n\'a pas pu être délivrée : ce livreur doit d\'abord vous écrire pour activer la fenêtre de messagerie de 24 heures. Demandez-lui de vous envoyer un message, par exemple « Bonjour, je suis disponible pour les livraisons », puis renvoyez la notification.', [
-                '__count__' => $assignedCount,
-                '__driver__' => $driver->full_name,
-            ]));
-        }
-
         if (!empty($messageFailures)) {
-            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s), mais la notification WhatsApp n\'a pas pu être délivrée au livreur pour : __refs__', [
+            $windowNote = $windowOpen
+                ? ''
+                : __tr(' Ce livreur ne vous a pas écrit récemment : si le message n\'arrive pas, demandez-lui de vous envoyer un message WhatsApp (ex: « Bonjour, je suis disponible pour les livraisons ») puis renvoyez la notification.');
+            return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s), mais la notification WhatsApp n\'a pas pu être délivrée au livreur pour : __refs__.', [
                 '__count__' => $assignedCount,
                 '__refs__' => implode(', #', $messageFailures),
-            ]));
+            ]) . $windowNote);
         }
 
         return $this->engineResponse(1, null, __tr('__count__ commande(s) assignée(s) à __driver__ et notification WhatsApp envoyée.', [
