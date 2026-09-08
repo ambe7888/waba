@@ -136,9 +136,16 @@
             this.incomingOfferSdp = offerSdp;
             this.incomingCallerWaId = callerWaId;
 
-            document.getElementById('lw-call-avatar-initials').innerText = '?';
-            document.getElementById('lw-call-user-name').innerText = "Appel entrant";
+            const contact = this.findContactByWaId(callerWaId);
+            if (contact) { this.currentCallContactUid = contact._uid; }
+
+            const displayName = (contact && (contact.full_name || contact.name)) || (callerWaId ? ('+' + callerWaId) : 'Numéro inconnu');
+            const initials = (contact && contact.name_initials) ? contact.name_initials : (displayName.charAt(0).toUpperCase() || '?');
+
+            document.getElementById('lw-call-avatar-initials').innerText = initials;
+            document.getElementById('lw-call-user-name').innerText = displayName;
             document.getElementById('lw-call-user-phone').innerText = callerWaId ? ('+' + callerWaId) : '';
+            this.setDirectionBadge('incoming');
             document.getElementById('lw-call-status-text').innerText = "Appel entrant...";
             document.getElementById('lw-call-status-text').style.color = '';
             document.getElementById('lw-call-timer').style.display = 'none';
@@ -148,6 +155,40 @@
 
             const ringtone = document.getElementById('lw-call-ringtone');
             if (ringtone) { ringtone.currentTime = 0; ringtone.play().catch(function() {}); }
+        }
+
+        /**
+         * Best-effort lookup of a contact's saved name from the chat
+         * sidebar's already-loaded contact list, by WhatsApp id. Used to
+         * show the real contact name on incoming calls instead of just the
+         * raw phone number.
+         */
+        findContactByWaId(waId) {
+            if (!waId) { return null; }
+            try {
+                const alpineData = this.getActiveContactAlpineData();
+                if (alpineData && Array.isArray(alpineData.contacts)) {
+                    return alpineData.contacts.find(function(c) { return c.wa_id === waId; }) || null;
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        /**
+         * Update the small "Appel entrant / Appel sortant" badge at the top
+         * of the call popup.
+         */
+        setDirectionBadge(direction) {
+            const badgeIcon = document.querySelector('#lw-call-direction-badge i');
+            const badgeText = document.getElementById('lw-call-direction-text');
+            if (!badgeText) { return; }
+            if (direction === 'incoming') {
+                badgeText.innerText = 'Appel entrant';
+                if (badgeIcon) { badgeIcon.className = 'fas fa-phone-alt'; badgeIcon.style.transform = ''; }
+            } else {
+                badgeText.innerText = 'Appel sortant';
+                if (badgeIcon) { badgeIcon.className = 'fas fa-phone-alt'; badgeIcon.style.transform = 'scaleX(-1)'; }
+            }
         }
 
         stopRingtone() {
@@ -328,6 +369,7 @@
             document.getElementById('lw-call-avatar-initials').innerText = contact.name_initials || '--';
             document.getElementById('lw-call-user-name').innerText = contact.full_name || contact.wa_id;
             document.getElementById('lw-call-user-phone').innerText = '+' + contact.wa_id;
+            this.setDirectionBadge('outgoing');
             document.getElementById('lw-call-status-text').innerText = "Initialisation...";
             document.getElementById('lw-call-timer').style.display = 'none';
             document.getElementById('lw-call-controls-incoming').style.display = 'none';

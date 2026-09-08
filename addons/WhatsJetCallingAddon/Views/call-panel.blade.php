@@ -2,13 +2,14 @@
     <div class="lw-call-card">
         <!-- Glassmorphism Card content -->
         <div class="lw-call-card-content">
-            <!-- Call Status Header -->
-            <div class="lw-call-status-header">
-                <span id="lw-call-status-text">{{ __tr('Initialisation...') }}</span>
+            <!-- Call direction badge -->
+            <div class="lw-call-direction-badge" id="lw-call-direction-badge">
+                <i class="fas fa-phone-alt"></i>
+                <span id="lw-call-direction-text">{{ __tr('Appel') }}</span>
             </div>
-            
+
             <!-- User Avatar & Details -->
-            <div class="lw-call-user-details mt-4">
+            <div class="lw-call-user-details mt-3">
                 <div class="lw-call-avatar-container">
                     <div class="lw-call-pulse"></div>
                     <div class="lw-call-pulse-2"></div>
@@ -16,12 +17,17 @@
                         <span id="lw-call-avatar-initials">--</span>
                     </div>
                 </div>
-                <h3 id="lw-call-user-name" class="mt-4 text-white font-weight-bold">--</h3>
-                <p id="lw-call-user-phone" class="text-white-50">--</p>
+                <h3 id="lw-call-user-name" class="mt-3">--</h3>
+                <p id="lw-call-user-phone">--</p>
             </div>
-            
+
+            <!-- Call Status -->
+            <div class="lw-call-status-header mt-2">
+                <span id="lw-call-status-text">{{ __tr('Initialisation...') }}</span>
+            </div>
+
             <!-- Timer -->
-            <div class="lw-call-timer mt-3" id="lw-call-timer" style="display: none;">00:00</div>
+            <div class="lw-call-timer mt-1" id="lw-call-timer" style="display: none;">00:00</div>
             
             <!-- Actions/Controls: active call (mute + hangup) -->
             <div class="lw-call-controls mt-4" id="lw-call-controls-active">

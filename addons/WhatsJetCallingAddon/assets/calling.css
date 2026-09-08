@@ -17,15 +17,27 @@
 }
 
 .lw-call-card {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border-radius: 24px;
-    width: 380px;
-    padding: 30px;
+    background: linear-gradient(160deg, #16241f 0%, #0c1712 55%, #0a1310 100%);
+    border: 1px solid rgba(16, 185, 129, 0.18);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02);
+    border-radius: 28px;
+    width: 340px;
+    padding: 28px 26px 32px;
     text-align: center;
     position: relative;
     overflow: hidden;
+}
+
+.lw-call-card::before {
+    content: "";
+    position: absolute;
+    top: -60%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 220px;
+    background: radial-gradient(closest-side, rgba(16, 185, 129, 0.16), transparent 70%);
+    pointer-events: none;
 }
 
 .lw-call-card-content {
@@ -33,47 +45,79 @@
     z-index: 2;
 }
 
-.lw-call-status-header {
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: #38bdf8;
+.lw-call-direction-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+    font-size: 0.72rem;
     font-weight: 600;
-    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.lw-call-direction-badge i {
+    font-size: 0.7rem;
+}
+
+.lw-call-status-header {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 500;
     animation: pulseText 1.5s infinite ease-in-out;
+}
+
+#lw-call-user-name {
+    color: #f8fafc;
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+}
+
+#lw-call-user-phone {
+    color: #64d9a4;
+    font-size: 0.85rem;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    letter-spacing: 0.3px;
+    margin: 2px 0 0;
 }
 
 .lw-call-avatar-container {
     position: relative;
-    width: 110px;
-    height: 110px;
-    margin: 0 auto;
+    width: 104px;
+    height: 104px;
+    margin: 4px auto 0;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .lw-call-avatar {
-    width: 100px;
-    height: 100px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
     background: linear-gradient(135deg, #1B6F20, #10b981);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 2.2rem;
+    font-size: 2.1rem;
     font-weight: 700;
-    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
-    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+    border: 3px solid rgba(255, 255, 255, 0.15);
     position: relative;
     z-index: 5;
 }
 
 .lw-call-pulse, .lw-call-pulse-2 {
     position: absolute;
-    width: 100px;
-    height: 100px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
     background: rgba(16, 185, 129, 0.4);
     z-index: 1;
@@ -86,10 +130,10 @@
 }
 
 .lw-call-timer {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: #f8fafc;
-    font-family: monospace;
+    font-family: 'SFMono-Regular', Consolas, monospace;
     letter-spacing: 1px;
 }
 
