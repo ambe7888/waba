@@ -2310,7 +2310,9 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
 @push('appScripts')
 {!! __yesset('dist/emojionearea/emojionearea.min.js', true) !!}
 @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
-    @php($lwTurnCreds = generateTurnCredentials())
+    @php
+        $lwTurnCreds = generateTurnCredentials();
+    @endphp
     <script>
         // Time-limited TURN relay credentials (see generateTurnCredentials()) --
         // needed so WebRTC audio can still connect when either side is behind
