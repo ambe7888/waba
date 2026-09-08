@@ -47,6 +47,8 @@ class HandleCallWebhook
             foreach ($calls as $call) {
                 $callId = Arr::get($call, 'id');
                 $callEvent = Arr::get($call, 'event'); // "connect" or "terminate"
+                $callFrom = Arr::get($call, 'from');
+                $callDirection = Arr::get($call, 'direction'); // "USER_INITIATED" or "BUSINESS_INITIATED"
                 $sessionSdp = Arr::get($call, 'session.sdp');
                 if (empty($sessionSdp)) {
                     $sessionSdp = Arr::get($call, 'connection.webrtc.sdp');
@@ -83,6 +85,8 @@ class HandleCallWebhook
                         'event' => $callEvent,
                         'sdp' => $sessionSdp,
                         'sdp_type' => $sessionSdpType,
+                        'from' => $callFrom,
+                        'direction' => $callDirection,
                     ]
                 ]));
             }

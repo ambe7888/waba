@@ -83,6 +83,10 @@ return [
                 'title' => __tr('Supprimer des Conversations / Historique'),
                 'description' => __tr('Autoriser la suppression de l\'historique des échanges avec les clients'),
             ],
+            'voice_calls' => [
+                'title' => __tr('Passer et Recevoir des Appels Vocaux WhatsApp'),
+                'description' => __tr('Autoriser l\'utilisation des appels vocaux WhatsApp avec les clients'),
+            ],
         ],
     ],
     'manage_templates' => [

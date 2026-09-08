@@ -61,6 +61,11 @@ return [
                 'description' => __tr('Gestion des Livraisons'),
                 'limit' => 0, // 0 for none, 1 for enable
             ],
+            'whatsapp_calling' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('Appels Vocaux WhatsApp'),
+                'limit' => 0, // 0 for none, 1 for enable
+            ],
         ],
     ],
     'paid' => [ // do not change this key
@@ -123,6 +128,11 @@ return [
                 'delivery_management' => [
                     'type' => 'switch', // on or off
                     'description' => __tr('Gestion des Livraisons'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
+                'whatsapp_calling' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Appels Vocaux WhatsApp'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
@@ -202,6 +212,11 @@ return [
                     'description' => __tr('Gestion des Livraisons'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
+                'whatsapp_calling' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Appels Vocaux WhatsApp'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
@@ -278,6 +293,11 @@ return [
                     'type' => 'switch', // on or off
                     'description' => __tr('Gestion des Livraisons'),
                     'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'whatsapp_calling' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Appels Vocaux WhatsApp'),
+                    'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
             'charges' => [

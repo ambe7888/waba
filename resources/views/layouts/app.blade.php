@@ -658,6 +658,303 @@ $currentAppTheme ='';
     </script>
     @endif
 
+    @if(vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
+    {{-- WhatsApp voice calling: WebRTC audio relayed through Meta's Calling API.
+         The signaling (offer/answer SDP, ringing/terminate events) arrives via
+         the shared Echo listener above (data.callEvent); this block owns the
+         call UI and the actual RTCPeerConnection. --}}
+    <audio id="lwCallRemoteAudio" autoplay playsinline style="display:none;"></audio>
+    <audio id="lwCallRingtone" loop style="display:none;">
+        <source src="{{ asset('static-assets/audio/whatsapp_incoming_call.mp3') }}" type="audio/mpeg">
+    </audio>
+
+    <div id="lwCallOverlay" style="display:none; position:fixed; top:20px; right:20px; z-index:99999; width:300px; background:#111827; color:#fff; border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,0.4); padding:20px; font-family:inherit;">
+        <div style="text-align:center;">
+            <div id="lwCallAvatar" style="width:60px;height:60px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;font-weight:700;"></div>
+            <div id="lwCallContactName" style="font-size:1.02rem;font-weight:700;margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+            <div id="lwCallStatusText" style="font-size:0.82rem;opacity:0.75;margin-bottom:16px;"></div>
+        </div>
+        <div id="lwCallIncomingActions" style="display:none; justify-content:center; gap:16px;">
+            <button type="button" onclick="window.WAVoiceCall.reject()" title="{{ __tr('Refuser') }}" style="width:50px;height:50px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:1.1rem;cursor:pointer;"><i class="fa fa-phone-slash"></i></button>
+            <button type="button" onclick="window.WAVoiceCall.answer()" title="{{ __tr('Répondre') }}" style="width:50px;height:50px;border-radius:50%;border:none;background:#16a34a;color:#fff;font-size:1.1rem;cursor:pointer;"><i class="fa fa-phone"></i></button>
+        </div>
+        <div id="lwCallActiveActions" style="display:none; justify-content:center; gap:16px;">
+            <button type="button" id="lwCallMuteBtn" onclick="window.WAVoiceCall.toggleMute()" title="{{ __tr('Muet') }}" style="width:46px;height:46px;border-radius:50%;border:none;background:#374151;color:#fff;font-size:1rem;cursor:pointer;"><i class="fa fa-microphone"></i></button>
+            <button type="button" onclick="window.WAVoiceCall.hangup()" title="{{ __tr('Raccrocher') }}" style="width:46px;height:46px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:1rem;cursor:pointer;"><i class="fa fa-phone-slash"></i></button>
+        </div>
+        <div id="lwCallOutgoingActions" style="display:none; justify-content:center;">
+            <button type="button" onclick="window.WAVoiceCall.hangup()" title="{{ __tr('Annuler') }}" style="width:46px;height:46px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:1rem;cursor:pointer;"><i class="fa fa-phone-slash"></i></button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var pc = null;
+            var localStream = null;
+            var currentCallId = null;
+            var pendingOutbound = false;
+            var incomingOfferSdp = null;
+            var incomingCallId = null;
+            var durationTimer = null;
+            var callStartedAt = null;
+            var isMuted = false;
+
+            var ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+            var ROUTES = {
+                connect: "{{ route('vendor.whatsapp.calls.connect') }}",
+                preAccept: "{{ route('vendor.whatsapp.calls.pre_accept') }}",
+                accept: "{{ route('vendor.whatsapp.calls.accept') }}",
+                reject: "{{ route('vendor.whatsapp.calls.reject') }}",
+                terminate: "{{ route('vendor.whatsapp.calls.terminate') }}",
+            };
+
+            function el(id) { return document.getElementById(id); }
+            function showOverlay() { el('lwCallOverlay').style.display = 'block'; }
+            function hideOverlay() { el('lwCallOverlay').style.display = 'none'; }
+            function setStatus(text) { el('lwCallStatusText').textContent = text; }
+
+            function setAvatarAndName(name, waId) {
+                var label = name || waId || '?';
+                var initials = label.trim().split(/\s+/).map(function(p) { return p.charAt(0); }).slice(0, 2).join('').toUpperCase();
+                el('lwCallAvatar').textContent = initials || '?';
+                el('lwCallContactName').textContent = label;
+            }
+
+            function showActionState(state) {
+                el('lwCallIncomingActions').style.display = state === 'incoming' ? 'flex' : 'none';
+                el('lwCallActiveActions').style.display = state === 'active' ? 'flex' : 'none';
+                el('lwCallOutgoingActions').style.display = state === 'outgoing' ? 'flex' : 'none';
+            }
+
+            function playRingtone() {
+                try { el('lwCallRingtone').currentTime = 0; el('lwCallRingtone').play().catch(function() {}); } catch (e) {}
+            }
+            function stopRingtone() {
+                try { el('lwCallRingtone').pause(); el('lwCallRingtone').currentTime = 0; } catch (e) {}
+            }
+
+            function startDurationTimer() {
+                callStartedAt = Date.now();
+                durationTimer = setInterval(function() {
+                    var secs = Math.floor((Date.now() - callStartedAt) / 1000);
+                    var m = String(Math.floor(secs / 60)).padStart(2, '0');
+                    var s = String(secs % 60).padStart(2, '0');
+                    setStatus(m + ':' + s);
+                }, 1000);
+            }
+            function stopDurationTimer() {
+                if (durationTimer) { clearInterval(durationTimer); durationTimer = null; }
+            }
+
+            function createPeerConnection() {
+                pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+                pc.ontrack = function(event) {
+                    el('lwCallRemoteAudio').srcObject = event.streams[0];
+                };
+                return pc;
+            }
+
+            function waitIceGatheringComplete(peerConnection) {
+                return new Promise(function(resolve) {
+                    if (peerConnection.iceGatheringState === 'complete') { resolve(); return; }
+                    var settled = false;
+                    function check() {
+                        if (!settled && peerConnection.iceGatheringState === 'complete') {
+                            settled = true;
+                            peerConnection.removeEventListener('icegatheringstatechange', check);
+                            resolve();
+                        }
+                    }
+                    peerConnection.addEventListener('icegatheringstatechange', check);
+                    // Some networks never report "complete" (e.g. no reachable
+                    // STUN) -- don't block the call forever on that.
+                    setTimeout(function() { if (!settled) { settled = true; resolve(); } }, 4000);
+                });
+            }
+
+            function postJSON(url, data) {
+                return new Promise(function(resolve, reject) {
+                    __DataRequest.post(url, data, function(response) {
+                        var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                        if (isSuccess) {
+                            resolve(response.data || response);
+                        } else {
+                            reject(new Error(response.message || (response.data && response.data.message) || "{{ __tr('Erreur.') }}"));
+                        }
+                    });
+                });
+            }
+
+            function resetCallState() {
+                stopDurationTimer();
+                stopRingtone();
+                if (localStream) {
+                    localStream.getTracks().forEach(function(t) { t.stop(); });
+                    localStream = null;
+                }
+                if (pc) {
+                    try { pc.close(); } catch (e) {}
+                    pc = null;
+                }
+                currentCallId = null;
+                pendingOutbound = false;
+                incomingOfferSdp = null;
+                incomingCallId = null;
+                isMuted = false;
+                hideOverlay();
+            }
+
+            function startCall(contactUid, waId, name) {
+                if (pc || incomingCallId) {
+                    showErrorMessage("{{ __tr('Un appel est déjà en cours.') }}");
+                    return;
+                }
+                setAvatarAndName(name, waId);
+                setStatus("{{ __tr('Appel en cours...') }}");
+                showActionState('outgoing');
+                showOverlay();
+
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
+                    localStream = stream;
+                    createPeerConnection();
+                    localStream.getTracks().forEach(function(track) { pc.addTrack(track, localStream); });
+                    return pc.createOffer();
+                }).then(function(offer) {
+                    return pc.setLocalDescription(offer);
+                }).then(function() {
+                    return waitIceGatheringComplete(pc);
+                }).then(function() {
+                    pendingOutbound = true;
+                    return postJSON(ROUTES.connect, { contactUid: contactUid, sdp: pc.localDescription.sdp });
+                }).catch(function(e) {
+                    showErrorMessage(e && e.message ? e.message : "{{ __tr('Impossible d\'accéder au micro ou d\'initier l\'appel.') }}");
+                    resetCallState();
+                });
+            }
+
+            function handleIncomingConnect(data) {
+                // If we're the one who just called out and are waiting for the
+                // answer, this "connect" event carries Meta's SDP answer.
+                if (pendingOutbound && pc && !currentCallId) {
+                    currentCallId = data.call_id;
+                    pendingOutbound = false;
+                    pc.setRemoteDescription({ type: 'answer', sdp: data.sdp }).then(function() {
+                        setStatus("{{ __tr('Connecté') }}");
+                        showActionState('active');
+                        startDurationTimer();
+                    }).catch(function() {
+                        showErrorMessage("{{ __tr('Échec de la connexion audio.') }}");
+                        resetCallState();
+                    });
+                    return;
+                }
+
+                // Otherwise: a genuinely new inbound call.
+                if (pc || incomingCallId) {
+                    // Already on another call -- politely reject this one.
+                    __DataRequest.post(ROUTES.reject, { call_id: data.call_id }, function() {});
+                    return;
+                }
+                incomingCallId = data.call_id;
+                incomingOfferSdp = data.sdp;
+                setAvatarAndName(null, data.from);
+                setStatus("{{ __tr('Appel entrant...') }}");
+                showActionState('incoming');
+                showOverlay();
+                playRingtone();
+            }
+
+            function answer() {
+                if (!incomingCallId || !incomingOfferSdp) { return; }
+                stopRingtone();
+                setStatus("{{ __tr('Connexion...') }}");
+                showActionState(null);
+
+                var callIdBeingAnswered = incomingCallId;
+                var offerSdp = incomingOfferSdp;
+
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
+                    localStream = stream;
+                    createPeerConnection();
+                    localStream.getTracks().forEach(function(track) { pc.addTrack(track, localStream); });
+                    return pc.setRemoteDescription({ type: 'offer', sdp: offerSdp });
+                }).then(function() {
+                    return pc.createAnswer();
+                }).then(function(answerDesc) {
+                    return pc.setLocalDescription(answerDesc);
+                }).then(function() {
+                    return waitIceGatheringComplete(pc);
+                }).then(function() {
+                    return postJSON(ROUTES.preAccept, { call_id: callIdBeingAnswered, sdp: pc.localDescription.sdp });
+                }).then(function() {
+                    return postJSON(ROUTES.accept, { call_id: callIdBeingAnswered, sdp: pc.localDescription.sdp });
+                }).then(function() {
+                    currentCallId = callIdBeingAnswered;
+                    incomingCallId = null;
+                    incomingOfferSdp = null;
+                    setStatus("{{ __tr('Connecté') }}");
+                    showActionState('active');
+                    startDurationTimer();
+                }).catch(function(e) {
+                    showErrorMessage(e && e.message ? e.message : "{{ __tr('Échec de la prise d\'appel.') }}");
+                    __DataRequest.post(ROUTES.reject, { call_id: callIdBeingAnswered }, function() {});
+                    resetCallState();
+                });
+            }
+
+            function reject() {
+                if (incomingCallId) {
+                    __DataRequest.post(ROUTES.reject, { call_id: incomingCallId }, function() {});
+                }
+                resetCallState();
+            }
+
+            function hangup() {
+                var idToEnd = currentCallId || incomingCallId;
+                if (idToEnd) {
+                    __DataRequest.post(ROUTES.terminate, { call_id: idToEnd }, function() {});
+                }
+                resetCallState();
+            }
+
+            function toggleMute() {
+                if (!localStream) { return; }
+                isMuted = !isMuted;
+                localStream.getAudioTracks().forEach(function(track) { track.enabled = !isMuted; });
+                el('lwCallMuteBtn').innerHTML = isMuted ? '<i class="fa fa-microphone-slash"></i>' : '<i class="fa fa-microphone"></i>';
+            }
+
+            function handleCallEvent(data) {
+                if (!data) { return; }
+                if (data.event === 'connect') {
+                    handleIncomingConnect(data);
+                } else if (data.event === 'status') {
+                    if (data.status === 'RINGING' && pendingOutbound) {
+                        setStatus("{{ __tr('Sonnerie...') }}");
+                    }
+                } else if (data.event === 'terminate') {
+                    if (data.call_id === currentCallId || data.call_id === incomingCallId) {
+                        if (durationTimer) {
+                            showInfoMessage("{{ __tr('Appel terminé.') }}");
+                        }
+                        resetCallState();
+                    }
+                }
+            }
+
+            window.WAVoiceCall = {
+                startCall: startCall,
+                answer: answer,
+                reject: reject,
+                hangup: hangup,
+                toggleMute: toggleMute,
+                handleCallEvent: handleCallEvent,
+            };
+        })();
+    </script>
+    @endif
+
     {{-- Global View Stack --}}
     @stack('globalViewsStack')
     {{-- /Global View Stack --}}
@@ -818,6 +1115,11 @@ $currentAppTheme ='';
                 // if the event data matched does not need to process it
                 if(_.isEqual(lastEventData, data)) {
                     return true;
+                }
+                // WhatsApp voice call signaling -- handled unconditionally,
+                // regardless of campaign/demo/assigned-user filtering below.
+                if (data.callEvent && window.WAVoiceCall) {
+                    window.WAVoiceCall.handleCallEvent(data.callEvent);
                 }
                 @if(isDemo())
                 // prevent for other demo numbers to process

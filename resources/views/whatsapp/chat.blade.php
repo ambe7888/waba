@@ -426,6 +426,11 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                          @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
                                                              @include('WhatsJetCallingAddon::call-button')
                                                          @endif
+                                                         @if(vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
+                                                         <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="window.WAVoiceCall && contact && contact.wa_id && window.WAVoiceCall.startCall(contact._uid, contact.wa_id, contact.full_name)" title="{{ __tr('Appeler') }}">
+                                                             <i class="fa fa-phone text-white"></i>
+                                                         </a>
+                                                         @endif
                                                          {{-- Whatsapp call button --}}
                                                          <template x-if="contact && contact.active_reminder">
                                                              <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="openContactReminderModal(contact)" :title="'{{ __tr('Rappel prévu le :') }} ' + contact.active_reminder.scheduled_at_formatted">

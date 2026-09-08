@@ -458,6 +458,115 @@ class WhatsAppApiService extends BaseEngine implements WhatsAppServiceEngineInte
     }
 
     /**
+     * Raw POST request without the message-sending defaults (messaging_product
+     * as "whatsapp" is fine to keep, but recipient_type: individual is not a
+     * valid field for non-message endpoints like /calls).
+     *
+     * @return array
+     */
+    protected function apiPostRequestRaw(string $requestSubject, array $parameters = [])
+    {
+        return $this->baseApiRequest()->post("{$this->baseApiRequestEndpoint}$requestSubject", $parameters)->json();
+    }
+
+    /**
+     * Send a call-control action to the WhatsApp Calling API.
+     *
+     * @link https://developers.facebook.com/docs/whatsapp/cloud-api/calling
+     * @return array
+     */
+    protected function sendCallAction(array $payload, $vendorId = null)
+    {
+        if ($vendorId) {
+            $this->vendorId = $vendorId;
+        }
+        return $this->apiPostRequestRaw("{$this->getServiceConfiguration('current_phone_number_id')}/calls", array_merge([
+            'messaging_product' => 'whatsapp',
+        ], $payload));
+    }
+
+    /**
+     * Business-initiated call: send our SDP offer to start a call with a customer.
+     *
+     * @param string $toWaId
+     * @param string $sdpOffer
+     * @param int|null $vendorId
+     * @return array
+     */
+    public function connectCall($toWaId, $sdpOffer, $vendorId = null)
+    {
+        return $this->sendCallAction([
+            'to' => $toWaId,
+            'action' => 'connect',
+            'session' => [
+                'sdp_type' => 'offer',
+                'sdp' => $sdpOffer,
+            ],
+        ], $vendorId);
+    }
+
+    /**
+     * Inbound call step 1: establish the WebRTC connection before media flows,
+     * to avoid clipping the first words of the call. Must precede acceptCall().
+     *
+     * @return array
+     */
+    public function preAcceptCall($callId, $sdpAnswer, $vendorId = null)
+    {
+        return $this->sendCallAction([
+            'call_id' => $callId,
+            'action' => 'pre_accept',
+            'session' => [
+                'sdp_type' => 'answer',
+                'sdp' => $sdpAnswer,
+            ],
+        ], $vendorId);
+    }
+
+    /**
+     * Inbound call step 2: accept the call, media starts flowing.
+     *
+     * @return array
+     */
+    public function acceptCall($callId, $sdpAnswer, $vendorId = null)
+    {
+        return $this->sendCallAction([
+            'call_id' => $callId,
+            'action' => 'accept',
+            'session' => [
+                'sdp_type' => 'answer',
+                'sdp' => $sdpAnswer,
+            ],
+        ], $vendorId);
+    }
+
+    /**
+     * Reject an inbound call before accepting it.
+     *
+     * @return array
+     */
+    public function rejectCall($callId, $vendorId = null)
+    {
+        return $this->sendCallAction([
+            'call_id' => $callId,
+            'action' => 'reject',
+        ], $vendorId);
+    }
+
+    /**
+     * End an active call (inbound or outbound).
+     *
+     * @return array
+     */
+    public function terminateCall($callId, $vendorId = null)
+    {
+        return $this->sendCallAction([
+            'call_id' => $callId,
+            'action' => 'terminate',
+        ], $vendorId);
+    }
+
+    /**
      * Send Media Message
      *
      * @param  int  $toNumber
