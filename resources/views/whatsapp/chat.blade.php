@@ -2303,14 +2303,14 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
 @endif
 @push('head')
     {!! __yesset('dist/emojionearea/emojionearea.min.css', true) !!}
-    @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
-        <link rel="stylesheet" href="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.css']) }}?v={{ time() }}">
+    @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
+        <link rel="stylesheet" href="{{ asset('addons/WhatsJetCallingAddon/calling.css') }}?v={{ filemtime(public_path('addons/WhatsJetCallingAddon/calling.css')) }}">
     @endif
 @endpush
 @push('appScripts')
 {!! __yesset('dist/emojionearea/emojionearea.min.js', true) !!}
-@if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
-    <script src="{{ route('addon.WhatsJetCallingAddon.assets', ['path' => 'calling.js']) }}?v={{ time() }}"></script>
+@if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
+    <script src="{{ asset('addons/WhatsJetCallingAddon/calling.js') }}?v={{ filemtime(public_path('addons/WhatsJetCallingAddon/calling.js')) }}"></script>
 @endif
 
 <!-- Contact block template -->
