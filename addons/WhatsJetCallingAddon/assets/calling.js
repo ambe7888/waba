@@ -35,6 +35,16 @@
             }
             this.rtcConfig = { iceServers: iceServers };
 
+            // The overlay is included deep inside the chat header (a flex
+            // row), and some ancestor there breaks its `position: fixed`
+            // (it renders as a normal flex child instead of a full-screen
+            // popup, stretching the header). Move it to be a direct child
+            // of <body> so it always escapes that context.
+            const overlay = document.getElementById('lw-whatsapp-call-overlay');
+            if (overlay && overlay.parentElement !== document.body) {
+                document.body.appendChild(overlay);
+            }
+
             // NOTE: Echo listener is NOT created here to avoid duplicate channel subscription.
             // app.blade.php already subscribes to vendor-channel.{vendorUid}.
             // call events are routed here via window.WhatsJetCalling.handleCallEvent()
@@ -95,8 +105,11 @@
 
                 // Otherwise: a genuinely new inbound call.
                 if (this.callId || this.incomingCallId) {
-                    // Already busy on another call -- politely reject this one.
-                    this.silentlyRejectCall(call_id);
+                    // This browser tab is busy on another call. Other agents
+                    // of the same vendor also received this broadcast and may
+                    // be free -- do NOT reject on Meta's side from here, that
+                    // would hang up the call for everyone. Just don't show it
+                    // on this busy tab.
                     return;
                 }
                 this.showIncomingCall(call_id, sdp, from);
