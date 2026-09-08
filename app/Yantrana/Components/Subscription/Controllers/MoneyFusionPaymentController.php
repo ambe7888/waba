@@ -187,8 +187,15 @@ class MoneyFusionPaymentController extends BaseController
             return response()->json(['status' => 'error', 'message' => 'Missing tokenPay'], 400);
         }
 
-        // Double-check: verify status directly from MoneyFusion API using GET request
-        $verifyResponse = Http::get("https://www.pay.moneyfusion.net/paiementNotif/{$tokenPay}");
+        // Double-check: verify status directly from MoneyFusion API using GET request.
+        // withoutVerifying() is required here: www.pay.moneyfusion.net currently
+        // serves its reverse-proxy's self-signed placeholder cert ("TRAEFIK
+        // DEFAULT CERT") instead of a real one for that hostname -- confirmed
+        // via direct TLS handshake, not a network-path MITM. Every verification
+        // call has been failing on this since at least 2026-09-01, silently
+        // blocking auto-activation for every paid subscription. Remove this
+        // once MoneyFusion fixes their certificate.
+        $verifyResponse = Http::withoutVerifying()->get("https://www.pay.moneyfusion.net/paiementNotif/{$tokenPay}");
         if ($verifyResponse->failed()) {
             Log::error('MoneyFusion Webhook: Verification request failed', ['token' => $tokenPay]);
             return response()->json(['status' => 'error', 'message' => 'Verification failed'], 400);
