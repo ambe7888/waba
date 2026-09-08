@@ -24,6 +24,7 @@
             // Meta and the customer's phone will still ring. Once the
             // call_id comes back we terminate it immediately.
             this.pendingCancel = false;
+            this.diagInterval = null;
             const iceServers = [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' }
@@ -70,7 +71,11 @@
                 if (!this.callId && !this.incomingCallId) { return; }
                 console.log('Call status update:', status);
                 const statusEl = document.getElementById('lw-call-status-text');
-                if (statusEl) {
+                // Meta's connect(SDP) event can arrive before this ACCEPTED
+                // status (observed in production). Don't downgrade the text
+                // back to "connecting" once WebRTC has actually connected.
+                const alreadyConnected = this.peerConnection && this.peerConnection.connectionState === 'connected';
+                if (statusEl && !alreadyConnected) {
                     if (status === 'RINGING') { statusEl.innerText = "Sonnerie..."; }
                     else if (status === 'ACCEPTED') { statusEl.innerText = "Accepté, connexion..."; }
                 }
@@ -228,6 +233,7 @@
                     if (remoteAudio) { remoteAudio.srcObject = event.streams[0]; }
                 };
                 this.peerConnection.onconnectionstatechange = () => this.handleConnectionStateChange();
+                this.attachDiagnostics(this.peerConnection);
 
                 await this.peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
                 const answer = await this.peerConnection.createAnswer();
@@ -417,6 +423,7 @@
                 this.peerConnection.onconnectionstatechange = () => {
                     this.handleConnectionStateChange();
                 };
+                this.attachDiagnostics(this.peerConnection);
 
                 // 3. Create SDP Offer
                 const offer = await this.peerConnection.createOffer();
@@ -518,6 +525,70 @@
         }
 
         /**
+         * Diagnostic logging: ICE connection state changes, and once
+         * connected, which candidate pair (host/srflx/relay) actually got
+         * selected and whether local media is really being sent. This is
+         * what tells us whether audio not reaching Meta is a network path
+         * problem (no relay candidate, wrong candidate selected) or
+         * something else (e.g. no outbound RTP despite a good ICE pair).
+         */
+        attachDiagnostics(pc) {
+            pc.oniceconnectionstatechange = () => {
+                console.log('[Diag] ICE connection state:', pc.iceConnectionState);
+            };
+            pc.onicegatheringstatechange = () => {
+                console.log('[Diag] ICE gathering state:', pc.iceGatheringState);
+            };
+            pc.onicecandidateerror = (e) => {
+                console.warn('[Diag] ICE candidate error:', e.errorCode, e.errorText, e.url);
+            };
+            pc.addEventListener('connectionstatechange', () => {
+                if (pc.connectionState === 'connected' || pc.connectionState === 'completed') {
+                    this.logSelectedCandidatePair(pc);
+                }
+            });
+            // Also poll periodically regardless of state -- if ICE never
+            // reaches "connected" at all, the handler above never fires,
+            // and that's exactly the case we most need visibility into.
+            this.stopDiagPolling();
+            this.diagInterval = setInterval(() => {
+                console.log('[Diag] poll -- connectionState:', pc.connectionState, 'iceConnectionState:', pc.iceConnectionState);
+                this.logSelectedCandidatePair(pc);
+            }, 3000);
+        }
+
+        stopDiagPolling() {
+            if (this.diagInterval) {
+                clearInterval(this.diagInterval);
+                this.diagInterval = null;
+            }
+        }
+
+        async logSelectedCandidatePair(pc) {
+            try {
+                const stats = await pc.getStats();
+                let pairFound = false;
+                stats.forEach((report) => {
+                    if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.nominated)) {
+                        pairFound = true;
+                        const local = stats.get(report.localCandidateId);
+                        const remote = stats.get(report.remoteCandidateId);
+                        console.log('[Diag] Selected candidate pair -- local:', local && local.candidateType, local && local.protocol, local && local.address, local && local.port, '| remote:', remote && remote.candidateType, remote && remote.protocol, remote && remote.address, remote && remote.port);
+                    }
+                    if (report.type === 'outbound-rtp' && report.kind === 'audio') {
+                        console.log('[Diag] Outbound audio RTP -- packetsSent:', report.packetsSent, 'bytesSent:', report.bytesSent);
+                    }
+                    if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+                        console.log('[Diag] Inbound audio RTP -- packetsReceived:', report.packetsReceived, 'bytesReceived:', report.bytesReceived);
+                    }
+                });
+                if (!pairFound) { console.log('[Diag] No succeeded/nominated candidate pair found in stats.'); }
+            } catch (e) {
+                console.warn('[Diag] getStats failed:', e);
+            }
+        }
+
+        /**
          * Toggle mute/unmute local micro track
          */
         toggleMute() {
@@ -575,6 +646,8 @@
          * Cleanup call local states, tracks, connection, timer and UI overlay
          */
         endCallLocally() {
+            this.stopDiagPolling();
+
             // Stop micro stream
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => track.stop());
