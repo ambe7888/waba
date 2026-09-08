@@ -315,5 +315,87 @@ return [
                 ],
             ],
         ],
+        'plan_4' => [
+            'id' => 'plan_4',
+            'enabled' => true,
+            'popular' => false, // set plan as popular
+            'title' => 'Plan Commerce Pro + Appels',
+            'trial_days' => 0,
+            'features' => [
+                'contacts' => [
+                    'description' => __tr('Contacts'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'campaigns' => [
+                    'limit_duration' => 'monthly',
+                    'limit_duration_title' => __tr('Per Month'),
+                    'description' => __tr('Campaigns'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'drip_campaigns' => [
+                    'description' => __tr('Drip Campaigns (Automated Sequences)'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'bot_replies' => [
+                    'description' => __tr('Bot Replies'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'bot_flows' => [
+                    'description' => __tr('Bot Flows'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'contact_custom_fields' => [
+                    'description' => __tr('Contact Custom Fields'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'system_users' => [
+                    'description' => __tr('Team Members/Agents'),
+                    'limit' => -1, // 0 for none, -1 for unlimited
+                ],
+                'ai_chat_bot' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('AI Chat Bot'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ai_credits' => [
+                    'description' => __tr('AI Credits / Month'),
+                    'limit' => -1, // Unlimited
+                ],
+                'api_access' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('API and Webhook Access'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'ecommerce_catalog' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('E-commerce et Catalogue'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'delivery_management' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Gestion des Livraisons'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'whatsapp_calling' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Appels Vocaux WhatsApp'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+            ],
+            'charges' => [
+                'monthly' => [
+                    'title' => __tr('monthly'),
+                    'enabled' => true,
+                    'price_id' => '',
+                    'charge' => 25000,
+                ],
+                'yearly' => [
+                    'title' => __tr('yearly'),
+                    'enabled' => true,
+                    'price_id' => '',
+                    'charge' => 250000,
+                ],
+            ],
+        ],
     ],
 ];
