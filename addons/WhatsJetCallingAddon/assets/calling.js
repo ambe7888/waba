@@ -18,6 +18,12 @@
             this.incomingCallId = null;
             this.incomingOfferSdp = null;
             this.incomingCallerWaId = null;
+            // Set when the agent hangs up while /calling/initiate is still
+            // in flight -- we don't have Meta's call_id yet so we can't
+            // terminate it, but the connect request has already reached
+            // Meta and the customer's phone will still ring. Once the
+            // call_id comes back we terminate it immediately.
+            this.pendingCancel = false;
             const iceServers = [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' }
@@ -364,6 +370,7 @@
             const contact = alpineData.contact;
             this.currentCallContactUid = contactUid;
             this.isMuted = false;
+            this.pendingCancel = false;
 
             // Update UI overlay details
             document.getElementById('lw-call-avatar-initials').innerText = contact.name_initials || '--';
@@ -443,7 +450,23 @@
 
                 const resData = await response.json();
                 if (resData.reaction === 1) {
-                    this.callId = resData.data.call_id;
+                    const newCallId = resData.data.call_id;
+
+                    // The agent hung up while this request was still in
+                    // flight. Meta has already started ringing the customer
+                    // -- terminate it right away instead of leaving it live.
+                    if (this.pendingCancel) {
+                        this.pendingCancel = false;
+                        console.log('Call was cancelled before call_id arrived, terminating now:', newCallId);
+                        fetch(`/vendor-console/calling/terminate/${contactUid}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.getCsrfToken() },
+                            body: JSON.stringify({ call_id: newCallId })
+                        }).catch(function(e) { console.error('Error terminating pre-cancelled call', e); });
+                        return;
+                    }
+
+                    this.callId = newCallId;
                     console.log("Call initiated. Call ID:", this.callId);
                     console.log("Waiting for SDP answer from Meta via webhook/Echo...");
 
@@ -451,6 +474,7 @@
                     // broadcasted through Echo. handleCallEvent() will process it.
                     document.getElementById('lw-call-status-text').innerText = "Sonnerie...";
                 } else {
+                    this.pendingCancel = false;
                     this.endCallLocally();
                     showErrorMessage(resData.message || "Meta a rejeté la requête d'appel.");
                 }
@@ -536,6 +560,12 @@
                 } catch(e) {
                     console.error("Error sending terminate request to backend", e);
                 }
+            } else if (this.currentCallContactUid && !this.callId) {
+                // We're still waiting on /calling/initiate to come back with
+                // Meta's call_id -- it can't be terminated yet. Flag it so
+                // startCall() terminates it the instant the call_id arrives,
+                // instead of leaving the customer's phone ringing.
+                this.pendingCancel = true;
             }
 
             this.endCallLocally();
