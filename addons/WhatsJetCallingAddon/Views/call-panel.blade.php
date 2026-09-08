@@ -23,23 +23,37 @@
             <!-- Timer -->
             <div class="lw-call-timer mt-3" id="lw-call-timer" style="display: none;">00:00</div>
             
-            <!-- Actions/Controls -->
-            <div class="lw-call-controls mt-4">
+            <!-- Actions/Controls: active call (mute + hangup) -->
+            <div class="lw-call-controls mt-4" id="lw-call-controls-active">
                 <!-- Mic Mute Button -->
                 <button id="lw-call-btn-mute" class="btn btn-circle btn-outline-light mr-3" onclick="window.WhatsJetCalling.toggleMute()" title="{{ __tr('Couper le micro') }}">
                     <i id="lw-call-btn-mute-icon" class="fas fa-microphone"></i>
                 </button>
-                
+
                 <!-- End Call Button (Hangup) -->
                 <button id="lw-call-btn-hangup" class="btn btn-circle btn-danger" onclick="window.WhatsJetCalling.endCall()" title="{{ __tr('Raccrocher') }}">
                     <i class="fas fa-phone fa-rotate-135" style="transform: rotate(135deg);"></i>
                 </button>
             </div>
+
+            <!-- Actions/Controls: incoming call (accept + reject) -->
+            <div class="lw-call-controls mt-4" id="lw-call-controls-incoming" style="display: none;">
+                <button id="lw-call-btn-reject" class="btn btn-circle btn-danger mr-3" onclick="window.WhatsJetCalling.rejectIncomingCall()" title="{{ __tr('Refuser') }}">
+                    <i class="fas fa-phone fa-rotate-135" style="transform: rotate(135deg);"></i>
+                </button>
+                <button id="lw-call-btn-answer" class="btn btn-circle" style="background:#16a34a;color:#fff;" onclick="window.WhatsJetCalling.answerIncomingCall()" title="{{ __tr('Répondre') }}">
+                    <i class="fas fa-phone"></i>
+                </button>
+            </div>
         </div>
     </div>
-    
+
     <!-- Remote audio element for WebRTC playback -->
     <audio id="lw-call-remote-audio" autoplay></audio>
+    <!-- Ringtone for incoming calls -->
+    <audio id="lw-call-ringtone" loop>
+        <source src="{{ asset('static-assets/audio/whatsapp_incoming_call.mp3') }}" type="audio/mpeg">
+    </audio>
 </div>
 
 @push('vendorChannelBroadcastStack')

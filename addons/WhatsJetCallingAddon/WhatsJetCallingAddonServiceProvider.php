@@ -78,6 +78,11 @@ class WhatsJetCallingAddonServiceProvider extends ServiceProvider
                 'acceptCall'
             ])->name('addon.WhatsJetCallingAddon.accept_call');
 
+            Route::post('/calling/reject/{contactUid}', [
+                \Addons\WhatsJetCallingAddon\Controllers\CallingController::class,
+                'rejectCall'
+            ])->name('addon.WhatsJetCallingAddon.reject_call');
+
             Route::post('/calling/terminate/{contactUid}', [
                 \Addons\WhatsJetCallingAddon\Controllers\CallingController::class,
                 'terminateCall'

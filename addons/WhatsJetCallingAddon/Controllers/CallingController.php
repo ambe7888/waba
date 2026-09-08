@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Response;
 use App\Yantrana\Components\Contact\Repositories\ContactRepository;
 use App\Yantrana\Components\Configuration\Repositories\ConfigurationRepository;
+use App\Yantrana\Components\WhatsAppService\Services\WhatsAppApiService;
 
 class CallingController extends BaseController
 {
@@ -22,14 +23,37 @@ class CallingController extends BaseController
     protected $configurationRepository;
 
     /**
+     * @var WhatsAppApiService
+     */
+    protected $whatsAppApiService;
+
+    /**
      * Constructor
      */
     public function __construct(
         ContactRepository $contactRepository,
-        ConfigurationRepository $configurationRepository
+        ConfigurationRepository $configurationRepository,
+        WhatsAppApiService $whatsAppApiService
     ) {
         $this->contactRepository = $contactRepository;
         $this->configurationRepository = $configurationRepository;
+        $this->whatsAppApiService = $whatsAppApiService;
+    }
+
+    /**
+     * Confirm the caller is allowed to use voice calls: plan feature +
+     * per-agent permission. Returns null when allowed, or an error
+     * response to short-circuit the calling action.
+     */
+    protected function guardAccess()
+    {
+        if (!vendorPlanDetails('whatsapp_calling', 1)['is_limit_available']) {
+            return $this->processResponse(3, [], ['message' => __tr('Les appels vocaux WhatsApp ne sont pas inclus dans votre formule.')], true);
+        }
+        if (!hasVendorAccess('messaging', 'voice_calls')) {
+            return $this->processResponse(3, [], ['message' => __tr('Action non autorisée.')], true);
+        }
+        return null;
     }
 
     /**
@@ -67,6 +91,10 @@ class CallingController extends BaseController
      */
     public function requestPermission($contactUid)
     {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
         $vendorId = getVendorId();
         $contact = $this->contactRepository->fetchIt($contactUid);
 
@@ -140,6 +168,10 @@ class CallingController extends BaseController
      */
     public function initiateCall(Request $request, $contactUid)
     {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
         $vendorId = getVendorId();
         $contact = $this->contactRepository->fetchIt($contactUid);
         $sdp = $request->get('sdp');
@@ -152,57 +184,35 @@ class CallingController extends BaseController
             return $this->processResponse(2, [], ['message' => __tr('Offre SDP manquante.')], true);
         }
 
-        $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
-        $phoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
-
-        if (!$accessToken || !$phoneNumberId) {
-            return $this->processResponse(2, [], ['message' => __tr('Paramètres WhatsApp Cloud API non configurés.')], true);
+        try {
+            // Meta's real Calling API is a single flat POST /{phone-number-id}/calls
+            // with an "action" field (connect/pre_accept/accept/reject/terminate),
+            // not the /calls/{id}/accept-style sub-paths this used to hit.
+            $response = $this->whatsAppApiService->connectCall($contact->wa_id, $sdp, $vendorId);
+        } catch (\Throwable $e) {
+            \Log::error('Meta Call initiation failed', ['message' => $e->getMessage()]);
+            return $this->processResponse(2, [], ['message' => $e->getMessage()], true);
         }
-
-        // Call Meta graph calling endpoint
-        $response = Http::withToken($accessToken)
-            ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls", [
-                'messaging_product' => 'whatsapp',
-                'to' => $contact->wa_id,
-                'direction' => 'outbound',
-                'session' => [
-                    'sdp' => $sdp,
-                    'sdp_type' => 'offer'
-                ]
-            ]);
-
-        if ($response->failed()) {
-            \Log::error('Meta Call initiation failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            $errorData = $response->json();
-            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur d\'appel Meta (Code __status__): __body__', [
-                '__status__' => $response->status(),
-                '__body__' => substr($response->body(), 0, 150)
-            ]);
-            return $this->processResponse(2, [], ['message' => $errorMsg], true);
-        }
-
-        \Log::info('Meta Call initiation success response', [
-            'status' => $response->status(),
-            'body' => $response->json(),
-        ]);
 
         // Meta does NOT return SDP answer synchronously.
         // The SDP answer will arrive asynchronously via the "calls" webhook.
         // We only return call_id here; the frontend will wait for SDP via Echo broadcast.
-        // Meta response format: {"calls":[{"id":"wacid.xxx"}],"success":true}
         return $this->processResponse(1, [
-            'call_id' => $response->json('calls.0.id'),
+            'call_id' => data_get($response, 'calls.0.id'),
         ], [], true);
     }
 
     /**
-     * Accept call and send SDP Answer.
+     * Accept an inbound call: pre_accept (establishes the WebRTC connection)
+     * must be sent before accept (starts media flowing), per Meta's docs --
+     * sending accept first gets the call rejected by Meta.
      */
     public function acceptCall(Request $request, $contactUid)
     {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
         $vendorId = getVendorId();
         $callId = $request->get('call_id');
         $sdp = $request->get('sdp');
@@ -211,30 +221,36 @@ class CallingController extends BaseController
             return $this->processResponse(2, [], ['message' => __tr('Paramètres d\'appel manquants.')], true);
         }
 
-        $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
-        $phoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
+        try {
+            $this->whatsAppApiService->preAcceptCall($callId, $sdp, $vendorId);
+            $this->whatsAppApiService->acceptCall($callId, $sdp, $vendorId);
+        } catch (\Throwable $e) {
+            \Log::error('Meta Call accept failed', ['message' => $e->getMessage()]);
+            return $this->processResponse(2, [], ['message' => $e->getMessage()], true);
+        }
 
-        // Send accept SDP to Meta API
-        $response = Http::withToken($accessToken)
-            ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/accept", [
-                'messaging_product' => 'whatsapp',
-                'session' => [
-                    'sdp' => $sdp,
-                    'sdp_type' => 'answer'
-                ]
-            ]);
+        return $this->processResponse(1, [], [], true);
+    }
 
-        if ($response->failed()) {
-            \Log::error('Meta Call accept failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            $errorData = $response->json();
-            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur Meta (Code __status__): __body__', [
-                '__status__' => $response->status(),
-                '__body__' => substr($response->body(), 0, 150)
-            ]);
-            return $this->processResponse(2, [], ['message' => $errorMsg], true);
+    /**
+     * Reject an inbound call before accepting it.
+     */
+    public function rejectCall(Request $request, $contactUid)
+    {
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
+        $callId = $request->get('call_id');
+        if (!$callId) {
+            return $this->processResponse(2, [], ['message' => __tr('ID d\'appel manquant.')], true);
+        }
+
+        try {
+            $this->whatsAppApiService->rejectCall($callId, getVendorId());
+        } catch (\Throwable $e) {
+            \Log::error('Meta Call reject failed', ['message' => $e->getMessage()]);
+            return $this->processResponse(2, [], ['message' => $e->getMessage()], true);
         }
 
         return $this->processResponse(1, [], [], true);
@@ -245,32 +261,21 @@ class CallingController extends BaseController
      */
     public function terminateCall(Request $request, $contactUid)
     {
-        $vendorId = getVendorId();
+        if ($guard = $this->guardAccess()) {
+            return $guard;
+        }
+
         $callId = $request->get('call_id');
 
         if (!$callId) {
             return $this->processResponse(2, [], ['message' => __tr('ID d\'appel manquant.')], true);
         }
 
-        $accessToken = getVendorSettings('whatsapp_access_token', null, null, $vendorId);
-        $phoneNumberId = getVendorSettings('current_phone_number_id', null, null, $vendorId);
-
-        $response = Http::withToken($accessToken)
-            ->post("https://graph.facebook.com/v25.0/{$phoneNumberId}/calls/{$callId}/terminate", [
-                'messaging_product' => 'whatsapp'
-            ]);
-
-        if ($response->failed()) {
-            \Log::error('Meta Call terminate failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            $errorData = $response->json();
-            $errorMsg = data_get($errorData, 'error.message') ?: data_get($errorData, 'error_description') ?: __tr('Erreur Meta (Code __status__): __body__', [
-                '__status__' => $response->status(),
-                '__body__' => substr($response->body(), 0, 150)
-            ]);
-            return $this->processResponse(2, [], ['message' => $errorMsg], true);
+        try {
+            $this->whatsAppApiService->terminateCall($callId, getVendorId());
+        } catch (\Throwable $e) {
+            \Log::error('Meta Call terminate failed', ['message' => $e->getMessage()]);
+            return $this->processResponse(2, [], ['message' => $e->getMessage()], true);
         }
 
         return $this->processResponse(1, [], [], true);

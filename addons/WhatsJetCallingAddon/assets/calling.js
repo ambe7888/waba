@@ -14,6 +14,10 @@
             this.timerInterval = null;
             this.callStartTime = null;
             this.isMuted = false;
+            // Inbound-call-specific state, before it becomes the active call.
+            this.incomingCallId = null;
+            this.incomingOfferSdp = null;
+            this.incomingCallerWaId = null;
             this.rtcConfig = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -33,53 +37,169 @@
         async handleCallEvent(callEvent) {
             console.log('Call event received via Echo:', JSON.stringify(callEvent));
 
-            const { call_id, event: callEventType, sdp, sdp_type, status } = callEvent;
+            const { call_id, event: callEventType, sdp, sdp_type, status, from } = callEvent;
 
-            // If we have no active call, ignore
-            if (!this.callId) {
-                console.log('No active call, ignoring call event.');
-                return;
-            }
-
-            // Handle status updates (RINGING, ACCEPTED)
+            // Handle status updates (RINGING, ACCEPTED) for a call we're already tracking.
             if (callEventType === 'status' && status) {
+                if (!this.callId && !this.incomingCallId) { return; }
                 console.log('Call status update:', status);
-                if (status === 'RINGING') {
-                    document.getElementById('lw-call-status-text').innerText = "Sonnerie...";
-                } else if (status === 'ACCEPTED') {
-                    document.getElementById('lw-call-status-text').innerText = "Accepté, connexion...";
+                const statusEl = document.getElementById('lw-call-status-text');
+                if (statusEl) {
+                    if (status === 'RINGING') { statusEl.innerText = "Sonnerie..."; }
+                    else if (status === 'ACCEPTED') { statusEl.innerText = "Accepté, connexion..."; }
                 }
                 return;
             }
 
-            // Handle "connect" event with SDP answer from Meta
-            if (callEventType === 'connect' && sdp && this.peerConnection) {
-                try {
-                    const sdpTypeToUse = sdp_type === 'offer' ? 'offer' : 'answer';
-                    console.log(`Setting remote SDP (${sdpTypeToUse}) from webhook...`);
-                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
-                        type: sdpTypeToUse,
-                        sdp: sdp
-                    }));
-                    console.log('Remote SDP set successfully. Call connected!');
-                    document.getElementById('lw-call-status-text').innerText = "Connecté";
-                    document.getElementById('lw-call-status-text').style.color = "#1B6F20";
-                    this.startTimer();
-                } catch (err) {
-                    console.error('Failed to set remote SDP:', err);
-                    this.endCall();
-                    showErrorMessage("Erreur lors de la négociation WebRTC : " + err.message);
+            if (callEventType === 'connect') {
+                // If we already have an active outbound call in progress, this
+                // "connect" is Meta's SDP answer to OUR offer.
+                if (this.callId && this.peerConnection && sdp) {
+                    try {
+                        const sdpTypeToUse = sdp_type === 'offer' ? 'offer' : 'answer';
+                        console.log(`Setting remote SDP (${sdpTypeToUse}) from webhook...`);
+                        await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
+                            type: sdpTypeToUse,
+                            sdp: sdp
+                        }));
+                        console.log('Remote SDP set successfully. Call connected!');
+                        document.getElementById('lw-call-status-text').innerText = "Connecté";
+                        document.getElementById('lw-call-status-text').style.color = "#1B6F20";
+                        this.startTimer();
+                    } catch (err) {
+                        console.error('Failed to set remote SDP:', err);
+                        this.endCall();
+                        showErrorMessage("Erreur lors de la négociation WebRTC : " + err.message);
+                    }
+                    return;
                 }
+
+                // Otherwise: a genuinely new inbound call.
+                if (this.callId || this.incomingCallId) {
+                    // Already busy on another call -- politely reject this one.
+                    this.silentlyRejectCall(call_id);
+                    return;
+                }
+                this.showIncomingCall(call_id, sdp, from);
                 return;
             }
 
             // Handle call termination from remote side
             if (callEventType === 'terminate') {
+                if (call_id !== this.callId && call_id !== this.incomingCallId) { return; }
                 console.log('Call terminated by remote side.');
                 this.endCallLocally();
                 showSuccessMessage("L'appel a été terminé.");
                 return;
             }
+        }
+
+        /**
+         * Display the incoming-call overlay with Accept/Reject controls and
+         * play the ringtone, without touching the mic/peer connection yet --
+         * those are only created once the agent actually answers.
+         */
+        showIncomingCall(callId, offerSdp, callerWaId) {
+            this.incomingCallId = callId;
+            this.incomingOfferSdp = offerSdp;
+            this.incomingCallerWaId = callerWaId;
+
+            document.getElementById('lw-call-avatar-initials').innerText = '?';
+            document.getElementById('lw-call-user-name').innerText = "Appel entrant";
+            document.getElementById('lw-call-user-phone').innerText = callerWaId ? ('+' + callerWaId) : '';
+            document.getElementById('lw-call-status-text').innerText = "Appel entrant...";
+            document.getElementById('lw-call-status-text').style.color = '';
+            document.getElementById('lw-call-timer').style.display = 'none';
+            document.getElementById('lw-call-controls-active').style.display = 'none';
+            document.getElementById('lw-call-controls-incoming').style.display = 'flex';
+            document.getElementById('lw-whatsapp-call-overlay').style.display = 'flex';
+
+            const ringtone = document.getElementById('lw-call-ringtone');
+            if (ringtone) { ringtone.currentTime = 0; ringtone.play().catch(function() {}); }
+        }
+
+        stopRingtone() {
+            const ringtone = document.getElementById('lw-call-ringtone');
+            if (ringtone) { try { ringtone.pause(); ringtone.currentTime = 0; } catch (e) {} }
+        }
+
+        /**
+         * Answer an incoming call: build the SDP answer locally, then
+         * pre_accept + accept it with Meta (backend enforces that order).
+         */
+        async answerIncomingCall() {
+            if (!this.incomingCallId || !this.incomingOfferSdp) { return; }
+            this.stopRingtone();
+
+            const callId = this.incomingCallId;
+            const offerSdp = this.incomingOfferSdp;
+            document.getElementById('lw-call-controls-incoming').style.display = 'none';
+            document.getElementById('lw-call-status-text').innerText = "Connexion...";
+
+            try {
+                if (!window.isSecureContext || !navigator.mediaDevices) {
+                    throw new Error("L'accès au microphone nécessite une connexion sécurisée (HTTPS).");
+                }
+
+                this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                this.peerConnection = new RTCPeerConnection(this.rtcConfig);
+                this.localStream.getTracks().forEach(track => this.peerConnection.addTrack(track, this.localStream));
+                this.peerConnection.ontrack = (event) => {
+                    const remoteAudio = document.getElementById('lw-call-remote-audio');
+                    if (remoteAudio) { remoteAudio.srcObject = event.streams[0]; }
+                };
+                this.peerConnection.onconnectionstatechange = () => this.handleConnectionStateChange();
+
+                await this.peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
+                const answer = await this.peerConnection.createAnswer();
+                await this.peerConnection.setLocalDescription(answer);
+                await this.waitForIceGathering();
+
+                const finalSdp = this.peerConnection.localDescription.sdp;
+                const csrfToken = this.getCsrfToken();
+                const response = await fetch(`/vendor-console/calling/accept/${this.currentCallContactUid || 'unknown'}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ call_id: callId, sdp: finalSdp })
+                });
+                const resData = await response.json();
+                if (resData.reaction !== 1) {
+                    throw new Error(resData.message || "Meta a rejeté la prise d'appel.");
+                }
+
+                this.callId = callId;
+                this.incomingCallId = null;
+                this.incomingOfferSdp = null;
+                document.getElementById('lw-call-controls-active').style.display = 'flex';
+                document.getElementById('lw-call-status-text').innerText = "Connecté";
+                document.getElementById('lw-call-status-text').style.color = "#1B6F20";
+                this.startTimer();
+            } catch (err) {
+                console.error('Failed to answer incoming call', err);
+                showErrorMessage("Impossible de répondre à l'appel : " + err.message);
+                this.silentlyRejectCall(callId);
+                this.endCallLocally();
+            }
+        }
+
+        /**
+         * Reject an incoming call before answering it.
+         */
+        async rejectIncomingCall() {
+            if (this.incomingCallId) {
+                this.silentlyRejectCall(this.incomingCallId);
+            }
+            this.endCallLocally();
+        }
+
+        silentlyRejectCall(callId) {
+            if (!callId) { return; }
+            const csrfToken = this.getCsrfToken();
+            fetch(`/vendor-console/calling/reject/${this.currentCallContactUid || 'unknown'}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify({ call_id: callId })
+            }).catch(function(e) { console.error('Error rejecting call', e); });
         }
 
         /**
@@ -178,8 +298,10 @@
             document.getElementById('lw-call-user-phone').innerText = '+' + contact.wa_id;
             document.getElementById('lw-call-status-text').innerText = "Initialisation...";
             document.getElementById('lw-call-timer').style.display = 'none';
+            document.getElementById('lw-call-controls-incoming').style.display = 'none';
+            document.getElementById('lw-call-controls-active').style.display = 'flex';
             document.getElementById('lw-whatsapp-call-overlay').style.display = 'flex';
-            
+
             // Reset mute button
             const muteBtn = document.getElementById('lw-call-btn-mute');
             muteBtn.classList.remove('muted');
@@ -363,16 +485,22 @@
 
             // Stop timer
             this.stopTimer();
+            this.stopRingtone();
 
             // Clear call identification
             this.currentCallContactUid = null;
             this.callId = null;
+            this.incomingCallId = null;
+            this.incomingOfferSdp = null;
+            this.incomingCallerWaId = null;
 
             // Hide overlay
             const overlay = document.getElementById('lw-whatsapp-call-overlay');
             if (overlay) {
                 overlay.style.display = 'none';
             }
+            const incomingControls = document.getElementById('lw-call-controls-incoming');
+            if (incomingControls) { incomingControls.style.display = 'none'; }
         }
 
         /**

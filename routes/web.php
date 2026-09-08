@@ -23,7 +23,6 @@ use App\Yantrana\Components\Subscription\Controllers\StripeWebhookController;
 use App\Yantrana\Components\Configuration\Controllers\ConfigurationController;
 use App\Yantrana\Components\Subscription\Controllers\ManualSubscriptionController;
 use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppServiceController;
-use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppCallController;
 use App\Yantrana\Components\WhatsAppService\Controllers\WhatsAppTemplateController;
 
 Route::match(['get', 'post'], '/webhook/external-order/{vendorUid}', [
@@ -979,13 +978,6 @@ Route::middleware([
                     WhatsAppServiceController::class,
                     'clearChatHistory',
                 ])->name('vendor.chat_message.delete.process');
-
-                // WhatsApp voice calling (WebRTC SDP relayed to Meta's Calling API)
-                Route::post('/calls/connect', [WhatsAppCallController::class, 'connect'])->name('vendor.whatsapp.calls.connect');
-                Route::post('/calls/pre-accept', [WhatsAppCallController::class, 'preAccept'])->name('vendor.whatsapp.calls.pre_accept');
-                Route::post('/calls/accept', [WhatsAppCallController::class, 'accept'])->name('vendor.whatsapp.calls.accept');
-                Route::post('/calls/reject', [WhatsAppCallController::class, 'reject'])->name('vendor.whatsapp.calls.reject');
-                Route::post('/calls/terminate', [WhatsAppCallController::class, 'terminate'])->name('vendor.whatsapp.calls.terminate');
 
                 Route::post('/contact/chat/mark-unread/{contactUid}', [
                     WhatsAppServiceController::class,

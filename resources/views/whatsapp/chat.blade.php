@@ -423,13 +423,9 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                     <template x-if="contact">
                                                     <div class="actions more lw-user-new-actions" x-data="{isAiChatBotEnabled:!contact.disable_ai_bot}" x-cloak>                                                         {{-- Whatsapp call button --}}
                                                          @stack('whatsappCallButton')
-                                                         @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive)
+                                                         @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
                                                              @include('WhatsJetCallingAddon::call-button')
-                                                         @endif
-                                                         @if(vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
-                                                         <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="window.WAVoiceCall && contact && contact.wa_id && window.WAVoiceCall.startCall(contact._uid, contact.wa_id, contact.full_name)" title="{{ __tr('Appeler') }}">
-                                                             <i class="fa fa-phone text-white"></i>
-                                                         </a>
+                                                             @include('WhatsJetCallingAddon::call-panel')
                                                          @endif
                                                          {{-- Whatsapp call button --}}
                                                          <template x-if="contact && contact.active_reminder">
