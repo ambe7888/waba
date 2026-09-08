@@ -5318,9 +5318,18 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 }
                 foreach ((array) data_get($componentValue, 'parameters', []) as $index => $parameter) {
                     $value = data_get($parameter, 'text', data_get($parameter, 'value'));
-                    if ($value !== null) {
-                        $bodyText = str_replace('{{' . ($index + 1) . '}}', $value, $bodyText);
+                    if ($value === null) {
+                        continue;
                     }
+                    // Two storage shapes exist in the wild: a sequential array
+                    // (index is the parameter's 0-based position -- substitute
+                    // at {{index+1}}) and one keyed directly by the literal
+                    // placeholder token itself (e.g. "{{1}}" => {...}). Mixing
+                    // them up used to crash on "$index + 1" for the latter.
+                    $placeholder = (is_string($index) && str_contains($index, '{{'))
+                        ? $index
+                        : ('{{' . ((int) $index + 1) . '}}');
+                    $bodyText = str_replace($placeholder, $value, $bodyText);
                 }
             }
             return ['text' => trim(strip_tags($bodyText)), 'type' => 'template'];
