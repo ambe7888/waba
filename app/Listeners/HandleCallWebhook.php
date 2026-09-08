@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\WhatsappWebhookReceived;
 use App\Events\VendorChannelBroadcast;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class HandleCallWebhook
@@ -78,6 +79,19 @@ class HandleCallWebhook
                     'has_sdp' => !empty($sessionSdp),
                 ]);
 
+                // Meta redelivers the same webhook (observed ~1s apart in
+                // production). Without dedup, a repeated "connect" makes the
+                // browser try to apply the same SDP answer twice -- which
+                // throws (a peer connection can't re-negotiate the same
+                // answer once stable) and was tearing down calls that had
+                // just connected. Skip exact repeats within a short window.
+                $dedupKey = 'call_event_dedup:' . $vendorUid . ':' . $callId . ':' . $callEvent . ':' . $sessionSdpType;
+                if (Cache::has($dedupKey)) {
+                    Log::info('HandleCallWebhook: duplicate call event skipped', ['call_id' => $callId, 'event' => $callEvent]);
+                    continue;
+                }
+                Cache::put($dedupKey, true, 30);
+
                 // Broadcast call event to the vendor frontend via Echo
                 event(new VendorChannelBroadcast($vendorUid, [
                     'callEvent' => [
@@ -106,6 +120,12 @@ class HandleCallWebhook
                     'call_id' => $callId,
                     'status' => $callStatus,
                 ]);
+
+                $statusDedupKey = 'call_event_dedup:' . $vendorUid . ':' . $callId . ':status:' . $callStatus;
+                if (Cache::has($statusDedupKey)) {
+                    continue;
+                }
+                Cache::put($statusDedupKey, true, 30);
 
                 // Broadcast status update to the vendor frontend via Echo
                 event(new VendorChannelBroadcast($vendorUid, [

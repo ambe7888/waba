@@ -55,6 +55,15 @@
                 // If we already have an active outbound call in progress, this
                 // "connect" is Meta's SDP answer to OUR offer.
                 if (this.callId && this.peerConnection && sdp) {
+                    // Meta can redeliver the same webhook; the backend now
+                    // dedupes those, but guard here too -- once the peer
+                    // connection has already negotiated (stable), setting the
+                    // same remote answer again would throw and must NOT be
+                    // treated as a real failure (it isn't one).
+                    if (this.peerConnection.signalingState === 'stable') {
+                        console.log('Duplicate connect event for an already-negotiated call, ignoring.');
+                        return;
+                    }
                     try {
                         const sdpTypeToUse = sdp_type === 'offer' ? 'offer' : 'answer';
                         console.log(`Setting remote SDP (${sdpTypeToUse}) from webhook...`);
