@@ -689,6 +689,15 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                   </a>
                               </li>
                               @endif
+                              @if(vendorPlanDetails('three_cx_calling', 1)['is_limit_available'])
+                              <li class="nav-item">
+                                  <a class="nav-link <?= (isset($pageType) and $pageType == 'three-cx-setup') ? 'active' : '' ?>"
+                                      href="<?= route('vendor.settings.read', ['pageType' => 'three-cx-setup']) ?>">
+                                      <i class="fa fa-phone-volume"></i>
+                                      {!! __tr('Appels 3CX') !!}
+                                  </a>
+                              </li>
+                              @endif
                             <li class="nav-item">
                                 <a class="nav-link <?= (isset($pageType) and $pageType == 'api-access') ? 'active' : '' ?>"
                                     href="<?= route('vendor.settings.read', ['pageType' => 'api-access']) ?>">

@@ -87,6 +87,10 @@ return [
                 'title' => __tr('Passer et Recevoir des Appels Vocaux WhatsApp'),
                 'description' => __tr('Autoriser l\'utilisation des appels vocaux WhatsApp avec les clients'),
             ],
+            'three_cx_calling' => [
+                'title' => __tr('Passer des Appels Téléphoniques via 3CX'),
+                'description' => __tr('Autoriser l\'utilisation du module d\'appel téléphonique 3CX depuis la discussion'),
+            ],
         ],
     ],
     'manage_templates' => [

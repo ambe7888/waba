@@ -534,6 +534,19 @@ return [
                 'default' => '',
             ],
         ],
+        'three_cx_setup' => [
+            'three_cx_webclient_url' => [
+                'key' => 'three_cx_webclient_url',
+                'data_type' => 1,    // string
+                'default' => '',
+                'hide_value' => false,
+                'ignore_empty' => true,
+                'validation_rules' => [
+                    'nullable',
+                    'url',
+                ],
+            ],
+        ],
         'vendor_webhook' => [
             // webhook
             'enable_vendor_webhook' => [

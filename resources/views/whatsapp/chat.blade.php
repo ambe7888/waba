@@ -428,6 +428,14 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                              @include('WhatsJetCallingAddon::call-panel')
                                                          @endif
                                                          {{-- Whatsapp call button --}}
+                                                         {{-- 3CX call button --}}
+                                                         @if(vendorPlanDetails('three_cx_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'three_cx_calling'))
+                                                             <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="window.ThreeCxCalling.open(contact)" title="{{ __tr('Appeler via 3CX') }}">
+                                                                 <i class="fa fa-phone-volume text-white"></i>
+                                                             </a>
+                                                             @include('whatsapp.three-cx-call-panel')
+                                                         @endif
+                                                         {{-- 3CX call button --}}
                                                          <template x-if="contact && contact.active_reminder">
                                                              <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="openContactReminderModal(contact)" :title="'{{ __tr('Rappel prévu le :') }} ' + contact.active_reminder.scheduled_at_formatted">
                                                                  <i class="fas fa-bell text-warning"></i>
