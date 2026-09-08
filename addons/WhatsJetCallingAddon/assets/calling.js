@@ -18,12 +18,22 @@
             this.incomingCallId = null;
             this.incomingOfferSdp = null;
             this.incomingCallerWaId = null;
-            this.rtcConfig = {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-            };
+            const iceServers = [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ];
+            // TURN relay (self-hosted coturn) -- required for audio to
+            // connect when either side is behind a NAT/firewall plain STUN
+            // can't traverse. window.WA_TURN_CONFIG is set inline in
+            // chat.blade.php with a short-lived credential pair.
+            if (window.WA_TURN_CONFIG && window.WA_TURN_CONFIG.urls) {
+                iceServers.push({
+                    urls: window.WA_TURN_CONFIG.urls,
+                    username: window.WA_TURN_CONFIG.username,
+                    credential: window.WA_TURN_CONFIG.credential
+                });
+            }
+            this.rtcConfig = { iceServers: iceServers };
 
             // NOTE: Echo listener is NOT created here to avoid duplicate channel subscription.
             // app.blade.php already subscribes to vendor-channel.{vendorUid}.

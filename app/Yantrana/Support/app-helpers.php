@@ -1764,6 +1764,35 @@ if (! function_exists('orderRefLink')) {
         return '<a href="#" onclick="window.showOrderReceipt &amp;&amp; window.showOrderReceipt(\'' . $order->_uid . '\'); return false;" style="color:#059669;text-decoration:underline;font-weight:600;">#' . $shortRef . '</a>';
     }
 }
+if (! function_exists('generateTurnCredentials')) {
+    /**
+     * Time-limited TURN username/credential pair for the self-hosted coturn
+     * relay (WhatsApp voice calling's WebRTC audio path), using coturn's
+     * standard use-auth-secret scheme: username is an expiry timestamp,
+     * credential is base64(HMAC-SHA1(secret, username)). Never expose the
+     * shared secret itself to the client -- only this derived pair.
+     *
+     * @return array{username: string, credential: string, urls: array<string>, ttl: int}
+     */
+    function generateTurnCredentials()
+    {
+        $ttl = config('webrtc.turn_credential_ttl', 3600);
+        $username = (string) (time() + $ttl);
+        $credential = base64_encode(hash_hmac('sha1', $username, config('webrtc.turn_secret'), true));
+        $host = config('webrtc.turn_host');
+        $port = config('webrtc.turn_port');
+
+        return [
+            'username' => $username,
+            'credential' => $credential,
+            'ttl' => $ttl,
+            'urls' => [
+                "turn:{$host}:{$port}?transport=udp",
+                "turn:{$host}:{$port}?transport=tcp",
+            ],
+        ];
+    }
+}
 if (! function_exists('getViaSharedUrl')) {
     /**
      * Get the url via Ngrok shared url

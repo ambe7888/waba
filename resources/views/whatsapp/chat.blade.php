@@ -2310,6 +2310,17 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
 @push('appScripts')
 {!! __yesset('dist/emojionearea/emojionearea.min.js', true) !!}
 @if(isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'voice_calls'))
+    @php($lwTurnCreds = generateTurnCredentials())
+    <script>
+        // Time-limited TURN relay credentials (see generateTurnCredentials()) --
+        // needed so WebRTC audio can still connect when either side is behind
+        // a NAT/firewall that plain STUN can't traverse. Read by calling.js.
+        window.WA_TURN_CONFIG = {
+            urls: @json($lwTurnCreds['urls']),
+            username: @json($lwTurnCreds['username']),
+            credential: @json($lwTurnCreds['credential']),
+        };
+    </script>
     <script src="{{ asset('addons/WhatsJetCallingAddon/calling.js') }}?v={{ filemtime(public_path('addons/WhatsJetCallingAddon/calling.js')) }}"></script>
 @endif
 
