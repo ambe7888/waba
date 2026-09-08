@@ -981,11 +981,11 @@ Route::middleware([
                 ])->name('vendor.chat_message.delete.process');
 
                 // WhatsApp voice calling (WebRTC SDP relayed to Meta's Calling API)
-                Route::post('/whatsapp/calls/connect', [WhatsAppCallController::class, 'connect'])->name('vendor.whatsapp.calls.connect');
-                Route::post('/whatsapp/calls/pre-accept', [WhatsAppCallController::class, 'preAccept'])->name('vendor.whatsapp.calls.pre_accept');
-                Route::post('/whatsapp/calls/accept', [WhatsAppCallController::class, 'accept'])->name('vendor.whatsapp.calls.accept');
-                Route::post('/whatsapp/calls/reject', [WhatsAppCallController::class, 'reject'])->name('vendor.whatsapp.calls.reject');
-                Route::post('/whatsapp/calls/terminate', [WhatsAppCallController::class, 'terminate'])->name('vendor.whatsapp.calls.terminate');
+                Route::post('/calls/connect', [WhatsAppCallController::class, 'connect'])->name('vendor.whatsapp.calls.connect');
+                Route::post('/calls/pre-accept', [WhatsAppCallController::class, 'preAccept'])->name('vendor.whatsapp.calls.pre_accept');
+                Route::post('/calls/accept', [WhatsAppCallController::class, 'accept'])->name('vendor.whatsapp.calls.accept');
+                Route::post('/calls/reject', [WhatsAppCallController::class, 'reject'])->name('vendor.whatsapp.calls.reject');
+                Route::post('/calls/terminate', [WhatsAppCallController::class, 'terminate'])->name('vendor.whatsapp.calls.terminate');
 
                 Route::post('/contact/chat/mark-unread/{contactUid}', [
                     WhatsAppServiceController::class,
