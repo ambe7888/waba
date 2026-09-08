@@ -58,6 +58,19 @@ temp_alpine.js
 temp_script.js
 temp_test.js
 cpanel_app_key.txt
+# One-off VPS scripts hardcoding SSH credentials -- never commit these.
+add_missing_column_vps.js
+check_db.js
+check_vps_reminder_table.js
+fetch_vps_logs.js
+force_update_vps.js
+force_update_vps2.js
+inspect_vps_reminder_error.js
+profile_vps.js
+run_migration.js
+update_vps.js
+*_vps.js
+*_vps2.js
 dump_contacts.php
 test_dashboard.php
 test_firebase_local.php
