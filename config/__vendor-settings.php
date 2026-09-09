@@ -662,6 +662,12 @@ return [
                 'hide_value' => true,
                 'ignore_empty' => true,
             ],
+            'xml_feed_url' => [
+                'key' => 'xml_feed_url',
+                'data_type' => 1,
+                'default' => '',
+                'ignore_empty' => true,
+            ],
             'whatsapp_catalog_id' => [
                 'key' => 'whatsapp_catalog_id',
                 'data_type' => 1,

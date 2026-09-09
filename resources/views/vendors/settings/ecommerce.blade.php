@@ -20,6 +20,7 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'manual';
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
 $isWooCommerceConnected = !empty(getVendorSettings('woocommerce_shop_url')) && !empty(getVendorSettings('woocommerce_consumer_key')) && !empty(getVendorSettings('woocommerce_consumer_secret'));
 $isWhatsAppCatalogConnected = !empty(getVendorSettings('whatsapp_catalog_id'));
+$isXmlFeedConnected = !empty(getVendorSettings('xml_feed_url'));
 $isManualConnected = true;
 @endphp
 
@@ -60,6 +61,11 @@ $isManualConnected = true;
     border: 3px solid #0284c7 !important;
     background-color: #f0f9ff !important;
     box-shadow: 0 6px 20px rgba(2, 132, 199, 0.25) !important;
+}
+.platform-card-pro.selected-xml_feed {
+    border: 3px solid #f59e0b !important;
+    background-color: #fffbeb !important;
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25) !important;
 }
 .platform-card-pro .selected-badge {
     position: absolute;
@@ -404,7 +410,7 @@ $isManualConnected = true;
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Canal Actif') }}</small>
-                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Manuel') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : integration)"></h5>
+                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Manuel') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : (integration === 'xml_feed' ? '{{ __tr('Flux XML') }}' : integration))"></h5>
                     </div>
                     <div class="icon-circle text-warning p-3 rounded-circle" style="background: #fffbeb;">
                         <i class="fa fa-network-wired fa-lg"></i>
@@ -487,6 +493,24 @@ $isManualConnected = true;
                         <h5 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue Meta') }}</h5>
                         <p class="text-xs text-muted mb-0">{{ __tr('WhatsApp Cloud Catalog') }}</p>
                         @if($isWhatsAppCatalogConnected)
+                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- XML Feed Card -->
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="platform-card-pro" :class="[
+                        integration === 'xml_feed' ? 'selected-xml_feed' : '',
+                        {{ $isXmlFeedConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
+                    ]" @click="integration = 'xml_feed'">
+                        <template x-if="integration === 'xml_feed'">
+                            <div class="selected-badge"><i class="fa fa-check"></i></div>
+                        </template>
+                        <i class="fa fa-rss mb-2" style="font-size: 2.8rem; color: #f59e0b !important;"></i>
+                        <h5 class="font-weight-bold mb-1 text-dark">{{ __tr('Flux XML') }}</h5>
+                        <p class="text-xs text-muted mb-0">{{ __tr('Même flux que votre catalogue Facebook') }}</p>
+                        @if($isXmlFeedConnected)
                             <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                         @endif
                     </div>
@@ -582,13 +606,23 @@ $isManualConnected = true;
                         </div>
                     </div>
 
+                    <!-- XML Feed Config Parameters -->
+                    <div x-show="integration === 'xml_feed'" x-cloak>
+                        <h6 class="font-weight-bold text-dark mb-3"><i class="fa fa-rss mr-2" style="color: #f59e0b;"></i> {{ __tr('Paramètres du Flux XML') }}</h6>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark" for="xml_feed_url">{{ __tr('URL du flux XML') }}</label>
+                            <input type="text" class="form-control form-control-lg p-3 custom-input-white" id="xml_feed_url" value="{{ getVendorSettings('xml_feed_url') }}" name="xml_feed_url" placeholder="ex: https://monsite.com/ma-boutique/facebook-catalog.xml">
+                            <small class="form-text text-muted mt-1">{{ __tr('Utilisez le même flux XML qui alimente déjà votre catalogue Facebook (format RSS avec balises g:id, g:title, g:price...). WhatsClick lira directement ce flux, sans passer par Meta.') }}</small>
+                        </div>
+                    </div>
+
                     <!-- Action buttons for platforms -->
                     <div class="form-group mt-4 mb-0">
                         <button type="submit" class="btn btn-emerald font-weight-bold px-4 py-2 text-white" style="background: #10b981; border: none; border-radius: 8px;">
                             <i class="fa fa-save mr-1"></i> {{ __tr('Sauvegarder les paramètres') }}
                         </button>
                         
-                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog'" x-cloak>
+                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog' || integration === 'xml_feed'" x-cloak>
                             <button type="button" @click="syncProducts()" class="btn btn-success font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;" :disabled="isSyncing">
                                 <span x-show="!isSyncing"><i class="fa fa-sync mr-1"></i> {{ __tr('Synchroniser les produits') }}</span>
                                 <span x-show="isSyncing"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Synchronisation...') }}</span>

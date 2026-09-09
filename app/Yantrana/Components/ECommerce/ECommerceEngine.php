@@ -35,6 +35,8 @@ class ECommerceEngine extends BaseEngine
                 return $this->syncWooCommerce($vendorId);
             } elseif ($integration == 'whatsapp_catalog') {
                 return $this->syncWhatsAppCatalog($vendorId);
+            } elseif ($integration == 'xml_feed') {
+                return $this->syncXmlFeed($vendorId);
             }
         } catch (\Exception $e) {
             return [
@@ -268,6 +270,88 @@ class ECommerceEngine extends BaseEngine
         return [
             'reaction_code' => 1,
             'message' => __tr('Successfully synced __count__ products from WhatsApp Catalog.', ['__count__' => $syncedCount])
+        ];
+    }
+
+    /**
+     * Sync products from a generic XML feed (the same RSS + Google Shopping
+     * "g:" namespace format vendors already use to feed Facebook Catalog --
+     * pulling straight from that feed instead of round-tripping through
+     * Meta, since Meta's catalog isn't reliably readable back via the Graph
+     * API for every account/permission setup.
+     */
+    protected function syncXmlFeed($vendorId)
+    {
+        $feedUrl = getVendorSettings('xml_feed_url', null, null, $vendorId);
+
+        if (empty($feedUrl)) {
+            return [
+                'reaction_code' => 2,
+                'message' => __tr('XML Feed URL is missing.')
+            ];
+        }
+
+        $response = Http::get($feedUrl);
+
+        if (!$response->successful()) {
+            return [
+                'reaction_code' => 2,
+                'message' => __tr('Failed to fetch XML feed (HTTP __status__).', ['__status__' => $response->status()])
+            ];
+        }
+
+        libxml_use_internal_errors(true);
+        $xml = simplexml_load_string($response->body());
+        libxml_use_internal_errors(false);
+
+        if ($xml === false || !isset($xml->channel->item)) {
+            return [
+                'reaction_code' => 2,
+                'message' => __tr('The XML feed could not be read. Expected an RSS feed with <channel><item> entries.')
+            ];
+        }
+
+        $syncedCount = 0;
+        foreach ($xml->channel->item as $item) {
+            // Google Shopping / Facebook Catalog namespace -- the standard
+            // format for feeds already used to populate a Facebook catalog.
+            $g = $item->children('http://base.google.com/ns/1.0');
+
+            $retailerId = trim((string) $g->id);
+            if ($retailerId === '') {
+                continue;
+            }
+
+            $name = trim((string) $g->title) ?: ('Product ' . $retailerId);
+            $description = trim((string) $g->description);
+            $directLink = trim((string) $g->link) ?: null;
+            $imageUrl = trim((string) $g->image_link) ?: null;
+
+            // Prefer sale_price over price when the feed advertises one,
+            // same as what a shopper would actually be charged.
+            $salePriceStr = trim((string) $g->sale_price);
+            $priceStr = $salePriceStr !== '' ? $salePriceStr : trim((string) $g->price);
+            $price = floatval(preg_replace('/[^0-9.]/', '', $priceStr));
+
+            ProductModel::updateOrCreate([
+                'vendors__id' => $vendorId,
+                'retailer_id' => $retailerId,
+                'source' => 'xml_feed',
+            ], [
+                '_uid' => (string) Str::uuid(),
+                'name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'image_url' => $imageUrl,
+                'direct_link' => $directLink,
+            ]);
+
+            $syncedCount++;
+        }
+
+        return [
+            'reaction_code' => 1,
+            'message' => __tr('Successfully synced __count__ products from the XML feed.', ['__count__' => $syncedCount])
         ];
     }
 }
