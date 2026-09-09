@@ -325,7 +325,14 @@ class ECommerceEngine extends BaseEngine
             $name = trim((string) $g->title) ?: ('Product ' . $retailerId);
             $description = trim((string) $g->description);
             $directLink = trim((string) $g->link) ?: null;
-            $imageUrl = trim((string) $g->image_link) ?: null;
+            $remoteImageUrl = trim((string) $g->image_link) ?: null;
+            // Download and keep our own copy instead of linking the remote
+            // URL directly -- otherwise every time a product is shown to a
+            // customer (or the hourly re-sync runs) we'd depend on/hit the
+            // vendor's own site again. downloadAndCacheProductImage() skips
+            // the download entirely once a given image URL is already
+            // cached on disk.
+            $imageUrl = $remoteImageUrl ? $this->downloadAndCacheProductImage($remoteImageUrl) : null;
 
             // Prefer sale_price over price when the feed advertises one,
             // same as what a shopper would actually be charged.
@@ -353,5 +360,43 @@ class ECommerceEngine extends BaseEngine
             'reaction_code' => 1,
             'message' => __tr('Successfully synced __count__ products from the XML feed.', ['__count__' => $syncedCount])
         ];
+    }
+
+    /**
+     * Download a remote product image once and keep our own copy under
+     * public/media/products, reusing the same file on every later sync
+     * instead of re-downloading it. The filename is a hash of the remote
+     * URL, so an unchanged image is never re-fetched, and a genuinely new
+     * image (different URL) gets its own cached copy.
+     */
+    protected function downloadAndCacheProductImage($remoteUrl)
+    {
+        $extension = strtolower(pathinfo(parse_url($remoteUrl, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+        $extension = preg_replace('/[^a-z0-9]/', '', $extension);
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+            $extension = 'jpg';
+        }
+
+        $filename = 'feed_' . md5($remoteUrl) . '.' . $extension;
+        $targetDir = public_path('media/products');
+        $targetPath = $targetDir . '/' . $filename;
+
+        if (file_exists($targetPath)) {
+            return asset('media/products/' . $filename);
+        }
+
+        try {
+            $response = Http::timeout(15)->get($remoteUrl);
+            if (!$response->successful()) {
+                return $remoteUrl;
+            }
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            file_put_contents($targetPath, $response->body());
+            return asset('media/products/' . $filename);
+        } catch (\Exception $e) {
+            return $remoteUrl;
+        }
     }
 }
