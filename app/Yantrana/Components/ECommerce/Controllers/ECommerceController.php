@@ -418,50 +418,29 @@ class ECommerceController extends BaseController
 
         $catalogsList = [];
 
-        // 1. Try to get catalogs via WABA owning business
+        // The WABA's own `product_catalogs` edge is the correct/current way to
+        // list catalogs actually connected to this WhatsApp number. The two
+        // strategies this used to rely on are both broken on current Graph
+        // API versions: `owning_business` on a WABA now requires a
+        // "Salesforce MetaCRM" capability almost no integration has (400
+        // error), and `commerce_settings` isn't a field on WABA at all
+        // anymore (400 "nonexisting field"). Confirmed against two live
+        // vendor accounts -- both failed identically regardless of whether
+        // they actually had a catalog, which is what this endpoint is
+        // supposed to detect.
         try {
-            $wabaResponse = \Http::withToken($accessToken)
-                ->get("https://graph.facebook.com/v25.0/{$wabaId}", [
-                    'fields' => 'owning_business'
-                ]);
-
-            if ($wabaResponse->successful()) {
-                $businessId = $wabaResponse->json()['owning_business']['id'] ?? null;
-                if ($businessId) {
-                    $catalogsResponse = \Http::withToken($accessToken)
-                        ->get("https://graph.facebook.com/v25.0/{$businessId}/owned_product_catalogs");
-                    if ($catalogsResponse->successful()) {
-                        $catalogsData = $catalogsResponse->json()['data'] ?? [];
-                        foreach ($catalogsData as $cat) {
-                            $catalogsList[] = [
-                                'id' => $cat['id'],
-                                'name' => $cat['name'] ?? ('Catalog #' . $cat['id'])
-                            ];
-                        }
-                    }
+            $catalogsResponse = \Http::withToken($accessToken)
+                ->get("https://graph.facebook.com/v25.0/{$wabaId}/product_catalogs");
+            if ($catalogsResponse->successful()) {
+                $catalogsData = $catalogsResponse->json()['data'] ?? [];
+                foreach ($catalogsData as $cat) {
+                    $catalogsList[] = [
+                        'id' => $cat['id'],
+                        'name' => $cat['name'] ?? ('Catalog #' . $cat['id'])
+                    ];
                 }
             }
         } catch (\Exception $e) {}
-
-        // 2. If empty, fallback to WABA commerce settings (currently linked catalog)
-        if (empty($catalogsList)) {
-            try {
-                $commResponse = \Http::withToken($accessToken)
-                    ->get("https://graph.facebook.com/v25.0/{$wabaId}/commerce_settings");
-
-                if ($commResponse->successful()) {
-                    $commData = $commResponse->json()['data'] ?? [];
-                    foreach ($commData as $comm) {
-                        if (isset($comm['catalog_id'])) {
-                            $catalogsList[] = [
-                                'id' => $comm['catalog_id'],
-                                'name' => __tr('Linked Catalog')
-                            ];
-                        }
-                    }
-                }
-            } catch (\Exception $e) {}
-        }
 
         // Remove duplicates
         $catalogsList = array_values(array_unique($catalogsList, SORT_REGULAR));
@@ -475,9 +454,9 @@ class ECommerceController extends BaseController
         }
 
         return $this->processResponse(2, [
-            2 => __tr('Aucun catalogue trouvé. Veuillez lier un catalogue à votre numéro WhatsApp dans Meta Business Suite.')
+            2 => __tr('Aucun catalogue connecté à ce numéro WhatsApp. Un catalogue peut exister dans votre Meta Business Suite sans être lié à ce numéro -- ouvrez le Gestionnaire WhatsApp (business.facebook.com/wa/manage), section Catalogue, et connectez-le à ce numéro, puis réessayez.')
         ], [
-            'message' => __tr('Aucun catalogue trouvé. Veuillez lier un catalogue à votre numéro WhatsApp dans Meta Business Suite.')
+            'message' => __tr('Aucun catalogue connecté à ce numéro WhatsApp. Un catalogue peut exister dans votre Meta Business Suite sans être lié à ce numéro -- ouvrez le Gestionnaire WhatsApp (business.facebook.com/wa/manage), section Catalogue, et connectez-le à ce numéro, puis réessayez.')
         ]);
     }
 
