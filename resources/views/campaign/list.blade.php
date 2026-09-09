@@ -13,6 +13,10 @@
     'description' => __tr('Gérez et suivez vos envois de messages massifs sur WhatsApp.'),
 ])
 
+<div class="container-fluid pt-4">
+    @include('campaign.whatsapp-health-alert')
+</div>
+
 <?php
 $status = request()->status ?? 'active';
 $type = request()->type === 'simple' ? 'simple' : 'meta';
