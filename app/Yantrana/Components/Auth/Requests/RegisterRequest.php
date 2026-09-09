@@ -42,6 +42,25 @@ class RegisterRequest extends BaseRequest
     }
 
     /**
+     * Strip anything that isn't a digit (spaces, dashes, etc. that people
+     * naturally type when writing a phone number by hand) before
+     * validation runs, so both the validation checks below and the value
+     * that ends up stored operate on a clean number. Without this, a
+     * mobile number saved with a stray space breaks WhatsApp notification
+     * sends that expect a plain digit string.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        if ($this->has('mobile_number')) {
+            $this->merge([
+                'mobile_number' => preg_replace('/[^0-9]/', '', (string) $this->input('mobile_number')),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array

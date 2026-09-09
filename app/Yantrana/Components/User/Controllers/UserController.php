@@ -86,7 +86,17 @@ class UserController extends BaseController
      */
     public function updateProfile(CommonClearPostRequest $request)
     {
-       
+        // Strip anything that isn't a digit (spaces, dashes, etc. people
+        // naturally type by hand) before it's checked or saved -- this
+        // validation only checks length, not that the value is numeric, so
+        // a stray space would otherwise pass through and later break
+        // WhatsApp notification sends that expect a plain digit string.
+        if ($request->has('mobile_number')) {
+            $request->merge([
+                'mobile_number' => preg_replace('/[^0-9]/', '', (string) $request->get('mobile_number')),
+            ]);
+        }
+
         if(str_starts_with($request->get('mobile_number'), '0') or str_starts_with($request->get('mobile_number'), '+')) {
             return $this->processResponse(2,[
                 2 => __tr('mobile number should be numeric value without prefixing 0 or +.')
