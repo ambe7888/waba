@@ -286,6 +286,11 @@ Route::middleware([
                 'processSaasBroadcast',
             ])->name('central.vendors.broadcast.send');
 
+            Route::get('/admin-message-logs', [
+                VendorController::class,
+                'adminMessageLogsView',
+            ])->name('central.vendors.message_logs.view');
+
             Route::get('/{vendorIdOrUid}/details', [
                 VendorController::class,
                 'vendorDetails',

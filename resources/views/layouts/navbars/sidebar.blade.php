@@ -224,6 +224,11 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                     <i class="fa fa-paper-plane text-success"></i> {{ __tr('Diffusion Manuelle') }}
                                 </a>
                             </li>
+                            <li class="nav-item {{ markAsActiveLink('central.vendors.message_logs.view') }}">
+                                <a class="nav-link" href="{{ route('central.vendors.message_logs.view') }}">
+                                    <i class="fa fa-list-alt text-info"></i> {{ __tr('Logs Messages Envoyés') }}
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </li>

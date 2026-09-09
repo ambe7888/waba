@@ -591,4 +591,50 @@ class VendorController extends BaseController
             ])
         ], [], true);
     }
+
+    /**
+     * Admin-facing log of every WhatsApp message the platform itself sent to
+     * vendors (welcome message on signup, subscription reminders, manual
+     * SaaS broadcasts) -- these already land in whatsapp_message_logs under
+     * the SaaS admin's own vendor account with contacts__id = 0 (no real
+     * contact record, since the recipient is a vendor admin, not a
+     * customer), but until now there was no screen to actually see them.
+     */
+    public function adminMessageLogsView()
+    {
+        $saasAdminVendorId = getAppSettings('saas_admin_vendor_id');
+
+        $logs = collect();
+        if (!empty($saasAdminVendorId)) {
+            $logs = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppMessageLogModel::where('vendors__id', $saasAdminVendorId)
+                ->where('contacts__id', 0)
+                ->orderByDesc('_id')
+                ->limit(200)
+                ->get();
+
+            // Resolve which vendor each recipient phone number belongs to,
+            // by matching against every vendor admin's mobile_number.
+            $adminsByPhone = \App\Models\User::whereNotNull('mobile_number')
+                ->where('mobile_number', '!=', '')
+                ->get(['mobile_number', 'vendors__id'])
+                ->keyBy(function ($user) {
+                    return preg_replace('/[^0-9]/', '', $user->mobile_number);
+                });
+
+            $vendorTitlesById = \App\Yantrana\Components\Vendor\Models\VendorModel::whereIn(
+                '_id',
+                $adminsByPhone->pluck('vendors__id')->filter()->unique()
+            )->pluck('title', '_id');
+
+            $logs->each(function ($log) use ($adminsByPhone, $vendorTitlesById) {
+                $matchedAdmin = $adminsByPhone->get($log->contact_wa_id);
+                $log->matched_vendor_title = $matchedAdmin ? ($vendorTitlesById[$matchedAdmin->vendors__id] ?? null) : null;
+            });
+        }
+
+        return $this->loadView('vendors.admin-message-logs', [
+            'saasAdminVendorId' => $saasAdminVendorId,
+            'logs' => $logs,
+        ]);
+    }
 }
