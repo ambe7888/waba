@@ -52,6 +52,13 @@ class Kernel extends ConsoleKernel
             ->name('process_contact_reminders_via_cron')
             ->withoutOverlapping();
 
+        // Re-sync every vendor's XML-feed product catalog hourly (the same
+        // feed they already maintain for Facebook Catalog).
+        $schedule->command('ecommerce:sync-xml-feeds')
+            ->hourly()
+            ->name('sync_xml_feed_catalogs')
+            ->withoutOverlapping();
+
         // Process SaaS Automations (Subscription expiry & reminders) daily
         $schedule->command('saas:process-automations')
             ->dailyAt('09:00')
