@@ -19,7 +19,6 @@ $activeIntegration = getVendorSettings('ecommerce_integration') ?: 'manual';
 
 $isShopifyConnected = !empty(getVendorSettings('shopify_shop_url'));
 $isWooCommerceConnected = !empty(getVendorSettings('woocommerce_shop_url')) && !empty(getVendorSettings('woocommerce_consumer_key')) && !empty(getVendorSettings('woocommerce_consumer_secret'));
-$isWhatsAppCatalogConnected = !empty(getVendorSettings('whatsapp_catalog_id'));
 $isXmlFeedConnected = !empty(getVendorSettings('xml_feed_url'));
 $isManualConnected = true;
 @endphp
@@ -51,11 +50,6 @@ $isManualConnected = true;
     border: 3px solid #7f54b3 !important;
     background-color: #faf5ff !important;
     box-shadow: 0 6px 20px rgba(127, 84, 179, 0.25) !important;
-}
-.platform-card-pro.selected-whatsapp_catalog {
-    border: 3px solid #10b981 !important;
-    background-color: #ecfdf5 !important;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25) !important;
 }
 .platform-card-pro.selected-manual {
     border: 3px solid #0284c7 !important;
@@ -320,34 +314,6 @@ $isManualConnected = true;
         })
         .catch(() => showErrorMessage('Erreur réseau.'));
     },
-    isDetectingCatalog: false,
-    metaCatalogs: [],
-    showCatalogList: false,
-    detectMetaCatalog() {
-        this.isDetectingCatalog = true;
-        this.metaCatalogs = [];
-        this.showCatalogList = false;
-        var self = this;
-        fetch('{{ route('vendor.ecommerce.meta_catalogs') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.json())
-        .then(data => {
-            self.isDetectingCatalog = false;
-            if (data.reaction_code == 1) {
-                self.metaCatalogs = data.data.catalogs;
-                self.showCatalogList = true;
-                showSuccessMessage('{{ __tr("Catalogues récupérés avec succès.") }}');
-            } else {
-                showErrorMessage(data.data.message || '{{ __tr("Erreur lors de la récupération depuis Meta.") }}');
-            }
-        })
-        .catch(() => { self.isDetectingCatalog = false; showErrorMessage('{{ __tr("Erreur réseau.") }}'); });
-    },
-    selectCatalog(catalogId) {
-        document.getElementById('whatsapp_catalog_id').value = catalogId;
-        document.getElementById('whatsapp_catalog_id').dispatchEvent(new Event('input'));
-        this.showCatalogList = false;
-        showSuccessMessage('{{ __tr("Catalogue sélectionné avec succès.") }}');
-    },
     clearProducts(source) {
         var msg = source === 'all' 
             ? '{{ __tr("Voulez-vous vraiment supprimer TOUS les produits du catalogue ?") }}' 
@@ -410,7 +376,7 @@ $isManualConnected = true;
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 0.75rem;">{{ __tr('Canal Actif') }}</small>
-                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Manuel') }}' : (integration === 'whatsapp_catalog' ? 'WhatsApp Meta' : (integration === 'xml_feed' ? '{{ __tr('Flux XML') }}' : integration))"></h5>
+                        <h5 class="font-weight-bold text-emerald mb-0 text-capitalize" style="color: #10b981;" x-text="integration === 'none' ? '{{ __tr('Manuel') }}' : (integration === 'xml_feed' ? '{{ __tr('Flux XML') }}' : integration)"></h5>
                     </div>
                     <div class="icon-circle text-warning p-3 rounded-circle" style="background: #fffbeb;">
                         <i class="fa fa-network-wired fa-lg"></i>
@@ -475,24 +441,6 @@ $isManualConnected = true;
                         <h5 class="font-weight-bold mb-1 text-dark">WooCommerce</h5>
                         <p class="text-xs text-muted mb-0">{{ __tr('WordPress / WooCommerce') }}</p>
                         @if($isWooCommerceConnected)
-                            <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- WhatsApp Catalog Card -->
-                <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="platform-card-pro" :class="[
-                        integration === 'whatsapp_catalog' ? 'selected-whatsapp_catalog' : '',
-                        {{ $isWhatsAppCatalogConnected ? 'true' : 'false' }} ? 'active-green-card' : ''
-                    ]" @click="integration = 'whatsapp_catalog'">
-                        <template x-if="integration === 'whatsapp_catalog'">
-                            <div class="selected-badge"><i class="fa fa-check"></i></div>
-                        </template>
-                        <i class="fab fa-whatsapp mb-2 text-emerald" style="font-size: 2.8rem; color: #10b981 !important;"></i>
-                        <h5 class="font-weight-bold mb-1 text-dark">{{ __tr('Catalogue Meta') }}</h5>
-                        <p class="text-xs text-muted mb-0">{{ __tr('WhatsApp Cloud Catalog') }}</p>
-                        @if($isWhatsAppCatalogConnected)
                             <div class="mt-2"><span class="badge badge-success px-3 py-1" style="border-radius: 20px;"><i class="fa fa-check-circle mr-1"></i> {{ __tr('Connecté') }}</span></div>
                         @endif
                     </div>
@@ -572,40 +520,6 @@ $isManualConnected = true;
                         </div>
                     </div>
 
-                    <!-- WhatsApp Catalog Config Parameters -->
-                    <div x-show="integration === 'whatsapp_catalog'" x-cloak>
-                        <h6 class="font-weight-bold text-dark mb-3"><i class="fab fa-whatsapp mr-2 text-emerald"></i> {{ __tr('Paramètres du Catalogue WhatsApp Meta') }}</h6>
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold text-dark" for="whatsapp_catalog_id">{{ __tr('ID du Catalogue WhatsApp Meta') }}</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control form-control-lg p-3 custom-input-white" id="whatsapp_catalog_id" value="{{ getVendorSettings('whatsapp_catalog_id') }}" name="whatsapp_catalog_id" placeholder="ex: 128392193892182" style="border-radius: 10px 0 0 10px !important;">
-                                <div class="input-group-append">
-                                    <button type="button" @click="detectMetaCatalog()" class="btn btn-emerald font-weight-bold text-white shadow-sm px-4" style="background: #10b981; border-radius: 0 10px 10px 0;" :disabled="isDetectingCatalog">
-                                        <span x-show="!isDetectingCatalog"><i class="fa fa-magic mr-1"></i> {{ __tr('Détecter depuis Meta') }}</span>
-                                        <span x-show="isDetectingCatalog"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Recherche...') }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <small class="form-text text-muted mt-1">{{ __tr('Renseignez l\'identifiant de votre catalogue Meta Business Manager ou cliquez pour le récupérer.') }}</small>
-
-                            <!-- Meta Catalogs List Selector -->
-                            <div x-show="showCatalogList" class="mt-3 p-3" style="background: #ffffff !important; border: 2px solid #cbd5e1; border-radius: 10px;" x-cloak>
-                                <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list mr-1 text-emerald"></i> {{ __tr('Catalogues trouvés sur votre compte Facebook :') }}</h6>
-                                <div class="list-group">
-                                    <template x-for="cat in metaCatalogs" :key="cat.id">
-                                        <button type="button" @click="selectCatalog(cat.id)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
-                                            <div>
-                                                <span class="font-weight-bold text-dark text-sm" x-text="cat.name"></span>
-                                                <div class="text-xs text-muted">ID: <span class="text-monospace" x-text="cat.id"></span></div>
-                                            </div>
-                                            <span class="badge badge-success px-3 py-1 text-xs" style="border-radius: 12px;"><i class="fa fa-check mr-1"></i> {{ __tr('Sélectionner') }}</span>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- XML Feed Config Parameters -->
                     <div x-show="integration === 'xml_feed'" x-cloak>
                         <h6 class="font-weight-bold text-dark mb-3"><i class="fa fa-rss mr-2" style="color: #f59e0b;"></i> {{ __tr('Paramètres du Flux XML') }}</h6>
@@ -622,7 +536,7 @@ $isManualConnected = true;
                             <i class="fa fa-save mr-1"></i> {{ __tr('Sauvegarder les paramètres') }}
                         </button>
                         
-                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'whatsapp_catalog' || integration === 'xml_feed'" x-cloak>
+                        <span x-show="integration === 'shopify' || integration === 'woocommerce' || integration === 'xml_feed'" x-cloak>
                             <button type="button" @click="syncProducts()" class="btn btn-success font-weight-bold px-4 py-2 ml-2" style="border-radius: 8px;" :disabled="isSyncing">
                                 <span x-show="!isSyncing"><i class="fa fa-sync mr-1"></i> {{ __tr('Synchroniser les produits') }}</span>
                                 <span x-show="isSyncing"><i class="fa fa-spinner fa-spin mr-1"></i> {{ __tr('Synchronisation...') }}</span>
