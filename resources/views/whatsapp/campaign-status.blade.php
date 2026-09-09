@@ -13,6 +13,7 @@ $campaignUid=$campaign->_uid;
 @endphp
 
 <div class="container-fluid pt-4 pb-5 lw-campaign-window-{{ $campaign->_uid }}" x-cloak x-data="initialRequiredData">
+    @include('campaign.whatsapp-health-alert')
     <div class="row" x-data="{ failedCampaignType: '', modalHeader: '', campaignId: '{{ $campaign->_id }}', recampaignType: '' }">
         <!-- Boutons d'Action Principaux -->
         <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">

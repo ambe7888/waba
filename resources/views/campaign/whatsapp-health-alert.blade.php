@@ -18,9 +18,9 @@
                 <i class="fas fa-exclamation-triangle" style="font-size: 1rem; color: #ffffff !important;"></i>
             </div>
             <div>
-                <strong>{{ __tr('Votre compte WhatsApp Business est restreint par Meta') }}</strong>
+                <strong>{{ __tr('Votre limite de facturation Meta est atteinte') }}</strong>
                 <div class="text-muted small">
-                    {{ __tr('Meta limite actuellement l\'envoi de messages sur ce compte (facturation ou vérification d\'entreprise). Vos campagnes peuvent échouer tant que ce n\'est pas résolu.') }}
+                    {{ __tr('Vous risquez de ne plus pouvoir envoyer de messages tant que ce n\'est pas réglé. Vérifiez votre compte de facturation Meta.') }}
                 </div>
             </div>
         </div>
