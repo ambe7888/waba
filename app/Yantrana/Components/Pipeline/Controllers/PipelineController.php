@@ -24,6 +24,22 @@ class PipelineController extends BaseController
     }
 
     /**
+     * The nav link hides itself for vendors without the sales_pipeline
+     * plan feature, but that alone doesn't stop a direct request to
+     * these routes -- check the plan here too, on every action, the same
+     * way CallingController::guardAccess() does for whatsapp_calling.
+     *
+     * @return \Illuminate\Http\JsonResponse|null
+     *---------------------------------------------------------------- */
+    protected function guardPlanAccess()
+    {
+        if (!vendorPlanDetails('sales_pipeline', 1)['is_limit_available']) {
+            return $this->processResponse(3, [3 => __tr('Le pipeline de vente n\'est pas disponible dans votre offre actuelle.')], ['message' => __tr('Le pipeline de vente n\'est pas disponible dans votre offre actuelle.')]);
+        }
+        return null;
+    }
+
+    /**
      * Show the Kanban pipeline board.
      *
      * @return view
@@ -31,6 +47,9 @@ class PipelineController extends BaseController
     public function showBoardView()
     {
         validateVendorAccess('manage_pipeline');
+        if (!vendorPlanDetails('sales_pipeline', 1)['is_limit_available']) {
+            return $this->loadView('pipeline.upgrade-required');
+        }
         $boardData = $this->pipelineEngine->prepareBoardData();
         return $this->loadView('pipeline.board', $boardData);
     }
@@ -43,7 +62,7 @@ class PipelineController extends BaseController
      *---------------------------------------------------------------- */
     public function searchContacts(BaseRequest $request)
     {
-        if (!hasVendorAccess('manage_pipeline')) {
+        if (!hasVendorAccess('manage_pipeline') || !vendorPlanDetails('sales_pipeline', 1)['is_limit_available']) {
             return response()->json([]);
         }
 
@@ -85,6 +104,9 @@ class PipelineController extends BaseController
         if (!hasVendorAccess('manage_pipeline', 'add_edit_deals')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
+        }
 
         $request->validate([
             'contactUid' => 'required|uuid',
@@ -111,6 +133,9 @@ class PipelineController extends BaseController
         if (!hasVendorAccess('manage_pipeline', 'add_edit_deals')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
+        }
 
         $request->validate([
             'stageUid' => 'required|uuid',
@@ -131,6 +156,9 @@ class PipelineController extends BaseController
         if (!hasVendorAccess('manage_pipeline', 'delete_deals')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
+        }
 
         $processReaction = $this->pipelineEngine->processDeleteDeal($dealUid);
         return $this->processResponse($processReaction, [], [], true);
@@ -146,6 +174,9 @@ class PipelineController extends BaseController
     {
         if (!hasVendorAccess('manage_pipeline', 'manage_pipeline_stages')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
         }
 
         $request->validate([
@@ -169,6 +200,9 @@ class PipelineController extends BaseController
         if (!hasVendorAccess('manage_pipeline', 'manage_pipeline_stages')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
         }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
+        }
 
         $request->validate([
             'title' => 'nullable|string|max:100',
@@ -189,6 +223,9 @@ class PipelineController extends BaseController
     {
         if (!hasVendorAccess('manage_pipeline', 'manage_pipeline_stages')) {
             return $this->processResponse(3, [3 => __tr('Action non autorisée.')], ['message' => __tr('Action non autorisée.')]);
+        }
+        if ($guard = $this->guardPlanAccess()) {
+            return $guard;
         }
 
         $processReaction = $this->pipelineEngine->processDeleteStage($stageUid);
