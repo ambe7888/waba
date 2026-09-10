@@ -44,6 +44,13 @@ class ProductModel extends BaseModel
     ];
 
     /**
+     * @var array - Accessors appended to the model's array/JSON form, so
+     * `effective_price` reaches the frontend (product lists, the manual
+     * order form) the same way any other column would.
+     */
+    protected $appends = ['effective_price'];
+
+    /**
      * Category this product belongs to, if any.
      */
     public function category()

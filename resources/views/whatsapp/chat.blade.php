@@ -1687,13 +1687,14 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                         if (!item || !item.product_id) return;
                                         var p = this.productsList.find(i => i._id == item.product_id || i._uid == item.product_id);
                                         if (p) {
-                                            item.custom_price = p.price;
+                                            item.custom_price = p.effective_price;
                                         }
                                     },
                                     formatProductOptionLabel(prod) {
                                         if(!prod || !prod.name) return '';
                                         var shortName = prod.name.length > 32 ? prod.name.substring(0, 32) + '...' : prod.name;
-                                        return shortName + ' (' + Number(prod.price).toLocaleString() + ' CFA)';
+                                        var isOnSale = prod.sale_price && Number(prod.sale_price) > 0 && Number(prod.sale_price) < Number(prod.price);
+                                        return shortName + ' (' + Number(prod.effective_price).toLocaleString() + ' CFA' + (isOnSale ? ' PROMO' : '') + ')';
                                     },
                                     getOrderSubtotal() {
                                         var sub = 0;
