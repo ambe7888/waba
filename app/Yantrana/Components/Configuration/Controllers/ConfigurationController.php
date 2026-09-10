@@ -88,7 +88,13 @@ class ConfigurationController extends BaseController
                     'pageType' => 'required',
                 ]; */
         $request->validate($this->settingsValidationRules($request->pageType, [], $request->all()));
-        $processReaction = $this->configurationEngine->processConfigurationsStore($pageType, $request->all());
+        // The "misc_settings" page is split across several independent
+        // forms (Queue vs Cron, Webhook processing, etc.) that each save
+        // on their own -- without this, saving one form wiped every
+        // enable_/allow_ setting that lives in the OTHERS back to off,
+        // since they're simply absent from that particular submission.
+        $ignoreOtherFields = ($pageType === 'misc_settings');
+        $processReaction = $this->configurationEngine->processConfigurationsStore($pageType, $request->all(), $ignoreOtherFields);
 
         return $this->responseAction($this->processResponse($processReaction, [], [], true));
     }

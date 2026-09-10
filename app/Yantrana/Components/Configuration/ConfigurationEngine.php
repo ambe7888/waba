@@ -184,9 +184,8 @@ class ConfigurationEngine extends BaseEngine implements ConfigurationEngineInter
 
                 $inputValue = Arr::get($inputData, $inputKey);
                 // check if want to ignore other default fields so it can not be set as blank
-                // ($ignoreOtherFields === true) and
                 if ((array_key_exists($inputKey, $inputData) === false)) {
-                    if (Str::startsWith($inputKey, ['enable_', 'allow_'])) {
+                    if (!$ignoreOtherFields && Str::startsWith($inputKey, ['enable_', 'allow_'])) {
                         $inputValue = 0;
                     } else {
                         continue;
