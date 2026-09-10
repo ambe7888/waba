@@ -2769,6 +2769,87 @@ window.cancelContactReminder = function(contact) {
 };
 </script>
 
+<!-- Paste-to-attach: pasting an image/video/document/audio file into the
+     message box (Ctrl+V) sends it through the exact same "Send Image/
+     Video/Document/Audio" flow as picking it manually, instead of doing
+     nothing or dumping a filename into the text field. -->
+<script type="text/javascript">
+(function() {
+    function detectMediaType(file) {
+        if (file.type && file.type.indexOf('image/') === 0) return 'image';
+        if (file.type && file.type.indexOf('video/') === 0) return 'video';
+        if (file.type && file.type.indexOf('audio/') === 0) return 'audio';
+        return 'document';
+    }
+
+    var filepondInputIdByType = {
+        document: 'lwDocumentMediaFilepond',
+        image: 'lwImageMediaFilepond',
+        video: 'lwVideoMediaFilepond',
+        audio: 'lwAudioMediaFilepond',
+    };
+
+    // The attach modal's content (and its FilePond instance) is loaded via
+    // AJAX after the trigger link is clicked -- poll briefly instead of
+    // guessing a fixed delay.
+    function waitForFilePond(inputId, maxAttempts) {
+        return new Promise(function(resolve, reject) {
+            var attempts = 0;
+            var timer = setInterval(function() {
+                attempts++;
+                var el = document.getElementById(inputId);
+                var pond = (el && window.FilePond) ? window.FilePond.find(el) : null;
+                if (pond) {
+                    clearInterval(timer);
+                    resolve(pond);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(timer);
+                    reject(new Error('FilePond not ready'));
+                }
+            }, 100);
+        });
+    }
+
+    function sendPastedFile(file) {
+        var mediaType = detectMediaType(file);
+        var triggerLink = document.querySelector('a.lw-ajax-link-action[href*="mediaType=' + mediaType + '"]');
+        if (!triggerLink) {
+            if (typeof showErrorMessage === 'function') {
+                showErrorMessage('{{ __tr("Impossible de coller le fichier ici, utilisez le bouton trombone.") }}');
+            }
+            return;
+        }
+        triggerLink.click();
+        waitForFilePond(filepondInputIdByType[mediaType], 40).then(function(pond) {
+            pond.addFile(file);
+        }).catch(function() {
+            if (typeof showErrorMessage === 'function') {
+                showErrorMessage('{{ __tr("Impossible de coller le fichier, utilisez le bouton trombone.") }}');
+            }
+        });
+    }
+
+    // Delegated on document (not the textarea directly) so this keeps
+    // working even if the compose area gets re-rendered when switching
+    // contacts -- paste is a bubbling event.
+    document.addEventListener('paste', function(e) {
+        if (!e.target || e.target.id !== 'lwChatWindowMessageBody') return;
+        var clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData || !clipboardData.items) return;
+        for (var i = 0; i < clipboardData.items.length; i++) {
+            if (clipboardData.items[i].kind === 'file') {
+                var file = clipboardData.items[i].getAsFile();
+                if (file) {
+                    e.preventDefault();
+                    sendPastedFile(file);
+                    break;
+                }
+            }
+        }
+    });
+})();
+</script>
+
 @php
     $vendorApprovedTemplates = \App\Yantrana\Components\WhatsAppService\Models\WhatsAppTemplateModel::where('vendors__id', getVendorId())
         ->whereIn('status', ['APPROVED', 'approved', 1])
