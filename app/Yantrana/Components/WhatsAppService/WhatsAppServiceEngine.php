@@ -3750,7 +3750,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
      * @param Eloquent $contact
      * @return string
      */
-    protected function dynamicValuesReplacement($inputValue, &$contact, $options = [])
+    public function dynamicValuesReplacement($inputValue, &$contact, $options = [])
     {
         $options = array_merge([
             'assign_tem_member_name' => '',

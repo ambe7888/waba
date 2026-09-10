@@ -2781,7 +2781,7 @@ window.cancelContactReminder = function(contact) {
     $vendorBotReplies = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', getVendorId())
         ->where('status', 1)
         ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
-        ->get(['_uid', 'name', 'reply_text']);
+        ->get(['_uid', 'name', 'reply_text', '__data']);
 @endphp
 
 <style>
@@ -2977,12 +2977,25 @@ window.cancelContactReminder = function(contact) {
         presetTime: 'tomorrow_same_time', 
         actionType: 'notification', 
         customDatetime: '', 
-        selectedTemplateName: '', 
+        selectedTemplateName: '',
         selectedTemplateLanguage: 'fr',
         titleNote: '',
+        botReplyUid: '',
+        botRepliesList: {{ json_encode($vendorBotReplies->keyBy('_uid')) }},
         templatesList: {{ json_encode($vendorApprovedTemplates->keyBy('template_name')) }},
         templateFields: [],
         templateFieldValues: {},
+        onBotReplyChange(uid) {
+            this.botReplyUid = uid;
+            var bot = this.botRepliesList[uid];
+            if (bot) {
+                this.titleNote = bot.reply_text;
+            }
+        },
+        hasBotReplyCard() {
+            var bot = this.botRepliesList[this.botReplyUid];
+            return !!(bot && bot.__data && (bot.__data.interaction_message || bot.__data.media_message));
+        },
         onTemplateChange(name) {
             this.selectedTemplateName = name;
             this.templateFields = [];
@@ -3095,12 +3108,16 @@ window.cancelContactReminder = function(contact) {
                 <label class="form-label font-weight-700 text-dark mb-1" style="font-size: 0.85rem; color: #1e293b;">
                     <i class="fas fa-robot text-primary mr-1"></i> {{ __tr('Insert Predefined Bot Reply:') }}
                 </label>
-                <select class="form-control lw-custom-select" @change="if ($el.value) { titleNote = $el.value; }">
+                <select class="form-control lw-custom-select" @change="onBotReplyChange($el.value)">
                     <option value="">{{ __tr('-- Select a Bot Reply --') }}</option>
                     @foreach($vendorBotReplies as $bot)
-                        <option value="{{ $bot->reply_text }}">{{ $bot->name }} ({{ Str::limit($bot->reply_text, 45) }})</option>
+                        <option value="{{ $bot->_uid }}">{{ $bot->name }} ({{ Str::limit($bot->reply_text, 45) }})</option>
                     @endforeach
                 </select>
+                <input type="hidden" name="bot_reply_uid" :value="botReplyUid">
+                <small class="text-muted mt-1 d-block" x-show="hasBotReplyCard()" x-cloak>
+                    <i class="fas fa-check-circle text-success mr-1"></i> {{ __tr('Ce message sera envoyé avec sa carte / son bouton, comme dans la réponse auto.') }}
+                </small>
             </div>
 
             <!-- WhatsApp Template Selector (when actionType == 'template_message') -->

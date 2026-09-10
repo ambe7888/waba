@@ -137,6 +137,25 @@ class ContactReminderEngine extends BaseEngine
             }
         }
 
+        // If a predefined bot reply was picked for the "WhatsApp Message"
+        // type, snapshot its button/card (and media) so the reminder
+        // reproduces it exactly when it fires, instead of sending only the
+        // reply's plain text. Looked up server-side by uid (not trusted
+        // from the client) so a request can't forge arbitrary interactive
+        // message data.
+        $botReplyInteractionData = null;
+        $botReplyMediaData = null;
+        if ($actionType === 'auto_message' && !empty($inputData['bot_reply_uid'])) {
+            $selectedBotReply = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where([
+                'vendors__id' => $vendorId,
+                '_uid' => $inputData['bot_reply_uid'],
+            ])->first();
+            if ($selectedBotReply) {
+                $botReplyInteractionData = $selectedBotReply->__data['interaction_message'] ?? null;
+                $botReplyMediaData = $selectedBotReply->__data['media_message'] ?? null;
+            }
+        }
+
         $reminderData = [
             '_uid' => Str::uuid()->toString(),
             'vendors__id' => $vendorId,
@@ -150,6 +169,8 @@ class ContactReminderEngine extends BaseEngine
             'status' => 1, // 1 = pending
             '__data' => [
                 'template_fields' => $templateFields,
+                'bot_reply_interaction' => $botReplyInteractionData,
+                'bot_reply_media' => $botReplyMediaData,
             ],
         ];
 
@@ -285,14 +306,39 @@ class ContactReminderEngine extends BaseEngine
                     ]
                 ]);
             } elseif ($reminder->action_type === 'auto_message' && !empty($reminder->title_note)) {
-                // Direct WhatsApp text message
+                // Direct WhatsApp message -- reproduce the predefined bot
+                // reply exactly as it was built: variables ({full_name} etc.)
+                // replaced, and its button/card (or media) carried over from
+                // the snapshot taken when the reminder was scheduled,
+                // instead of just sending its raw text.
                 try {
-                    $this->whatsAppServiceEngine->processSendChatMessage([
-                        'messageBody' => $reminder->title_note,
-                        'contactUid' => $contact->_uid,
-                    ], false, $reminder->vendors__id);
+                    $messageBody = $this->whatsAppServiceEngine->dynamicValuesReplacement($reminder->title_note, $contact);
+                    $interactionMessageData = data_get($reminder->__data, 'bot_reply_interaction');
+                    $mediaMessageData = data_get($reminder->__data, 'bot_reply_media');
+                    $sendOptions = [];
 
-                    $sysMsg = "💬 [RELANCE WHATSAPP AUTOMATIQUE ENVOYÉE] : " . $reminder->title_note;
+                    if (!empty($interactionMessageData)) {
+                        $interactionMessageData['body_text'] = $messageBody;
+                        if (!empty($interactionMessageData['header_text'])) {
+                            $interactionMessageData['header_text'] = $this->whatsAppServiceEngine->dynamicValuesReplacement($interactionMessageData['header_text'], $contact);
+                        }
+                        if (!empty($interactionMessageData['footer_text'])) {
+                            $interactionMessageData['footer_text'] = $this->whatsAppServiceEngine->dynamicValuesReplacement($interactionMessageData['footer_text'], $contact);
+                        }
+                        $sendOptions['interaction_message_data'] = $interactionMessageData;
+                    } elseif (!empty($mediaMessageData)) {
+                        if (!empty($mediaMessageData['caption'])) {
+                            $mediaMessageData['caption'] = $this->whatsAppServiceEngine->dynamicValuesReplacement($mediaMessageData['caption'], $contact);
+                        }
+                        $sendOptions['media_message_data'] = $mediaMessageData;
+                    }
+
+                    $this->whatsAppServiceEngine->processSendChatMessage([
+                        'messageBody' => $messageBody,
+                        'contactUid' => $contact->_uid,
+                    ], false, $reminder->vendors__id, $sendOptions);
+
+                    $sysMsg = "💬 [RELANCE WHATSAPP AUTOMATIQUE ENVOYÉE] : " . $messageBody;
                     storeWhatsAppLogChatHistory([
                         'status' => 'initialize',
                         'contacts__id' => $contact->_id,
