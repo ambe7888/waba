@@ -514,7 +514,11 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </div>
                 </li>
                 @endif
-                @if (hasVendorAccess('manage_campaigns'))
+                @php
+                    $hasCampaignsAccess = hasVendorAccess('manage_campaigns');
+                    $hasTemplatesAccess = hasVendorAccess('manage_templates');
+                @endphp
+                @if ($hasCampaignsAccess or $hasTemplatesAccess)
                 <li class="nav-item">
                     <a class="nav-link" href="#vendorCampaignSubmenuNav" data-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="vendorCampaignSubmenuNav">
@@ -523,6 +527,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                     <div class="collapse lw-expandable-nav" id="vendorCampaignSubmenuNav">
                         <ul class="nav nav-sm flex-column">
+                            @if ($hasCampaignsAccess)
                             <li class="nav-item">
                                 <a class="nav-link {{ markAsActiveLink('vendor.campaign.read.list_view') }}"
                                     href="{{ route('vendor.campaign.read.list_view') }}">
@@ -543,6 +548,16 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                     href="{{ route('addon.WhatsJetDripCampaignAddon.index') }}">
                                     <i class="fas fa-clock text-success"></i>
                                     {{ __tr('Drip Campaigns') }}
+                                </a>
+                            </li>
+                            @endif
+                            @endif
+                            @if ($hasTemplatesAccess)
+                            <li class="nav-item">
+                                <a class="nav-link {{ markAsActiveLink('vendor.whatsapp_service.templates.read.list_view') }}"
+                                    href="{{ route('vendor.whatsapp_service.templates.read.list_view') }}">
+                                    <i class="fa fa-layer-group text-primary"></i>
+                                    {{ __tr('Templates') }}
                                 </a>
                             </li>
                             @endif
@@ -586,15 +601,6 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                             @endif
                         </ul>
                     </div>
-                </li>
-                @endif
-                @if (hasVendorAccess('manage_templates'))
-                <li class="nav-item">
-                    <a class="nav-link {{ markAsActiveLink('vendor.whatsapp_service.templates.read.list_view') }}"
-                        href="{{ route('vendor.whatsapp_service.templates.read.list_view') }}">
-                        <i class="fa fa-layer-group"></i>
-                        {{ __tr('Templates') }}
-                    </a>
                 </li>
                 @endif
                 @if (hasVendorAccess('manage_bot_replies'))
