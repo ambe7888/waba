@@ -4773,10 +4773,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 if (!$contact->first_name) {
                     $profileName = Arr::get($messageEntry, '0.changes.0.value.contacts.0.profile.name');
                     $firstName = Arr::get(explode(' ', $profileName), '0');
-                    $contact = $this->contactRepository->updateIt($contact, [
+                    // updateIt() returns a boolean, not the model -- it
+                    // updates $contact in place via modelUpdate(), so it
+                    // must NOT be reassigned here. Doing so was replacing
+                    // $contact with true/false, crashing every line below
+                    // that touches it as an object ("Attempt to read
+                    // property _uid on bool").
+                    $this->contactRepository->updateIt($contact, [
                         'first_name' => $firstName,
                         'last_name' => str_replace($firstName, ' ', $profileName),
-                    ], $vendorId);
+                    ]);
                     $contactStatus = 'updated';
                 }
             } else {
