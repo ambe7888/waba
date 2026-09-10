@@ -1206,26 +1206,26 @@ $appName = getAppSettings('name');
             <!-- Badge -->
             <div class="hero-badge">
                 <i class="bi bi-lightning-charge-fill"></i>
-                {{ __tr('Plateforme WhatsApp Marketing #1') }}
+                {{ __tr('Le CRM #1 pour WhatsApp') }}
             </div>
 
             <!-- Icons row -->
             <div class="hero-icons-row">
                 <i class="fab fa-whatsapp"></i>
-                <i class="fas fa-bullhorn"></i>
-                <i class="fas fa-dollar-sign"></i>
+                <i class="fas fa-address-book"></i>
+                <i class="fas fa-chart-line"></i>
             </div>
 
             <!-- Heading -->
             <h1>
-                {!! __tr('Boost your customer engagement on a 100% secure __whatsApp__ platform.', [
+                {!! __tr('Le CRM tout-en-un pour gérer vos clients sur __whatsApp__, en toute sécurité.', [
                     '__whatsApp__' => '<span class="highlight">WhatsApp</span>'
                 ]) !!}
             </h1>
 
             <!-- Subtitle -->
             <p class="lead">
-                {{ __tr('Unlock the full potential of customer engagement with __appName__ — your comprehensive WhatsApp Marketing Platform.', ['__appName__' => $appName]) }}
+                {{ __tr('Contacts, conversations, commandes, rappels et appels : __appName__ centralise toute votre relation client dans un CRM puissant, conçu pour WhatsApp.', ['__appName__' => $appName]) }}
             </p>
 
             <!-- CTA Buttons -->
@@ -1340,8 +1340,8 @@ $appName = getAppSettings('name');
         <div class="container px-4 px-lg-5">
             <div class="section-header">
                 <div class="section-label">{{ __tr('Fonctionnalités') }}</div>
-                <h2>{{ __tr('Powerful Features for WhatsApp Marketing') }}</h2>
-                <p>{{ __tr('Everything you need to scale your customer communications, automate responses, and drive conversions directly on WhatsApp.') }}</p>
+                <h2>{{ __tr('Un CRM complet, pas juste une messagerie') }}</h2>
+                <p>{{ __tr('Gestion de contacts, suivi des commandes, rappels automatiques, appels intégrés : tout ce qu\'il faut pour piloter votre relation client de bout en bout, directement sur WhatsApp.') }}</p>
             </div>
 
             <div class="row g-4">
