@@ -415,78 +415,103 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         {{ __tr('QR Code') }}
                     </a>
                 </li>
-                @if (hasVendorAccess('messaging'))
-                <li class="nav-item">
-                    <a class="nav-link {{ markAsActiveLink('vendor.chat_message.contact.view') }}"
-                        href="{{ route('vendor.chat_message.contact.view') }}">
-                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
-                            <i class="fa fa-comments m-0" style="font-size: 1rem; line-height: 1.5rem;"></i> 
-                            <span x-cloak x-show="unreadMessagesCount" 
-                                  class="badge badge-success rounded-pill shadow-sm" 
-                                  style="position: absolute; top: -5px; left: -5px; font-size: 0.55rem; padding: 0.25em 0.4em; z-index: 10;"
-                                  x-text="unreadMessagesCount"></span>
-                        </div>
-                        <span class="ml--2">{{ __tr('WhatsApp Chat') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if (vendorPlanDetails('sales_pipeline', 1)['is_limit_available'] and hasVendorAccess('manage_pipeline'))
-                <li class="nav-item">
-                    <a class="nav-link <?= (request()->routeIs('vendor.pipeline.*')) ? 'active' : '' ?>"
-                        href="<?= route('vendor.pipeline.board.view') ?>">
-                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
-                            <i class="fa fa-columns m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                        </div>
-                        <span class="nav-link-text ml--2">{{ __tr('Pipeline') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'] and hasVendorAccess('manage_orders'))
                 @php
-                    $pendingOrdersCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
-                        'vendors__id' => getVendorId(),
-                        'status' => 'validated'
-                    ])->count();
+                    $hasChatAccess = hasVendorAccess('messaging');
+                    $hasPipelineAccess = vendorPlanDetails('sales_pipeline', 1)['is_limit_available'] and hasVendorAccess('manage_pipeline');
+                @endphp
+                @if ($hasChatAccess or $hasPipelineAccess)
+                <li class="nav-item">
+                    <a class="nav-link" href="#vendorConversationsSubmenuNav" data-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="vendorConversationsSubmenuNav">
+                        <i class="fa fa-comments text-dark"></i>
+                        <span class="">{{ __tr('Conversations') }}</span>
+                    </a>
+                    <div class="collapse lw-expandable-nav" id="vendorConversationsSubmenuNav">
+                        <ul class="nav nav-sm flex-column">
+                            @if ($hasChatAccess)
+                            <li class="nav-item">
+                                <a class="nav-link {{ markAsActiveLink('vendor.chat_message.contact.view') }}"
+                                    href="{{ route('vendor.chat_message.contact.view') }}">
+                                    <i class="fa fa-comment-dots text-primary"></i>
+                                    <span x-cloak x-show="unreadMessagesCount"
+                                          class="badge badge-success rounded-pill shadow-sm ml-1"
+                                          style="font-size: 0.6rem;"
+                                          x-text="unreadMessagesCount"></span>
+                                    {{ __tr('Discussions') }}
+                                </a>
+                            </li>
+                            @endif
+                            @if ($hasPipelineAccess)
+                            <li class="nav-item">
+                                <a class="nav-link <?= (request()->routeIs('vendor.pipeline.*')) ? 'active' : '' ?>"
+                                    href="<?= route('vendor.pipeline.board.view') ?>">
+                                    <i class="fa fa-columns text-primary"></i>
+                                    {{ __tr('Pipeline') }}
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+                @endif
+                @php
+                    $hasOrdersAccess = vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'] and hasVendorAccess('manage_orders');
+                    $hasDeliveryAccess = vendorPlanDetails('delivery_management', 1)['is_limit_available'] and hasVendorAccess('delivery');
+                @endphp
+                @if ($hasOrdersAccess or $hasDeliveryAccess)
+                @php
+                    if ($hasOrdersAccess) {
+                        $pendingOrdersCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+                            'vendors__id' => getVendorId(),
+                            'status' => 'validated'
+                        ])->count();
+                    }
+                    if ($hasDeliveryAccess) {
+                        $activeDeliveriesCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
+                            'vendors__id' => getVendorId(),
+                            'status' => 'in_delivery'
+                        ])->count();
+                        $unseenDeliveryOutcomesCount = app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
+                            ->countUnseenDeliveryOutcomes(getVendorId());
+                    }
                 @endphp
                 <li class="nav-item">
-                    <a class="nav-link <?= (isset($pageType) and $pageType == 'orders') ? 'active' : '' ?>"
-                        href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>">
-                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
-                            <i class="fa fa-shopping-bag m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                            <span id="lwPendingOrdersBadge" class="badge badge-warning rounded-pill shadow-sm text-dark font-weight-bold <?= $pendingOrdersCount > 0 ? '' : 'd-none' ?>"
-                                  style="position: absolute; top: -5px; left: -5px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
-                                {{ $pendingOrdersCount }}
-                            </span>
-                        </div>
-                        <span class="nav-link-text ml--2">{{ __tr('Commandes') }}</span>
+                    <a class="nav-link" href="#vendorOrdersSubmenuNav" data-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="vendorOrdersSubmenuNav">
+                        <i class="fa fa-shopping-bag text-dark"></i>
+                        <span class="">{{ __tr('Commandes') }}</span>
                     </a>
-                </li>
-                @endif
-                @if (vendorPlanDetails('delivery_management', 1)['is_limit_available'] and hasVendorAccess('delivery'))
-                @php
-                    $activeDeliveriesCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
-                        'vendors__id' => getVendorId(),
-                        'status' => 'in_delivery'
-                    ])->count();
-                    $unseenDeliveryOutcomesCount = app(\App\Yantrana\Components\Delivery\DeliveryEngine::class)
-                        ->countUnseenDeliveryOutcomes(getVendorId());
-                @endphp
-                <li class="nav-item">
-                    <a class="nav-link <?= (request()->routeIs('vendor.delivery.*')) ? 'active' : '' ?>"
-                        href="<?= route('vendor.delivery.tracking.view') ?>">
-                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
-                            <i class="fa fa-truck m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                            <span id="lwActiveDeliveriesBadge" class="badge badge-info rounded-pill shadow-sm text-white font-weight-bold <?= $activeDeliveriesCount > 0 ? '' : 'd-none' ?>"
-                                  style="position: absolute; top: -5px; left: -5px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
-                                {{ $activeDeliveriesCount }}
-                            </span>
-                            <span id="lwDeliveredOutcomesBadge" title="{{ __tr('Livraisons terminées à consulter') }}" class="badge badge-success rounded-pill shadow-sm text-white font-weight-bold <?= $unseenDeliveryOutcomesCount > 0 ? '' : 'd-none' ?>"
-                                  style="position: absolute; top: -5px; right: -8px; font-size: 0.58rem; padding: 0.25em 0.45em; z-index: 10;">
-                                {{ $unseenDeliveryOutcomesCount }}
-                            </span>
-                        </div>
-                        <span class="nav-link-text ml--2">{{ __tr('Livraison') }}</span>
-                    </a>
+                    <div class="collapse lw-expandable-nav" id="vendorOrdersSubmenuNav">
+                        <ul class="nav nav-sm flex-column">
+                            @if ($hasOrdersAccess)
+                            <li class="nav-item">
+                                <a class="nav-link <?= (isset($pageType) and $pageType == 'orders') ? 'active' : '' ?>"
+                                    href="<?= route('vendor.settings.read', ['pageType' => 'orders']) ?>">
+                                    <i class="fa fa-shopping-bag text-primary"></i>
+                                    <span id="lwPendingOrdersBadge" class="badge badge-warning rounded-pill shadow-sm text-dark font-weight-bold <?= $pendingOrdersCount > 0 ? '' : 'd-none' ?>" style="font-size: 0.6rem;">
+                                        {{ $pendingOrdersCount }}
+                                    </span>
+                                    {{ __tr('Commandes') }}
+                                </a>
+                            </li>
+                            @endif
+                            @if ($hasDeliveryAccess)
+                            <li class="nav-item">
+                                <a class="nav-link <?= (request()->routeIs('vendor.delivery.*')) ? 'active' : '' ?>"
+                                    href="<?= route('vendor.delivery.tracking.view') ?>">
+                                    <i class="fa fa-truck text-primary"></i>
+                                    <span id="lwActiveDeliveriesBadge" class="badge badge-info rounded-pill shadow-sm text-white font-weight-bold <?= $activeDeliveriesCount > 0 ? '' : 'd-none' ?>" style="font-size: 0.6rem;">
+                                        {{ $activeDeliveriesCount }}
+                                    </span>
+                                    <span id="lwDeliveredOutcomesBadge" title="{{ __tr('Livraisons terminées à consulter') }}" class="badge badge-success rounded-pill shadow-sm text-white font-weight-bold <?= $unseenDeliveryOutcomesCount > 0 ? '' : 'd-none' ?>" style="font-size: 0.6rem;">
+                                        {{ $unseenDeliveryOutcomesCount }}
+                                    </span>
+                                    {{ __tr('Livraison') }}
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
                 </li>
                 @endif
                 @if (hasVendorAccess('manage_campaigns'))
