@@ -2774,8 +2774,13 @@ window.cancelContactReminder = function(contact) {
         ->whereIn('status', ['APPROVED', 'approved', 1])
         ->get(['_uid', 'template_name', 'language', '__data']);
 
+    // Real reusable auto-replies only -- NT_CAMPAIGN_MESSAGE rows are the
+    // simple one-off "Preset Messages" used for 24h campaign broadcasts
+    // (see BotReplyRepository::fetchBotReplies()), not proper predefined
+    // replies, and shouldn't show up mixed in here.
     $vendorBotReplies = \App\Yantrana\Components\BotReply\Models\BotReplyModel::where('vendors__id', getVendorId())
         ->where('status', 1)
+        ->where('trigger_type', '!=', 'NT_CAMPAIGN_MESSAGE')
         ->get(['_uid', 'name', 'reply_text']);
 @endphp
 
