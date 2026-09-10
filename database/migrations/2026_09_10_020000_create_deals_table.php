@@ -20,7 +20,7 @@ return new class extends Migration
             $table->char('_uid', 36)->unique();
             $table->unsignedInteger('vendors__id');
             $table->unsignedInteger('contacts__id');
-            $table->unsignedInteger('pipeline_stages__id');
+            $table->unsignedBigInteger('pipeline_stages__id');
             $table->unsignedInteger('assigned_users__id')->nullable();
             $table->string('title');
             $table->decimal('value', 12, 2)->default(0);
