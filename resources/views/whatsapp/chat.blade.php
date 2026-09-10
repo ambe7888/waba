@@ -1120,6 +1120,10 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                 <div class="lw-crm-card" x-data="{
                                     callsList: [],
                                     isLoadingCalls: false,
+                                    showAllCalls: false,
+                                    visibleCalls() {
+                                        return this.showAllCalls ? this.callsList : this.callsList.slice(0, 3);
+                                    },
                                     fetchCalls() {
                                         var cUid = contact?._uid || contact?._id || contact?.wa_id;
                                         if(!cUid) return;
@@ -1162,21 +1166,153 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                             <span>{{ __tr('Aucun appel pour ce contact.') }}</span>
                                         </div>
                                     </template>
-                                    <template x-for="call in callsList" :key="call._uid">
-                                        <div class="lw-crm-info-row">
-                                            <div class="lw-crm-icon-badge">
-                                                <i class="fas" :class="callIcon(call)"></i>
-                                            </div>
-                                            <div class="lw-crm-info-text">
-                                                <div x-text="callLabel(call)" style="font-weight: 600;"></div>
-                                                <div class="text-muted" style="font-size: 12px;">
-                                                    <span x-text="new Date(call.created_at).toLocaleString()"></span>
-                                                    <template x-if="call.duration"><span> &middot; <span x-text="formatDuration(call.duration)"></span></span></template>
-                                                    <template x-if="call.status"><span> &middot; <span x-text="call.status"></span></span></template>
+                                    <div :style="showAllCalls && callsList.length > 3 ? 'max-height: 280px; overflow-y: auto;' : ''">
+                                        <template x-for="call in visibleCalls()" :key="call._uid">
+                                            <div class="lw-crm-info-row">
+                                                <div class="lw-crm-icon-badge">
+                                                    <i class="fas" :class="callIcon(call)"></i>
+                                                </div>
+                                                <div class="lw-crm-info-text">
+                                                    <div x-text="callLabel(call)" style="font-weight: 600;"></div>
+                                                    <div class="text-muted" style="font-size: 12px;">
+                                                        <span x-text="new Date(call.created_at).toLocaleString()"></span>
+                                                        <template x-if="call.duration"><span> &middot; <span x-text="formatDuration(call.duration)"></span></span></template>
+                                                        <template x-if="call.status"><span> &middot; <span x-text="call.status"></span></span></template>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        </template>
+                                    </div>
+                                    <button type="button" x-show="callsList.length > 3" class="btn btn-sm btn-link p-0 mt-1" style="font-size: 12px;" @click="showAllCalls = !showAllCalls">
+                                        <span x-show="!showAllCalls" x-text="'{{ __tr('Voir tout') }} (' + callsList.length + ')'"></span>
+                                        <span x-show="showAllCalls">{{ __tr('Réduire') }}</span>
+                                    </button>
+                                </div>
+                                @endif
+
+                                @if(hasVendorAccess('manage_pipeline') && vendorPlanDetails('sales_pipeline', 1)['is_limit_available'])
+                                <!-- Pipeline Card -->
+                                <div class="lw-crm-card" x-data="{
+                                    dealsList: [],
+                                    stagesList: [],
+                                    isLoadingDeals: false,
+                                    showAllDeals: false,
+                                    showCreateDealForm: false,
+                                    isCreatingDeal: false,
+                                    newDeal: { title: '', value: '', stageUid: '' },
+                                    visibleDeals() {
+                                        return this.showAllDeals ? this.dealsList : this.dealsList.slice(0, 3);
+                                    },
+                                    fetchDeals() {
+                                        var cUid = contact?._uid || contact?._id || contact?.wa_id;
+                                        if(!cUid) return;
+                                        this.isLoadingDeals = true;
+                                        var self = this;
+                                        __DataRequest.get('{{ route('vendor.pipeline.contact_deals', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function(response) {
+                                            self.isLoadingDeals = false;
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                            if (isSuccess) {
+                                                var payload = response.data || response;
+                                                self.dealsList = Array.isArray(payload.deals) ? payload.deals : [];
+                                                self.stagesList = Array.isArray(payload.stages) ? payload.stages : [];
+                                                if (!self.newDeal.stageUid && self.stagesList.length > 0) {
+                                                    self.newDeal.stageUid = self.stagesList[0]._uid;
+                                                }
+                                            }
+                                        });
+                                    },
+                                    stageTitle(deal) {
+                                        return (deal.stage && deal.stage.title) ? deal.stage.title : '';
+                                    },
+                                    stageColor(deal) {
+                                        return (deal.stage && deal.stage.color) ? deal.stage.color : '#64748b';
+                                    },
+                                    formatDealValue(value) {
+                                        var n = Number(value) || 0;
+                                        return n.toLocaleString() + ' CFA';
+                                    },
+                                    createDeal() {
+                                        var cUid = contact?._uid || contact?._id || contact?.wa_id;
+                                        if(!cUid || !this.newDeal.title || !this.newDeal.stageUid) return;
+                                        this.isCreatingDeal = true;
+                                        var self = this;
+                                        __DataRequest.post('{{ route('vendor.pipeline.deals.write') }}', {
+                                            contactUid: cUid,
+                                            title: this.newDeal.title,
+                                            value: this.newDeal.value,
+                                            stageUid: this.newDeal.stageUid,
+                                        }, function(response) {
+                                            self.isCreatingDeal = false;
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                            if (isSuccess) {
+                                                self.showCreateDealForm = false;
+                                                self.newDeal.title = '';
+                                                self.newDeal.value = '';
+                                                self.fetchDeals();
+                                            } else {
+                                                var msg = response.message || (response.data && response.data.message) || '{{ __tr('Erreur lors de la création.') }}';
+                                                showErrorMessage(msg);
+                                            }
+                                        });
+                                    }
+                                }" x-init="fetchDeals()" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchDeals()">
+                                    <div class="lw-crm-section-header">
+                                        <span><i class="fas fa-filter text-secondary mr-1"></i> {{ __tr('Pipeline') }}</span>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-link p-0 mr-2" @click="showCreateDealForm = !showCreateDealForm" title="{{ __tr('Créer une affaire') }}">
+                                                <i class="fa fa-plus"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="fetchDeals()" title="{{ __tr('Rafraîchir') }}">
+                                                <i class="fa fa-sync-alt" :class="{'fa-spin': isLoadingDeals}"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div x-show="showCreateDealForm" class="p-2 mb-2 rounded" style="background: #f8fafc; border: 1.5px solid #e2e8f0;" x-cloak>
+                                        <input type="text" x-model="newDeal.title" class="form-control form-control-sm mb-2" placeholder="{{ __tr('Titre de l\'opportunité') }}">
+                                        <div class="d-flex" style="gap: 6px;">
+                                            <input type="number" x-model="newDeal.value" class="form-control form-control-sm" placeholder="{{ __tr('Valeur (FCFA)') }}" min="0" style="max-width: 45%;">
+                                            <select x-model="newDeal.stageUid" class="form-control form-control-sm">
+                                                <template x-for="stage in stagesList" :key="stage._uid">
+                                                    <option :value="stage._uid" x-text="stage.title"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-2" style="gap: 6px;">
+                                            <button type="button" class="btn btn-sm btn-light" @click="showCreateDealForm = false">{{ __tr('Annuler') }}</button>
+                                            <button type="button" class="btn btn-sm btn-primary" :disabled="isCreatingDeal || !newDeal.title" @click="createDeal()">
+                                                <span x-show="!isCreatingDeal">{{ __tr('Créer') }}</span>
+                                                <span x-show="isCreatingDeal"><i class="fa fa-spinner fa-spin"></i></span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <template x-if="!isLoadingDeals && dealsList.length === 0 && !showCreateDealForm">
+                                        <div class="text-center py-2 text-muted small">
+                                            <i class="fas fa-filter d-block mb-1 opacity-5" style="font-size: 20px;"></i>
+                                            <span>{{ __tr('Aucune opportunité pour ce contact.') }}</span>
                                         </div>
                                     </template>
+                                    <div :style="showAllDeals && dealsList.length > 3 ? 'max-height: 280px; overflow-y: auto;' : ''">
+                                        <template x-for="deal in visibleDeals()" :key="deal._uid">
+                                            <a :href="'{{ route('vendor.pipeline.board.view') }}' + '?dealUid=' + deal._uid" class="lw-crm-info-row" style="text-decoration: none;" title="{{ __tr('Ouvrir dans le pipeline') }}">
+                                                <div class="lw-crm-icon-badge" :style="{ backgroundColor: stageColor(deal) + '22', color: stageColor(deal) }">
+                                                    <i class="fas fa-filter"></i>
+                                                </div>
+                                                <div class="lw-crm-info-text">
+                                                    <div x-text="deal.title" style="font-weight: 600;"></div>
+                                                    <div class="text-muted" style="font-size: 12px;">
+                                                        <span x-text="stageTitle(deal)"></span>
+                                                        <template x-if="deal.value"><span> &middot; <span x-text="formatDealValue(deal.value)"></span></span></template>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </template>
+                                    </div>
+                                    <button type="button" x-show="dealsList.length > 3" class="btn btn-sm btn-link p-0 mt-1" style="font-size: 12px;" @click="showAllDeals = !showAllDeals">
+                                        <span x-show="!showAllDeals" x-text="'{{ __tr('Voir tout') }} (' + dealsList.length + ')'"></span>
+                                        <span x-show="showAllDeals">{{ __tr('Réduire') }}</span>
+                                    </button>
                                 </div>
                                 @endif
 
@@ -1333,6 +1469,10 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                 <div class="lw-crm-card" x-data="{
                                     ordersList: [],
                                     isLoadingOrders: false,
+                                    showAllOrders: false,
+                                    visibleOrders() {
+                                        return this.showAllOrders ? this.ordersList : this.ordersList.slice(0, 3);
+                                    },
                                     fetchOrders() {
                                         var cUid = contact?._uid || contact?._id || contact?.wa_id;
                                         if(!cUid) return;
@@ -1749,8 +1889,8 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                         {{ __tr('Aucune commande enregistrée pour ce client.') }}
                                     </div>
 
-                                    <div x-show="ordersList.length > 0" class="space-y-2">
-                                        <template x-for="ord in ordersList" :key="ord._uid">
+                                    <div x-show="ordersList.length > 0" class="space-y-2" :style="showAllOrders && ordersList.length > 3 ? 'max-height: 420px; overflow-y: auto;' : ''">
+                                        <template x-for="ord in visibleOrders()" :key="ord._uid">
                                             <div class="p-2 border rounded mb-2 shadow-sm" style="border-radius: 10px; background: #ffffff; border: 1.5px solid #cbd5e1 !important;">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <span class="font-weight-bold text-dark text-xs" x-text="'#' + ord._uid.substring(0, 8)"></span>
@@ -1802,6 +1942,10 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                             </div>
                                         </template>
                                     </div>
+                                    <button type="button" x-show="ordersList.length > 3" class="btn btn-sm btn-link p-0 mt-1" style="font-size: 12px;" @click="showAllOrders = !showAllOrders">
+                                        <span x-show="!showAllOrders" x-text="'{{ __tr('Voir tout') }} (' + ordersList.length + ')'"></span>
+                                        <span x-show="showAllOrders">{{ __tr('Réduire') }}</span>
+                                    </button>
 
                                     <!-- CHAT ORDER RECEIPT MODAL -->
                                     <div class="modal fade" id="chatOrderReceiptModal" tabindex="-1" role="dialog" aria-hidden="true" x-cloak>

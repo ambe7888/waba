@@ -93,6 +93,23 @@ class PipelineController extends BaseController
     }
 
     /**
+     * Deals for one contact, for the "Pipeline" card in the chat
+     * contact-info sidebar.
+     *
+     * @param string $contactUid
+     * @return json object
+     *---------------------------------------------------------------- */
+    public function getContactDeals($contactUid)
+    {
+        if (!hasVendorAccess('manage_pipeline') || !vendorPlanDetails('sales_pipeline', 1)['is_limit_available']) {
+            return $this->processResponse(1, [], ['deals' => [], 'stages' => []]);
+        }
+
+        $processReaction = $this->pipelineEngine->getDealsForContact($contactUid);
+        return $this->processResponse($processReaction, [], [], true);
+    }
+
+    /**
      * Create or update a deal.
      *
      * @param BaseRequest $request

@@ -62,6 +62,36 @@ class PipelineEngine extends BaseEngine
     }
 
     /**
+     * Deals for one contact, plus the vendor's stages, for the small
+     * "Pipeline" card in the WhatsApp chat contact-info sidebar.
+     *
+     * @param string $contactUid
+     * @return array
+     *---------------------------------------------------------------- */
+    public function getDealsForContact($contactUid)
+    {
+        $vendorId = getVendorId();
+        $contact = ContactModel::where(['vendors__id' => $vendorId])
+            ->where(function ($q) use ($contactUid) {
+                $q->where('_uid', $contactUid)
+                  ->orWhere('_id', $contactUid)
+                  ->orWhere('wa_id', $contactUid);
+            })->first();
+
+        if (empty($contact)) {
+            return $this->engineSuccessResponse(['deals' => [], 'stages' => []]);
+        }
+
+        $deals = $this->dealRepository->fetchForContact($contact->_id, $vendorId);
+        $stages = $this->stageRepository->fetchOrCreateDefaultStages($vendorId);
+
+        return $this->engineSuccessResponse([
+            'deals' => $deals,
+            'stages' => $stages,
+        ]);
+    }
+
+    /**
      * Create or update a deal.
      *
      * @param array $inputData

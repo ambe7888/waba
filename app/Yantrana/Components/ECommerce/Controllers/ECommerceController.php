@@ -707,7 +707,7 @@ class ECommerceController extends BaseController
         $orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
             'vendors__id' => $vendorId,
             'contacts__id' => $contact->_id
-        ])->latest()->get();
+        ])->latest()->limit(20)->get();
 
         return $this->processResponse(1, [], [
             'orders' => $orders

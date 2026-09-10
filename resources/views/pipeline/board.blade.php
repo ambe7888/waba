@@ -125,7 +125,13 @@
                      @drop.prevent="$el.classList.remove('lw-drag-over'); onDrop(stage)">
                     <template x-for="deal in dealsFor(stage._id)" :key="deal._uid">
                         <div class="pipeline-card" draggable="true" @dragstart="draggingDealUid = deal._uid" @click="openDealModal(deal)">
-                            <div class="pipeline-card-title" x-text="deal.title"></div>
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div class="pipeline-card-title" x-text="deal.title"></div>
+                                <a :href="chatUrl(deal)" @click.stop title="{{ __tr('Ouvrir la conversation') }}"
+                                   x-show="deal.contact" class="text-muted ml-1" style="flex-shrink:0;">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                            </div>
                             <div class="pipeline-card-contact" x-text="contactLabel(deal)"></div>
                             <div class="pipeline-card-footer">
                                 <span class="pipeline-card-value" x-text="formatValue(deal.value)"></span>
@@ -254,7 +260,15 @@
             editingDeal: {},
             editingStage: {},
 
-            init() {},
+            init() {
+                var dealUid = new URLSearchParams(window.location.search).get('dealUid');
+                if (dealUid) {
+                    var deal = this.deals.find(d => d._uid === dealUid);
+                    if (deal) {
+                        this.$nextTick(() => this.openDealModal(deal));
+                    }
+                }
+            },
 
             dealsFor(stageId) {
                 return this.deals.filter(d => d.pipeline_stages__id === stageId);
@@ -263,6 +277,11 @@
             contactLabel(deal) {
                 if (!deal.contact) return '';
                 return (deal.contact.first_name + ' ' + (deal.contact.last_name || '')).trim() + ' (+' + deal.contact.wa_id + ')';
+            },
+
+            chatUrl(deal) {
+                if (!deal.contact) return '#';
+                return '{{ route('vendor.chat_message.contact.view', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', deal.contact._uid);
             },
 
             assigneeLabel(deal) {

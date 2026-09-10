@@ -721,3 +721,14 @@ body .lw-btn-cancel-reminder{
   color: var(--lw-white-color) !important;
   border-color: var(--lw-border-color) !important;
 }
+
+// ==== Chat: inline "create X" mini-forms (orders, deals) ====
+.lw-crm-card [style*="background: #f8fafc"]{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-crm-card [style*="background: #f8fafc"] .form-control{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+  color: var(--lw-white-color) !important;
+}

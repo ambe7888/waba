@@ -1396,6 +1396,11 @@ Route::middleware([
                     'searchContacts',
                 ])->name('vendor.pipeline.contacts.search');
 
+                Route::get('/contact/{contactUid}/deals', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'getContactDeals',
+                ])->name('vendor.pipeline.contact_deals');
+
                 Route::post('/deals/{dealUid?}', [
                     \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
                     'processStoreDeal',
