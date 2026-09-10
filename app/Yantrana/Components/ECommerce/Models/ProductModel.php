@@ -23,6 +23,7 @@ class ProductModel extends BaseModel
         'vendors__id' => 'integer',
         'product_categories__id' => 'integer',
         'price' => 'float',
+        'sale_price' => 'float',
     ];
 
     /**
@@ -35,6 +36,7 @@ class ProductModel extends BaseModel
         'name',
         'description',
         'price',
+        'sale_price',
         'image_url',
         'retailer_id',
         'direct_link',
@@ -47,5 +49,22 @@ class ProductModel extends BaseModel
     public function category()
     {
         return $this->belongsTo(ProductCategoryModel::class, 'product_categories__id', '_id');
+    }
+
+    /**
+     * The price actually charged -- the promo price when one is set (and
+     * lower than the regular price), otherwise the regular price. Used
+     * everywhere a product's price reaches a customer or an order total:
+     * the AI's catalog context, the AI-driven order calculation, and the
+     * WhatsApp catalog product card.
+     *
+     * @return float
+     *---------------------------------------------------------------- */
+    public function getEffectivePriceAttribute()
+    {
+        if (!empty($this->sale_price) && $this->sale_price > 0 && $this->sale_price < $this->price) {
+            return (float) $this->sale_price;
+        }
+        return (float) $this->price;
     }
 }

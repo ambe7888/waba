@@ -302,7 +302,11 @@ class OpenAiService extends BaseEngine
                 $productContext = "\n\nHere is our product catalog. When a customer asks about a product, pricing, or images, describe the product warmly, present its price in CFA, and ALWAYS end your message with an order button in this format: [BUTTON: 🛍️ Commander]\n\nCatalog Products:\n";
                 foreach ($products as $prod) {
                     $link = !empty($prod->direct_link) ? " | [URL_BUTTON: Voir le site: {$prod->direct_link}]" : "";
-                    $productContext .= "- Name: {$prod->name}, Price: " . number_format($prod->price, 0, ',', ' ') . " CFA, Description: {$prod->description}{$link}\n";
+                    $isOnSale = !empty($prod->sale_price) && $prod->sale_price > 0 && $prod->sale_price < $prod->price;
+                    $priceLine = $isOnSale
+                        ? "Price: " . number_format($prod->sale_price, 0, ',', ' ') . " CFA (PROMO -- regular price was " . number_format($prod->price, 0, ',', ' ') . " CFA, mention it's on sale)"
+                        : "Price: " . number_format($prod->price, 0, ',', ' ') . " CFA";
+                    $productContext .= "- Name: {$prod->name}, {$priceLine}, Description: {$prod->description}{$link}\n";
                 }
             }
         }
@@ -314,7 +318,10 @@ class OpenAiService extends BaseEngine
             "3. ASK FOR DELIVERY DATE ONLY: When taking delivery details, ask ONLY for (1) Nom complet, (2) Adresse/Lieu de livraison, (3) Téléphone, et (4) Date de livraison. DO NOT ASK FOR DELIVERY TIME (NE DEMANDE JAMAIS L'HEURE DE LIVRAISON). The date alone is sufficient.\n" .
             "4. BUTTON FORMATTING:\n" .
             "   - When recommending products: Append [BUTTON: 🛍️ Commander]\n" .
-            "   - When presenting an order summary (récapitulatif / résumé): ALWAYS append [BUTTON: ✅ Confirmer] so the customer can validate with 1 click (keep this button label SHORT -- WhatsApp truncates button text past 20 characters, and a longer label like 'Confirmer la commande' gets cut off mid-word, breaking the order confirmation).";
+            "   - When presenting an order summary (récapitulatif / résumé): ALWAYS append [BUTTON: ✅ Confirmer] so the customer can validate with 1 click (keep this button label SHORT -- WhatsApp truncates button text past 20 characters, and a longer label like 'Confirmer la commande' gets cut off mid-word, breaking the order confirmation).\n" .
+            "5. TRACK QUANTITIES EXPLICITLY: If the customer wants more than one unit of a product (\"2 télévisions\", \"trois sacs\"), you MUST multiply that product's line total by the quantity, not just its unit price, and show the quantity next to each item in the récapitulatif (e.g. \"2x Télévision Samsung 43\\\" — 100 000 CFA\").\n" .
+            "6. HIDDEN ORDER DATA (MANDATORY, only on the final récapitulatif/order-summary message, never anywhere else): append a hidden machine-readable tag listing every distinct product and its exact quantity, using EXACTLY the product name from the catalog above. Format: [ORDER_JSON: [{\"name\":\"Exact Catalog Name\",\"quantity\":2}, {\"name\":\"Other Product\",\"quantity\":1}]] -- this tag is stripped before the customer sees the message, so it does not affect formatting, but it MUST be present and accurate every time you present a récapitulatif, otherwise the order cannot be recorded correctly.\n" .
+            "7. MODIFYING OR CANCELLING AN ORDER: If the customer says they want to change the quantity or items of an order they just confirmed (within the last few messages), simply present a corrected récapitulatif with rule 5 and 6 applied again -- the system will update their existing order instead of creating a duplicate. If they say they want to cancel entirely, tell them their order will be cancelled and confirm politely (the system detects cancellation phrases and cancels the order automatically).";
 
         $assistantId = getVendorSettings('open_ai_assistant_id', null, null, $vendorId);
         if ($botDataSourceType == 'assistant' && (!$assistantId || !Str::startsWith($assistantId, 'asst_'))) {

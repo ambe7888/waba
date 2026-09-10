@@ -250,6 +250,344 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
     }
 
     /**
+     * Pull the hidden [ORDER_JSON: [...]] tag the AI is instructed to emit
+     * on every order récapitulatif (see OpenAiService's interactiveInstructions,
+     * rule 6). Returns the decoded array of {name, quantity} or null if the
+     * tag isn't present/valid -- callers fall back to the older
+     * name-mention heuristic in that case.
+     *
+     * @param string $text
+     * @return array|null
+     *---------------------------------------------------------------- */
+    private function extractOrderJsonTag($text)
+    {
+        if (empty($text)) {
+            return null;
+        }
+        if (preg_match('/\[ORDER_JSON:\s*(\[.*?\])\s*\]/is', $text, $matches)) {
+            $decoded = json_decode($matches[1], true);
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Strip the hidden [ORDER_JSON: ...] tag before a reply reaches the
+     * customer -- it's machine-readable order data, not something they
+     * should see on WhatsApp.
+     *
+     * @param string $text
+     * @return string
+     *---------------------------------------------------------------- */
+    private function stripOrderJsonTag($text)
+    {
+        return preg_replace('/\[ORDER_JSON:\s*\[.*?\]\s*\]/is', '', (string) $text);
+    }
+
+    /**
+     * Match the AI's [ORDER_JSON: ...] items against the vendor's real
+     * catalog (fuzzy, case-insensitive, either name containing the
+     * other -- the AI is told to copy the catalog name exactly, but a
+     * near-miss shouldn't silently drop the item), each with the
+     * quantity the customer actually asked for.
+     *
+     * @param int $vendorId
+     * @param array $orderJsonItems
+     * @return array - list of ['product' => ProductModel, 'quantity' => int]
+     *---------------------------------------------------------------- */
+    private function matchProductsWithQuantities($vendorId, array $orderJsonItems)
+    {
+        $vendorProducts = \App\Yantrana\Components\ECommerce\Models\ProductModel::where('vendors__id', $vendorId)->get();
+        $matched = [];
+        foreach ($orderJsonItems as $item) {
+            $name = trim($item['name'] ?? '');
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            if ($name === '') {
+                continue;
+            }
+            $product = $vendorProducts->first(function ($p) use ($name) {
+                return !empty($p->name) && (mb_stripos($p->name, $name) !== false || mb_stripos($name, $p->name) !== false);
+            });
+            if ($product) {
+                $matched[] = ['product' => $product, 'quantity' => $quantity];
+            }
+        }
+        return $matched;
+    }
+
+    /**
+     * Build the order line items (product + real quantity) for a
+     * confirmed order. Prefers the AI's structured [ORDER_JSON: ...] tag
+     * (accurate quantities); falls back to the older "which catalog
+     * products are named in the recent conversation" heuristic (always
+     * quantity 1) when the tag is missing -- e.g. a manual keyword-bot
+     * confirmation that never went through the AI at all.
+     *
+     * @param int $vendorId
+     * @param int $contactId
+     * @param string $text
+     * @return array - list of ['product' => ProductModel, 'quantity' => int]
+     *---------------------------------------------------------------- */
+    private function buildOrderItems($vendorId, $contactId, $text)
+    {
+        $orderJson = $this->extractOrderJsonTag($text);
+        if (!empty($orderJson)) {
+            $matched = $this->matchProductsWithQuantities($vendorId, $orderJson);
+            if (!empty($matched)) {
+                return $matched;
+            }
+        }
+
+        $foundProducts = $this->findMentionedProductsInConversation($vendorId, $contactId, $text);
+        return array_map(function ($p) {
+            return ['product' => $p, 'quantity' => 1];
+        }, $foundProducts);
+    }
+
+    /**
+     * If the message is a cancellation phrase, cancel the contact's most
+     * recent still-open order (within 30 minutes, status still
+     * 'validated' -- i.e. the vendor hasn't started processing it yet)
+     * and send a confirmation. This is deterministic (no AI call) so it
+     * works even when the vendor has no AI credits left.
+     *
+     * @param \App\Yantrana\Components\Contact\Models\ContactModel $contact
+     * @param string $messageBody
+     * @param array $options
+     * @return bool - true if this message was handled as a cancellation
+     *   (caller should stop processing), false otherwise.
+     *---------------------------------------------------------------- */
+    private function tryCancelRecentOrder($contact, $messageBody, $options = [])
+    {
+        if (!preg_match('/(?:annul(?:er|e|ez)\s+(?:ma\s+)?commande|je\s+(?:veux|voudrais)\s+annuler|supprim(?:er|e|ez)\s+(?:ma\s+)?commande|ne\s+veux\s+plus\s+(?:de\s+)?(?:la\s+)?commande)/i', $messageBody)) {
+            return false;
+        }
+
+        $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
+        $messageWamid = $options['messageWamid'] ?? null;
+
+        $recentOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
+            ->where('contacts__id', $contact->_id)
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->where('status', 'validated')
+            ->latest()
+            ->first();
+
+        if (!$recentOrder) {
+            $this->sendReplyBotMessage($contact->_uid, __tr("Je ne trouve pas de commande récente à annuler. Un conseiller va vous répondre si besoin."), $contact->vendors__id, null, [
+                'ai_bot_reply' => true,
+                'from_phone_number_id' => $fromPhoneId,
+                'messageWamid' => $messageWamid,
+            ]);
+            return true;
+        }
+
+        $recentOrder->status = 'cancelled';
+        $recentOrder->save();
+
+        $this->sendReplyBotMessage($contact->_uid, __tr('✅ Votre commande *#__ref__* a bien été annulée.', [
+            '__ref__' => substr($recentOrder->_uid, 0, 8),
+        ]), $contact->vendors__id, null, [
+            'ai_bot_reply' => true,
+            'from_phone_number_id' => $fromPhoneId,
+            'messageWamid' => $messageWamid,
+        ]);
+        return true;
+    }
+
+    /**
+     * Cheap order-independent signature for "is this the same set of
+     * items" -- used to tell a repeated confirmation (same items, do
+     * nothing new) apart from a corrected one (different items, update
+     * the existing order in place).
+     *
+     * @param array $items
+     * @return string
+     *---------------------------------------------------------------- */
+    private function orderItemsSignature($items)
+    {
+        $normalized = array_map(function ($item) {
+            return ($item['name'] ?? '') . '|' . ($item['quantity'] ?? 1) . '|' . ($item['price'] ?? 0);
+        }, is_array($items) ? $items : []);
+        sort($normalized);
+        return implode(';', $normalized);
+    }
+
+    /**
+     * Create the contact's order, or -- if they confirmed one in the
+     * last 30 minutes that the vendor hasn't started processing yet --
+     * update it in place instead of creating a duplicate. This is what
+     * lets a customer correct their own order ("en fait je voulais 2,
+     * pas 1") just by re-confirming, instead of being stuck with a
+     * wrong one once it's created. Once the vendor has moved it past
+     * 'validated', it's left alone and the customer is told to contact
+     * the vendor directly.
+     *
+     * Sends its own WhatsApp reply either way.
+     *
+     * @param \App\Yantrana\Components\Contact\Models\ContactModel $contact
+     * @param array $matchedItems - ['product' => ProductModel, 'quantity' => int][]
+     * @param array $options
+     * @return true
+     *---------------------------------------------------------------- */
+    private function processConfirmedOrder($contact, array $matchedItems, $options = [])
+    {
+        $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
+        $messageWamid = $options['messageWamid'] ?? null;
+        $result = $this->resolveOrderForContact($contact, $matchedItems);
+
+        $replyText = $this->defaultOrderReplyText($result, $contact);
+        if ($replyText !== null) {
+            $this->sendReplyBotMessage($contact->_uid, $replyText, $contact->vendors__id, null, [
+                'ai_bot_reply' => true,
+                'from_phone_number_id' => $fromPhoneId,
+                'messageWamid' => $messageWamid,
+            ]);
+        }
+        return true;
+    }
+
+    /**
+     * The default customer-facing message for each resolveOrderForContact()
+     * outcome. Used directly by processConfirmedOrder(); the AI-reply
+     * order-creation path (which already has its own AI-written récapitulatif
+     * text to send) only borrows this for the 'duplicate'/'locked' cases,
+     * where the AI's own text shouldn't be trusted to say the right thing.
+     *
+     * @param array $result - from resolveOrderForContact()
+     * @param \App\Yantrana\Components\Contact\Models\ContactModel $contact
+     * @return string|null
+     *---------------------------------------------------------------- */
+    private function defaultOrderReplyText(array $result, $contact)
+    {
+        switch ($result['action']) {
+            case 'empty':
+                return __tr("Je n'ai pas pu identifier précisément les produits de votre commande. Un conseiller va vous contacter pour finaliser.");
+            case 'duplicate':
+                return __tr('Votre commande *#__ref__* est déjà enregistrée, merci ! 🙏', [
+                    '__ref__' => substr($result['order']->_uid, 0, 8),
+                ]);
+            case 'locked':
+                return __tr('Votre commande *#__ref__* est déjà en cours de préparation, nous ne pouvons plus la modifier automatiquement. Contactez-nous directement pour tout changement.', [
+                    '__ref__' => substr($result['order']->_uid, 0, 8),
+                ]);
+            case 'updated':
+                $clientName = trim($contact->full_name) ?: 'Client';
+                return "🔄 *Commande mise à jour !*\n\n" .
+                    "📋 *N° de Commande:* #" . substr($result['order']->_uid, 0, 8) . "\n" .
+                    "👤 *Client:* {$clientName}\n\n" .
+                    "📦 *Articles :*\n" . $result['itemsSummaryText'] . "\n" .
+                    "💰 *NOUVEAU MONTANT TOTAL:* *" . number_format($result['grandTotal'], 0, ',', ' ') . " CFA*\n\n" .
+                    "Un conseiller a été notifié. Merci !";
+            case 'created':
+                $clientName = trim($contact->full_name) ?: 'Client';
+                return "🎉 *Commande confirmée et enregistrée avec succès !*\n\n" .
+                    "📋 *N° de Commande:* #" . substr($result['order']->_uid, 0, 8) . "\n" .
+                    "👤 *Client:* {$clientName}\n\n" .
+                    "📦 *Articles commandés :*\n" . $result['itemsSummaryText'] . "\n" .
+                    "💰 *MONTANT TOTAL À PAYER:* *" . number_format($result['grandTotal'], 0, ',', ' ') . " CFA*\n\n" .
+                    "Un conseiller a été notifié et prépare votre commande. Merci pour votre confiance !";
+        }
+        return null;
+    }
+
+    /**
+     * Create the contact's order, or -- if they confirmed one in the last
+     * 30 minutes that the vendor hasn't started processing yet -- update
+     * it in place instead of creating a duplicate. This is what lets a
+     * customer correct their own order ("en fait je voulais 2, pas 1")
+     * just by re-confirming, instead of being stuck with a wrong one once
+     * it's created. Once the vendor has moved it past 'validated', it's
+     * left alone and the customer is told to contact the vendor directly.
+     *
+     * Pure data operation -- sends no message itself, so both the plain
+     * keyword-confirmation path and the AI-reply path (which has its own
+     * text to send) can use it.
+     *
+     * @param \App\Yantrana\Components\Contact\Models\ContactModel $contact
+     * @param array $matchedItems - ['product' => ProductModel, 'quantity' => int][]
+     * @return array - ['action' => 'empty'|'duplicate'|'locked'|'updated'|'created', 'order' => OrderModel|null, 'itemsSummaryText' => string, 'grandTotal' => float]
+     *---------------------------------------------------------------- */
+    private function resolveOrderForContact($contact, array $matchedItems)
+    {
+        if (empty($matchedItems)) {
+            // Don't guess which product to order -- that's exactly how a
+            // customer asking for a "casserole" ends up with a "mixeur" on
+            // their order. Alert the vendor to check manually instead.
+            logSystemVendorChatMessage($contact, 'WARNING', __tr("Le client semble avoir confirmé une commande, mais aucun produit du catalogue n'a été reconnu dans la conversation. Vérifiez et créez la commande manuellement si besoin."));
+            return ['action' => 'empty', 'order' => null, 'itemsSummaryText' => '', 'grandTotal' => 0];
+        }
+
+        $itemsArr = [];
+        $itemsSummaryText = "";
+        $grandTotal = 0;
+        foreach ($matchedItems as $entry) {
+            $p = $entry['product'];
+            $qty = max(1, (int) $entry['quantity']);
+            $unitPrice = $p->effective_price;
+            $lineTotal = $unitPrice * $qty;
+            $grandTotal += $lineTotal;
+            $itemsArr[] = [
+                'name' => $p->name,
+                'quantity' => $qty,
+                'price' => $unitPrice,
+                'currency' => 'CFA',
+            ];
+            $itemsSummaryText .= "• " . ($qty > 1 ? $qty . "x " : "") . $p->name . " — *" . number_format($lineTotal, 0, ',', ' ') . " CFA*\n";
+        }
+
+        $recentOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
+            ->where('contacts__id', $contact->_id)
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->latest()
+            ->first();
+
+        if ($recentOrder) {
+            $existingSignature = $this->orderItemsSignature($recentOrder->order_details['items'] ?? []);
+            $newSignature = $this->orderItemsSignature($itemsArr);
+
+            if ($existingSignature === $newSignature) {
+                return ['action' => 'duplicate', 'order' => $recentOrder, 'itemsSummaryText' => $itemsSummaryText, 'grandTotal' => $grandTotal];
+            }
+
+            if ($recentOrder->status !== 'validated') {
+                return ['action' => 'locked', 'order' => $recentOrder, 'itemsSummaryText' => $itemsSummaryText, 'grandTotal' => $grandTotal];
+            }
+
+            $recentOrder->order_details = array_merge($recentOrder->order_details ?? [], [
+                'items' => $itemsArr,
+                'total_price' => $grandTotal,
+                'currency' => 'CFA',
+            ]);
+            $recentOrder->save();
+
+            return ['action' => 'updated', 'order' => $recentOrder, 'itemsSummaryText' => $itemsSummaryText, 'grandTotal' => $grandTotal];
+        }
+
+        $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
+            'vendors__id' => $contact->vendors__id,
+            'contacts__id' => $contact->_id,
+            'order_details' => [
+                'source' => 'whatsapp_ai',
+                'items' => $itemsArr,
+                'total_price' => $grandTotal,
+                'currency' => 'CFA',
+            ],
+            'status' => 'validated',
+        ]);
+
+        $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
+        if ($vendorForBroadcast) {
+            $newOrder->setRelation('contact', $contact);
+            broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
+        }
+
+        return ['action' => 'created', 'order' => $newOrder, 'itemsSummaryText' => $itemsSummaryText, 'grandTotal' => $grandTotal];
+    }
+
+    /**
      * Get Contact Info
      *
      * @param  string  $contactUid
@@ -3504,6 +3842,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
             // Always strip any raw leftover tags [URL_BUTTON: ...] or [BUTTON: ...] from text!
             $replyText = preg_replace('/\[(URL_BUTTON|BUTTON):\s*.*?\]/is', '', $replyText);
+            // Safety net: the hidden [ORDER_JSON: ...] order-data tag (see
+            // OpenAiService's interactiveInstructions) should already be
+            // stripped by the caller before it creates the order, but never
+            // let it leak to the customer even if a call site forgets to.
+            $replyText = $this->stripOrderJsonTag($replyText);
 
             // Auto-attach buttons depending on message context
             if (!$interactiveType) {
@@ -4080,6 +4423,13 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
         // has in subscription plan
         $vendorPlanDetails = vendorPlanDetails('ai_chat_bot', 1, $contact->vendors__id);
         if (!empty($messageBody) and !$isBotMatched and $vendorPlanDetails['is_limit_available'] and !$contact->disable_ai_bot) {
+            // Cancellation is deterministic and takes priority over everything
+            // else here -- no need to involve the AI (or spend AI credits) to
+            // cancel an order.
+            if ($this->tryCancelRecentOrder($contact, $messageBody, $options)) {
+                return true;
+            }
+
             // Intercept Order Requests & Confirmations for E-Commerce Catalog
             $cleanMsg = mb_strtolower(trim($messageBody));
             $productToOrder = null;
@@ -4108,7 +4458,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
 
             // Action A: Order Request -> Ask for final confirmation with Interactive Button!
             if (!empty($targetProdName) && $productToOrder && !$isConfirmationPhrase) {
-                $confirmMsg = "📦 *Confirmation de votre Commande*\n\nVous êtes sur le point de commander :\n- *Produit:* {$productToOrder->name}\n- *Prix:* " . number_format($productToOrder->price, 0, ',', ' ') . " CFA\n\nCliquez sur le bouton ci-dessous pour valider votre commande :\n\n[BUTTON: ✅ Valider]\n[BUTTON: ❌ Annuler]";
+                $confirmMsg = "📦 *Confirmation de votre Commande*\n\nVous êtes sur le point de commander :\n- *Produit:* {$productToOrder->name}\n- *Prix:* " . number_format($productToOrder->effective_price, 0, ',', ' ') . " CFA\n\nCliquez sur le bouton ci-dessous pour valider votre commande :\n\n[BUTTON: ✅ Valider]\n[BUTTON: ❌ Annuler]";
                 $this->sendReplyBotMessage($contact->_uid, $confirmMsg, $contact->vendors__id, null, [
                     'ai_bot_reply' => true,
                     'from_phone_number_id' => $options['fromPhoneNumberId'],
@@ -4117,89 +4467,11 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                 return true;
             }
 
-            // Action B: Order Confirmation -> Create real multi-item order in DB with grand total calculation!
+            // Action B: Order Confirmation -> Create (or update) the real
+            // multi-item order in DB, quantities included.
             if ($isConfirmationPhrase) {
-                $foundProducts = $this->findMentionedProductsInConversation($contact->vendors__id, $contact->_id, $messageBody);
-                $grandTotal = 0;
-                foreach ($foundProducts as $p) {
-                    $grandTotal += $p->price;
-                }
-
-                if (empty($foundProducts)) {
-                    // Don't guess which product to order -- that's exactly how a
-                    // customer asking for a "casserole" ends up with a "mixeur"
-                    // on their order. Alert the vendor to check manually instead.
-                    logSystemVendorChatMessage($contact, 'WARNING', __tr("Le client semble avoir confirmé une commande, mais aucun produit du catalogue n'a été reconnu dans la conversation. Vérifiez et créez la commande manuellement si besoin."));
-                }
-
-                if (!empty($foundProducts)) {
-                    // Avoid double-creating an order if the customer or the AI
-                    // repeats a confirmation phrase for one already just placed.
-                    $recentDuplicateOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
-                        ->where('contacts__id', $contact->_id)
-                        ->where('created_at', '>=', now()->subMinutes(10))
-                        ->latest()
-                        ->first();
-
-                    if ($recentDuplicateOrder) {
-                        $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
-                        $this->sendReplyBotMessage($contact->_uid, __tr('Votre commande *#__ref__* est déjà enregistrée, merci ! 🙏', [
-                            '__ref__' => substr($recentDuplicateOrder->_uid, 0, 8),
-                        ]), $contact->vendors__id, null, [
-                            'ai_bot_reply' => true,
-                            'from_phone_number_id' => $fromPhoneId,
-                            'messageWamid' => $options['messageWamid'] ?? null,
-                        ]);
-                        return true;
-                    }
-
-                    $itemsArr = [];
-                    $itemsSummaryText = "";
-                    foreach ($foundProducts as $p) {
-                        $itemsArr[] = [
-                            'name' => $p->name,
-                            'quantity' => 1,
-                            'price' => $p->price,
-                            'currency' => 'CFA'
-                        ];
-                        $itemsSummaryText .= "• " . $p->name . " — *" . number_format($p->price, 0, ',', ' ') . " CFA*\n";
-                    }
-
-                    $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                        'vendors__id' => $contact->vendors__id,
-                        'contacts__id' => $contact->_id,
-                        'order_details' => [
-                            'source' => 'whatsapp_ai',
-                            'items' => $itemsArr,
-                            'total_price' => $grandTotal,
-                            'currency' => 'CFA',
-                        ],
-                        'status' => 'validated',
-                    ]);
-
-                    // Orders are displayed in the dedicated orders section — no need to write to contact_notes
-                    $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
-                    if ($vendorForBroadcast) {
-                        $newOrder->setRelation('contact', $contact);
-                        broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
-                    }
-
-                    $clientName = trim($contact->full_name) ?: 'Client';
-                    $receiptMsg = "🎉 *Commande confirmée et enregistrée avec succès !*\n\n" .
-                        "📋 *N° de Commande:* #" . substr($newOrder->_uid, 0, 8) . "\n" .
-                        "👤 *Client:* {$clientName}\n\n" .
-                        "📦 *Articles commandés :*\n" . $itemsSummaryText . "\n" .
-                        "💰 *MONTANT TOTAL À PAYER:* *" . number_format($grandTotal, 0, ',', ' ') . " CFA*\n\n" .
-                        "Un conseiller a été notifié et prépare votre commande. Merci pour votre confiance !";
-
-                    $fromPhoneId = $options['fromPhoneNumberId'] ?? $options['from_phone_number_id'] ?? null;
-                    $this->sendReplyBotMessage($contact->_uid, $receiptMsg, $contact->vendors__id, null, [
-                        'ai_bot_reply' => true,
-                        'from_phone_number_id' => $fromPhoneId,
-                        'messageWamid' => $options['messageWamid'] ?? null,
-                    ]);
-                    return true;
-                }
+                $matchedItems = $this->buildOrderItems($contact->vendors__id, $contact->_id, $messageBody);
+                return $this->processConfirmedOrder($contact, $matchedItems, $options);
             }
 
             $aiBotReplyText = null;
@@ -4228,52 +4500,28 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
                         // rigid word sequence, since extra words in between (as in
                         // that example) broke a stricter pattern.
                         if (preg_match('/(?:commande\s+est\s+(?:maintenant\s+)?confirmée|récapitulatif\s+de\s+votre\s+commande|commande.{0,40}?enregistrée|commande.{0,40}?valid[ée]e?)/i', $aiBotReplyText)) {
-                            // Avoid double-creating an order if a confirmation-sounding
-                            // reply follows one already just placed for this contact.
-                            $recentDuplicateOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::where('vendors__id', $contact->vendors__id)
-                                ->where('contacts__id', $contact->_id)
-                                ->where('created_at', '>=', now()->subMinutes(10))
-                                ->latest()
-                                ->first();
+                            // Match products (and, when the AI followed rule 6 and
+                            // emitted [ORDER_JSON: ...], their real quantities) from
+                            // the AI's own récapitulatif instead of guessing "whatever
+                            // was added to the catalog most recently" -- that's exactly
+                            // how a customer asking for a "casserole" would end up
+                            // with a "mixeur" on their order.
+                            $matchedItems = $this->buildOrderItems($contact->vendors__id, $contact->_id, $aiBotReplyText);
+                            $orderResult = $this->resolveOrderForContact($contact, $matchedItems);
 
-                            if (!$recentDuplicateOrder) {
-                                // Match products actually named in the conversation
-                                // (the AI's own récapitulatif almost always names
-                                // them) instead of guessing "whatever was added to
-                                // the catalog most recently" -- that's exactly how
-                                // a customer asking for a "casserole" would end up
-                                // with a "mixeur" on their order.
-                                $foundProducts = $this->findMentionedProductsInConversation($contact->vendors__id, $contact->_id, $aiBotReplyText);
-
-                                if (empty($foundProducts)) {
-                                    logSystemVendorChatMessage($contact, 'WARNING', __tr("Le client semble avoir confirmé une commande, mais aucun produit du catalogue n'a été reconnu dans la conversation. Vérifiez et créez la commande manuellement si besoin."));
-                                } else {
-                                    $itemsArr = [];
-                                    $grandTotal = 0;
-                                    foreach ($foundProducts as $p) {
-                                        $itemsArr[] = ['name' => $p->name, 'quantity' => 1, 'price' => $p->price, 'currency' => 'CFA'];
-                                        $grandTotal += $p->price;
-                                    }
-                                    $newOrder = \App\Yantrana\Components\ECommerce\Models\OrderModel::create([
-                                        'vendors__id' => $contact->vendors__id,
-                                        'contacts__id' => $contact->_id,
-                                        'order_details' => [
-                                            'source' => 'whatsapp_ai',
-                                            'items' => $itemsArr,
-                                            'total_price' => $grandTotal,
-                                            'currency' => 'CFA',
-                                        ],
-                                        'status' => 'validated',
-                                    ]);
-                                    // Orders are displayed in the dedicated orders section
-                                    $vendorForBroadcast = \App\Yantrana\Components\Vendor\Models\VendorModel::find($contact->vendors__id);
-                                    if ($vendorForBroadcast) {
-                                        $newOrder->setRelation('contact', $contact);
-                                        broadcastNewOrderViaVendorBroadcast($vendorForBroadcast->_uid, $newOrder);
-                                    }
-                                }
+                            // For 'duplicate'/'locked' the AI's own text can't be
+                            // trusted to say the right thing (it doesn't know about
+                            // the earlier order) -- override it. For 'created'/
+                            // 'updated'/'empty', the AI's récapitulatif already reads
+                            // fine as the customer-facing message, so leave it be.
+                            if (in_array($orderResult['action'], ['duplicate', 'locked'], true)) {
+                                $aiBotReplyText = $this->defaultOrderReplyText($orderResult, $contact);
                             }
                         }
+
+                        // Never let the hidden order-data tag reach the customer,
+                        // regardless of which branch above ran (or didn't).
+                        $aiBotReplyText = $this->stripOrderJsonTag($aiBotReplyText);
 
                         $botName = getVendorSettings('open_ai_bot_name', null, null, $contact->vendors__id);
                         if ($botName and !Str::startsWith($aiBotReplyText, $botName . ':')) {

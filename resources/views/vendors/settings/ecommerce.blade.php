@@ -596,7 +596,15 @@ $isManualConnected = true;
                                     <input type="number" class="form-control p-3 custom-input-white" id="prod_price" name="price" required placeholder="ex: 15000">
                                 </div>
                             </div>
-                            
+
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold text-dark" for="prod_sale_price">{{ __tr('Prix promo (CFA)') }}</label>
+                                    <input type="number" class="form-control p-3 custom-input-white" id="prod_sale_price" name="sale_price" placeholder="{{ __tr('Laisser vide si pas de promo') }}">
+                                    <small class="text-muted">{{ __tr("Si rempli, l'IA et les commandes utilisent ce prix au lieu du prix normal.") }}</small>
+                                </div>
+                            </div>
+
                             <div class="form-group mb-3">
                                 <label class="font-weight-bold text-dark" for="prod_desc">{{ __tr('Description') }}</label>
                                 <textarea class="form-control p-3 custom-input-white" id="prod_desc" name="description" rows="2" placeholder="{{ __tr('Description courte du produit...') }}"></textarea>
@@ -807,7 +815,16 @@ $isManualConnected = true;
                                         </span>
                                     </td>
                                     <td class="align-middle">
-                                        <span class="font-weight-bold text-emerald" style="color: #059669;" x-text="Number(product.price).toLocaleString() + ' CFA'"></span>
+                                        <template x-if="product.sale_price && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price)">
+                                            <div>
+                                                <span class="text-muted" style="text-decoration: line-through; font-size: 0.8rem;" x-text="Number(product.price).toLocaleString() + ' CFA'"></span>
+                                                <span class="badge badge-danger ml-1" style="font-size: 0.68rem;">{{ __tr('Promo') }}</span>
+                                                <div class="font-weight-bold text-emerald" style="color: #059669;" x-text="Number(product.sale_price).toLocaleString() + ' CFA'"></div>
+                                            </div>
+                                        </template>
+                                        <template x-if="!(product.sale_price && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price))">
+                                            <span class="font-weight-bold text-emerald" style="color: #059669;" x-text="Number(product.price).toLocaleString() + ' CFA'"></span>
+                                        </template>
                                     </td>
                                     <td class="align-middle text-muted small" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="product.description || '-'"></td>
                                     <td class="align-middle">

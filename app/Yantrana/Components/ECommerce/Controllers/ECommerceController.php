@@ -184,7 +184,7 @@ class ECommerceController extends BaseController
         if (mb_strlen($description) > 200) {
             $description = mb_substr($description, 0, 200) . '...';
         }
-        $messageBody = "*{$product->name}*\n\n" . $description . "\n\n💰 *Prix:* " . number_format($product->price, 0, ',', ' ') . " CFA";
+        $messageBody = "*{$product->name}*\n\n" . $description . "\n\n💰 *Prix:* " . number_format($product->effective_price, 0, ',', ' ') . " CFA";
 
         // Construct interactive message data (cta_url)
         $interactionMessageData = [
@@ -192,7 +192,7 @@ class ECommerceController extends BaseController
             'header_type' => (!empty($product->image_url) && isValidUrl($product->image_url)) ? 'image' : 'text',
             'media_link' => $product->image_url ?: '',
             'header_text' => mb_substr($product->name, 0, 60), // Meta limit is 60 chars
-            'body_text' => ($description ?: $product->name) . "\n\n" . __tr('Prix:') . " " . number_format($product->price, 0, ',', ' ') . " CFA",
+            'body_text' => ($description ?: $product->name) . "\n\n" . __tr('Prix:') . " " . number_format($product->effective_price, 0, ',', ' ') . " CFA",
             'cta_url' => [
                 'display_text' => mb_substr(__tr('Détails du produit'), 0, 20), // Meta limit is 20 chars
                 'url' => $product->direct_link ?: ''
@@ -239,11 +239,14 @@ class ECommerceController extends BaseController
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0|lt:price',
             'description' => 'nullable|string',
             'direct_link' => 'nullable|url|max:1000',
             'image_url' => 'nullable|url|max:1000',
             'image_file' => 'nullable|image|max:5120', // Max 5MB
             'category_uid' => 'nullable|string',
+        ], [
+            'sale_price.lt' => __tr('Le prix promo doit être inférieur au prix normal.'),
         ]);
 
         $imageUrl = $request->image_url;
@@ -275,6 +278,7 @@ class ECommerceController extends BaseController
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
+            'sale_price' => $request->sale_price ?: null,
             'image_url' => $imageUrl,
             'direct_link' => $request->direct_link,
             'source' => 'manual',
@@ -799,7 +803,7 @@ class ECommerceController extends BaseController
                 $qty = max(1, intval($itemData['quantity'] ?? 1));
                 $unitPrice = isset($itemData['custom_price']) && $itemData['custom_price'] !== '' 
                     ? floatval($itemData['custom_price']) 
-                    : floatval($product ? $product->price : 0);
+                    : floatval($product ? $product->effective_price : 0);
 
                 $itemSubtotal = $qty * $unitPrice;
                 $itemsTotal += $itemSubtotal;
@@ -826,7 +830,7 @@ class ECommerceController extends BaseController
             }
 
             $qty = intval($request->quantity) ?: 1;
-            $unitPrice = floatval($request->custom_price) ?: floatval($product->price);
+            $unitPrice = floatval($request->custom_price) ?: floatval($product->effective_price);
             $itemsTotal = $qty * $unitPrice;
             $items[] = [
                 'name' => $product->name,
