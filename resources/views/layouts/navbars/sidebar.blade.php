@@ -634,52 +634,6 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#vendorHelpSubmenuNav" data-toggle="collapse" role="button"
-                        aria-expanded="false" aria-controls="vendorHelpSubmenuNav">
-                        <i class="fa fa-life-ring text-dark"></i>
-                        <span class="">{{ __tr('Aide') }}</span>
-                        @if($supportTicketBadgeCount > 0 || $newResourcesBadgeCount > 0)
-                            <span class="badge badge-danger font-weight-bold ml-1" style="border-radius: 12px; padding: 2px 7px; font-size: 0.72rem;">
-                                {{ $supportTicketBadgeCount + $newResourcesBadgeCount }}
-                            </span>
-                        @endif
-                    </a>
-                    <div class="collapse lw-expandable-nav" id="vendorHelpSubmenuNav">
-                        <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('support_ticket.index') }}"
-                                    href="{{ route('support_ticket.index') }}">
-                                    <div>
-                                        <i class="fas fa-ticket-alt text-primary"></i>
-                                        {{ __tr('Support Tickets') }}
-                                    </div>
-                                    @if($supportTicketBadgeCount > 0)
-                                        <span class="badge badge-danger font-weight-bold ml-auto" style="border-radius: 12px; padding: 2px 7px; font-size: 0.72rem;">
-                                            {{ $supportTicketBadgeCount }}
-                                        </span>
-                                    @endif
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('info_material.index') }}"
-                                    href="{{ route('info_material.index') }}">
-                                    <div>
-                                        <i class="fas fa-book text-primary"></i>
-                                        {{ __tr('Resource Library') }}
-                                    </div>
-                                    @if($newResourcesBadgeCount > 0)
-                                        <span class="badge font-weight-bold ml-auto" style="background: #10b981; color: #ffffff; border-radius: 12px; font-size: 0.72rem; padding: 2px 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);">
-                                            {{ $newResourcesBadgeCount }}
-                                        </span>
-                                    @endif
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-
-
-                <li class="nav-item">
                     <a class="nav-link {{ markAsActiveLink('subscription.read.show') }}"
                         href="{{ route('subscription.read.show') }}">
                         <i class="fa fa-id-card"></i>
@@ -763,6 +717,50 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                                 </a>
                             </li>
                             @stack('vendorSidebarSettingsLinks')
+                        </ul>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#vendorHelpSubmenuNav" data-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="vendorHelpSubmenuNav">
+                        <i class="fa fa-life-ring text-dark"></i>
+                        <span class="">{{ __tr('Aide') }}</span>
+                        @if($supportTicketBadgeCount > 0 || $newResourcesBadgeCount > 0)
+                            <span class="badge badge-danger font-weight-bold ml-1" style="border-radius: 12px; padding: 2px 7px; font-size: 0.72rem;">
+                                {{ $supportTicketBadgeCount + $newResourcesBadgeCount }}
+                            </span>
+                        @endif
+                    </a>
+                    <div class="collapse lw-expandable-nav" id="vendorHelpSubmenuNav">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('support_ticket.index') }}"
+                                    href="{{ route('support_ticket.index') }}">
+                                    <div>
+                                        <i class="fas fa-ticket-alt text-primary"></i>
+                                        {{ __tr('Support Tickets') }}
+                                    </div>
+                                    @if($supportTicketBadgeCount > 0)
+                                        <span class="badge badge-danger font-weight-bold ml-auto" style="border-radius: 12px; padding: 2px 7px; font-size: 0.72rem;">
+                                            {{ $supportTicketBadgeCount }}
+                                        </span>
+                                    @endif
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link d-flex align-items-center justify-content-between {{ markAsActiveLink('info_material.index') }}"
+                                    href="{{ route('info_material.index') }}">
+                                    <div>
+                                        <i class="fas fa-book text-primary"></i>
+                                        {{ __tr('Resource Library') }}
+                                    </div>
+                                    @if($newResourcesBadgeCount > 0)
+                                        <span class="badge font-weight-bold ml-auto" style="background: #10b981; color: #ffffff; border-radius: 12px; font-size: 0.72rem; padding: 2px 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);">
+                                            {{ $newResourcesBadgeCount }}
+                                        </span>
+                                    @endif
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </li>
