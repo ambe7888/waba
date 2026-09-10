@@ -71,6 +71,11 @@ return [
                 'description' => __tr('Appels Téléphoniques via 3CX'),
                 'limit' => 0, // 0 for none, 1 for enable
             ],
+            'sales_pipeline' => [
+                'type' => 'switch', // on or off
+                'description' => __tr('Pipeline de Vente (CRM)'),
+                'limit' => 0, // 0 for none, 1 for enable
+            ],
         ],
     ],
     'paid' => [ // do not change this key
@@ -143,6 +148,11 @@ return [
                 'three_cx_calling' => [
                     'type' => 'switch', // on or off
                     'description' => __tr('Appels Téléphoniques via 3CX'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
+                'sales_pipeline' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Pipeline de Vente (CRM)'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
             ],
@@ -232,6 +242,11 @@ return [
                     'description' => __tr('Appels Téléphoniques via 3CX'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
+                'sales_pipeline' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Pipeline de Vente (CRM)'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
@@ -319,6 +334,11 @@ return [
                     'description' => __tr('Appels Téléphoniques via 3CX'),
                     'limit' => 0, // 0 for none, 1 for enable
                 ],
+                'sales_pipeline' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Pipeline de Vente (CRM)'),
+                    'limit' => 0, // 0 for none, 1 for enable
+                ],
             ],
             'charges' => [
                 'monthly' => [
@@ -404,6 +424,11 @@ return [
                 'three_cx_calling' => [
                     'type' => 'switch', // on or off
                     'description' => __tr('Appels Téléphoniques via 3CX'),
+                    'limit' => 1, // 0 for none, 1 for enable
+                ],
+                'sales_pipeline' => [
+                    'type' => 'switch', // on or off
+                    'description' => __tr('Pipeline de Vente (CRM)'),
                     'limit' => 1, // 0 for none, 1 for enable
                 ],
             ],

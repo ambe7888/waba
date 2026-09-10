@@ -1384,6 +1384,49 @@ Route::middleware([
                 ])->name('vendor.delivery.tracking.write.status');
             });
 
+            // Sales pipeline (CRM Kanban board)
+            Route::prefix('/pipeline')->group(function () {
+                Route::get('/', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'showBoardView',
+                ])->name('vendor.pipeline.board.view');
+
+                Route::get('/contacts/search', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'searchContacts',
+                ])->name('vendor.pipeline.contacts.search');
+
+                Route::post('/deals/{dealUid?}', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processStoreDeal',
+                ])->name('vendor.pipeline.deals.write');
+
+                Route::post('/deals/{dealUid}/move', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processMoveDeal',
+                ])->name('vendor.pipeline.deals.move');
+
+                Route::post('/deals/{dealUid}/delete', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processDeleteDeal',
+                ])->name('vendor.pipeline.deals.delete');
+
+                Route::post('/stages', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processStoreStage',
+                ])->name('vendor.pipeline.stages.write');
+
+                Route::post('/stages/{stageUid}', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processUpdateStage',
+                ])->name('vendor.pipeline.stages.update');
+
+                Route::post('/stages/{stageUid}/delete', [
+                    \App\Yantrana\Components\Pipeline\Controllers\PipelineController::class,
+                    'processDeleteStage',
+                ])->name('vendor.pipeline.stages.delete');
+            });
+
             Route::post('/webhook/external-order/{vendorUid}', [
                 \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
                 'externalOrderWebhook',

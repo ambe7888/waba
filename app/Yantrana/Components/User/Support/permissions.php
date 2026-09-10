@@ -179,6 +179,24 @@ return [
             ],
         ],
     ],
+    'manage_pipeline' => [
+        'title' => __tr('Pipeline de Vente (CRM)'),
+        'description' => __tr('Autoriser/Refuser l\'accès au pipeline commercial et à la gestion des opportunités'),
+        'permissions' => [
+            'add_edit_deals' => [
+                'title' => __tr('Créer / Modifier des Opportunités'),
+                'description' => __tr('Autoriser la création et la mise à jour des opportunités commerciales'),
+            ],
+            'delete_deals' => [
+                'title' => __tr('Supprimer des Opportunités'),
+                'description' => __tr('Autoriser la suppression définitive d\'opportunités'),
+            ],
+            'manage_pipeline_stages' => [
+                'title' => __tr('Gérer les Étapes du Pipeline'),
+                'description' => __tr('Autoriser la création, modification et suppression des colonnes/étapes du pipeline'),
+            ],
+        ],
+    ],
     'manage_support_tickets' => [
         'title' => __tr('Support Client & Tickets'),
         'description' => __tr('Autoriser/Refuser l\'accès à la création et au traitement des tickets de support'),

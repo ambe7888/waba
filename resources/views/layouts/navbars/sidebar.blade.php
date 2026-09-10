@@ -478,6 +478,17 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
+                @if (vendorPlanDetails('sales_pipeline', 1)['is_limit_available'] and hasVendorAccess('manage_pipeline'))
+                <li class="nav-item">
+                    <a class="nav-link <?= (request()->routeIs('vendor.pipeline.*')) ? 'active' : '' ?>"
+                        href="<?= route('vendor.pipeline.board.view') ?>">
+                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
+                            <i class="fa fa-columns m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
+                        </div>
+                        <span class="nav-link-text ml--2">{{ __tr('Pipeline') }}</span>
+                    </a>
+                </li>
+                @endif
                 @if (hasVendorAccess('manage_campaigns'))
                 <li class="nav-item">
                     <a class="nav-link" href="#vendorCampaignSubmenuNav" data-toggle="collapse" role="button"
