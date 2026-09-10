@@ -2812,7 +2812,9 @@ window.cancelContactReminder = function(contact) {
 
     function sendPastedFile(file) {
         var mediaType = detectMediaType(file);
-        var triggerLink = document.querySelector('a.lw-ajax-link-action[href*="mediaType=' + mediaType + '"]');
+        // mediaType is a route path segment (/prepare-send-media/image),
+        // not a query string param -- match on the trailing path segment.
+        var triggerLink = document.querySelector('a.lw-ajax-link-action[href$="/' + mediaType + '"]');
         if (!triggerLink) {
             if (typeof showErrorMessage === 'function') {
                 showErrorMessage('{{ __tr("Impossible de coller le fichier ici, utilisez le bouton trombone.") }}');
