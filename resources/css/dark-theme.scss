@@ -522,4 +522,202 @@ fieldset pre {
 .campaign-text-color{
   color:#d1d1d1;
   }
- 
+
+// ==== Dashboard onboarding cards ====
+.onboarding-step-item{
+  background: var(--lw-dark-brown-color) !important;
+}
+.onboarding-step-item .rounded-circle{
+  background-color: #3a3a42 !important;
+}
+.progress{
+  background-color: #3a3a42 !important;
+}
+
+// ==== QR Code dialog ====
+body #lwScanMeDialog .modal-content{
+  background: var(--lw-dark-blue-color) !important;
+}
+#lwScanMeDialog .modal-footer{
+  background: var(--lw-dark-brown-color) !important;
+  border-top: 1px solid var(--lw-border-color) !important;
+}
+.lw-qr-card-container{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-qr-image-wrapper{
+  background: #fff !important;
+}
+.lw-qr-input-group{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-qr-input-group .form-control{
+  background: transparent !important;
+  color: var(--lw-white-color) !important;
+}
+
+// ==== Chat: contact list & filters ====
+body .lw-contact-list-block .d-md-none.bg-white{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+#lwChatFilterDropdown,
+.lw-contact-list-block button[style*="background: #f1f5f9"]{
+  background: #3a3a42 !important;
+  border-color: var(--lw-border-color) !important;
+  color: var(--lw-white-color) !important;
+}
+#lwChatFilterDropdown i,
+.lw-contact-list-block .fa-filter{
+  color: var(--lw-white-color) !important;
+}
+.lw-contact-list-block input.form-control{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+  color: var(--lw-white-color) !important;
+}
+[x-show="isExpandedLabels"]{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-modern-toggle-wrapper{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-modern-toggle-wrapper span[style*="color: #0f172a"]{
+  color: var(--lw-white-color) !important;
+}
+
+// ==== Chat: contact info / CRM panel ====
+body .lw-contact-crm-block{
+  background-color: var(--lw-app-bg-color) !important;
+  border-left-color: var(--lw-border-color) !important;
+}
+.lw-crm-card{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-crm-contact-name{
+  color: var(--lw-white-color) !important;
+}
+.lw-crm-contact-phone{
+  color: #c3c3c3 !important;
+}
+.lw-crm-info-text{
+  color: #d1d1d1 !important;
+}
+.lw-crm-icon-badge{
+  background-color: #3a3a42 !important;
+  color: #c3c3c3 !important;
+}
+.lw-crm-info-row:hover .lw-crm-icon-badge{
+  background-color: #454550 !important;
+  color: var(--lw-white-color) !important;
+}
+.lw-crm-edit-btn,
+.lw-crm-btn-round{
+  background-color: #3a3a42 !important;
+  border-color: var(--lw-border-color) !important;
+  color: #c3c3c3 !important;
+}
+.lw-ios-slider{
+  background-color: #454550 !important;
+}
+.lw-crm-card select,
+.lw-crm-card .selectize-input{
+  background: var(--lw-dark-brown-color) !important;
+  color: var(--lw-white-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+
+// ==== Chat: reminder modal, chips & action cards ====
+body #lwContactReminderModal .modal-content{
+  background: var(--lw-dark-blue-color) !important;
+}
+#lwContactReminderModal .modal-footer{
+  background: var(--lw-dark-brown-color) !important;
+  border-top: 1px solid var(--lw-border-color) !important;
+}
+body .lw-reminder-chip{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+  color: #d1d1d1 !important;
+}
+body .lw-reminder-chip.active{
+  color: var(--lw-white-color) !important;
+}
+.lw-action-type-card{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+body .lw-custom-textarea,
+body .lw-custom-select{
+  background: var(--lw-dark-brown-color) !important;
+  border-color: var(--lw-border-color) !important;
+  color: var(--lw-white-color) !important;
+}
+body .lw-btn-cancel-reminder{
+  background: var(--lw-dark-brown-color) !important;
+  color: #d1d1d1 !important;
+}
+
+// ==== Pipeline board ====
+.pipeline-column{
+  background: var(--lw-dark-brown-color) !important;
+}
+.pipeline-column-header{
+  background: var(--lw-dark-blue-color) !important;
+  color: var(--lw-white-color) !important;
+}
+.pipeline-column-body.lw-drag-over{
+  background: #1f4f3a !important;
+}
+.pipeline-card{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.pipeline-card-title{
+  color: var(--lw-white-color) !important;
+}
+.pipeline-card-contact,
+.pipeline-card-assignee{
+  color: #c3c3c3 !important;
+}
+.pipeline-add-column{
+  border-color: var(--lw-border-color) !important;
+}
+.lw-contact-search-results{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.lw-contact-search-results .item:hover{
+  background: #3a3a42 !important;
+}
+
+// ==== Orders & Ecommerce settings pages ====
+.sharp-card{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: var(--lw-border-color) !important;
+}
+.platform-card-pro{
+  background: var(--lw-dark-blue-color) !important;
+  border-color: #4a4a52 !important;
+}
+.platform-card-pro.selected-shopify,
+.platform-card-pro.selected-woocommerce,
+.platform-card-pro.selected-manual,
+.platform-card-pro.selected-xml_feed{
+  background-color: #2a3a2c !important;
+}
+.nav-pill-tab{
+  background: var(--lw-dark-brown-color) !important;
+  color: #d1d1d1 !important;
+  border-color: var(--lw-border-color) !important;
+}
+.custom-input-white{
+  background: var(--lw-dark-brown-color) !important;
+  color: var(--lw-white-color) !important;
+  border-color: var(--lw-border-color) !important;
+}

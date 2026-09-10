@@ -425,6 +425,10 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                         aria-expanded="false" aria-controls="vendorConversationsSubmenuNav">
                         <i class="fa fa-comments text-dark"></i>
                         <span class="">{{ __tr('CRM') }}</span>
+                        <span x-cloak x-show="unreadMessagesCount"
+                              class="badge badge-success rounded-pill shadow-sm ml-1"
+                              style="font-size: 0.6rem;"
+                              x-text="unreadMessagesCount"></span>
                     </a>
                     <div class="collapse lw-expandable-nav" id="vendorConversationsSubmenuNav">
                         <ul class="nav nav-sm flex-column">
@@ -476,10 +480,18 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     }
                 @endphp
                 <li class="nav-item">
+                    @php
+                        $ventesBadgeTotal = ($pendingOrdersCount ?? 0) + ($activeDeliveriesCount ?? 0) + ($unseenDeliveryOutcomesCount ?? 0);
+                    @endphp
                     <a class="nav-link" href="#vendorOrdersSubmenuNav" data-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="vendorOrdersSubmenuNav">
                         <i class="fa fa-shopping-bag text-dark"></i>
                         <span class="">{{ __tr('Ventes') }}</span>
+                        @if($ventesBadgeTotal > 0)
+                            <span class="badge badge-warning rounded-pill shadow-sm text-dark font-weight-bold ml-1" style="font-size: 0.6rem;">
+                                {{ $ventesBadgeTotal }}
+                            </span>
+                        @endif
                     </a>
                     <div class="collapse lw-expandable-nav" id="vendorOrdersSubmenuNav">
                         <ul class="nav nav-sm flex-column">
