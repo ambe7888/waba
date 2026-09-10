@@ -424,7 +424,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     <a class="nav-link" href="#vendorConversationsSubmenuNav" data-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="vendorConversationsSubmenuNav">
                         <i class="fa fa-comments text-dark"></i>
-                        <span class="">{{ __tr('Conversations') }}</span>
+                        <span class="">{{ __tr('CRM') }}</span>
                     </a>
                     <div class="collapse lw-expandable-nav" id="vendorConversationsSubmenuNav">
                         <ul class="nav nav-sm flex-column">
