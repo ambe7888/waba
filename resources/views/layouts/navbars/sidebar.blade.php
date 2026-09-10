@@ -479,7 +479,7 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     <a class="nav-link" href="#vendorOrdersSubmenuNav" data-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="vendorOrdersSubmenuNav">
                         <i class="fa fa-shopping-bag text-dark"></i>
-                        <span class="">{{ __tr('Commandes') }}</span>
+                        <span class="">{{ __tr('Ventes') }}</span>
                     </a>
                     <div class="collapse lw-expandable-nav" id="vendorOrdersSubmenuNav">
                         <ul class="nav nav-sm flex-column">
