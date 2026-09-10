@@ -61,6 +61,14 @@
             document.getElementById('lwThreeCxPanelSubtitle').innerText = (contact && (contact.full_name || contact.wa_id)) || '';
             document.getElementById('lwThreeCxPanelFrame').src = url;
             document.getElementById('lwThreeCxPanel').style.display = 'flex';
+
+            // Fire-and-forget: WhatsClick has no visibility into what
+            // happens inside the 3CX iframe, so this is just an attempt
+            // marker for the contact's call history, not a real outcome.
+            var cUid = contact && (contact._uid || contact._id || contact.wa_id);
+            if (cUid && window.__DataRequest) {
+                __DataRequest.post('{{ route('vendor.chat.call_3cx.log', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function() {});
+            }
         },
 
         close: function() {

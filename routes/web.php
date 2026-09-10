@@ -939,6 +939,16 @@ Route::middleware([
                     'updateNotes',
                 ])->name('vendor.chat.update_notes.process');
 
+                Route::get('/contact/chat/{contactUid}/call-history', [
+                    ContactController::class,
+                    'getCallHistory',
+                ])->name('vendor.chat.call_history.read');
+
+                Route::post('/contact/chat/{contactUid}/log-3cx-call', [
+                    ContactController::class,
+                    'log3cxCallAttempt',
+                ])->name('vendor.chat.call_3cx.log');
+
                 Route::get('/contact/labels/{contactUid}', [
                     ContactController::class,
                     'getLabels',

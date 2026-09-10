@@ -4,7 +4,11 @@ namespace App\Listeners;
 
 use App\Events\WhatsappWebhookReceived;
 use App\Events\VendorChannelBroadcast;
+use App\Yantrana\Components\Vendor\Models\VendorModel;
+use App\Yantrana\Components\Contact\Models\ContactModel;
+use App\Yantrana\Components\WhatsAppService\Models\CallModel;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -49,7 +53,10 @@ class HandleCallWebhook
                 $callId = Arr::get($call, 'id');
                 $callEvent = Arr::get($call, 'event'); // "connect" or "terminate"
                 $callFrom = Arr::get($call, 'from');
+                $callTo = Arr::get($call, 'to');
                 $callDirection = Arr::get($call, 'direction'); // "USER_INITIATED" or "BUSINESS_INITIATED"
+                $callTerminateStatus = Arr::get($call, 'status'); // terminate only: COMPLETED, FAILED...
+                $callDuration = Arr::get($call, 'duration'); // terminate only, seconds
                 $sessionSdp = Arr::get($call, 'session.sdp');
                 if (empty($sessionSdp)) {
                     $sessionSdp = Arr::get($call, 'connection.webrtc.sdp');
@@ -91,6 +98,14 @@ class HandleCallWebhook
                     continue;
                 }
                 Cache::put($dedupKey, true, 30);
+
+                // Record a permanent call-history entry once a call actually
+                // ends -- this is the only event carrying the final status
+                // and duration, so it's the natural point to write one row
+                // per call (connect/status events are transient, DB-free).
+                if ($callEvent === 'terminate') {
+                    $this->recordCallHistory($vendorUid, $callId, $callFrom, $callTo, $callDirection, $callTerminateStatus, $callDuration);
+                }
 
                 // Broadcast call event to the vendor frontend via Echo
                 event(new VendorChannelBroadcast($vendorUid, [
@@ -137,5 +152,43 @@ class HandleCallWebhook
                 ]));
             }
         }
+    }
+
+    /**
+     * Write one row to the `calls` table for a WhatsApp Calling conversation
+     * that just ended, so it shows up in the contact's call history.
+     */
+    protected function recordCallHistory($vendorUid, $callId, $callFrom, $callTo, $callDirection, $status, $duration): void
+    {
+        $vendorId = VendorModel::where('_uid', $vendorUid)->value('_id');
+        if (!$vendorId) {
+            return;
+        }
+
+        // The customer's number is whichever side of from/to isn't our own
+        // business-connected number -- for a business-initiated call that's
+        // "to", for a user-initiated call that's "from".
+        $customerPhone = $callDirection === 'BUSINESS_INITIATED' ? $callTo : $callFrom;
+        $customerPhone = preg_replace('/[^0-9]/', '', (string) $customerPhone);
+
+        $contactId = $customerPhone
+            ? ContactModel::where(['wa_id' => $customerPhone, 'vendors__id' => $vendorId])->value('_id')
+            : null;
+
+        $normalizedStatus = strtolower((string) $status) ?: 'unknown';
+        $direction = $callDirection === 'BUSINESS_INITIATED' ? 'outbound' : 'inbound';
+
+        CallModel::updateOrCreate(
+            ['call_id' => $callId],
+            [
+                '_uid' => (string) Str::uuid(),
+                'vendors__id' => $vendorId,
+                'contacts__id' => $contactId,
+                'type' => 'whatsapp',
+                'direction' => $direction,
+                'status' => $normalizedStatus,
+                'duration' => is_numeric($duration) ? (int) $duration : null,
+            ]
+        );
     }
 }

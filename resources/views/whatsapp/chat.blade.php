@@ -428,14 +428,9 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                                              @include('WhatsJetCallingAddon::call-panel')
                                                          @endif
                                                          {{-- Whatsapp call button --}}
-                                                         {{-- 3CX call button --}}
                                                          @if(vendorPlanDetails('three_cx_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'three_cx_calling'))
-                                                             <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="window.ThreeCxCalling.open(contact)" title="{{ __tr('Appeler via 3CX') }}">
-                                                                 <i class="fa fa-phone-volume text-white"></i>
-                                                             </a>
                                                              @include('whatsapp.three-cx-call-panel')
                                                          @endif
-                                                         {{-- 3CX call button --}}
                                                          <template x-if="contact && contact.active_reminder">
                                                              <a href="#" class="lw-whatsapp-bar-icon-btn mr-2" @click.prevent="openContactReminderModal(contact)" :title="'{{ __tr('Rappel prévu le :') }} ' + contact.active_reminder.scheduled_at_formatted">
                                                                  <i class="fas fa-bell text-warning"></i>
@@ -1093,6 +1088,12 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                             <span x-text="__Utils.formatAsLocaleNumber(Number(contact.wa_id))"></span>
                                         @endif
                                     </div>
+
+                                    @if(vendorPlanDetails('three_cx_calling', 1)['is_limit_available'] && hasVendorAccess('messaging', 'three_cx_calling'))
+                                        <button type="button" class="btn btn-sm btn-outline-success mt-2" style="border-radius: 20px; padding: 4px 16px;" @click="window.ThreeCxCalling.open(contact)" title="{{ __tr('Appeler via 3CX') }}">
+                                            <i class="fa fa-phone-volume mr-1"></i> {{ __tr('Appeler via 3CX') }}
+                                        </button>
+                                    @endif
                                 </div>
 
                                 <!-- About Section Card -->
@@ -1113,6 +1114,71 @@ $lwChatDeliveryDrivers = $lwChatDeliveryManagementEnabled
                                         <div class="lw-crm-info-text" x-text="contact.language_code ? contact.language_code : '-'"></div>
                                     </div>
                                 </div>
+
+                                @if(vendorPlanDetails('three_cx_calling', 1)['is_limit_available'] || (isset($whatsjetCallingAddonActive) && $whatsjetCallingAddonActive && vendorPlanDetails('whatsapp_calling', 1)['is_limit_available']))
+                                <!-- Call History Card -->
+                                <div class="lw-crm-card" x-data="{
+                                    callsList: [],
+                                    isLoadingCalls: false,
+                                    fetchCalls() {
+                                        var cUid = contact?._uid || contact?._id || contact?.wa_id;
+                                        if(!cUid) return;
+                                        this.isLoadingCalls = true;
+                                        var self = this;
+                                        __DataRequest.get('{{ route('vendor.chat.call_history.read', ['contactUid' => 'CONTACT_UID']) }}'.replace('CONTACT_UID', cUid), {}, function(response) {
+                                            self.isLoadingCalls = false;
+                                            var isSuccess = response.reaction == 1 || (response.data && response.data.reaction == 1);
+                                            if (isSuccess) {
+                                                var rawCalls = (response.data && response.data.calls) ? response.data.calls : (response.calls || []);
+                                                self.callsList = Array.isArray(rawCalls) ? rawCalls : [];
+                                            }
+                                        });
+                                    },
+                                    callIcon(call) {
+                                        if (call.type === '3cx') return 'fa-phone-volume';
+                                        return call.direction === 'outbound' ? 'fa-phone-alt' : 'fa-phone';
+                                    },
+                                    callLabel(call) {
+                                        var channel = call.type === '3cx' ? '3CX' : 'WhatsApp';
+                                        var dir = call.direction === 'outbound' ? '{{ __tr('Sortant') }}' : '{{ __tr('Entrant') }}';
+                                        return channel + ' • ' + dir;
+                                    },
+                                    formatDuration(seconds) {
+                                        if (!seconds) return '';
+                                        var m = Math.floor(seconds / 60);
+                                        var s = seconds % 60;
+                                        return m + ':' + String(s).padStart(2, '0');
+                                    }
+                                }" x-init="fetchCalls()" x-effect="if(contact?._uid || contact?._id || contact?.wa_id) fetchCalls()">
+                                    <div class="lw-crm-section-header">
+                                        <span><i class="fas fa-history text-secondary mr-1"></i> {{ __tr('Historique des appels') }}</span>
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-muted" @click="fetchCalls()" title="{{ __tr('Rafraîchir') }}">
+                                            <i class="fa fa-sync-alt" :class="{'fa-spin': isLoadingCalls}"></i>
+                                        </button>
+                                    </div>
+                                    <template x-if="!isLoadingCalls && callsList.length === 0">
+                                        <div class="text-center py-2 text-muted small">
+                                            <i class="fas fa-phone-slash d-block mb-1 opacity-5" style="font-size: 20px;"></i>
+                                            <span>{{ __tr('Aucun appel pour ce contact.') }}</span>
+                                        </div>
+                                    </template>
+                                    <template x-for="call in callsList" :key="call._uid">
+                                        <div class="lw-crm-info-row">
+                                            <div class="lw-crm-icon-badge">
+                                                <i class="fas" :class="callIcon(call)"></i>
+                                            </div>
+                                            <div class="lw-crm-info-text">
+                                                <div x-text="callLabel(call)" style="font-weight: 600;"></div>
+                                                <div class="text-muted" style="font-size: 12px;">
+                                                    <span x-text="new Date(call.created_at).toLocaleString()"></span>
+                                                    <template x-if="call.duration"><span> &middot; <span x-text="formatDuration(call.duration)"></span></span></template>
+                                                    <template x-if="call.status"><span> &middot; <span x-text="call.status"></span></span></template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                @endif
 
                                 <!-- Settings & Assignment Card -->
                                 <div class="lw-crm-card">

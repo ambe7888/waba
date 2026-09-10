@@ -716,6 +716,72 @@ class ContactController extends BaseController
     }
 
     /**
+     * Call history for one contact -- WhatsApp Calling entries are written
+     * automatically when a call ends (see HandleCallWebhook), 3CX entries
+     * are written client-side the moment the agent opens the 3CX panel
+     * (logCallAttempt() below), since WhatsClick has no visibility into
+     * what happens inside that embedded Web Client.
+     */
+    public function getCallHistory($contactUid)
+    {
+        validateVendorAccess('messaging');
+        $vendorId = getVendorId();
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->where(function ($q) use ($contactUid) {
+                $q->where('_uid', $contactUid)
+                  ->orWhere('_id', $contactUid)
+                  ->orWhere('wa_id', $contactUid);
+            })->first();
+
+        if (empty($contact)) {
+            return $this->processResponse(2, [], ['calls' => []]);
+        }
+
+        $calls = \App\Yantrana\Components\WhatsAppService\Models\CallModel::where([
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id,
+        ])->latest()->limit(20)->get();
+
+        return $this->processResponse(1, [], [
+            'calls' => $calls,
+        ]);
+    }
+
+    /**
+     * Log that an agent opened the 3CX call panel for a contact. WhatsClick
+     * can't know whether the call actually connected or how long it lasted
+     * (that happens entirely inside 3CX's own Web Client, in an iframe we
+     * don't control) -- this is just an attempt marker.
+     */
+    public function log3cxCallAttempt(BaseRequest $request, $contactUid)
+    {
+        validateVendorAccess('messaging');
+        $vendorId = getVendorId();
+        $contact = \App\Yantrana\Components\Contact\Models\ContactModel::where('vendors__id', $vendorId)
+            ->where(function ($q) use ($contactUid) {
+                $q->where('_uid', $contactUid)
+                  ->orWhere('_id', $contactUid)
+                  ->orWhere('wa_id', $contactUid);
+            })->first();
+
+        if (empty($contact)) {
+            return $this->processResponse(2, [], ['message' => __tr('Contact introuvable.')]);
+        }
+
+        \App\Yantrana\Components\WhatsAppService\Models\CallModel::create([
+            '_uid' => (string) \Illuminate\Support\Str::uuid(),
+            'vendors__id' => $vendorId,
+            'contacts__id' => $contact->_id,
+            'type' => '3cx',
+            'direction' => 'outbound',
+            'status' => 'initiated',
+            'initiated_by_users__id' => \Illuminate\Support\Facades\Auth::id(),
+        ]);
+
+        return $this->processResponse(1, [], []);
+    }
+
+    /**
      * Get all the labels api request
      *
      * @param [type] $contactUid
