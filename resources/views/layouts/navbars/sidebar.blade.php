@@ -430,6 +430,17 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                     </a>
                 </li>
                 @endif
+                @if (vendorPlanDetails('sales_pipeline', 1)['is_limit_available'] and hasVendorAccess('manage_pipeline'))
+                <li class="nav-item">
+                    <a class="nav-link <?= (request()->routeIs('vendor.pipeline.*')) ? 'active' : '' ?>"
+                        href="<?= route('vendor.pipeline.board.view') ?>">
+                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
+                            <i class="fa fa-columns m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
+                        </div>
+                        <span class="nav-link-text ml--2">{{ __tr('Pipeline') }}</span>
+                    </a>
+                </li>
+                @endif
                 @if (vendorPlanDetails('ecommerce_catalog', 1)['is_limit_available'] and hasVendorAccess('manage_orders'))
                 @php
                     $pendingOrdersCount = \App\Yantrana\Components\ECommerce\Models\OrderModel::where([
@@ -475,17 +486,6 @@ if (\Illuminate\Support\Facades\Auth::check()) {
                             </span>
                         </div>
                         <span class="nav-link-text ml--2">{{ __tr('Livraison') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if (vendorPlanDetails('sales_pipeline', 1)['is_limit_available'] and hasVendorAccess('manage_pipeline'))
-                <li class="nav-item">
-                    <a class="nav-link <?= (request()->routeIs('vendor.pipeline.*')) ? 'active' : '' ?>"
-                        href="<?= route('vendor.pipeline.board.view') ?>">
-                        <div style="position: relative; display: inline-block; min-width: 2.25rem; text-align: center;" class="mr-2">
-                            <i class="fa fa-columns m-0 text-emerald" style="color: #10b981; font-size: 1rem; line-height: 1.5rem;"></i>
-                        </div>
-                        <span class="nav-link-text ml--2">{{ __tr('Pipeline') }}</span>
                     </a>
                 </li>
                 @endif
