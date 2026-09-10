@@ -1489,6 +1489,30 @@ $appName = getAppSettings('name');
                         <p>{{ __tr('Centralisez tous vos canaux en intégrant vos pages Facebook et Messenger pour gérer vos discussions dans une boîte de réception unique.') }}</p>
                     </div>
                 </div>
+                <!-- 19. Rappels & Relances -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-bell"></i></div>
+                        <h3>{{ __tr('Rappels & Relances') }}</h3>
+                        <p>{{ __tr('Programmez des rappels par contact avec notification ou message WhatsApp automatique à la date prévue, pour ne jamais manquer une relance client.') }}</p>
+                    </div>
+                </div>
+                <!-- 20. Livraison de commandes -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-truck"></i></div>
+                        <h3>{{ __tr('Livraison de commandes') }}</h3>
+                        <p>{{ __tr('Gérez vos livreurs, assignez vos commandes en un clic et notifiez automatiquement le livreur par WhatsApp, avec suivi du statut de livraison en temps réel.') }}</p>
+                    </div>
+                </div>
+                <!-- 21. Appels WhatsApp & 3CX -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap"><i class="bi bi-telephone-inbound"></i></div>
+                        <h3>{{ __tr('Appels WhatsApp & 3CX') }}</h3>
+                        <p>{{ __tr('Passez et recevez des appels vocaux WhatsApp natifs directement depuis le chat, ou connectez votre standard téléphonique 3CX pour appeler vos contacts sans quitter la conversation.') }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
