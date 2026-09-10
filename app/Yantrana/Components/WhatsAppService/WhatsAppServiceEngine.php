@@ -3764,7 +3764,16 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             '{email}' => $contact->email,
             '{country}' => $contact->country?->name,
             '{language_code}' => $contact->language_code,
-            '{assigned_team_member}' => $options['assign_tem_member_name']
+            '{assigned_team_member}' => $options['assign_tem_member_name'],
+            // Common variant spellings vendors actually type when writing a
+            // bot reply/reminder by hand (no underscore, or a shorter guess)
+            // -- without these, a typo like {fullname} is silently left as
+            // literal text in the message the customer receives.
+            '{fullname}' => $contact->first_name . ' ' . $contact->last_name,
+            '{name}' => $contact->first_name . ' ' . $contact->last_name,
+            '{firstname}' => $contact->first_name,
+            '{lastname}' => $contact->last_name,
+            '{phone}' => $contact->wa_id,
         ];
         // Review this code and make the appropriate changes
         $valueWithFields = $contact->valueWithField;
