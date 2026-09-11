@@ -445,17 +445,18 @@ class OpenAiService extends BaseEngine
             
             // Try cached working model first for lightning speed (< 0.5s)
             $cachedModel = \Illuminate\Support\Facades\Cache::get('working_groq_model');
+            // The llama-3.x/mixtral models Groq served earlier have since been
+            // deprecated/removed (confirmed against GET /v1/models on 2026-09-11
+            // -- they now 404 as model_not_found), silently burning a request per
+            // vendor reply before falling through to the ones that still work.
             $candidateModels = array_unique(array_filter([
                 $cachedModel,
                 getVendorSettings('groq_model_key', null, null, $vendorId),
-                'llama-3.3-70b-versatile',
-                'llama-3.1-8b-instant',
                 'groq/compound-mini',
                 'openai/gpt-oss-120b',
                 'groq/compound',
-                'llama3-70b-8192',
-                'llama-3.1-70b-versatile',
-                'mixtral-8x7b-32768'
+                'openai/gpt-oss-20b',
+                'qwen/qwen3.8-27b',
             ]));
 
             foreach ($candidateModels as $groqModel) {
@@ -587,7 +588,10 @@ class OpenAiService extends BaseEngine
         } catch (\Exception $e) {}
 
         if (empty($models)) {
-            $models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-1.5-pro-latest', 'gemini-pro', 'gemini-1.5-flash'];
+            // Last-resort fallback if the /v1beta/models listing call itself fails
+            // (network error) -- confirmed against the live API on 2026-09-11.
+            // The 2.0/1.5-era names above have since been retired by Google.
+            $models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-pro-latest', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'];
         }
 
         $contentsArr = [];
@@ -718,7 +722,14 @@ class OpenAiService extends BaseEngine
             return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
         }
 
-        // Step 2: Use OpenAI completion API to generate a refined answer
+        // Step 2: Use OpenAI completion API to generate a refined answer.
+        // Same reasoning as the placeholder-key guard above: this refresh only
+        // improves *future* replies, it's not needed to answer the current
+        // message. A vendor can have an OpenAI key configured that's simply
+        // invalid/revoked (initConfiguration() then uses it instead of falling
+        // to the placeholder, so the guard above doesn't catch this case) --
+        // previously that re-threw here and aborted the whole AI reply before
+        // Groq/Gemini ever got a chance to run. Degrade gracefully instead.
         try {
             $response = OpenAI::chat()->create([
                 'model' => getVendorSettings('open_ai_model_key', null, null, $vendorId) ?: 'gpt-3.5-turbo',
@@ -727,7 +738,8 @@ class OpenAiService extends BaseEngine
                 'messages' => $messages
             ]);
         } catch (\Throwable $th) {
-            throw $th;
+            \Illuminate\Support\Facades\Log::warning('[AI-BOT-DEBUG] Chat summary refresh failed for vendor ' . $vendorId . ', using existing summary/history as-is: ' . $th->getMessage());
+            return (!__isEmpty($existingSummary)) ? array_merge([$existingSummary], $recentMessages) : $recentMessages;
         }
 
         $newNewSummary = trim($response['choices'][0]['message']['content']);
