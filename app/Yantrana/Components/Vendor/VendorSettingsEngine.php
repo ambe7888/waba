@@ -395,16 +395,20 @@ class VendorSettingsEngine extends BaseEngine implements VendorSettingsEngineInt
                         try {
                             $inputData['open_ai_embedded_training_data'] = app()->make(\App\Yantrana\Components\WhatsAppService\Services\OpenAiService::class)->embedLargeData($inputData['open_ai_input_training_data']);
                         } catch (\Throwable $th) {
-                            // If the training data is short/medium (under 20000 chars), embeddings are not required for chat response.
-                            // We save the text anyway and set a dummy embedding array so the save operation succeeds.
-                            if (strlen($inputData['open_ai_input_training_data']) < 20000) {
-                                $inputData['open_ai_embedded_training_data'] = [
-                                    'data' => [$inputData['open_ai_input_training_data']],
-                                    'embedding' => []
-                                ];
-                            } else {
-                                return $this->engineFailedResponse(['show_message' => true], __tr('Failed to generate embeddings. Please check your OpenAI API key and connection. Error: ' . $th->getMessage()));
-                            }
+                            // Embeddings only sharpen retrieval for very long training
+                            // text (>=20000 chars, via findTopRelevantSections) -- under
+                            // that, the raw text is used directly as context and never
+                            // touches OpenAI at all. So a broken/missing OpenAI key (the
+                            // platform's own AI can run entirely on Gemini/Groq) should
+                            // never block saving the vendor's training text outright;
+                            // save it with an empty embedding instead of hard-failing.
+                            // Retrieval degrades for long texts, but the vendor isn't
+                            // locked out of editing their prompt because of it.
+                            \Illuminate\Support\Facades\Log::warning('[AI-TRAINING-DATA] embedLargeData failed for vendor ' . $vendorId . ', saving without embeddings: ' . $th->getMessage());
+                            $inputData['open_ai_embedded_training_data'] = [
+                                'data' => [$inputData['open_ai_input_training_data']],
+                                'embedding' => []
+                            ];
                         }
                     }
                 }
