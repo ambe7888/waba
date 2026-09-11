@@ -213,7 +213,12 @@ $selectedOtherBotsForTimingRestrictions = getVendorSettings('enable_selected_oth
                                 :label="__tr('Nom de votre Assistant IA')" name="open_ai_bot_name" value="{{ getVendorSettings('open_ai_bot_name') }}" />
                             </div>
 
-                            <input type="hidden" name="open_ai_bot_data_source_type" value="text" />
+                            {{-- Preserve the vendor's actual mode (e.g. "assistant", set outside
+                                 this UI) instead of forcing "text" -- hardcoding "text" here made
+                                 open_ai_input_training_data's required_if:...,text rule block
+                                 saving (even just the enable toggle) for any vendor not in text
+                                 mode, since this form has no training-data text to submit. --}}
+                            <input type="hidden" name="open_ai_bot_data_source_type" value="{{ getVendorSettings('open_ai_bot_data_source_type') ?: 'text' }}" />
                             <input type="hidden" name="open_ai_max_token" value="1000" />
 
                             <div class="form-group mb-4">
