@@ -88,6 +88,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   static const _accentColor = Color(0xFF2DD4BF);
   static const _chatBgLight = Color(0xFFF3F6FA);
+  // WhatsApp's own read-receipt blue (#53BDEB) — kept separate from
+  // _accentColor (the app's teal brand color used everywhere else on this
+  // screen) because the double-check-turns-blue-when-read convention is
+  // what users actually look for, independent of app branding.
+  static const _readTickColor = Color(0xFF53BDEB);
   // Deep dark
 
   void _showChatNotice(String message,
@@ -648,7 +653,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 .onSurface
                 .withValues(alpha: 0.47));
       case 'read':
-        return Icon(Icons.done_all_rounded, size: 14, color: _accentColor);
+        return Icon(Icons.done_all_rounded, size: 14, color: _readTickColor);
       default:
         return Icon(Icons.done_rounded,
             size: 14,
@@ -1921,6 +1926,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     // System message
     if (message.isSystemMessage) {
       return Center(
+        key: ValueKey(message.uid),
         child: Container(
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1945,13 +1951,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final isOutgoing = !message.isIncoming;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final outgoingColor = isDark ? primaryColor : const Color(0xFFB9E5C9);
+    // #D9FDD3 is WhatsApp's own outgoing-bubble green in light mode.
+    final outgoingColor = isDark ? primaryColor : const Color(0xFFD9FDD3);
     final incomingColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE9EDEE);
     final bubbleColor = isOutgoing ? outgoingColor : incomingColor;
     final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
     final msgType = message.type ?? 'text';
 
     return Align(
+      key: ValueKey(message.uid),
       alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
         onLongPressStart: (details) {
