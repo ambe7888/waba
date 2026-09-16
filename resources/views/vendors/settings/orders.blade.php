@@ -206,6 +206,61 @@ $deliveryDrivers = $deliveryManagementEnabled
     }
 }
 
+/* Responsive expand control + child row, matching the DataTables Responsive
+   "+"/"-" control (table.dataTable.dtr-*) used on every other list page in
+   the app, applied here to this page's own Alpine-rendered table instead of
+   a real DataTable instance. */
+.lw-orders-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background-color: #31b131;
+    border: 2px solid #fff;
+    border-radius: 16px;
+    box-shadow: 0 0 3px #444;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+}
+.lw-orders-expand-btn::before {
+    content: "+";
+}
+.lw-orders-expand-btn.is-open {
+    background-color: #d33333;
+}
+.lw-orders-expand-btn.is-open::before {
+    content: "\2212";
+}
+.lw-orders-child-row > td {
+    background: #fafbfc;
+}
+.lw-orders-child-cell {
+    padding: 10px 16px !important;
+}
+.lw-orders-child-item {
+    padding: 6px 0;
+    border-bottom: 1px solid #eef0f2;
+}
+.lw-orders-child-item:last-child {
+    border-bottom: none;
+}
+.lw-orders-child-label {
+    display: inline-block;
+    font-weight: 700;
+    min-width: 130px;
+    vertical-align: top;
+    color: #475569;
+    font-size: 0.85rem;
+}
+.lw-orders-child-value {
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #1e293b;
+}
+
 /* PERFECT CSS PRINT STYLES */
 @media print {
     html, body {
@@ -443,10 +498,14 @@ $deliveryDrivers = $deliveryManagementEnabled
             </div>
 
             <!-- Orders Table -->
-            <div class="table-responsive d-none d-md-block">
+            <div class="table-responsive">
                 <table class="table table-hover align-items-center mb-0 lw-orders-table" style="border-radius: 12px; overflow: hidden; border: 1px solid #e4e7ec;">
                     <thead>
                         <tr>
+                            <!-- Responsive expand control: same role as DataTables' Responsive
+                                 "+" column used on the other list pages - only shown below lg,
+                                 where the Adresse/Source columns get hidden into a child row. -->
+                            <th class="lw-orders-th lw-orders-th-expand d-lg-none" style="width: 32px;"></th>
                             @if($deliveryManagementEnabled)
                             <th class="lw-orders-th" style="width: 40px;">
                                 <input type="checkbox" :checked="isAllOnPageSelected()" @click="toggleSelectAllOnPage()">
@@ -454,16 +513,20 @@ $deliveryDrivers = $deliveryManagementEnabled
                             @endif
                             <th class="lw-orders-th">{{ __tr('Réf / Date') }}</th>
                             <th class="lw-orders-th">{{ __tr('Client WhatsApp') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Adresse de livraison') }}</th>
+                            <th class="lw-orders-th d-none d-lg-table-cell">{{ __tr('Adresse de livraison') }}</th>
                             <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Source / Agent') }}</th>
+                            <th class="lw-orders-th d-none d-lg-table-cell">{{ __tr('Source / Agent') }}</th>
                             <th class="lw-orders-th">{{ __tr('Statut') }}</th>
                             <th class="lw-orders-th text-right no-print">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="order in getPaginatedOrders()" :key="order._uid">
+                        <tbody>
                             <tr @if($deliveryManagementEnabled) @click="$event.target.closest('a, button, select, input, .dropdown-menu') ? null : toggleOrderSelected(order._uid)" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''" style="cursor: pointer;" @endif>
+                                <td class="align-middle text-center d-lg-none">
+                                    <button type="button" class="lw-orders-expand-btn" :class="isOrderExpanded(order._uid) ? 'is-open' : ''" @click.stop="toggleOrderExpand(order._uid)" :aria-expanded="isOrderExpanded(order._uid)" :title="isOrderExpanded(order._uid) ? '{{ __tr('Réduire') }}' : '{{ __tr('Voir plus de détails') }}'"></button>
+                                </td>
                                 @if($deliveryManagementEnabled)
                                 <td class="align-middle">
                                     <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
@@ -483,12 +546,12 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         </a>
                                     </template>
                                 </td>
-                                <td class="align-middle">
+                                <td class="align-middle d-none d-lg-table-cell">
                                     <div class="lw-order-address" x-text="getAddress(order) || '—'"></div>
                                 </td>
                                 <td class="align-middle">
                                     <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <div class="small text-muted mt-1">
+                                    <div class="small text-muted mt-1 d-none d-lg-block">
                                         <template x-for="(it, i) in getItems(order)" :key="i">
                                             <div class="text-truncate" style="max-width: 280px;" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
                                         </template>
@@ -497,7 +560,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         </template>
                                     </div>
                                 </td>
-                                <td class="align-middle">
+                                <td class="align-middle d-none d-lg-table-cell">
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
                                 </td>
                                 <td class="align-middle">
@@ -565,117 +628,42 @@ $deliveryDrivers = $deliveryManagementEnabled
                                     </div>
                                 </td>
                             </tr>
+                            <!-- Responsive child row (DataTables-style): reveals the columns
+                                 hidden below lg (Adresse, Source/Agent, item breakdown) when
+                                 the "+" control is toggled. -->
+                            <tr class="lw-orders-child-row d-lg-none" x-show="isOrderExpanded(order._uid)" x-cloak>
+                                <td colspan="9" class="lw-orders-child-cell">
+                                    <div class="lw-orders-child-item">
+                                        <span class="lw-orders-child-label">{{ __tr('Adresse de livraison') }}</span>
+                                        <span class="lw-orders-child-value" x-text="getAddress(order) || '—'"></span>
+                                    </div>
+                                    <div class="lw-orders-child-item">
+                                        <span class="lw-orders-child-label">{{ __tr('Source / Agent') }}</span>
+                                        <span class="lw-orders-child-value" x-text="getSource(order)"></span>
+                                    </div>
+                                    <div class="lw-orders-child-item">
+                                        <span class="lw-orders-child-label">{{ __tr('Articles') }}</span>
+                                        <span class="lw-orders-child-value">
+                                            <template x-for="(it, i) in getItems(order)" :key="i">
+                                                <div x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
+                                            </template>
+                                            <template x-if="getItems(order).length === 0">
+                                                <span class="text-muted">{{ __tr('Aucun article détaillé') }}</span>
+                                            </template>
+                                        </span>
+                                    </div>
+                                    <template x-if="order.driver">
+                                        <div class="lw-orders-child-item">
+                                            <span class="lw-orders-child-label">{{ __tr('Livreur') }}</span>
+                                            <span class="lw-orders-child-value" x-text="order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
+                                        </div>
+                                    </template>
+                                </td>
+                            </tr>
+                        </tbody>
                         </template>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Mobile card list (phones/small tablets): the table above is
-                 desktop-only (d-none d-md-block). Same Alpine bindings as the
-                 table rows, just laid out as stacked cards instead of a wide
-                 table that would otherwise need horizontal scrolling. -->
-            <div class="d-md-none">
-                <template x-for="order in getPaginatedOrders()" :key="order._uid">
-                    <div class="sharp-card p-3 mb-3" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="d-flex align-items-start" style="gap: 8px;">
-                                @if($deliveryManagementEnabled)
-                                <input type="checkbox" class="mt-1" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
-                                @endif
-                                <div>
-                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;">
-                                        <span x-text="'#' + order._uid.substring(0, 8)"></span>
-                                    </button>
-                                    <small class="text-muted d-block lw-orders-mono" x-text="formatDate(order.created_at)"></small>
-                                </div>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; width: 34px; font-weight: 700;" title="{{ __tr('Plus d\'actions') }}">
-                                    ⋮
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-right shadow-sm">
-                                    <a href="#" @click.prevent="viewOrderDetails(order)" class="dropdown-item">{{ __tr('Voir le reçu') }}</a>
-                                    <template x-if="order.contact && order.contact._uid">
-                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="dropdown-item">{{ __tr('Ouvrir WhatsApp') }}</a>
-                                    </template>
-                                    @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
-                                    <a href="#" @click.prevent="openAssignDriverModal([order._uid])" class="dropdown-item" x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></a>
-                                    @endif
-                                    @if (hasVendorAccess('manage_orders', 'delete_orders'))
-                                    <a href="#" @click.prevent="deleteOrder(order._uid)" class="dropdown-item text-danger">{{ __tr('Supprimer') }}</a>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
-                        <template x-if="order.contact && order.contact._uid">
-                            <a :href="getChatUrl(order.contact._uid)" target="_blank" class="font-weight-bold small lw-orders-mono d-block mb-2" style="color: #059669;">
-                                <span x-text="order.contact.wa_id"></span>
-                            </a>
-                        </template>
-
-                        <div class="lw-order-address mb-2" x-text="getAddress(order) || '—'"></div>
-                        <div class="small text-muted mb-2">
-                            <template x-for="(it, i) in getItems(order)" :key="i">
-                                <div class="text-truncate" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
-                            </template>
-                            <template x-if="getItems(order).length === 0">
-                                <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
-                            </template>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mb-2 pt-2 border-top">
-                            <span class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></span>
-                            <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
-                        </div>
-
-                        @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
-                        <select class="order-status-select w-100"
-                                :class="{
-                                    'st-delivered': order.status === 'delivered',
-                                    'st-processing': order.status === 'shipped' || order.status === 'processing',
-                                    'st-confirmed': order.status === 'confirmed',
-                                    'st-new': order.status === 'validated',
-                                    'st-cancelled': order.status === 'cancelled',
-                                    'st-in-delivery': order.status === 'in_delivery',
-                                    'st-delivery-failed': order.status === 'delivery_failed'
-                                }"
-                                :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
-                            <option value="validated">{{ __tr('Nouvelle') }}</option>
-                            <option value="confirmed">{{ __tr('Confirmée') }}</option>
-                            <option value="processing">{{ __tr('En préparation') }}</option>
-                            <option value="shipped">{{ __tr('En livraison') }}</option>
-                            <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
-                            <option value="delivered">{{ __tr('Livrée') }}</option>
-                            <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
-                            <option value="cancelled">{{ __tr('Annulée') }}</option>
-                        </select>
-                        @else
-                        <span class="order-status-badge"
-                              :class="{
-                                  'st-delivered': order.status === 'delivered',
-                                  'st-processing': order.status === 'shipped' || order.status === 'processing',
-                                  'st-confirmed': order.status === 'confirmed',
-                                  'st-new': order.status === 'validated',
-                                  'st-cancelled': order.status === 'cancelled',
-                                  'st-in-delivery': order.status === 'in_delivery',
-                                  'st-delivery-failed': order.status === 'delivery_failed'
-                              }"
-                              x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : (order.status === 'in_delivery' ? '{{ __tr('En cours de livraison') }}' : (order.status === 'delivery_failed' ? '{{ __tr('Livraison échouée') }}' : '{{ __tr('Nouvelle') }}')))))">
-                        </span>
-                        @endif
-                        <template x-if="order.driver">
-                            <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
-                        </template>
-
-                        @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
-                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold btn-block mt-2" style="border-radius: 8px;">
-                            <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
-                        </button>
-                        @endif
-                    </div>
-                </template>
             </div>
 
             <div>
@@ -1049,6 +1037,18 @@ function ordersPageData() {
         assignDriverTargets: [],
         assignDriverSelectedId: '',
         isAssigningDriver: false,
+        expandedOrderUids: [],
+        isOrderExpanded: function(uid) {
+            return this.expandedOrderUids.indexOf(uid) !== -1;
+        },
+        toggleOrderExpand: function(uid) {
+            var idx = this.expandedOrderUids.indexOf(uid);
+            if (idx !== -1) {
+                this.expandedOrderUids.splice(idx, 1);
+            } else {
+                this.expandedOrderUids.push(uid);
+            }
+        },
         isOrderSelected: function(uid) {
             return this.selectedOrderUids.indexOf(uid) !== -1;
         },
