@@ -1,6 +1,7 @@
 <?php
 
 putenv('LC_ALL=en');
+chdir(__DIR__);
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));

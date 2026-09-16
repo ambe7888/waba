@@ -88,9 +88,9 @@ $campaignUid=$campaign->_uid;
                                 @endif
                             </div>
 
-                            <template x-if="campaignStatus == 'processing'">
+                            <template x-if="['processing', 'upcoming', 'awaiting_execution'].includes(campaignStatus) || (inQueueCount > 0 && !['executed', 'aborted'].includes(campaignStatus))">
                                 <a class="lw-ajax-link-action-via-confirm btn btn-danger font-weight-bold shadow-sm" data-confirm="#lwCampaignAbort-template" data-method="post" href="{{ route('vendor.campaign.write.abort', ['campaignIdOrUid' => $campaign->_uid]) }}" data-callback="__Utils.viewReload" style="border-radius: 8px;">
-                                    <i class="fas fa-ban mr-1"></i> {{ __tr('Interrompre la Campagne') }}
+                                    <i class="fas fa-ban mr-1"></i> {{ __tr('Interrompre') }}
                                 </a>
                             </template>
 
@@ -455,7 +455,7 @@ $totalContacts = (int) Arr::get($campaignData, 'total_contacts');
                 executedCount:'',
                 inQueuedCount:"",
                 statusText:'',
-                campaignStatus:'',
+                campaignStatus:'{{ $campaignStatus ?? "" }}',
                 queueFailedCount:'',
                 expiredCount:'',
                 totalExpiredInPercent:'',

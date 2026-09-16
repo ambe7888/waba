@@ -173,12 +173,11 @@ class WhatsAppMessageQueueRepository extends BaseRepository implements WhatsAppM
      */
     public function fetchInQueueMessageInChunks($campaignId)
     {
-        return $this->primaryModel::where([
-            'status' => 1,
-            'campaigns__id' => $campaignId,
-        ])->update([
-            'status' => 7
-        ]);
+        return $this->primaryModel::where('campaigns__id', $campaignId)
+            ->whereIn('status', [1, 3, 4])
+            ->update([
+                'status' => 7
+            ]);
     }
 
     /**

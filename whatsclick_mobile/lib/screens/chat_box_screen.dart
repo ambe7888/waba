@@ -16,6 +16,7 @@ import 'package:gal/gal.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../services/pusher_service.dart';
+import '../services/voice_player_service.dart';
 import '../models/contact.dart';
 import '../models/chat_message.dart';
 import '../config/app_config.dart';
@@ -45,8 +46,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   final _searchController = TextEditingController();
   List<ChatMessage> _messages = [];
   bool _isLoading = true;
-  bool _isFetching = false; // Guard contre les requêtes fetchMessages concurrentes
+  bool _isFetching =
+      false; // Guard contre les requêtes fetchMessages concurrentes
   Timer? _pollingTimer;
+
   /// When the fallback refresh last actually ran.
   DateTime? _lastKeepaliveRefresh;
   StreamSubscription? _fcmSubscription;
@@ -123,13 +126,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   void initState() {
     super.initState();
     // Instant preloading of preview message for zero wait time
-    if (widget.contact.lastMessage != null && widget.contact.lastMessage!.isNotEmpty) {
+    if (widget.contact.lastMessage != null &&
+        widget.contact.lastMessage!.isNotEmpty) {
       _messages = [
         ChatMessage(
           uid: 'preview_${widget.contact.uid}',
           body: widget.contact.lastMessage!,
           isIncoming: true,
-          timestamp: widget.contact.lastMessageTime ?? DateTime.now().toIso8601String(),
+          timestamp: widget.contact.lastMessageTime ??
+              DateTime.now().toIso8601String(),
           status: 'delivered',
         )
       ];
@@ -155,7 +160,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     // Écoute Pusher pour les nouveaux messages de ce contact (ciblé)
     _pusherSubscription = PusherService().onNewMessage.listen((data) {
       // On rafraîchit uniquement si le message concerne ce contact
-      final uid = data['contact_uid']?.toString() ?? data['contactUid']?.toString();
+      final uid =
+          data['contact_uid']?.toString() ?? data['contactUid']?.toString();
       if (uid == null || uid == widget.contact.uid) {
         _loadMessages(silent: true);
       }
@@ -191,13 +197,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     // 1. Add active bot quick replies (e.g. shipping, return, etc.)
     if (quickBots.isNotEmpty) {
       for (final bot in quickBots) {
-        final botName = (bot['name'] ?? bot['trigger'] ?? bot['title'] ?? 'Bot').toString();
+        final botName =
+            (bot['name'] ?? bot['trigger'] ?? bot['title'] ?? 'Bot').toString();
         combined.add({
           'is_bot': true,
           'bot_id': bot['_id'] ?? bot['id'] ?? bot['_uid'],
           'shortcut': '/${botName.replaceAll(' ', '_')}',
           'name': botName,
-          'message': bot['reply_text'] ?? bot['message_body'] ?? bot['message'] ?? '',
+          'message':
+              bot['reply_text'] ?? bot['message_body'] ?? bot['message'] ?? '',
         });
       }
     }
@@ -206,9 +214,18 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     if (botManagement != null && botManagement['bot_replies'] is List) {
       for (final bot in (botManagement['bot_replies'] as List)) {
         final botId = bot['_id'] ?? bot['id'] ?? bot['_uid'];
-        final botName = (bot['name'] ?? bot['name_or_trigger'] ?? bot['trigger'] ?? bot['title'] ?? '').toString();
-        final botMsg = (bot['reply_text'] ?? bot['reply'] ?? bot['message'] ?? '').toString();
-        if (botId != null && botName.isNotEmpty && !combined.any((c) => c['bot_id'] == botId)) {
+        final botName = (bot['name'] ??
+                bot['name_or_trigger'] ??
+                bot['trigger'] ??
+                bot['title'] ??
+                '')
+            .toString();
+        final botMsg =
+            (bot['reply_text'] ?? bot['reply'] ?? bot['message'] ?? '')
+                .toString();
+        if (botId != null &&
+            botName.isNotEmpty &&
+            !combined.any((c) => c['bot_id'] == botId)) {
           combined.add({
             'is_bot': true,
             'bot_id': botId,
@@ -246,7 +263,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         final shortcut = reply['shortcut']?.toString().toLowerCase() ?? '';
         final name = reply['name']?.toString().toLowerCase() ?? '';
         final msg = reply['message']?.toString().toLowerCase() ?? '';
-        return shortcut.contains(query) || name.contains(query) || msg.contains(query);
+        return shortcut.contains(query) ||
+            name.contains(query) ||
+            msg.contains(query);
       }).toList();
 
       setState(() {
@@ -309,7 +328,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         // local-only bubbles the server has never seen, re-added below by
         // the localPending pass so a poll mid-upload cannot make the file
         // the user just picked vanish from the conversation.
-        if (!m.isIncoming && (m.status == 'initialize' || m.status == 'uploading')) continue;
+        if (!m.isIncoming &&
+            (m.status == 'initialize' || m.status == 'uploading')) continue;
         // Drop the instant "preview" bubble seeded in initState() from
         // contact.lastMessage - it always guesses isIncoming:true and has a
         // synthetic uid that never matches a real message, so once the real
@@ -344,7 +364,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           final sameType = (m.type ?? 'text') == (api.type ?? 'text');
           if (!sameType) return false;
           final isText = (m.type ?? 'text') == 'text';
-          if (isText && _normalizeForReconciliation(api.body) != _normalizeForReconciliation(m.body)) return false;
+          if (isText &&
+              _normalizeForReconciliation(api.body) !=
+                  _normalizeForReconciliation(m.body)) return false;
           final apiTs = DateTime.tryParse(api.timestamp);
           if (apiTs == null || localTs == null) return false;
           final diff = apiTs.difference(localTs).inSeconds;
@@ -410,12 +432,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     if (result == null) {
       setState(() => _isLoadingOlderMessages = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors du chargement des anciens messages')),
+        const SnackBar(
+            content: Text('Erreur lors du chargement des anciens messages')),
       );
       return;
     }
 
-    final older = List<ChatMessage>.from(result['messages'] as List<ChatMessage>);
+    final older =
+        List<ChatMessage>.from(result['messages'] as List<ChatMessage>);
     older.sort((a, b) {
       final dtA = DateTime.tryParse(a.timestamp);
       final dtB = DateTime.tryParse(b.timestamp);
@@ -425,9 +449,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
     // Capturer la position scroll AVANT d'ajouter les anciens messages
     // pour éviter que le viewport saute après le rebuild
-    final scrollPixels = _scrollController.hasClients
-        ? _scrollController.position.pixels
-        : 0.0;
+    final scrollPixels =
+        _scrollController.hasClients ? _scrollController.position.pixels : 0.0;
 
     setState(() {
       final existingUids = _messages.map((m) => m.uid).toSet();
@@ -463,7 +486,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.06),
@@ -491,7 +517,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75)),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.75)),
                 ),
               ],
             ),
@@ -622,7 +651,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           height: 11,
           child: CircularProgressIndicator(
             strokeWidth: 1.6,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
           ),
         );
       case 'initialize':
@@ -662,6 +692,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   // Voice Recording functions
   Future<void> _startRecording() async {
     try {
+      await VoicePlayerService().stop();
       if (await _audioRecorder.hasPermission()) {
         final tempDir = await getTemporaryDirectory();
         final path =
@@ -952,16 +983,19 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                               ),
                               onTap: () async {
                                 final currentContext = context;
-                                Navigator.pop(currentContext); // Close BottomSheet
-                                
+                                Navigator.pop(
+                                    currentContext); // Close BottomSheet
+
                                 showDialog(
                                   context: context,
                                   barrierDismissible: false,
                                   builder: (_) => Center(
                                       child: CircularProgressIndicator(
-                                          color: Theme.of(context).colorScheme.primary)),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary)),
                                 );
-                                
+
                                 bool success = false;
                                 try {
                                   success = await ApiService().sendQuickReply(
@@ -974,10 +1008,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
                                 if (mounted) {
                                   if (success) {
-                                    _showChatNotice('Réponse auto du bot déclenchée');
+                                    _showChatNotice(
+                                        'Réponse auto du bot déclenchée');
                                     _startAggressivePolling();
                                   } else {
-                                    _showChatNotice('Erreur lors du déclenchement du bot');
+                                    _showChatNotice(
+                                        'Erreur lors du déclenchement du bot');
                                   }
                                 }
                               },
@@ -1418,6 +1454,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     _messageController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
+    VoicePlayerService().stop();
     super.dispose();
   }
 
@@ -1436,7 +1473,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (didPop) return;
-        Navigator.pop(context, _messages.isNotEmpty ? _messages.first.body : null);
+        Navigator.pop(
+            context, _messages.isNotEmpty ? _messages.first.body : null);
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -1456,169 +1494,190 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           },
         ),
         appBar: _buildAppBar(isWindowActive),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage('assets/images/whatsapp_bg.png'),
-            fit: BoxFit.cover,
-            opacity: Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.65,
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: const AssetImage('assets/images/whatsapp_bg.png'),
+              fit: BoxFit.cover,
+              opacity:
+                  Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.65,
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Chat Messages
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.primary,
-                        strokeWidth: 3,
-                        strokeCap: StrokeCap.round,
-                      ),
-                    ),
-                  )
-                : filteredMessages.isEmpty
+          child: Column(
+            children: [
+              // Chat Messages
+              Expanded(
+                child: _isLoading
                     ? Center(
-                        child: Text(
-                          _searchQuery.isNotEmpty
-                              ? 'Aucun message ne correspond à votre recherche.'
-                              : 'Aucun message dans cette conversation.',
-                          style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.31)),
-                          textAlign: TextAlign.center,
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).colorScheme.primary,
+                            strokeWidth: 3,
+                            strokeCap: StrokeCap.round,
+                          ),
                         ),
                       )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        reverse: true,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        // Extra trailing item = "load older messages" bar.
-                        // Since the list is reversed, the last index renders
-                        // at the very top of the screen — exactly where
-                        // older history belongs.
-                        itemCount: filteredMessages.length +
-                            (_searchQuery.isEmpty && _olderMessagesNextPage != 0 ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == filteredMessages.length) {
-                            return _buildLoadOlderMessagesBar();
-                          }
-                          final message = filteredMessages[index];
-                          return _buildMessageBubble(message);
-                        },
-                      ),
-          ),
+                    : filteredMessages.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Aucun message ne correspond à votre recherche.'
+                                  : 'Aucun message dans cette conversation.',
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.31)),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            cacheExtent: 500.0,
+                            reverse: true,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            // Extra trailing item = "load older messages" bar.
+                            // Since the list is reversed, the last index renders
+                            // at the very top of the screen — exactly where
+                            // older history belongs.
+                            itemCount: filteredMessages.length +
+                                (_searchQuery.isEmpty &&
+                                        _olderMessagesNextPage != 0
+                                    ? 1
+                                    : 0),
+                            itemBuilder: (context, index) {
+                              if (index == filteredMessages.length) {
+                                return _buildLoadOlderMessagesBar();
+                              }
+                              final message = filteredMessages[index];
+                              return _buildMessageBubble(message);
+                            },
+                          ),
+              ),
 
-          // (Old 24h Window Warning removed, moved to bottom banner)          // Canned Replies Suggestions Overlay
-          if (_showCannedSuggestions)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
+              // (Old 24h Window Warning removed, moved to bottom banner)          // Canned Replies Suggestions Overlay
+              if (_showCannedSuggestions)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                    border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.08)),
                   ),
-                ],
-                border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.08)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: _filteredCannedReplies.length,
-                  itemBuilder: (context, index) {
-                    final reply = _filteredCannedReplies[index];
-                    final isBot = reply['is_bot'] == true;
-                    final titleText = reply['shortcut'] ?? reply['name'] ?? '';
-                    final messageText = reply['message'] ?? '';
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _filteredCannedReplies.length,
+                      itemBuilder: (context, index) {
+                        final reply = _filteredCannedReplies[index];
+                        final isBot = reply['is_bot'] == true;
+                        final titleText =
+                            reply['shortcut'] ?? reply['name'] ?? '';
+                        final messageText = reply['message'] ?? '';
 
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(
-                        isBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
-                        color: isBot ? const Color(0xFF2DD4BF) : const Color(0xFFF59E0B),
-                        size: 18,
-                      ),
-                      title: Text(
-                        titleText,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        messageText.isNotEmpty ? messageText : (reply['name'] ?? ''),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      onTap: () async {
-                        final botId = reply['bot_id'];
-                        final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
+                        return ListTile(
+                          dense: true,
+                          leading: Icon(
+                            isBot
+                                ? Icons.smart_toy_rounded
+                                : Icons.flash_on_rounded,
+                            color: isBot
+                                ? const Color(0xFF2DD4BF)
+                                : const Color(0xFFF59E0B),
+                            size: 18,
+                          ),
+                          title: Text(
+                            titleText,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          subtitle: Text(
+                            messageText.isNotEmpty
+                                ? messageText
+                                : (reply['name'] ?? ''),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onTap: () async {
+                            final botId = reply['bot_id'];
+                            final botIdInt = botId != null
+                                ? (int.tryParse(botId.toString()) ?? 0)
+                                : 0;
 
-                        if (isBot && botIdInt > 0) {
-                          setState(() {
-                            _messageController.clear();
-                            _showCannedSuggestions = false;
-                          });
-                          _confirmBotReply(titleText, messageText, botIdInt);
-                        } else {
-                          setState(() {
-                            _messageController.text = messageText.isNotEmpty ? messageText : titleText;
-                            _messageController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: _messageController.text.length),
-                            );
-                            _showCannedSuggestions = false;
-                          });
-                        }
+                            if (isBot && botIdInt > 0) {
+                              setState(() {
+                                _messageController.clear();
+                                _showCannedSuggestions = false;
+                              });
+                              _confirmBotReply(
+                                  titleText, messageText, botIdInt);
+                            } else {
+                              setState(() {
+                                _messageController.text = messageText.isNotEmpty
+                                    ? messageText
+                                    : titleText;
+                                _messageController.selection =
+                                    TextSelection.fromPosition(
+                                  TextPosition(
+                                      offset: _messageController.text.length),
+                                );
+                                _showCannedSuggestions = false;
+                              });
+                            }
+                          },
+                        );
                       },
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-          // MAIN INPUT BAR
-          if (widget.contact.isBlocked)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFEE2E2),
-                border: Border(top: BorderSide(color: Color(0xFFFCA5A5))),
-              ),
-              child: const Text(
-                'Ce contact est bloqué.\nVous ne pouvez plus envoyer de messages.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFFDC2626),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            )
-          else if (!isWindowActive)
-            _build24hWindowClosedBanner()
-          else
-            _buildInputBar(),
-        ],
-      ),
-      ), // Close Container
-    ), // Close Scaffold
+              // MAIN INPUT BAR
+              if (widget.contact.isBlocked)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEE2E2),
+                    border: Border(top: BorderSide(color: Color(0xFFFCA5A5))),
+                  ),
+                  child: const Text(
+                    'Ce contact est bloqué.\nVous ne pouvez plus envoyer de messages.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                )
+              else if (!isWindowActive)
+                _build24hWindowClosedBanner()
+              else
+                _buildInputBar(),
+            ],
+          ),
+        ), // Close Container
+      ), // Close Scaffold
     ); // Close PopScope
   }
 
@@ -1627,7 +1686,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () {
-          Navigator.pop(context, _messages.isNotEmpty ? _messages.first.body : null);
+          Navigator.pop(
+              context, _messages.isNotEmpty ? _messages.first.body : null);
         },
       ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1663,87 +1723,92 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Row(
                     children: [
-                // Avatar
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        _accentColor
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      widget.contact.name.isNotEmpty
-                          ? widget.contact.name[0].toUpperCase()
-                          : 'C',
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.contact.name,
-                              style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700, decoration: widget.contact.isBlocked ? TextDecoration.lineThrough : null),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      // Avatar
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              _accentColor
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          if (widget.contact.isBlocked) ...[
-                            SizedBox(width: 4),
-                            Icon(Icons.block_rounded, color: Colors.red, size: 14),
-                          ],
-                          SizedBox(width: 6),
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: isWindowActive
-                                  ? _accentColor
-                                  : Theme.of(context)
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            widget.contact.name.isNotEmpty
+                                ? widget.contact.name[0].toUpperCase()
+                                : 'C',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    widget.contact.name,
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        decoration: widget.contact.isBlocked
+                                            ? TextDecoration.lineThrough
+                                            : null),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (widget.contact.isBlocked) ...[
+                                  SizedBox(width: 4),
+                                  Icon(Icons.block_rounded,
+                                      color: Colors.red, size: 14),
+                                ],
+                                SizedBox(width: 6),
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: isWindowActive
+                                        ? _accentColor
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.16),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              widget.contact.phoneNumber,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.16),
-                              shape: BoxShape.circle,
+                                      .withValues(alpha: 0.6)),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
-                          Text(
-                            widget.contact.phoneNumber,
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ), // Closes Column
-                    ), // Closes Expanded
-                  ], // Closes Row's children
-                ), // Closes Row
-              ), // Closes Padding
-            ), // Closes InkWell
-          ), // Closes Builder
+                          ],
+                        ), // Closes Column
+                      ), // Closes Expanded
+                    ], // Closes Row's children
+                  ), // Closes Row
+                ), // Closes Padding
+              ), // Closes InkWell
+            ), // Closes Builder
       actions: [
         if (_isSearching)
           IconButton(
@@ -1852,7 +1917,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   /// Quoted-message preview shown inside a bubble when the message is a
   /// reply, mirroring WhatsApp's own reply blocks (used for both incoming
   /// and outgoing bubbles).
-  Widget _buildQuotedReplyBlock(String repliedToUid, bool isDark, Color textColor) {
+  Widget _buildQuotedReplyBlock(
+      String repliedToUid, bool isDark, Color textColor) {
     final quoted = _findRepliedToMessage(repliedToUid);
     final label = quoted == null
         ? 'Message'
@@ -1946,7 +2012,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
     final outgoingColor = isDark ? primaryColor : const Color(0xFFB9E5C9);
-    final incomingColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE9EDEE);
+    final incomingColor =
+        isDark ? const Color(0xFF1E293B) : const Color(0xFFE9EDEE);
     final bubbleColor = isOutgoing ? outgoingColor : incomingColor;
     final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
     final msgType = message.type ?? 'text';
@@ -1964,122 +2031,125 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             maxWidth: MediaQuery.of(context).size.width * 0.78,
           ),
           decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isOutgoing
-                ? const Radius.circular(16)
-                : const Radius.circular(4),
-            bottomRight: isOutgoing
-                ? const Radius.circular(4)
-                : const Radius.circular(16),
-          ),
-          border: Border.all(
-            color: isOutgoing
-                ? (isDark
-                    ? primaryColor.withAlpha(60)
-                    : const Color(0xFFA8D5A2))
-                : Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.06),
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
+            color: bubbleColor,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: isOutgoing
+                  ? const Radius.circular(16)
+                  : const Radius.circular(4),
+              bottomRight: isOutgoing
+                  ? const Radius.circular(4)
+                  : const Radius.circular(16),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (message.repliedToUid != null)
-              _buildQuotedReplyBlock(message.repliedToUid!, isDark, textColor),
-            if (message.referral != null)
-              _buildReferralWidget(message.referral!, textColor),
-            // IMAGE
-            if (msgType == 'image' ||
-                (message.mediaUrl != null &&
-                    (message.mediaUrl!.toLowerCase().endsWith('.jpg') ||
-                        message.mediaUrl!.toLowerCase().endsWith('.png') ||
-                        message.mediaUrl!.toLowerCase().endsWith('.jpeg') ||
-                        message.mediaUrl!.toLowerCase().endsWith('.gif'))))
-              _buildImageContent(message, textColor),
-
-            // AUDIO
-            if (msgType == 'audio')
-              VoicePlayBubble(message: message)
-
-            // VIDEO
-            else if (msgType == 'video')
-              VideoBubble(
-                message: message,
-                onExpand: () => _showFullVideoModal(message),
-              )
-
-            // DOCUMENT
-            else if (msgType == 'document')
-              _buildMediaTile(
-                  Icons.insert_drive_file_rounded,
-                  message.body.isNotEmpty ? message.body : 'Document',
-                  message,
-                  textColor,
-                  const Color(0xFF6366F1))
-
-            // TEXT (default)
-            else if (msgType != 'image')
-              RichText(
-                text: _parseHtmlToTextSpan(
-                  message.body,
-                  TextStyle(fontSize: 14.5, color: textColor),
-                ),
+            border: Border.all(
+              color: isOutgoing
+                  ? (isDark
+                      ? primaryColor.withAlpha(60)
+                      : const Color(0xFFA8D5A2))
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.06),
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (message.repliedToUid != null)
+                _buildQuotedReplyBlock(
+                    message.repliedToUid!, isDark, textColor),
+              if (message.referral != null)
+                _buildReferralWidget(message.referral!, textColor),
+              // IMAGE
+              if (msgType == 'image' ||
+                  (message.mediaUrl != null &&
+                      (message.mediaUrl!.toLowerCase().endsWith('.jpg') ||
+                          message.mediaUrl!.toLowerCase().endsWith('.png') ||
+                          message.mediaUrl!.toLowerCase().endsWith('.jpeg') ||
+                          message.mediaUrl!.toLowerCase().endsWith('.gif'))))
+                _buildImageContent(message, textColor),
 
-            // Caption glued directly under image/video (single block, like
-            // WhatsApp) instead of the caption being silently dropped.
-            if ((msgType == 'image' || msgType == 'video') && message.body.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: RichText(
-                  text: _parseHtmlToTextSpan(message.body, TextStyle(fontSize: 14.5, color: textColor)),
-                ),
-              ),
+              // AUDIO
+              if (msgType == 'audio')
+                VoicePlayBubble(message: message)
 
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  message.timestamp.length >= 16
-                      ? message.timestamp.substring(11, 16)
-                      : message.timestamp,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isOutgoing
-                        ? (isDark
-                            ? Colors.white.withAlpha(160)
-                            : const Color(0xFF1A3C34).withValues(alpha: 0.55))
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.24),
+              // VIDEO
+              else if (msgType == 'video')
+                VideoBubble(
+                  message: message,
+                  onExpand: () => _showFullVideoModal(message),
+                )
+
+              // DOCUMENT
+              else if (msgType == 'document')
+                _buildMediaTile(
+                    Icons.insert_drive_file_rounded,
+                    message.body.isNotEmpty ? message.body : 'Document',
+                    message,
+                    textColor,
+                    const Color(0xFF6366F1))
+
+              // TEXT (default)
+              else if (msgType != 'image')
+                RichText(
+                  text: _parseHtmlToTextSpan(
+                    message.body,
+                    TextStyle(fontSize: 14.5, color: textColor),
                   ),
                 ),
-                if (isOutgoing) ...[
-                  SizedBox(width: 4),
-                  _buildStatusIcon(message.status),
+
+              // Caption glued directly under image/video (single block, like
+              // WhatsApp) instead of the caption being silently dropped.
+              if ((msgType == 'image' || msgType == 'video') &&
+                  message.body.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: RichText(
+                    text: _parseHtmlToTextSpan(message.body,
+                        TextStyle(fontSize: 14.5, color: textColor)),
+                  ),
+                ),
+
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message.timestamp.length >= 16
+                        ? message.timestamp.substring(11, 16)
+                        : message.timestamp,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isOutgoing
+                          ? (isDark
+                              ? Colors.white.withAlpha(160)
+                              : const Color(0xFF1A3C34).withValues(alpha: 0.55))
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.24),
+                    ),
+                  ),
+                  if (isOutgoing) ...[
+                    SizedBox(width: 4),
+                    _buildStatusIcon(message.status),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -2112,7 +2182,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
   /// [CachedNetworkImage] — [DefaultCacheManager.getSingleFile] only hits
   /// the network if the file isn't cached yet, so "download" here is
   /// usually just copying an already-fetched file into the gallery.
-  Future<void> _downloadOrShareMedia(ChatMessage message, {required bool share}) async {
+  Future<void> _downloadOrShareMedia(ChatMessage message,
+      {required bool share}) async {
     final url = message.mediaUrl;
     if (url == null || url.isEmpty || _isDownloadingMedia) return;
 
@@ -2136,7 +2207,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           await savedDir.create(recursive: true);
         }
         final ext = _guessMediaExtension(message);
-        final fileName = 'whatsclick_${DateTime.now().millisecondsSinceEpoch}$ext';
+        final fileName =
+            'whatsclick_${DateTime.now().millisecondsSinceEpoch}$ext';
         await file.copy('${savedDir.path}/$fileName');
         if (mounted) _showChatNotice('Fichier enregistré');
       }
@@ -2163,9 +2235,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
               )
-            : const Icon(Icons.more_vert_rounded, color: Colors.white, size: 22),
+            : const Icon(Icons.more_vert_rounded,
+                color: Colors.white, size: 22),
         onSelected: (value) {
           if (value == 'download') {
             _downloadOrShareMedia(message, share: false);
@@ -2216,7 +2290,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   imageUrl: imageUrl,
                   fit: BoxFit.contain,
                   errorWidget: (_, __, ___) => const Center(
-                    child: Text('Impossible de charger l\'image', style: TextStyle(color: Colors.white)),
+                    child: Text('Impossible de charger l\'image',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ),
@@ -2231,7 +2306,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   CircleAvatar(
                     backgroundColor: Colors.black.withValues(alpha: 0.6),
                     child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                      icon: const Icon(Icons.close_rounded,
+                          color: Colors.white, size: 22),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -2264,7 +2340,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   CircleAvatar(
                     backgroundColor: Colors.black.withValues(alpha: 0.6),
                     child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                      icon: const Icon(Icons.close_rounded,
+                          color: Colors.white, size: 22),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -2310,6 +2387,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             width: 220,
             height: 220,
             fit: BoxFit.cover,
+            memCacheWidth: 440,
+            memCacheHeight: 440,
             placeholder: (context, url) => Container(
               width: 220,
               height: 220,
@@ -2417,13 +2496,12 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        left: 16, 
-        right: 16, 
-        top: 16, 
-        bottom: MediaQuery.of(context).padding.bottom > 0 
-            ? MediaQuery.of(context).padding.bottom + 8 
-            : 16
-      ),
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).padding.bottom > 0
+              ? MediaQuery.of(context).padding.bottom + 8
+              : 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6),
         border: Border(
@@ -2438,7 +2516,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           Text(
             'La fenêtre de service de 24 heures est fermée.',
             style: TextStyle(
-              fontSize: 14, 
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -2447,8 +2525,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           Text(
             'Pour reprendre la conversation, vous devez envoyer un modèle de message.',
             style: TextStyle(
-              fontSize: 12, 
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontSize: 12,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -2458,7 +2539,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             height: 48,
             child: ElevatedButton.icon(
               onPressed: _showTemplatesSheet,
-              icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white, size: 20),
+              icon: const Icon(Icons.dashboard_customize_rounded,
+                  color: Colors.white, size: 20),
               label: const Text(
                 'Envoyer un modèle',
                 style: TextStyle(
@@ -2531,7 +2613,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               children: [
                 Text(
                   'Réponse à $label',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _accentColor),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _accentColor),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -2540,14 +2625,21 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7)),
                 ),
               ],
             ),
           ),
           IconButton(
             icon: Icon(Icons.close_rounded,
-                size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                size: 18,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5)),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () => setState(() => _replyingTo = null),
@@ -2587,38 +2679,43 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   children: [
-            // Dynamic shortcuts from bot quick replies loaded in _cannedReplies
-            ..._cannedReplies
-                .where((r) => r['is_bot'] == true)
-                .take(3)
-                .map((r) {
-              final shortcut = r['shortcut']?.toString() ?? '';
-              final name = r['name']?.toString() ?? shortcut;
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildShortcutPill(name, () {
-                    final msg = r['message']?.toString() ?? '';
-                    final botId = r['bot_id'];
-                    final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
-                    if (botIdInt > 0) {
-                      _confirmBotReply(name, msg, botIdInt);
-                    } else {
-                      setState(() {
-                        _messageController.text = msg.isNotEmpty ? msg : shortcut;
-                        _messageController.selection = TextSelection.fromPosition(
-                          TextPosition(offset: _messageController.text.length),
-                        );
-                      });
-                    }
-                  }, isDark, isHighlight: false),
-                  const SizedBox(width: 6),
-                ],
-              );
-            }),
-            _buildShortcutPill(
-                '📄 Envoyer un modèle', _showTemplatesSheet, isDark,
-                isHighlight: true),
+                    // Dynamic shortcuts from bot quick replies loaded in _cannedReplies
+                    ..._cannedReplies
+                        .where((r) => r['is_bot'] == true)
+                        .take(3)
+                        .map((r) {
+                      final shortcut = r['shortcut']?.toString() ?? '';
+                      final name = r['name']?.toString() ?? shortcut;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildShortcutPill(name, () {
+                            final msg = r['message']?.toString() ?? '';
+                            final botId = r['bot_id'];
+                            final botIdInt = botId != null
+                                ? (int.tryParse(botId.toString()) ?? 0)
+                                : 0;
+                            if (botIdInt > 0) {
+                              _confirmBotReply(name, msg, botIdInt);
+                            } else {
+                              setState(() {
+                                _messageController.text =
+                                    msg.isNotEmpty ? msg : shortcut;
+                                _messageController.selection =
+                                    TextSelection.fromPosition(
+                                  TextPosition(
+                                      offset: _messageController.text.length),
+                                );
+                              });
+                            }
+                          }, isDark, isHighlight: false),
+                          const SizedBox(width: 6),
+                        ],
+                      );
+                    }),
+                    _buildShortcutPill(
+                        '📄 Envoyer un modèle', _showTemplatesSheet, isDark,
+                        isHighlight: true),
                   ],
                 ),
               ),
@@ -2637,25 +2734,47 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                 margin: const EdgeInsets.only(bottom: 6),
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  children: ['👍', '❤️', '😂', '🔥', '🙏', '👋', '😊', '🎉', '💯', '👏', '🎁', '🚀', '⭐', '✔️', '👀'].map((emoji) {
+                  children: [
+                    '👍',
+                    '❤️',
+                    '😂',
+                    '🔥',
+                    '🙏',
+                    '👋',
+                    '😊',
+                    '🎉',
+                    '💯',
+                    '👏',
+                    '🎁',
+                    '🚀',
+                    '⭐',
+                    '✔️',
+                    '👀'
+                  ].map((emoji) {
                     return InkWell(
                       onTap: () {
                         setState(() {
                           _messageController.text += emoji;
-                          _messageController.selection = TextSelection.fromPosition(
-                            TextPosition(offset: _messageController.text.length),
+                          _messageController.selection =
+                              TextSelection.fromPosition(
+                            TextPosition(
+                                offset: _messageController.text.length),
                           );
                         });
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         margin: const EdgeInsets.only(right: 4),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          color: isDark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(emoji, style: const TextStyle(fontSize: 20)),
+                        child:
+                            Text(emoji, style: const TextStyle(fontSize: 20)),
                       ),
                     );
                   }).toList(),
@@ -2733,7 +2852,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                   minLines: 1,
                                   maxLines: 5,
                                   style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
                                       fontSize: 14),
                                   decoration: InputDecoration(
                                     // Emoji toggle lives here, at the field's
@@ -2743,7 +2864,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                       icon: Icon(
                                         _showEmojiRow
                                             ? Icons.keyboard_rounded
-                                            : Icons.sentiment_satisfied_alt_rounded,
+                                            : Icons
+                                                .sentiment_satisfied_alt_rounded,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
@@ -2757,9 +2879,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                         });
                                       },
                                     ),
-                                    prefixIconConstraints:
-                                        const BoxConstraints(minWidth: 36, minHeight: 36),
-                                    hintText: "Message ou '/' pour réponses rapides...",
+                                    prefixIconConstraints: const BoxConstraints(
+                                        minWidth: 36, minHeight: 36),
+                                    hintText:
+                                        "Message ou '/' pour réponses rapides...",
                                     hintStyle: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -2770,7 +2893,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
                                     isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                   ),
                                 ),
                               ),
@@ -2869,12 +2993,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
                         width: 56,
                         height: 56,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        memCacheWidth: 112,
+                        memCacheHeight: 112,
+                        errorWidget: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
                     if (isVideo)
@@ -2965,15 +3091,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  void _showMessageActionsPopup(BuildContext context, ChatMessage message, Offset tapPosition) {
+  void _showMessageActionsPopup(
+      BuildContext context, ChatMessage message, Offset tapPosition) {
     final screenSize = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Calculate position
     double top = tapPosition.dy;
     double left = tapPosition.dx;
     const double menuWidth = 220;
-    const double menuHeight = 250; 
+    const double menuHeight = 250;
 
     if (top + menuHeight > screenSize.height) {
       top = top - menuHeight - 20;
@@ -3013,7 +3140,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                     children: [
                       // Emojis Row
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: ['❤️', '👍', '😂', '😮', '😢', '🙏']
@@ -3022,12 +3150,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                                       Navigator.pop(context);
                                       _sendEmojiReaction(message, emoji);
                                     },
-                                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                                    child: Text(emoji,
+                                        style: const TextStyle(fontSize: 22)),
                                   ))
                               .toList(),
                         ),
                       ),
-                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      Divider(
+                          height: 1,
+                          color: isDark ? Colors.white24 : Colors.black12),
                       _buildPopupMenuItem(
                         icon: Icons.copy_rounded,
                         text: 'Copier',
@@ -3038,7 +3169,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                           _showChatNotice('Message copié');
                         },
                       ),
-                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      Divider(
+                          height: 1,
+                          color: isDark ? Colors.white24 : Colors.black12),
                       _buildPopupMenuItem(
                         icon: Icons.reply_rounded,
                         text: 'Répondre',
@@ -3048,7 +3181,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                           _setReplyTarget(message);
                         },
                       ),
-                      Divider(height: 1, color: isDark ? Colors.white24 : Colors.black12),
+                      Divider(
+                          height: 1,
+                          color: isDark ? Colors.white24 : Colors.black12),
                       _buildPopupMenuItem(
                         icon: Icons.info_outline_rounded,
                         text: 'Infos',
@@ -3081,7 +3216,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: isDark ? Colors.white70 : Colors.black87),
+            Icon(icon,
+                size: 20, color: isDark ? Colors.white70 : Colors.black87),
             const SizedBox(width: 12),
             Text(
               text,
@@ -3102,8 +3238,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Infos du message', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Infos du message',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3111,21 +3249,26 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               // Only outgoing messages have a sending agent — incoming ones
               // are from the contact, so "Agent" doesn't apply there.
               if (!message.isIncoming) ...[
-                _buildInfoRow(Icons.person_outline, 'Agent', message.vendorName ?? 'Non renseigné'),
+                _buildInfoRow(Icons.person_outline, 'Agent',
+                    message.vendorName ?? 'Non renseigné'),
                 const SizedBox(height: 12),
               ],
-              _buildInfoRow(Icons.access_time_rounded, 'Envoyé le', formatDate(message.createdAt)),
+              _buildInfoRow(Icons.access_time_rounded, 'Envoyé le',
+                  formatDate(message.createdAt)),
               const SizedBox(height: 12),
               _buildInfoRow(
-                  message.isIncoming ? Icons.call_received_rounded : Icons.check_circle_outline_rounded, 
-                  'Statut', 
+                  message.isIncoming
+                      ? Icons.call_received_rounded
+                      : Icons.check_circle_outline_rounded,
+                  'Statut',
                   message.status.toUpperCase()),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Fermer', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('Fermer',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -3141,8 +3284,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(label,
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ),
       ],
@@ -3164,13 +3310,16 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             onPressed: () {
               Navigator.pop(ctx);
               _showChatNotice('Envoi de la réponse auto...');
-              ApiService().sendQuickReply(widget.contact.uid, botIdInt).then((sent) {
+              ApiService()
+                  .sendQuickReply(widget.contact.uid, botIdInt)
+                  .then((sent) {
                 if (mounted) {
                   if (sent) {
                     _showChatNotice('Réponse auto envoyée : $name');
                     _loadMessages(silent: true);
                   } else {
-                    _showChatNotice('Erreur lors de l\'envoi de la réponse auto');
+                    _showChatNotice(
+                        'Erreur lors de l\'envoi de la réponse auto');
                   }
                 }
               });
@@ -3185,7 +3334,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       ),
     );
   }
-
 }
 
 /// Inline video bubble with a small play icon; tapping opens the fullscreen
@@ -3229,7 +3377,12 @@ class _VideoBubbleState extends State<VideoBubble> {
       return Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text('Vidéo en cours de traitement...',
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+            style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5))),
       );
     }
 
@@ -3262,9 +3415,11 @@ class _VideoBubbleState extends State<VideoBubble> {
                   ),
                 )
               else if (_initFailed)
-                const Icon(Icons.broken_image_rounded, color: Colors.white54, size: 32)
+                const Icon(Icons.broken_image_rounded,
+                    color: Colors.white54, size: 32)
               else
-                const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                const CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
               Container(
                 width: 44,
                 height: 44,
@@ -3272,7 +3427,8 @@ class _VideoBubbleState extends State<VideoBubble> {
                   color: Colors.black.withValues(alpha: 0.45),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 28),
               ),
               if (widget.onExpand != null)
                 Positioned(
@@ -3284,7 +3440,8 @@ class _VideoBubbleState extends State<VideoBubble> {
                       color: Colors.black.withValues(alpha: 0.45),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 16),
+                    child: const Icon(Icons.fullscreen_rounded,
+                        color: Colors.white, size: 16),
                   ),
                 ),
             ],
@@ -3338,7 +3495,9 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          _controller.value.isPlaying ? _controller.pause() : _controller.play();
+          _controller.value.isPlaying
+              ? _controller.pause()
+              : _controller.play();
         });
       },
       child: AspectRatio(
@@ -3348,7 +3507,8 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
           children: [
             VideoPlayer(_controller),
             if (!_controller.value.isPlaying)
-              const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 64),
+              const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 64),
             VideoProgressIndicator(_controller, allowScrubbing: true),
           ],
         ),
@@ -3357,79 +3517,10 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   }
 }
 
-// Custom Voice note component
-class VoicePlayBubble extends StatefulWidget {
+// Custom Voice note component powered by unified VoicePlayerService
+class VoicePlayBubble extends StatelessWidget {
   final ChatMessage message;
   const VoicePlayBubble({super.key, required this.message});
-
-  @override
-  State<VoicePlayBubble> createState() => _VoicePlayBubbleState();
-}
-
-class _VoicePlayBubbleState extends State<VoicePlayBubble> {
-  final AudioPlayer _player = AudioPlayer();
-  PlayerState _playerState = PlayerState.stopped;
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-  Timer? _progressPoller;
-
-  @override
-  void initState() {
-    super.initState();
-    _player.onPlayerStateChanged.listen((state) {
-      if (mounted) setState(() => _playerState = state);
-      if (state == PlayerState.playing) {
-        _startProgressPolling();
-      } else {
-        _progressPoller?.cancel();
-      }
-    });
-    _player.onDurationChanged.listen((d) {
-      if (mounted) setState(() => _duration = d);
-    });
-    _player.onPositionChanged.listen((p) {
-      if (mounted) setState(() => _position = p);
-    });
-    _player.onPlayerComplete.listen((_) {
-      _progressPoller?.cancel();
-      if (mounted) setState(() => _position = Duration.zero);
-    });
-  }
-
-  // onPositionChanged doesn't fire reliably for every source/platform
-  // combination — the progress bar and time countdown just sat frozen.
-  // Poll the player directly as a robust fallback while playing.
-  void _startProgressPolling() {
-    _progressPoller?.cancel();
-    _progressPoller = Timer.periodic(const Duration(milliseconds: 250), (_) async {
-      if (!mounted || _playerState != PlayerState.playing) return;
-      final position = await _player.getCurrentPosition();
-      final duration = await _player.getDuration();
-      if (!mounted) return;
-      setState(() {
-        if (position != null) _position = position;
-        if (duration != null && duration > Duration.zero) _duration = duration;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _progressPoller?.cancel();
-    _player.dispose();
-    super.dispose();
-  }
-
-  Future<void> _togglePlay() async {
-    final url = widget.message.mediaUrl;
-    if (url == null || url.isEmpty) return;
-
-    if (_playerState == PlayerState.playing) {
-      await _player.pause();
-    } else {
-      await _player.play(UrlSource(url));
-    }
-  }
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
@@ -3439,87 +3530,100 @@ class _VoicePlayBubbleState extends State<VoicePlayBubble> {
 
   @override
   Widget build(BuildContext context) {
+    final voiceService = VoicePlayerService();
+    final url = message.mediaUrl ?? '';
+    final hasUrl = url.isNotEmpty;
     const accentColor = Color(0xFF2DD4BF);
-    final isPlaying = _playerState == PlayerState.playing;
-    final hasUrl =
-        widget.message.mediaUrl != null && widget.message.mediaUrl!.isNotEmpty;
-    // If duration never resolves, don't let the bar collapse to an
-    // unusable ~0-1ms range — keep it at least as large as the current
-    // position so playback still visibly progresses.
-    final total = _duration.inMilliseconds > _position.inMilliseconds
-        ? _duration.inMilliseconds.toDouble()
-        : (_position.inMilliseconds > 0 ? _position.inMilliseconds.toDouble() + 1000 : 1.0);
-    final current = _position.inMilliseconds.clamp(0, total.toInt()).toDouble();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: hasUrl ? _togglePlay : null,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withAlpha(40),
-                borderRadius: BorderRadius.circular(10),
+    return AnimatedBuilder(
+      animation: voiceService,
+      builder: (context, _) {
+        final isPlaying = voiceService.isPlaying(url);
+        final isActive = voiceService.isActive(url);
+        final duration = isActive ? voiceService.duration : Duration.zero;
+        final position = isActive ? voiceService.position : Duration.zero;
+
+        final total = duration.inMilliseconds > position.inMilliseconds
+            ? duration.inMilliseconds.toDouble()
+            : (position.inMilliseconds > 0
+                ? position.inMilliseconds.toDouble() + 1000
+                : 1.0);
+        final current =
+            position.inMilliseconds.clamp(0, total.toInt()).toDouble();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: hasUrl ? () => voiceService.togglePlay(url) : null,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withAlpha(40),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: hasUrl ? accentColor : Colors.grey,
+                    size: 20,
+                  ),
+                ),
               ),
-              child: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: hasUrl ? accentColor : Colors.grey,
-                size: 20,
+              const SizedBox(width: 8),
+              Icon(Icons.mic_rounded,
+                  color: accentColor.withAlpha(150), size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: SizedBox(
+                  width: 140,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      trackHeight: 3,
+                      overlayShape: SliderComponentShape.noOverlay,
+                      activeTrackColor: accentColor,
+                      inactiveTrackColor: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.1),
+                      thumbColor: accentColor,
+                    ),
+                    child: Slider(
+                      value: current,
+                      min: 0,
+                      max: total,
+                      onChanged: hasUrl && isActive
+                          ? (val) {
+                              voiceService
+                                  .seek(Duration(milliseconds: val.toInt()));
+                            }
+                          : null,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(Icons.mic_rounded, color: accentColor.withAlpha(150), size: 16),
-          const SizedBox(width: 4),
-          Expanded(
-            child: SizedBox(
-              width: 140,
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  thumbShape:
-                      const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  trackHeight: 3,
-                  overlayShape: SliderComponentShape.noOverlay,
-                  activeTrackColor: accentColor,
-                  inactiveTrackColor: Theme.of(context)
+              const SizedBox(width: 8),
+              Text(
+                isActive && (isPlaying || position > Duration.zero)
+                    ? _formatDuration(position)
+                    : (hasUrl ? 'Audio' : '--:--'),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withValues(alpha: 0.1),
-                  thumbColor: accentColor,
-                ),
-                child: Slider(
-                  value: current,
-                  min: 0,
-                  max: total,
-                  onChanged: hasUrl
-                      ? (val) {
-                          _player.seek(Duration(milliseconds: val.toInt()));
-                        }
-                      : null,
+                      .withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            isPlaying || _position > Duration.zero
-                ? _formatDuration(_position)
-                : _duration > Duration.zero
-                    ? _formatDuration(_duration)
-                    : '0:00',
-            style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.55)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -3571,7 +3675,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     setState(() {
       _isLoading = true;
     });
-    final products = await ApiService().fetchProducts(search: _searchQuery, categoryUid: _categoryFilter);
+    final products = await ApiService()
+        .fetchProducts(search: _searchQuery, categoryUid: _categoryFilter);
     if (mounted) {
       setState(() {
         _products = products;
@@ -3595,7 +3700,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+          color: selected
+              ? const Color(0xFF10B981)
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
         ),
         alignment: Alignment.center,
@@ -3604,7 +3711,12 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: selected
+                ? Colors.white
+                : Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
           ),
         ),
       ),
@@ -3756,10 +3868,13 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 children: [
                   _categoryFilterChip(label: 'Toutes', value: null),
                   const SizedBox(width: 6),
-                  _categoryFilterChip(label: 'Sans catégorie', value: 'uncategorized'),
+                  _categoryFilterChip(
+                      label: 'Sans catégorie', value: 'uncategorized'),
                   const SizedBox(width: 6),
                   for (final c in _categories) ...[
-                    _categoryFilterChip(label: c['name']?.toString() ?? '', value: c['_uid']?.toString()),
+                    _categoryFilterChip(
+                        label: c['name']?.toString() ?? '',
+                        value: c['_uid']?.toString()),
                     const SizedBox(width: 6),
                   ],
                 ],
@@ -3800,9 +3915,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                   )
                 else
                   GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     controller: widget.scrollController,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
@@ -3812,10 +3929,14 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     itemBuilder: (context, index) {
                       final product = _products[index];
                       final String? imageUrl = product['image_url'];
-                      final double price = double.tryParse(product['price']?.toString() ?? '0') ?? 0;
+                      final double price = double.tryParse(
+                              product['price']?.toString() ?? '0') ??
+                          0;
 
                       return GestureDetector(
-                        onTap: _isSending ? null : () => _confirmAndSendProduct(product),
+                        onTap: _isSending
+                            ? null
+                            : () => _confirmAndSendProduct(product),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
@@ -3837,13 +3958,19 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                 child: Container(
                                   width: double.infinity,
                                   color: Colors.black12,
-                                  child: (imageUrl != null && imageUrl.isNotEmpty)
-                                      ? Image.network(
-                                          imageUrl,
+                                  child: (imageUrl != null &&
+                                          imageUrl.isNotEmpty)
+                                      ? CachedNetworkImage(
+                                          imageUrl: imageUrl,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, err, stack) => const Icon(Icons.shopping_cart, color: Colors.grey, size: 40),
+                                          memCacheWidth: 240,
+                                          memCacheHeight: 240,
+                                          errorWidget: (context, err, stack) =>
+                                              const Icon(Icons.shopping_cart,
+                                                  color: Colors.grey, size: 40),
                                         )
-                                      : const Icon(Icons.shopping_cart, color: Colors.grey, size: 40),
+                                      : const Icon(Icons.shopping_cart,
+                                          color: Colors.grey, size: 40),
                                 ),
                               ),
                               // Info
@@ -3858,7 +3985,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                           fontWeight: FontWeight.w700,
-                                          color: Theme.of(context).colorScheme.onSurface,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
                                           fontSize: 13),
                                     ),
                                     const SizedBox(height: 4),
@@ -3875,14 +4004,23 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                       height: 32,
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF2DD4BF),
+                                          backgroundColor:
+                                              const Color(0xFF2DD4BF),
                                           foregroundColor: Colors.white,
                                           elevation: 0,
                                           padding: EdgeInsets.zero,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8)),
                                         ),
-                                        onPressed: _isSending ? null : () => _confirmAndSendProduct(product),
-                                        child: const Text('Envoyer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                        onPressed: _isSending
+                                            ? null
+                                            : () =>
+                                                _confirmAndSendProduct(product),
+                                        child: const Text('Envoyer',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                   ],
@@ -3906,5 +4044,4 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       ),
     );
   }
-
 }

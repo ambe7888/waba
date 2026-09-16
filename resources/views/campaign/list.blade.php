@@ -127,7 +127,7 @@ $listRoute = $type === 'meta' ? 'vendor.campaign.read.list' : 'vendor.campaign.r
             </a>
         <% } %>
 
-        <% if(__tData.current_status == 'PROCESSING') { %>
+        <% if(__tData.current_status == 'PROCESSING' || __tData.current_status == 'AWAITING_EXECUTION' || __tData.current_status == 'UPCOMING') { %>
             <a data-method="post" href="<%= __Utils.apiURL("{{ route('vendor.campaign.write.abort', [ 'campaignIdOrUid']) }}", {'campaignIdOrUid': __tData._uid}) %>" 
                class="btn btn-danger btn-sm py-1 px-2 lw-ajax-link-action-via-confirm" 
                style="border-radius: 6px;"

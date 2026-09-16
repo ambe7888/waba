@@ -284,6 +284,22 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
                     ->update(['plan_ai_credits' => $planAiCredits]);
 
+                if (!empty($request->add_extra_ai_credits) && is_numeric($request->add_extra_ai_credits) && (int)$request->add_extra_ai_credits != 0) {
+                    $creditsChange = (int)$request->add_extra_ai_credits;
+                    if ($creditsChange > 0) {
+                        \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                            ->increment('extra_ai_credits', $creditsChange);
+                    } else {
+                        $currentModel = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)->first();
+                        $newExtra = max(0, ($currentModel->extra_ai_credits ?? 0) + $creditsChange);
+                        \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                            ->update(['extra_ai_credits' => $newExtra]);
+                    }
+                }
+                try {
+                    \Cache::flush();
+                } catch (\Throwable $e) {}
+
                 // SaaS Automated WhatsApp Notification on Renewal / Activation
                 triggerSaaSRenewalWhatsAppNotification($vendor->_id, $newSub);
 
@@ -446,6 +462,23 @@ class ManualSubscriptionEngine extends BaseEngine implements ManualSubscriptionE
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
                     ->update(['plan_ai_credits' => $planAiCredits]);
             }
+
+            if (!empty($inputData['add_extra_ai_credits']) && is_numeric($inputData['add_extra_ai_credits']) && (int)$inputData['add_extra_ai_credits'] != 0) {
+                $creditsChange = (int)$inputData['add_extra_ai_credits'];
+                if ($creditsChange > 0) {
+                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
+                        ->increment('extra_ai_credits', $creditsChange);
+                } else {
+                    $currentModel = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)->first();
+                    $newExtra = max(0, ($currentModel->extra_ai_credits ?? 0) + $creditsChange);
+                    \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $manualSubscription->vendors__id)
+                        ->update(['extra_ai_credits' => $newExtra]);
+                }
+            }
+            try {
+                \Cache::flush();
+            } catch (\Throwable $e) {}
+
             return $this->engineResponse(1, null, __tr('Manual Subscription updated.'));
         }
         return $this->engineResponse(14, null, __tr('Manual Subscription not updated.'));

@@ -163,6 +163,7 @@ class ManualSubscriptionController extends BaseController
             "status" => [
                 Rule::in(array_keys(configItem('subscription_status')))
             ],
+            'add_extra_ai_credits' => 'nullable|integer',
             'ai_credits' => 'nullable|integer|min:-1',
             'contacts' => 'nullable|integer|min:-1',
             'campaigns' => 'nullable|integer|min:-1',

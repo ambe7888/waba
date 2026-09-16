@@ -4,17 +4,49 @@
         <div id="lwCustomPlanBody" class="lw-form-modal-body"></div>
         <script type="text/template" id="lwCustomPlanBody-template">
             <input type="hidden" name="vendorIdOrUid" value="<%- __tData._uid %>" />
-            
+
+            <!-- Vendor Info & Credits Balance Card -->
+            <div class="card border-0 shadow-sm mb-3 text-white" style="border-radius: 12px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-white-50 text-uppercase font-weight-bold small">{{ __tr('Client') }}</span>
+                            <h4 class="text-white mb-0 font-weight-bold"><%- __tData.vendor_title %></h4>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-white-50 small">{{ __tr('Solde Total') }}</span>
+                            <div class="h3 text-warning font-weight-bold mb-0"><%- __tData.total_ai_credits %> <small class="text-white-50">{{ __tr('crédits') }}</small></div>
+                        </div>
+                    </div>
+                    <hr class="my-2" style="border-color: rgba(255,255,255,0.1);">
+                    <div class="d-flex justify-content-between small text-white-50">
+                        <span>{{ __tr('Inclus dans le plan :') }} <strong class="text-white"><%- __tData.current_plan_ai_credits >= 99999999 ? 'Illimité' : __tData.current_plan_ai_credits %></strong></span>
+                        <span>{{ __tr('Crédits supplémentaires / achetés :') }} <strong class="text-white"><%- __tData.current_extra_ai_credits %></strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instant AI Credits Adjustment Fieldset -->
+            <fieldset class="lw-fieldset mb-3">
+                <legend class="lw-fieldset-legend text-primary">{{ __tr('Ajustement Crédits IA Supplémentaires') }}</legend>
+                <div class="form-group mb-2">
+                    <label for="add_extra_ai_credits" class="font-weight-bold">{{ __tr('Ajouter ou Retirer des crédits (+ ou -)') }}</label>
+                    <input type="number" class="form-control" name="add_extra_ai_credits" id="add_extra_ai_credits" placeholder="{{ __tr('Ex: 500 pour ajouter, -500 pour retirer') }}">
+                    <small class="form-text text-muted">{{ __tr('Entrez un nombre positif pour ajouter des crédits (ex: 500) ou un nombre négatif pour en retirer (ex: -500).') }}</small>
+                </div>
+            </fieldset>
+
             <fieldset class="lw-fieldset mb-3">
                 <legend class="lw-fieldset-legend">{{  __tr('Custom Plan Limits') }}</legend>
-                <div class="alert alert-info">
+                <div class="alert alert-info py-2 small">
                     {{ __tr('Leave fields empty to use the default limits from the assigned plan.') }}
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 form-group mb-3">
-                        <label for="ai_credits">{{ __tr('AI Credits') }}</label>
+                        <label for="ai_credits">{{ __tr('Quota Mensuel Crédits IA (Plan)') }}</label>
                         <input type="number" class="form-control" name="ai_credits" id="ai_credits" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.ai_credits === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.ai_credits !== '' ? 'Default: ' + __tData.plan_defaults.ai_credits : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
+                        <small class="form-text text-muted">{{ __tr('Plafond récurrent mensuel du forfait (-1 pour illimité).') }}</small>
                     </div>
 
                     <div class="col-md-6 form-group mb-3">
@@ -104,8 +136,8 @@
         </script>
         <!-- FORM FOOTER -->
         <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">{{ __tr('Save Customizations') }}</button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Close') }}</button>
+            <button type="submit" class="btn btn-primary">{{ __tr('Enregistrer') }}</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __tr('Fermer') }}</button>
         </div>
     </x-lw.form>
 </x-lw.modal>

@@ -1549,7 +1549,7 @@ class WhatsAppServiceEngine extends BaseEngine implements WhatsAppServiceEngineI
             // claiming design it discarded every single claimed item,
             // silently dropping 100% of queued sends into the 5-minute
             // stuck-processing timeout instead of ever sending them.
-            if (__isEmpty($queuedMessage)) {
+            if (__isEmpty($queuedMessage) or $queuedMessage->status == 7) {
                 continue;
             }
             $contactsData = $queuedMessage->__data['contact_data'];

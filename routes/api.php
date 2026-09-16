@@ -170,9 +170,9 @@ Route::get('/app-version', function () {
         // check (checkForUpdate() in api_service.dart) only prompts when
         // this is newer than that constant, so a stale value here silently
         // disables the update prompt for everyone already on a newer build.
-        'version' => '1.0.29',
+        'version' => '1.0.30',
         'apk_url' => url('downloads/whatsclick-latest.apk'),
-        'change_log' => "Mise à jour v1.0.29 : Nouveau - envoyez un résumé de commande directement au client depuis l'app.",
+        'change_log' => "Mise à jour v1.0.30 : Fluidité améliorée, mise en cache instantanée des photos/avatars, nouveau lecteur de notes vocales WhatsApp style et réduction de l'utilisation mémoire.",
     ]);
 })->name('api.app_version');
 // Mobile app apis

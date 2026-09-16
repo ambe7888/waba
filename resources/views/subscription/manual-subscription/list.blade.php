@@ -65,13 +65,15 @@
                             
                             <div class="row">
                                 <div class="col-md-6 form-group mb-3">
-                                    <label for="ai_credits">{{ __tr('AI Credits') }}</label>
-                                    <input type="number" class="form-control" name="ai_credits" id="ai_credits" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.ai_credits === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.ai_credits !== '' ? 'Default: ' + __tData.plan_defaults.ai_credits : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
+                                    <label for="add_extra_ai_credits" class="font-weight-bold">{{ __tr('Ajuster les crédits (+ ou -)') }}</label>
+                                    <input type="number" class="form-control" name="add_extra_ai_credits" id="add_extra_ai_credits" placeholder="{{ __tr('Ex: 500 ou -500') }}">
+                                    <small class="form-text text-muted">{{ __tr('Entrez un nombre positif pour ajouter ou négatif pour retirer.') }}</small>
                                 </div>
 
                                 <div class="col-md-6 form-group mb-3">
-                                    <label for="contacts">{{ __tr('Contacts Limit') }}</label>
-                                    <input type="number" class="form-control" name="contacts" id="contacts" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.contacts === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.contacts !== '' ? 'Default: ' + __tData.plan_defaults.contacts : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.contacts : '' %>">
+                                    <label for="ai_credits">{{ __tr('Quota Mensuel Crédits IA (Plan)') }}</label>
+                                    <input type="number" class="form-control" name="ai_credits" id="ai_credits" placeholder="<%- __tData.plan_defaults && __tData.plan_defaults.ai_credits === -1 ? 'Unlimited' : (__tData.plan_defaults && __tData.plan_defaults.ai_credits !== '' ? 'Default: ' + __tData.plan_defaults.ai_credits : '') %>" value="<%- __tData.custom_limits ? __tData.custom_limits.ai_credits : '' %>">
+                                    <small class="form-text text-muted">{{ __tr('Plafond récurrent mensuel (-1 pour illimité).') }}</small>
                                 </div>
                             </div>
 

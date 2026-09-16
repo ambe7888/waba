@@ -96,6 +96,7 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
             'status',
             'scheduled_status' => function ($rowData) use (&$timeNow, &$currentItemStatus) {
                 $statusText = __tr('Upcoming');
+                $currentItemStatus = 'UPCOMING';
                 if (Carbon::parse($rowData['scheduled_at']) < $timeNow) {
                     $statusText = __tr('Awaiting Execution');
                     $currentItemStatus = 'AWAITING_EXECUTION';
@@ -234,15 +235,14 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
             $updateData = [
                 'status' => 6, // Aborted
             ];
-            //Check if package archive
+            //Check if campaign updated
             if ($this->campaignRepository->updateIt($campaign, $updateData)) {
                 // Update queue log messages to aborted status
-                if ($this->whatsAppMessageQueueRepository->fetchInQueueMessageInChunks($campaign->_id)) {
-                    return $this->campaignRepository->transactionResponse(1, ['show_message' => true], __tr('Campaign aborted successfully'));
-                }
+                $this->whatsAppMessageQueueRepository->fetchInQueueMessageInChunks($campaign->_id);
+                return $this->campaignRepository->transactionResponse(1, ['show_message' => true], __tr('Campaign aborted successfully'));
             }
 
-            // if failed to archive
+            // if failed to abort
             return $this->campaignRepository->transactionResponse(2, ['show_message' => true], __tr('Failed to abort Campaign'));
         });
 
@@ -294,6 +294,7 @@ class CampaignEngine extends BaseEngine implements CampaignEngineInterface
         if (Carbon::parse($campaign->scheduled_at) < $timeNow) {
             // __dd($campaign->toArray());
             $statusText = __tr('Awaiting Execution');
+            $campaignStatus = 'awaiting_execution';
             if (($campaign->queue_pending_messages_count or $campaign->queue_processing_messages_count) and ($campaign->message_log_count or $campaign->queue_failed_messages_count)) {
                 $statusText = __tr('Processing');
                 $campaignStatus = 'processing';

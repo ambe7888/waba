@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import '../services/theme_service.dart';
@@ -61,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen>
   StreamSubscription<Map<String, dynamic>>? _pusherSubscription;
   Timer? _pollingTimer;
   Timer? _searchDebouncer;
+
   /// When the fallback refresh last actually ran - see _startKeepalive().
   DateTime? _lastKeepaliveRefresh;
 
@@ -68,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen>
   final List<String> _selectedLabelFilters = [];
   List<ContactLabel> _allUniqueLabels = [];
   String _assignedFilter = 'all';
-  
+
   // Date filter state
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
@@ -76,8 +78,10 @@ class _HomeScreenState extends State<HomeScreen>
   // Notification badge counts
   int _unreadNewCount = 0; // tous (unreadMessagesCount)
   int _unreadMyCount = 0; // mes messages (assigned to me)
-  int _unreadUnassignedCount = 0; // non assignés (myUnassignedUnreadMessagesCount)
-  int _unreadNotificationsCount = 0; // bell icon (support replies, campaigns, etc.)
+  int _unreadUnassignedCount =
+      0; // non assignés (myUnassignedUnreadMessagesCount)
+  int _unreadNotificationsCount =
+      0; // bell icon (support replies, campaigns, etc.)
 
   // Agent restricted to "assigned chats only" (see chat.blade.php web
   // equivalent): mirrors the backend's assigned_chats_only permission —
@@ -143,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen>
         if (contactUid != null) {
           final title = message.notification?.title ?? data['title'];
           final body = message.notification?.body ?? data['body'];
-          
+
           setState(() {
             final idx = _contacts.indexWhere((c) => c.uid == contactUid);
             if (idx != -1) {
@@ -247,7 +251,6 @@ class _HomeScreenState extends State<HomeScreen>
     UpdateDialog.show(context, updateInfo);
   }
 
-
   Future<void> _loadContacts({
     bool silent = false,
     bool reset = false,
@@ -274,7 +277,11 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: 1,
-        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread' || _assignedFilter == 'active-24h') ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' ||
+                _assignedFilter == 'unread' ||
+                _assignedFilter == 'active-24h')
+            ? null
+            : _assignedFilter,
         search: _searchController.text,
         unreadOnly: _assignedFilter == 'unread',
         active24hOnly: _assignedFilter == 'active-24h',
@@ -284,17 +291,26 @@ class _HomeScreenState extends State<HomeScreen>
         // Network failure/timeout: keep whatever contacts are already
         // shown instead of wiping the list to a false "empty" state.
         if (mounted) {
-          setState(() { _isLoading = false; _isLoadingMore = false; });
+          setState(() {
+            _isLoading = false;
+            _isLoadingMore = false;
+          });
           if (!silent) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Impossible de charger les discussions. Vérifiez votre connexion.')),
+              const SnackBar(
+                  content: Text(
+                      'Impossible de charger les discussions. Vérifiez votre connexion.')),
             );
           }
         }
         return;
       }
       if (data.isEmpty) {
-        if (mounted) setState(() { _isLoading = false; _isLoadingMore = false; });
+        if (mounted)
+          setState(() {
+            _isLoading = false;
+            _isLoadingMore = false;
+          });
         return;
       }
       final List<Contact> loaded = data['contacts'] ?? [];
@@ -369,7 +385,11 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await ApiService().fetchContacts(
         page: _nextPage,
-        assigned: (_assignedFilter == 'all' || _assignedFilter == 'unread' || _assignedFilter == 'active-24h') ? null : _assignedFilter,
+        assigned: (_assignedFilter == 'all' ||
+                _assignedFilter == 'unread' ||
+                _assignedFilter == 'active-24h')
+            ? null
+            : _assignedFilter,
         search: _searchController.text,
         unreadOnly: _assignedFilter == 'unread',
         active24hOnly: _assignedFilter == 'active-24h',
@@ -447,22 +467,26 @@ class _HomeScreenState extends State<HomeScreen>
 
         // Label filter
         final matchesLabel = _selectedLabelFilters.isEmpty ||
-            (_selectedLabelFilters.contains('__unread') && contact.unreadCount > 0) ||
+            (_selectedLabelFilters.contains('__unread') &&
+                contact.unreadCount > 0) ||
             contact.labels.any((l) => _selectedLabelFilters.contains(l.title));
 
         // Date filter
         bool matchesDate = true;
         if (_filterStartDate != null || _filterEndDate != null) {
           if (contact.lastMessageTime != null) {
-            final msgDate = DateTime.tryParse(contact.lastMessageTime!)?.toLocal();
+            final msgDate =
+                DateTime.tryParse(contact.lastMessageTime!)?.toLocal();
             if (msgDate != null) {
               final msgDay = DateTime(msgDate.year, msgDate.month, msgDate.day);
               if (_filterStartDate != null) {
-                final startDay = DateTime(_filterStartDate!.year, _filterStartDate!.month, _filterStartDate!.day);
+                final startDay = DateTime(_filterStartDate!.year,
+                    _filterStartDate!.month, _filterStartDate!.day);
                 if (msgDay.isBefore(startDay)) matchesDate = false;
               }
               if (_filterEndDate != null) {
-                final endDay = DateTime(_filterEndDate!.year, _filterEndDate!.month, _filterEndDate!.day, 23, 59, 59);
+                final endDay = DateTime(_filterEndDate!.year,
+                    _filterEndDate!.month, _filterEndDate!.day, 23, 59, 59);
                 if (msgDay.isAfter(endDay)) matchesDate = false;
               }
             } else {
@@ -542,7 +566,8 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         const Text(
                           'Filtrer les conversations',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close_rounded),
@@ -560,7 +585,8 @@ class _HomeScreenState extends State<HomeScreen>
                         // Date Range
                         const Text(
                           'Période',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -570,29 +596,36 @@ class _HomeScreenState extends State<HomeScreen>
                                 onTap: () async {
                                   final date = await showDatePicker(
                                     context: context,
-                                    initialDate: _filterStartDate ?? DateTime.now(),
+                                    initialDate:
+                                        _filterStartDate ?? DateTime.now(),
                                     firstDate: DateTime(2020),
                                     lastDate: DateTime(2100),
                                   );
                                   if (date != null) {
-                                    setModalState(() => _filterStartDate = date);
+                                    setModalState(
+                                        () => _filterStartDate = date);
                                     setState(() {});
                                   }
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15)),
+                                    border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.15)),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_today_rounded, size: 16),
+                                      const Icon(Icons.calendar_today_rounded,
+                                          size: 16),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          _filterStartDate != null 
-                                              ? "${_filterStartDate!.day.toString().padLeft(2,'0')}/${_filterStartDate!.month.toString().padLeft(2,'0')}/${_filterStartDate!.year}"
+                                          _filterStartDate != null
+                                              ? "${_filterStartDate!.day.toString().padLeft(2, '0')}/${_filterStartDate!.month.toString().padLeft(2, '0')}/${_filterStartDate!.year}"
                                               : "Date début",
                                           style: const TextStyle(fontSize: 13),
                                           overflow: TextOverflow.ellipsis,
@@ -601,10 +634,12 @@ class _HomeScreenState extends State<HomeScreen>
                                       if (_filterStartDate != null)
                                         InkWell(
                                           onTap: () {
-                                            setModalState(() => _filterStartDate = null);
+                                            setModalState(
+                                                () => _filterStartDate = null);
                                             setState(() {});
                                           },
-                                          child: const Icon(Icons.close, size: 16),
+                                          child:
+                                              const Icon(Icons.close, size: 16),
                                         ),
                                     ],
                                   ),
@@ -617,7 +652,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 onTap: () async {
                                   final date = await showDatePicker(
                                     context: context,
-                                    initialDate: _filterEndDate ?? DateTime.now(),
+                                    initialDate:
+                                        _filterEndDate ?? DateTime.now(),
                                     firstDate: DateTime(2020),
                                     lastDate: DateTime(2100),
                                   );
@@ -629,17 +665,22 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15)),
+                                    border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.15)),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_today_rounded, size: 16),
+                                      const Icon(Icons.calendar_today_rounded,
+                                          size: 16),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          _filterEndDate != null 
-                                              ? "${_filterEndDate!.day.toString().padLeft(2,'0')}/${_filterEndDate!.month.toString().padLeft(2,'0')}/${_filterEndDate!.year}"
+                                          _filterEndDate != null
+                                              ? "${_filterEndDate!.day.toString().padLeft(2, '0')}/${_filterEndDate!.month.toString().padLeft(2, '0')}/${_filterEndDate!.year}"
                                               : "Date fin",
                                           style: const TextStyle(fontSize: 13),
                                           overflow: TextOverflow.ellipsis,
@@ -648,10 +689,12 @@ class _HomeScreenState extends State<HomeScreen>
                                       if (_filterEndDate != null)
                                         InkWell(
                                           onTap: () {
-                                            setModalState(() => _filterEndDate = null);
+                                            setModalState(
+                                                () => _filterEndDate = null);
                                             setState(() {});
                                           },
-                                          child: const Icon(Icons.close, size: 16),
+                                          child:
+                                              const Icon(Icons.close, size: 16),
                                         ),
                                     ],
                                   ),
@@ -660,13 +703,14 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Tags List
                         const Text(
                           'Étiquettes',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 12),
                         Wrap(
@@ -675,31 +719,42 @@ class _HomeScreenState extends State<HomeScreen>
                           children: [
                             FilterChip(
                               label: const Text('Toutes les étiquettes'),
-                              selected: _selectedLabelFilters.isEmpty || (_selectedLabelFilters.length == 1 && _selectedLabelFilters.contains('__unread')),
-                              selectedColor: ThemeService.primaryColor.withValues(alpha: 0.2),
+                              selected: _selectedLabelFilters.isEmpty ||
+                                  (_selectedLabelFilters.length == 1 &&
+                                      _selectedLabelFilters
+                                          .contains('__unread')),
+                              selectedColor: ThemeService.primaryColor
+                                  .withValues(alpha: 0.2),
                               labelStyle: TextStyle(
-                                color: (_selectedLabelFilters.isEmpty || (_selectedLabelFilters.length == 1 && _selectedLabelFilters.contains('__unread')))
+                                color: (_selectedLabelFilters.isEmpty ||
+                                        (_selectedLabelFilters.length == 1 &&
+                                            _selectedLabelFilters
+                                                .contains('__unread')))
                                     ? ThemeService.primaryColor
                                     : Theme.of(context).colorScheme.onSurface,
                               ),
                               onSelected: (selected) {
                                 if (selected) {
                                   setState(() {
-                                    _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                    _selectedLabelFilters
+                                        .removeWhere((l) => l != '__unread');
                                   });
                                   setModalState(() {});
                                 }
                               },
                             ),
                             ..._allUniqueLabels.map((label) {
-                              final isSelected = _selectedLabelFilters.contains(label.title);
+                              final isSelected =
+                                  _selectedLabelFilters.contains(label.title);
                               final color = _parseColor(label.bgColor);
                               return FilterChip(
                                 label: Text(label.title),
                                 selected: isSelected,
                                 selectedColor: color.withValues(alpha: 0.2),
                                 labelStyle: TextStyle(
-                                  color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                                  color: isSelected
+                                      ? color
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                                 onSelected: (selected) {
                                   setState(() {
@@ -730,7 +785,8 @@ class _HomeScreenState extends State<HomeScreen>
                           child: OutlinedButton(
                             onPressed: () {
                               setState(() {
-                                _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                _selectedLabelFilters
+                                    .removeWhere((l) => l != '__unread');
                                 _filterStartDate = null;
                                 _filterEndDate = null;
                               });
@@ -740,7 +796,8 @@ class _HomeScreenState extends State<HomeScreen>
                             },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             child: const Text('Réinitialiser'),
                           ),
@@ -756,7 +813,8 @@ class _HomeScreenState extends State<HomeScreen>
                               backgroundColor: ThemeService.primaryColor,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             child: const Text('Appliquer'),
                           ),
@@ -809,11 +867,12 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final parsedDate = DateTime.parse(timestamp).toLocal();
       final now = DateTime.now();
-      
+
       final today = DateTime(now.year, now.month, now.day);
       final yesterday = today.subtract(const Duration(days: 1));
-      final msgDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
-      
+      final msgDate =
+          DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+
       if (msgDate == today) {
         return "${parsedDate.hour.toString().padLeft(2, '0')}:${parsedDate.minute.toString().padLeft(2, '0')}";
       } else if (msgDate == yesterday) {
@@ -846,9 +905,10 @@ class _HomeScreenState extends State<HomeScreen>
     // Generate a color based on the contact name hash
     final hash = contact.name.hashCode;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Colored text and border
-    final color = HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.8, 0.45).toColor();
+    final color =
+        HSLColor.fromAHSL(1, (hash % 360).toDouble(), 0.8, 0.45).toColor();
     // White background in light mode, dark surface in dark mode
     final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
 
@@ -862,12 +922,24 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       child: contact.avatar != null && contact.avatar!.isNotEmpty
           ? ClipOval(
-              child: Image.network(
-                contact.avatar!,
+              child: CachedNetworkImage(
+                imageUrl: contact.avatar!,
                 width: 52,
                 height: 52,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(
+                memCacheWidth: 104,
+                memCacheHeight: 104,
+                placeholder: (_, __) => Center(
+                  child: Text(
+                    initials,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Center(
                   child: Text(
                     initials,
                     style: TextStyle(
@@ -898,7 +970,7 @@ class _HomeScreenState extends State<HomeScreen>
       _assignedFilter = filter;
       if (filter == 'unread') {
         if (!_selectedLabelFilters.contains('__unread')) {
-           _selectedLabelFilters.add('__unread');
+          _selectedLabelFilters.add('__unread');
         }
       } else {
         _selectedLabelFilters.remove('__unread');
@@ -954,14 +1026,16 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _unreadNewCount = counts['unreadMessagesCount'] ?? 0;
           _unreadMyCount = counts['myAssignedUnreadMessagesCount'] ?? 0;
-          _unreadUnassignedCount = counts['myUnassignedUnreadMessagesCount'] ?? 0;
+          _unreadUnassignedCount =
+              counts['myUnassignedUnreadMessagesCount'] ?? 0;
         });
       }
     } catch (_) {}
     try {
       final notifData = await ApiService().fetchNotifications();
       if (mounted) {
-        setState(() => _unreadNotificationsCount = notifData['unreadCount'] ?? 0);
+        setState(
+            () => _unreadNotificationsCount = notifData['unreadCount'] ?? 0);
       }
     } catch (_) {}
   }
@@ -1146,7 +1220,9 @@ class _HomeScreenState extends State<HomeScreen>
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        _unreadNotificationsCount > 9 ? '9+' : _unreadNotificationsCount.toString(),
+                        _unreadNotificationsCount > 9
+                            ? '9+'
+                            : _unreadNotificationsCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -1160,7 +1236,8 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => NotificationsScreen(onOpenCampaigns: widget.onOpenCampaigns),
+                  builder: (_) => NotificationsScreen(
+                      onOpenCampaigns: widget.onOpenCampaigns),
                 ),
               );
               _refreshBadgeCounts();
@@ -1221,8 +1298,8 @@ class _HomeScreenState extends State<HomeScreen>
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 0),
                       ),
                     ),
                   ),
@@ -1249,17 +1326,25 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Icon(
                           Icons.filter_list_rounded,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.7),
                         ),
                       ),
-                      if (_selectedLabelFilters.where((l) => l != '__unread').isNotEmpty || _filterStartDate != null || _filterEndDate != null)
+                      if (_selectedLabelFilters
+                              .where((l) => l != '__unread')
+                              .isNotEmpty ||
+                          _filterStartDate != null ||
+                          _filterEndDate != null)
                         Positioned(
                           right: -4,
                           top: -4,
                           child: InkWell(
                             onTap: () {
                               setState(() {
-                                _selectedLabelFilters.removeWhere((l) => l != '__unread');
+                                _selectedLabelFilters
+                                    .removeWhere((l) => l != '__unread');
                                 _filterStartDate = null;
                                 _filterEndDate = null;
                               });
@@ -1271,7 +1356,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 color: Colors.red,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.close_rounded, size: 10, color: Colors.white),
+                              child: const Icon(Icons.close_rounded,
+                                  size: 10, color: Colors.white),
                             ),
                           ),
                         ),
@@ -1383,6 +1469,7 @@ class _HomeScreenState extends State<HomeScreen>
                         backgroundColor: surfaceCard,
                         child: ListView.builder(
                           controller: _scrollController,
+                          cacheExtent: 500.0,
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                           itemCount: _filteredContacts.length +
@@ -1517,7 +1604,8 @@ class _HomeScreenState extends State<HomeScreen>
   /// delivered/read/played/failed.
   Widget _buildDeliveryTick(String? status) {
     const readBlue = Color(0xFF53BDEB);
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+    final muted =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
 
     switch (status) {
       case 'read':
@@ -1528,7 +1616,8 @@ class _HomeScreenState extends State<HomeScreen>
       case 'sent':
         return Icon(Icons.done_rounded, size: 15, color: muted);
       case 'failed':
-        return const Icon(Icons.error_outline_rounded, size: 14, color: Color(0xFFDC2626));
+        return const Icon(Icons.error_outline_rounded,
+            size: 14, color: Color(0xFFDC2626));
       case 'initialize':
       case 'accepted':
         return Icon(Icons.schedule_rounded, size: 13, color: muted);
@@ -1562,87 +1651,94 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-    void _showContactContextMenu(Contact contact) {
-      HapticFeedback.mediumImpact();
-      final isDark = ThemeService().isDark;
-      final rootContext = context;
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (context) {
-          return Container(
-            margin: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.mark_chat_unread_outlined),
-                    title: const Text('Marquer comme non lu'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      if (contact.unreadCount > 0) return;
-                      final idx = _contacts.indexWhere((c) => c.uid == contact.uid);
-                      if (idx != -1) {
+  void _showContactContextMenu(Contact contact) {
+    HapticFeedback.mediumImpact();
+    final isDark = ThemeService().isDark;
+    final rootContext = context;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          margin: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.mark_chat_unread_outlined),
+                  title: const Text('Marquer comme non lu'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    if (contact.unreadCount > 0) return;
+                    final idx =
+                        _contacts.indexWhere((c) => c.uid == contact.uid);
+                    if (idx != -1) {
+                      setState(() {
+                        _contacts[idx] =
+                            _contacts[idx].copyWith(unreadCount: 1);
+                      });
+                      _applyFilters();
+                    }
+                    final success =
+                        await ApiService().markContactAsUnread(contact.uid);
+                    if (!success && mounted) {
+                      final revertIdx =
+                          _contacts.indexWhere((c) => c.uid == contact.uid);
+                      if (revertIdx != -1) {
                         setState(() {
-                          _contacts[idx] = _contacts[idx].copyWith(unreadCount: 1);
+                          _contacts[revertIdx] =
+                              _contacts[revertIdx].copyWith(unreadCount: 0);
                         });
                         _applyFilters();
                       }
-                      final success = await ApiService().markContactAsUnread(contact.uid);
-                      if (!success && mounted) {
-                        final revertIdx = _contacts.indexWhere((c) => c.uid == contact.uid);
-                        if (revertIdx != -1) {
-                          setState(() {
-                            _contacts[revertIdx] = _contacts[revertIdx].copyWith(unreadCount: 0);
-                          });
-                          _applyFilters();
-                        }
-                        if (rootContext.mounted) {
-                          ScaffoldMessenger.of(rootContext).showSnackBar(
-                            const SnackBar(content: Text('Impossible de marquer comme non lu')),
-                          );
-                        }
+                      if (rootContext.mounted) {
+                        ScaffoldMessenger.of(rootContext).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Impossible de marquer comme non lu')),
+                        );
                       }
-                    },
-                  ),
-                ],
-              ),
+                    }
+                  },
+                ),
+              ],
             ),
-          );
-        },
-      );
-    }
+          ),
+        );
+      },
+    );
+  }
 
-    Widget _buildContactCard(
-      Contact contact,
-      int index,
-      Color primaryColor,
-      Color surfaceCard,
-      Color accentColor,
-    ) {
-      final hasUnread = contact.unreadCount > 0;
-      final isDark = ThemeService().isDark;
-  
-      return Padding(
-        key: ValueKey(contact.uid),
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+  Widget _buildContactCard(
+    Contact contact,
+    int index,
+    Color primaryColor,
+    Color surfaceCard,
+    Color accentColor,
+  ) {
+    final hasUnread = contact.unreadCount > 0;
+    final isDark = ThemeService().isDark;
+
+    return Padding(
+      key: ValueKey(contact.uid),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
           onTap: () async {
             final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ChatBoxScreen(contact: contact),
               ),
             );
-            
+
             if (result != null && result is String) {
               setState(() {
                 final idx = _contacts.indexWhere((c) => c.uid == contact.uid);
@@ -1658,7 +1754,7 @@ class _HomeScreenState extends State<HomeScreen>
               });
               _applyFilters();
             }
-            
+
             _loadContacts(silent: true);
           },
           onLongPress: () => _showContactContextMenu(contact),
@@ -1741,7 +1837,8 @@ class _HomeScreenState extends State<HomeScreen>
                             SizedBox(width: 3),
                           ],
                           // Media kind marker (photo/video/document/...).
-                          if (_mediaPreviewIcon(contact.lastMessageType) != null) ...[
+                          if (_mediaPreviewIcon(contact.lastMessageType) !=
+                              null) ...[
                             Icon(
                               _mediaPreviewIcon(contact.lastMessageType),
                               size: 14,

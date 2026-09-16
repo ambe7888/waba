@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "version_code": 1,
+  "version": "1.0.30",
+  "version_code": 30,
   "min_version": "1.0.0",
   "force_update": false,
-  "download_url": "",
-  "changelog": "Version actuelle à jour."
+  "download_url": "https://whats-click.com/downloads/whatsclick-latest.apk",
+  "changelog": "Mise à jour v1.0.30 : Fluidité améliorée, mise en cache instantanée des photos/avatars, nouveau lecteur de notes vocales WhatsApp style et réduction de l'utilisation mémoire."
 }

@@ -493,8 +493,15 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
             $customLimitsResponse[$feat] = Arr::get($customLimits, $feat, '');
         }
 
+        $planAiCredits = $vendor->plan_ai_credits ?? 0;
+        $extraAiCredits = $vendor->extra_ai_credits ?? 0;
+
         return $this->engineReaction(1, [
             '_uid' => $vendor->_uid,
+            'vendor_title' => $vendor->title,
+            'current_plan_ai_credits' => $planAiCredits,
+            'current_extra_ai_credits' => $extraAiCredits,
+            'total_ai_credits' => $planAiCredits + $extraAiCredits,
             'plan_defaults' => $planDefaults,
             'custom_limits' => $customLimitsResponse,
             'custom_plan_charge' => $vendor->custom_plan_charge,
@@ -541,24 +548,48 @@ class VendorEngine extends BaseEngine implements VendorEngineInterface
             'custom_plan_frequency' => (isset($inputData['custom_plan_frequency']) && $inputData['custom_plan_frequency']) ? $inputData['custom_plan_frequency'] : null,
         ];
 
-        if ($this->vendorRepository->updateIt($vendor, $updateData)) {
-            // Sync AI credits if custom ai_credits was set
+        // Update custom limits (may return false/0 if attributes are unchanged/not dirty)
+        $this->vendorRepository->updateIt($vendor, $updateData);
+
+        // Add or deduct extra AI credits immediately if specified
+        if (!empty($inputData['add_extra_ai_credits']) && is_numeric($inputData['add_extra_ai_credits']) && (int)$inputData['add_extra_ai_credits'] != 0) {
+            $creditsChange = (int)$inputData['add_extra_ai_credits'];
+            if ($creditsChange > 0) {
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                    ->increment('extra_ai_credits', $creditsChange);
+            } else {
+                $currentModel = \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)->first();
+                $newExtra = max(0, ($currentModel->extra_ai_credits ?? 0) + $creditsChange);
+                \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                    ->update(['extra_ai_credits' => $newExtra]);
+            }
+        }
+
+        // Sync plan AI credits if custom ai_credits was set
+        if (isset($customLimits['ai_credits'])) {
+            $planAiCredits = ($customLimits['ai_credits'] == -1) ? 999999999 : (int)$customLimits['ai_credits'];
+            \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
+                ->update(['plan_ai_credits' => $planAiCredits]);
+        } else {
             $vendorSubscription = getVendorCurrentActiveSubscription($vendor->_id);
             if ($vendorSubscription) {
                 $activePlanId = $vendorSubscription->plan_id ?? $vendorSubscription->type;
                 $planDetails = getPaidPlans($activePlanId);
                 $aiCreditsLimit = \Illuminate\Support\Arr::get($planDetails, 'features.ai_credits.limit', 0);
-                if (isset($customLimits['ai_credits'])) {
-                    $aiCreditsLimit = $customLimits['ai_credits'];
-                }
                 $planAiCredits = ($aiCreditsLimit == -1) ? 999999999 : (int)$aiCreditsLimit;
                 \App\Yantrana\Components\Vendor\Models\VendorModel::where('_id', $vendor->_id)
                     ->update(['plan_ai_credits' => $planAiCredits]);
             }
-            return $this->engineReaction(1, null, __tr('Custom plan overrides updated successfully.'));
         }
 
-        return $this->engineReaction(14, null, __tr('Failed to update custom plan overrides.'));
+        // Clear vendor dashboard and application cache so changes appear immediately
+        try {
+            \Cache::flush();
+        } catch (\Throwable $e) {
+            // Ignore cache flush exceptions
+        }
+
+        return $this->engineReaction(1, null, __tr('Custom plan overrides updated successfully.'));
     }
 
     /**

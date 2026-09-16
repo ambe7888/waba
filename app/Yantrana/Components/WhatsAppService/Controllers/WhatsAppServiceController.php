@@ -866,32 +866,48 @@ class WhatsAppServiceController extends BaseController
      *
      * @param BaseRequestTwo $request
      * @param string $vendorUid
-     * @return void
+     * @return \Illuminate\Http\Response
      */
     public function webhook(BaseRequestTwo $request, $vendorUid)
     {
         // webhook verification process
         if ($request->isMethod('get')) {
-            if ($request->has('hub_challenge') and $request->has('hub_verify_token')) {
+            $hubChallenge = $request->input('hub_challenge') 
+                ?? $request->query('hub.challenge') 
+                ?? $request->input('hub.challenge');
+            $hubVerifyToken = $request->input('hub_verify_token') 
+                ?? $request->query('hub.verify_token') 
+                ?? $request->input('hub.verify_token');
+
+            if ($hubChallenge && $hubVerifyToken) {
                 $verifyToken = sha1($vendorUid);
-                if ($request->get('hub_verify_token') === $verifyToken) {
+                if ((string) $hubVerifyToken === (string) $verifyToken) {
                     // if its base webhook call from service
-                    if($vendorUid == 'service-whatsapp') {
-                        return response($request->get('hub_challenge'));
+                    if ($vendorUid === 'service-whatsapp') {
+                        return response((string) $hubChallenge, 200)->header('Content-Type', 'text/plain');
                     }
-                    $vendorId = getPublicVendorId($vendorUid);
-                    if (!$vendorId) {
-                        return false;
+
+                    try {
+                        $vendorId = getPublicVendorId($vendorUid);
+                        if ($vendorId) {
+                            // update configuration for webhook
+                            $this->vendorSettingsEngine->updateProcess('whatsapp_cloud_api_setup', [
+                                'webhook_verified_at' => now()
+                            ], $vendorId);
+
+                            try {
+                                updateModelsViaVendorBroadcast($vendorUid, [
+                                    'isWebhookVerified' => true
+                                ]);
+                            } catch (\Throwable $e) {
+                                \Illuminate\Support\Facades\Log::warning("Vendor broadcast failed during webhook verification for vendorUid={$vendorUid}: " . $e->getMessage());
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error("Webhook verification processing error for vendorUid={$vendorUid}: " . $e->getMessage());
                     }
-                    
-                    // update configuration for webhook
-                    $this->vendorSettingsEngine->updateProcess('whatsapp_cloud_api_setup', [
-                        'webhook_verified_at' => now()
-                    ], $vendorId);
-                    updateModelsViaVendorBroadcast($vendorUid, [
-                        'isWebhookVerified' => true
-                    ]);
-                    return response($request->get('hub_challenge'));
+
+                    return response((string) $hubChallenge, 200)->header('Content-Type', 'text/plain');
                 }
             }
             return response('Invalid request', 403);
@@ -912,7 +928,13 @@ class WhatsAppServiceController extends BaseController
             }
         }
 
-        $this->whatsAppServiceEngine->processWebhook($request, $vendorUid);
+        try {
+            $this->whatsAppServiceEngine->processWebhook($request, $vendorUid);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[WEBHOOK ERROR] processWebhook failed for vendorUid={$vendorUid}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
         return response('done', 200);
     }
 

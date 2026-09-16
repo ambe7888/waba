@@ -22,6 +22,10 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
+  /// Persistent HTTP client with connection pooling and TCP/TLS Keep-Alive.
+  final http.Client _client = http.Client();
+  http.Client get client => _client;
+
   String? _token;
 
   /// Last error message from uploadTempMedia (for UI display)
@@ -111,7 +115,7 @@ class ApiService {
     await prefs.remove('auth_token');
     await prefs.remove('user_role_id');
     await prefs.remove('user_permissions');
-    
+
     // Disconnect websocket
     await PusherService().disconnect();
   }
@@ -126,7 +130,8 @@ class ApiService {
       try {
         final permissions = jsonDecode(permissionsStr) as Map<String, dynamic>;
         if (permissions.containsKey(permissionKey)) {
-          return permissions[permissionKey] == 'allow' || permissions[permissionKey] == true;
+          return permissions[permissionKey] == 'allow' ||
+              permissions[permissionKey] == true;
         }
       } catch (e) {
         debugPrint('Erreur lors de la lecture des permissions : $e');
@@ -180,18 +185,21 @@ class ApiService {
   /// Bearer header is ignored on this one route - so the token has to be
   /// sent that way here, not via _getHeaders(). Returns the raw
   /// `{auth: "..."}` payload Pusher expects, or null on failure.
-  Future<Map<String, dynamic>?> authorizePusherChannel(String channelName, String socketId) async {
+  Future<Map<String, dynamic>?> authorizePusherChannel(
+      String channelName, String socketId) async {
     final url = Uri.parse('${baseApiUrl}broadcasting/auth');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({
-          'channel_name': channelName,
-          'socket_id': socketId,
-          'auth_token': _token,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await _client
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'channel_name': channelName,
+              'socket_id': socketId,
+              'auth_token': _token,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body is Map<String, dynamic>) return body;
@@ -228,7 +236,6 @@ class ApiService {
     }
   }
 
-
   /// Register a new vendor
   Future<Map<String, dynamic>> registerVendor(Map<String, dynamic> data) async {
     final url = Uri.parse('${baseApiUrl}register/vendor');
@@ -244,16 +251,23 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);
         if (body['reaction'] == 1 || body['reaction'] == 'success') {
-          return {'success': true, 'message': body['message'] ?? 'Inscription réussie'};
+          return {
+            'success': true,
+            'message': body['message'] ?? 'Inscription réussie'
+          };
         } else {
           return {
             'success': false,
             'message': body['message'] ?? 'Erreur lors de l\'inscription',
-            'errors': body['data']?['validation_messages'] ?? body['validation_messages']
+            'errors': body['data']?['validation_messages'] ??
+                body['validation_messages']
           };
         }
       } else {
-        return {'success': false, 'message': 'Erreur serveur: ${response.statusCode}'};
+        return {
+          'success': false,
+          'message': 'Erreur serveur: ${response.statusCode}'
+        };
       }
     } catch (e) {
       debugPrint('Registration error: $e');
@@ -309,22 +323,30 @@ class ApiService {
         }
         // Return the actual API error message if available
         return {
-          'success': false, 
-          'two_factor': false, 
+          'success': false,
+          'two_factor': false,
           'message': body['message'] ?? 'Erreur lors de la connexion'
         };
       } else if (response.statusCode == 422) {
         final body = jsonDecode(response.body);
         return {
-          'success': false, 
-          'two_factor': false, 
+          'success': false,
+          'two_factor': false,
           'message': body['message'] ?? 'Identifiants incorrects.'
         };
       }
-      return {'success': false, 'two_factor': false, 'message': 'Erreur serveur (${response.statusCode})'};
+      return {
+        'success': false,
+        'two_factor': false,
+        'message': 'Erreur serveur (${response.statusCode})'
+      };
     } catch (e) {
       if (kDebugMode) debugPrint('Login Error: $e');
-      return {'success': false, 'two_factor': false, 'message': 'Erreur réseau: $e'};
+      return {
+        'success': false,
+        'two_factor': false,
+        'message': 'Erreur réseau: $e'
+      };
     }
   }
 
@@ -404,7 +426,7 @@ class ApiService {
     final url = Uri.parse(
         '${baseApiUrl}vendor/contact/contacts-data?${params.join('&')}');
     try {
-      final response = await http
+      final response = await _client
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
       if (kDebugMode) {
@@ -474,7 +496,9 @@ class ApiService {
     }
     final url = Uri.parse('${baseApiUrl}vendor/dashboard-stats$query');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -482,12 +506,14 @@ class ApiService {
           final data = body['data'];
           if (data is Map<String, dynamic>) {
             if (data['vendorDashboardData'] is Map<String, dynamic>) {
-              final dashboardData = Map<String, dynamic>.from(data['vendorDashboardData'] as Map);
-              
+              final dashboardData =
+                  Map<String, dynamic>.from(data['vendorDashboardData'] as Map);
+
               // Sauvegarder les permissions si présentes
               if (dashboardData['vendorUserPermissions'] != null) {
                 final prefs = await SharedPreferences.getInstance();
-                final permissions = jsonEncode(dashboardData['vendorUserPermissions']);
+                final permissions =
+                    jsonEncode(dashboardData['vendorUserPermissions']);
                 await prefs.setString('user_permissions', permissions);
               }
 
@@ -509,7 +535,9 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchAiSettings() async {
     final url = Uri.parse('${baseApiUrl}vendor/ai-settings');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
@@ -525,7 +553,8 @@ class ApiService {
   /// backend whitelists: open_ai_bot_setup, ai_bot_settings,
   /// bot_timing_settings, flowise_ai_bot_setup — each maps to the matching
   /// section of config/__vendor-settings.php, same as the web settings page.
-  Future<Map<String, dynamic>> saveAiSettings(String pageType, Map<String, dynamic> fields) async {
+  Future<Map<String, dynamic>> saveAiSettings(
+      String pageType, Map<String, dynamic> fields) async {
     final url = Uri.parse('${baseApiUrl}vendor/ai-settings');
     try {
       final response = await http
@@ -539,16 +568,20 @@ class ApiService {
       // VendorSettingsEngine::updateProcess() returns reaction 21 (not the
       // generic 1) on success — a web-specific "saved, reload the page"
       // signal (confirmed against the actual engine code), not an error.
-      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21)) {
+      if (response.statusCode == 200 &&
+          (body['reaction'] == 1 || body['reaction'] == 21)) {
         return {'success': true, 'message': body['message']?.toString()};
       }
       final errors = body['errors'];
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
       } else {
-        message = body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+        message =
+            body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
       }
       return {'success': false, 'message': message};
     } catch (e) {
@@ -561,7 +594,9 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchShopSettings() async {
     final url = Uri.parse('${baseApiUrl}vendor/shop-settings');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
@@ -576,7 +611,8 @@ class ApiService {
   /// Save shop settings (WhatsApp catalog ID, Shopify/WooCommerce
   /// integration). Same reaction-code convention as saveAiSettings — 21
   /// means success (see comment there).
-  Future<Map<String, dynamic>> saveShopSettings(Map<String, dynamic> fields) async {
+  Future<Map<String, dynamic>> saveShopSettings(
+      Map<String, dynamic> fields) async {
     final url = Uri.parse('${baseApiUrl}vendor/shop-settings');
     try {
       final response = await http
@@ -587,16 +623,20 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
       final body = jsonDecode(response.body);
-      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21)) {
+      if (response.statusCode == 200 &&
+          (body['reaction'] == 1 || body['reaction'] == 21)) {
         return {'success': true, 'message': body['message']?.toString()};
       }
       final errors = body['errors'];
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
       } else {
-        message = body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+        message =
+            body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
       }
       return {'success': false, 'message': message};
     } catch (e) {
@@ -627,16 +667,21 @@ class ApiService {
         request.headers.addAll(_getHeaders());
         request.fields['name'] = name;
         request.fields['price'] = price;
-        if (description != null && description.isNotEmpty) request.fields['description'] = description;
-        if (directLink != null && directLink.isNotEmpty) request.fields['direct_link'] = directLink;
-        if (categoryUid != null && categoryUid.isNotEmpty) request.fields['category_uid'] = categoryUid;
+        if (description != null && description.isNotEmpty)
+          request.fields['description'] = description;
+        if (directLink != null && directLink.isNotEmpty)
+          request.fields['direct_link'] = directLink;
+        if (categoryUid != null && categoryUid.isNotEmpty)
+          request.fields['category_uid'] = categoryUid;
         final mimeType = lookupMimeType(imageFile.path)?.split('/');
         request.files.add(await http.MultipartFile.fromPath(
           'image_file',
           imageFile.path,
-          contentType: mimeType != null ? MediaType(mimeType[0], mimeType[1]) : null,
+          contentType:
+              mimeType != null ? MediaType(mimeType[0], mimeType[1]) : null,
         ));
-        final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+        final streamedResponse =
+            await request.send().timeout(const Duration(seconds: 40));
         response = await http.Response.fromStream(streamedResponse);
       } else {
         response = await http
@@ -646,25 +691,37 @@ class ApiService {
               body: jsonEncode({
                 'name': name,
                 'price': price,
-                if (description != null && description.isNotEmpty) 'description': description,
-                if (directLink != null && directLink.isNotEmpty) 'direct_link': directLink,
-                if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
-                if (categoryUid != null && categoryUid.isNotEmpty) 'category_uid': categoryUid,
+                if (description != null && description.isNotEmpty)
+                  'description': description,
+                if (directLink != null && directLink.isNotEmpty)
+                  'direct_link': directLink,
+                if (imageUrl != null && imageUrl.isNotEmpty)
+                  'image_url': imageUrl,
+                if (categoryUid != null && categoryUid.isNotEmpty)
+                  'category_uid': categoryUid,
               }),
             )
             .timeout(const Duration(seconds: 20));
       }
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
-        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+        return {
+          'success': true,
+          'message': body['data']?['message']?.toString() ??
+              body['message']?.toString()
+        };
       }
       final errors = body['errors'];
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
       } else {
-        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'ajout du produit.';
+        message = body['data']?['message']?.toString() ??
+            body['message']?.toString() ??
+            'Erreur lors de l\'ajout du produit.';
       }
       return {'success': false, 'message': message};
     } catch (e) {
@@ -675,9 +732,12 @@ class ApiService {
 
   /// Delete a product from the catalog.
   Future<bool> deleteProduct(String productUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products/delete/$productUid');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/ecommerce/products/delete/$productUid');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -695,13 +755,23 @@ class ApiService {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/sync');
     try {
       final response = await http
-          .post(url, headers: _getHeaders(), body: jsonEncode({'source': source}))
+          .post(url,
+              headers: _getHeaders(), body: jsonEncode({'source': source}))
           .timeout(const Duration(seconds: 40));
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
-        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+        return {
+          'success': true,
+          'message': body['data']?['message']?.toString() ??
+              body['message']?.toString()
+        };
       }
-      return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Échec de la synchronisation.'};
+      return {
+        'success': false,
+        'message': body['data']?['message']?.toString() ??
+            body['message']?.toString() ??
+            'Échec de la synchronisation.'
+      };
     } catch (e) {
       if (kDebugMode) debugPrint('Sync Products Error: $e');
       return {'success': false, 'message': e.toString()};
@@ -712,7 +782,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchCategories() async {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -738,9 +810,18 @@ class ApiService {
           .timeout(const Duration(seconds: 20));
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
-        return {'success': true, 'message': body['data']?['message']?.toString() ?? body['message']?.toString()};
+        return {
+          'success': true,
+          'message': body['data']?['message']?.toString() ??
+              body['message']?.toString()
+        };
       }
-      return {'success': false, 'message': body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'ajout de la catégorie.'};
+      return {
+        'success': false,
+        'message': body['data']?['message']?.toString() ??
+            body['message']?.toString() ??
+            'Erreur lors de l\'ajout de la catégorie.'
+      };
     } catch (e) {
       if (kDebugMode) debugPrint('Add Category Error: $e');
       return {'success': false, 'message': e.toString()};
@@ -748,9 +829,12 @@ class ApiService {
   }
 
   Future<bool> deleteCategory(String categoryUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/categories/delete/$categoryUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/ecommerce/categories/delete/$categoryUid');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -787,7 +871,9 @@ class ApiService {
   Future<Map<String, int>> fetchUnreadCounts() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/chat/unread-count');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await _client
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -799,7 +885,8 @@ class ApiService {
             'myAssignedUnreadMessagesCount':
                 (models['myAssignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
             'myUnassignedUnreadMessagesCount':
-                (models['myUnassignedUnreadMessagesCount'] as num?)?.toInt() ?? 0,
+                (models['myUnassignedUnreadMessagesCount'] as num?)?.toInt() ??
+                    0,
           };
         }
       }
@@ -815,9 +902,10 @@ class ApiService {
 
   /// Mark a conversation as unread (local badge only)
   Future<bool> markContactAsUnread(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/mark-unread/$contactUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/contact/chat/mark-unread/$contactUid');
     try {
-      final response = await http
+      final response = await _client
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 15));
       _checkUnauthorized(response);
@@ -836,7 +924,9 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchSupportTickets({int page = 1}) async {
     final url = Uri.parse('${baseApiUrl}vendor/support-tickets?page=$page');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -869,8 +959,10 @@ class ApiService {
         // Backend (SupportTicketController::store) reads a single file
         // under 'attachment' (singular) — unlike replies, which accept
         // multiple files under 'attachments[]'.
-        request.files.add(await http.MultipartFile.fromPath('attachment', attachment.path));
-        final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+        request.files.add(
+            await http.MultipartFile.fromPath('attachment', attachment.path));
+        final streamedResponse =
+            await request.send().timeout(const Duration(seconds: 60));
         final response = await http.Response.fromStream(streamedResponse);
         _checkUnauthorized(response);
         if (response.statusCode == 200) {
@@ -1028,7 +1120,7 @@ class ApiService {
     final url = Uri.parse(
         '${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append');
     try {
-      final response = await http
+      final response = await _client
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
@@ -1071,11 +1163,12 @@ class ApiService {
   /// recent ~16). Returns the fetched messages plus the next page number
   /// to request (0 when there's nothing older left), mirroring the same
   /// messagePaginatePage convention the web dashboard already uses.
-  Future<Map<String, dynamic>?> fetchOlderMessages(String contactUid, int page) async {
+  Future<Map<String, dynamic>?> fetchOlderMessages(
+      String contactUid, int page) async {
     final url = Uri.parse(
         '${baseApiUrl}vendor/whatsapp/contact/chat-data/$contactUid/append?page=$page');
     try {
-      final response = await http
+      final response = await _client
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
@@ -1089,11 +1182,13 @@ class ApiService {
           List<ChatMessage> list = [];
           if (logsData is List) {
             list = logsData
-                .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .map((m) =>
+                    ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
                 .toList();
           } else if (logsData is Map) {
             list = logsData.values
-                .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
+                .map((m) =>
+                    ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
                 .toList();
           }
           return {'messages': list, 'nextPage': _parseNextPage(nextPageRaw)};
@@ -1111,7 +1206,7 @@ class ApiService {
       {String? replyToWamid}) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/contact/chat/send');
     try {
-      final response = await http
+      final response = await _client
           .post(
             url,
             headers: _getHeaders(),
@@ -1448,9 +1543,12 @@ class ApiService {
   /// now, plus the window bounds — only these contacts can receive a free
   /// (non-template) message. Returns null on failure.
   Future<Map<String, dynamic>?> fetchEligible24hContacts() async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/24h-campaign/eligible-contacts');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/24h-campaign/eligible-contacts');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1469,9 +1567,12 @@ class ApiService {
   /// replies created specifically for use as a campaign body instead of a
   /// Meta template.
   Future<List<Map<String, dynamic>>> fetchNonTemplateMessagePresets() async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/campaign/non-template-message-presets/all/list-data?length=-1&draw=1');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/campaign/non-template-message-presets/all/list-data?length=-1&draw=1');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1480,7 +1581,8 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (kDebugMode) debugPrint('Fetch Non-Template Message Presets Error: $e');
+      if (kDebugMode)
+        debugPrint('Fetch Non-Template Message Presets Error: $e');
       return [];
     }
   }
@@ -1497,11 +1599,14 @@ class ApiService {
   /// an empty template list.
   String? lastFetchTemplatesError;
 
-  Future<List<Map<String, dynamic>>> fetchTemplates({int retriesLeft = 2}) async {
+  Future<List<Map<String, dynamic>>> fetchTemplates(
+      {int retriesLeft = 2}) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates');
     if (retriesLeft == 2) lastFetchTemplatesError = null;
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1536,16 +1641,24 @@ class ApiService {
   /// Returns the signed WebView bridge URL, or (on failure) whatever
   /// vendor-facing message the backend sent — e.g. "no active api_access
   /// plan" — so the caller can show the real reason instead of a generic one.
-  Future<({String? url, String? message})> fetchWhatsAppEmbeddedSignupUrl() async {
-    final endpoint = Uri.parse('${baseApiUrl}vendor/whatsapp/embedded-signup-url');
+  Future<({String? url, String? message})>
+      fetchWhatsAppEmbeddedSignupUrl() async {
+    final endpoint =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/embedded-signup-url');
     try {
-      final response = await http.get(endpoint, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(endpoint, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
         return (url: body['data']?['url']?.toString(), message: null);
       }
-      final message = body['data']?['message']?.toString() ?? body['message']?.toString();
-      return (url: null, message: (message != null && message.isNotEmpty) ? message : null);
+      final message =
+          body['data']?['message']?.toString() ?? body['message']?.toString();
+      return (
+        url: null,
+        message: (message != null && message.isNotEmpty) ? message : null
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Fetch Embedded Signup URL Error: $e');
       return (url: null, message: null);
@@ -1591,7 +1704,9 @@ class ApiService {
   Future<Map<String, dynamic>?> fetchWhatsAppApiDetails() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/api-details');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -1608,17 +1723,26 @@ class ApiService {
   /// Live-refresh WhatsApp API details from Meta, mirrors the web
   /// dashboard's "Actualiser" button. Returns the same shape as
   /// [fetchWhatsAppApiDetails], or null with [message] set on failure.
-  Future<({Map<String, dynamic>? data, String? message})> refreshWhatsAppApiDetails() async {
+  Future<({Map<String, dynamic>? data, String? message})>
+      refreshWhatsAppApiDetails() async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/api-details/refresh');
     try {
-      final response = await http.post(url, headers: _getHeaders()).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 30));
       _checkUnauthorized(response);
       final body = jsonDecode(response.body);
-      if (response.statusCode == 200 && body['reaction'] == 1 && body['data'] is Map) {
+      if (response.statusCode == 200 &&
+          body['reaction'] == 1 &&
+          body['data'] is Map) {
         return (data: Map<String, dynamic>.from(body['data']), message: null);
       }
-      final message = body['data']?['message']?.toString() ?? body['message']?.toString();
-      return (data: null, message: (message != null && message.isNotEmpty) ? message : null);
+      final message =
+          body['data']?['message']?.toString() ?? body['message']?.toString();
+      return (
+        data: null,
+        message: (message != null && message.isNotEmpty) ? message : null
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Refresh WhatsApp API Details Error: $e');
       return (data: null, message: null);
@@ -1627,23 +1751,32 @@ class ApiService {
 
   /// Save the mandatory WhatsApp test contact number (used for 24h campaign
   /// message tests). Returns the refreshed details on success.
-  Future<({Map<String, dynamic>? data, String? message})> saveWhatsAppTestContact(String testContact) async {
+  Future<({Map<String, dynamic>? data, String? message})>
+      saveWhatsAppTestContact(String testContact) async {
     final url = Uri.parse('${baseApiUrl}vendor/whatsapp/test-contact');
     try {
-      final response = await http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode({'test_recipient_contact': testContact}),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            url,
+            headers: _getHeaders(),
+            body: jsonEncode({'test_recipient_contact': testContact}),
+          )
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       final body = jsonDecode(response.body);
-      if (response.statusCode == 200 && body['reaction'] == 1 && body['data'] is Map) {
+      if (response.statusCode == 200 &&
+          body['reaction'] == 1 &&
+          body['data'] is Map) {
         return (data: Map<String, dynamic>.from(body['data']), message: null);
       }
-      final message = body['errors']?['test_recipient_contact']?[0]?.toString() ??
-          body['data']?['message']?.toString() ??
-          body['message']?.toString();
-      return (data: null, message: (message != null && message.isNotEmpty) ? message : null);
+      final message =
+          body['errors']?['test_recipient_contact']?[0]?.toString() ??
+              body['data']?['message']?.toString() ??
+              body['message']?.toString();
+      return (
+        data: null,
+        message: (message != null && message.isNotEmpty) ? message : null
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Save WhatsApp Test Contact Error: $e');
       return (data: null, message: null);
@@ -1776,7 +1909,9 @@ class ApiService {
           await request.send().timeout(const Duration(seconds: 45));
       final responseBody = await response.stream.bytesToString();
       debugPrint('Upload Temp Media [${response.statusCode}]: $responseBody');
-      if (response.statusCode == 401) { logout(); }
+      if (response.statusCode == 401) {
+        logout();
+      }
 
       if (response.statusCode == 200) {
         final body = jsonDecode(responseBody);
@@ -1858,7 +1993,8 @@ class ApiService {
   /// open loaded every campaign the vendor ever had in one shot.
   /// Returns `{campaigns, nextPage, error}` - nextPage is 0 when there's
   /// nothing more to load.
-  Future<Map<String, dynamic>> fetchCampaigns({bool showArchived = false, int page = 1}) async {
+  Future<Map<String, dynamic>> fetchCampaigns(
+      {bool showArchived = false, int page = 1}) async {
     final url = Uri.parse(
         '${baseApiUrl}vendor/campaign-list?page=$page${showArchived ? '&show_archived=1' : ''}');
     lastFetchCampaignsError = null;
@@ -1866,11 +2002,13 @@ class ApiService {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (kDebugMode) debugPrint('fetchCampaigns status: ${response.statusCode}');
+      if (kDebugMode)
+        debugPrint('fetchCampaigns status: ${response.statusCode}');
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        if (kDebugMode) debugPrint('fetchCampaigns raw body keys: ${body.keys}');
+        if (kDebugMode)
+          debugPrint('fetchCampaigns raw body keys: ${body.keys}');
 
         // 1. Standard API response (reaction == 1) or the "external API"
         // convention (result == 'success') — apiGetCampaignList() is shared
@@ -1918,14 +2056,23 @@ class ApiService {
           };
         }
       } else {
-        if (kDebugMode) debugPrint('fetchCampaigns error body: ${response.body}');
+        if (kDebugMode)
+          debugPrint('fetchCampaigns error body: ${response.body}');
         lastFetchCampaignsError = 'HTTP ${response.statusCode}';
       }
-      return {'campaigns': <Map<String, dynamic>>[], 'nextPage': 0, 'error': true};
+      return {
+        'campaigns': <Map<String, dynamic>>[],
+        'nextPage': 0,
+        'error': true
+      };
     } catch (e) {
       if (kDebugMode) debugPrint('Fetch Campaigns Error: $e');
       lastFetchCampaignsError = e.toString();
-      return {'campaigns': <Map<String, dynamic>>[], 'nextPage': 0, 'error': true};
+      return {
+        'campaigns': <Map<String, dynamic>>[],
+        'nextPage': 0,
+        'error': true
+      };
     }
   }
 
@@ -1942,7 +2089,8 @@ class ApiService {
         if (_isNewerVersion(version, latestVersion)) {
           return {
             'version': latestVersion,
-            'apk_url': data['apk_url'] ?? '${baseUrl}downloads/whatsclick-latest.apk',
+            'apk_url':
+                data['apk_url'] ?? '${baseUrl}downloads/whatsclick-latest.apk',
             'change_log':
                 data['change_log'] ?? 'Correctifs et améliorations générales.',
           };
@@ -2004,12 +2152,15 @@ class ApiService {
 
   /// Fetch product list for mobile. Pass categoryUid to filter by category,
   /// or 'uncategorized' to get products with no category assigned.
-  Future<List<Map<String, dynamic>>> fetchProducts({String search = '', String? categoryUid}) async {
+  Future<List<Map<String, dynamic>>> fetchProducts(
+      {String search = '', String? categoryUid}) async {
     final queryParams = {
       'search': search,
-      if (categoryUid != null && categoryUid.isNotEmpty) 'category_uid': categoryUid,
+      if (categoryUid != null && categoryUid.isNotEmpty)
+        'category_uid': categoryUid,
     };
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products').replace(queryParameters: queryParams);
+    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/products')
+        .replace(queryParameters: queryParams);
     try {
       final response = await http
           .get(url, headers: _getHeaders())
@@ -2094,14 +2245,17 @@ class ApiService {
         final body = jsonDecode(response.body);
         return {
           'success': body['reaction'] == 1,
-          'message': body['data']?['message'] ?? body['message'] ?? 'Commande créée.',
+          'message':
+              body['data']?['message'] ?? body['message'] ?? 'Commande créée.',
           'order': body['data']?['order'],
         };
       }
       final body = jsonDecode(response.body);
       return {
         'success': false,
-        'message': body['data']?['message'] ?? body['message'] ?? 'Erreur lors de la création.',
+        'message': body['data']?['message'] ??
+            body['message'] ??
+            'Erreur lors de la création.',
       };
     } catch (e) {
       if (kDebugMode) debugPrint('Create Manual Order Error: $e');
@@ -2118,30 +2272,44 @@ class ApiService {
   Future<Map<String, dynamic>> fetchAllOrders() async {
     final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders');
     try {
-      final response = await http.get(url, headers: _getHeaders()).timeout(const Duration(seconds: 20));
+      final response = await http
+          .get(url, headers: _getHeaders())
+          .timeout(const Duration(seconds: 20));
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final orders = body['orders'] as List?;
         return {
           'is_feature_available': body['is_feature_available'] == true,
-          'orders': orders != null ? List<Map<String, dynamic>>.from(orders) : <Map<String, dynamic>>[],
+          'orders': orders != null
+              ? List<Map<String, dynamic>>.from(orders)
+              : <Map<String, dynamic>>[],
           'error': false,
         };
       }
       // Distinguish a real server answer ("feature not enabled") from a
       // failed request - both used to collapse to the same
       // is_feature_available:false, showing the wrong message to the user.
-      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[], 'error': true};
+      return {
+        'is_feature_available': false,
+        'orders': <Map<String, dynamic>>[],
+        'error': true
+      };
     } catch (e) {
       if (kDebugMode) debugPrint('Fetch All Orders Error: $e');
-      return {'is_feature_available': false, 'orders': <Map<String, dynamic>>[], 'error': true};
+      return {
+        'is_feature_available': false,
+        'orders': <Map<String, dynamic>>[],
+        'error': true
+      };
     }
   }
 
   /// Fetch orders for a contact
-  Future<List<Map<String, dynamic>>> fetchContactOrders(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/contact/$contactUid');
+  Future<List<Map<String, dynamic>>> fetchContactOrders(
+      String contactUid) async {
+    final url =
+        Uri.parse('${baseApiUrl}vendor/ecommerce/orders/contact/$contactUid');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
@@ -2167,7 +2335,8 @@ class ApiService {
 
   /// Update order status
   Future<bool> updateOrderStatus(String orderUid, String status) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/update-status/$orderUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/ecommerce/orders/update-status/$orderUid');
     try {
       final response = await http
           .post(
@@ -2192,7 +2361,8 @@ class ApiService {
 
   /// Delete an order
   Future<bool> deleteOrder(String orderUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/delete/$orderUid');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/ecommerce/orders/delete/$orderUid');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
@@ -2211,7 +2381,8 @@ class ApiService {
 
   /// Send a formatted order summary to the customer on WhatsApp
   Future<bool> sendOrderSummaryMessage(String orderUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/ecommerce/orders/send-summary/$orderUid');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/ecommerce/orders/send-summary/$orderUid');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
@@ -2319,7 +2490,8 @@ class ApiService {
         debugPrint('fetchContactGroups status: ${response.statusCode}');
       }
       // Log FULL body to diagnose production issue
-      if (kDebugMode) debugPrint('fetchContactGroups FULL body: ${response.body}');
+      if (kDebugMode)
+        debugPrint('fetchContactGroups FULL body: ${response.body}');
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -2418,7 +2590,8 @@ class ApiService {
           final list = body['data']?['contacts'] as List?;
           if (list != null) {
             return list
-                .map((c) => Contact.fromJson(Map<String, dynamic>.from(c as Map)))
+                .map((c) =>
+                    Contact.fromJson(Map<String, dynamic>.from(c as Map)))
                 .toList();
           }
         }
@@ -2432,12 +2605,14 @@ class ApiService {
 
   /// Fetch campaign audiences
   Future<List<Map<String, dynamic>>> fetchAudiences() async {
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/audiences/list-data?length=-1&draw=1');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/whatsapp/audiences/list-data?length=-1&draw=1');
     try {
       final response = await http
           .get(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 20));
-      if (kDebugMode) debugPrint('fetchAudiences status: ${response.statusCode}');
+      if (kDebugMode)
+        debugPrint('fetchAudiences status: ${response.statusCode}');
       _checkUnauthorized(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -2648,7 +2823,8 @@ class ApiService {
 
   /// Delete a contact
   Future<bool> deleteContact(String contactUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/contact/$contactUid/delete-process');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/contact/$contactUid/delete-process');
     try {
       final response = await http
           .post(
@@ -2830,7 +3006,8 @@ class ApiService {
         for (int i = 0; i < contactUids.length; i++) {
           request.fields['contact_uids[$i]'] = contactUids[i];
         }
-      } else if (audienceMode == 'groups' && (groupUids != null || labelIds != null)) {
+      } else if (audienceMode == 'groups' &&
+          (groupUids != null || labelIds != null)) {
         final groups = groupUids ?? [];
         for (int i = 0; i < groups.length; i++) {
           request.fields['contact_group[$i]'] = groups[i];
@@ -2870,12 +3047,16 @@ class ApiService {
       }
       if (headerDocumentFileName != null) {
         request.fields['header_document'] = headerDocumentFileName;
-        request.fields['header_document_name'] = headerDocumentName ?? 'document';
+        request.fields['header_document_name'] =
+            headerDocumentName ?? 'document';
       }
-      if (locationLatitude != null) request.fields['location_latitude'] = locationLatitude;
-      if (locationLongitude != null) request.fields['location_longitude'] = locationLongitude;
+      if (locationLatitude != null)
+        request.fields['location_latitude'] = locationLatitude;
+      if (locationLongitude != null)
+        request.fields['location_longitude'] = locationLongitude;
       if (locationName != null) request.fields['location_name'] = locationName;
-      if (locationAddress != null) request.fields['location_address'] = locationAddress;
+      if (locationAddress != null)
+        request.fields['location_address'] = locationAddress;
       if (dynamicUrlButtons != null) {
         dynamicUrlButtons.forEach((index, value) {
           request.fields['button_$index'] = value;
@@ -2887,7 +3068,9 @@ class ApiService {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      if (kDebugMode) debugPrint('Create Campaign [${response.statusCode}]: ${response.body}');
+      if (kDebugMode)
+        debugPrint(
+            'Create Campaign [${response.statusCode}]: ${response.body}');
 
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['reaction'] == 1) {
@@ -2901,8 +3084,11 @@ class ApiService {
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
-      } else if (body['data']?['message'] is String && (body['data']['message'] as String).isNotEmpty) {
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
+      } else if (body['data']?['message'] is String &&
+          (body['data']['message'] as String).isNotEmpty) {
         message = body['data']['message'];
       } else if (body['message'] is String) {
         message = body['message'];
@@ -2929,7 +3115,10 @@ class ApiService {
           .post(url, headers: _getHeaders())
           .timeout(const Duration(seconds: 40));
       final body = jsonDecode(response.body);
-      return (reaction: (body['reaction'] as num?)?.toInt() ?? 2, message: body['message']?.toString());
+      return (
+        reaction: (body['reaction'] as num?)?.toInt() ?? 2,
+        message: body['message']?.toString()
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Sync Templates Error: $e');
       return (reaction: 2, message: null);
@@ -2945,7 +3134,8 @@ class ApiService {
   /// gone from our list, regardless of Meta's own sync delay.
   Future<bool> deleteTemplate(String templateUid) async {
     lastTemplateDeleteError = null;
-    final url = Uri.parse('${baseApiUrl}vendor/whatsapp/templates/$templateUid');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/whatsapp/templates/$templateUid');
     try {
       final response = await http
           .delete(url, headers: _getHeaders())
@@ -3029,8 +3219,8 @@ class ApiService {
   /// code (1=in queue, 2=failed, 3=processing, 4=processed, 6=awaiting
   /// response, 7=aborted), or for executed a status string like 'delivered',
   /// 'read', 'failed'.
-  Future<List<Map<String, dynamic>>> fetchCampaignContacts(
-      String campaignUid, {String logType = 'queue', String logStatus = 'all'}) async {
+  Future<List<Map<String, dynamic>>> fetchCampaignContacts(String campaignUid,
+      {String logType = 'queue', String logStatus = 'all'}) async {
     final url = Uri.parse(
         '${baseApiUrl}vendor/whatsapp/campaign/$logType/$campaignUid/$logStatus?length=-1&draw=1');
     try {
@@ -3041,7 +3231,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['data'] != null && body['data'] is List) {
-           return List<Map<String, dynamic>>.from(body['data']);
+          return List<Map<String, dynamic>>.from(body['data']);
         }
       }
       return [];
@@ -3072,7 +3262,10 @@ class ApiService {
       // createNewTemplateProcess() uses reaction 21 (not 1) for a genuine
       // success — this was silently misread as a failure until now, even
       // though the template really was created.
-      if (response.statusCode == 200 && (body['reaction'] == 1 || body['reaction'] == 21 || body['result'] == 'success')) {
+      if (response.statusCode == 200 &&
+          (body['reaction'] == 1 ||
+              body['reaction'] == 21 ||
+              body['result'] == 'success')) {
         return Map<String, dynamic>.from(body);
       }
       final errors = body['errors'];
@@ -3085,7 +3278,9 @@ class ApiService {
       } else {
         lastTemplateCreateError = 'HTTP ${response.statusCode}';
       }
-      if (kDebugMode) debugPrint('Create Template failed: $lastTemplateCreateError — body: ${response.body}');
+      if (kDebugMode)
+        debugPrint(
+            'Create Template failed: $lastTemplateCreateError — body: ${response.body}');
       return null;
     } catch (e) {
       lastTemplateCreateError = e.toString();
@@ -3222,9 +3417,13 @@ class ApiService {
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
       } else {
-        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+        message = body['data']?['message']?.toString() ??
+            body['message']?.toString() ??
+            'Erreur lors de l\'enregistrement.';
       }
       return {'reaction': 0, 'message': message};
     } catch (e) {
@@ -3279,9 +3478,13 @@ class ApiService {
       String message;
       if (errors is Map && errors.isNotEmpty) {
         final firstError = errors.values.first;
-        message = firstError is List ? firstError.first.toString() : firstError.toString();
+        message = firstError is List
+            ? firstError.first.toString()
+            : firstError.toString();
       } else {
-        message = body['data']?['message']?.toString() ?? body['message']?.toString() ?? 'Erreur lors de l\'enregistrement.';
+        message = body['data']?['message']?.toString() ??
+            body['message']?.toString() ??
+            'Erreur lors de l\'enregistrement.';
       }
       return {'reaction': 0, 'message': message};
     } catch (e) {
@@ -3296,7 +3499,8 @@ class ApiService {
 
   /// Fetch bot action support data (team members, labels, action option lists)
   Future<Map<String, dynamic>?> fetchBotActionSupportData() async {
-    final url = Uri.parse('${baseApiUrl}vendor/bot-replies-management/action-support-data');
+    final url = Uri.parse(
+        '${baseApiUrl}vendor/bot-replies-management/action-support-data');
     lastActionSupportDataError = null;
     try {
       final response = await http
@@ -3308,12 +3512,14 @@ class ApiService {
         if (body['reaction'] == 1 && body['data'] != null) {
           return Map<String, dynamic>.from(body['data']);
         }
-        lastActionSupportDataError = body['message']?.toString() ?? 'Erreur serveur';
+        lastActionSupportDataError =
+            body['message']?.toString() ?? 'Erreur serveur';
       } else {
         lastActionSupportDataError = 'HTTP ${response.statusCode}';
       }
       if (kDebugMode) {
-        debugPrint('Fetch Bot Action Support Data failed [${response.statusCode}]: ${response.body}');
+        debugPrint(
+            'Fetch Bot Action Support Data failed [${response.statusCode}]: ${response.body}');
       }
       return null;
     } catch (e) {
@@ -3391,7 +3597,8 @@ class ApiService {
             body['data']['campaigns'] != null) {
           return List<Map<String, dynamic>>.from(body['data']['campaigns']);
         }
-        lastDripCampaignsError = body['message']?.toString() ?? 'Erreur serveur';
+        lastDripCampaignsError =
+            body['message']?.toString() ?? 'Erreur serveur';
       } else {
         lastDripCampaignsError = 'HTTP ${response.statusCode}';
       }
@@ -3425,7 +3632,8 @@ class ApiService {
 
   /// Archive (or unarchive) a campaign — hides/restores it from the list.
   Future<bool> archiveCampaign(String campaignUid) async {
-    final url = Uri.parse('${baseApiUrl}vendor/campaign/$campaignUid/archive-toggle');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/campaign/$campaignUid/archive-toggle');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
@@ -3481,7 +3689,8 @@ class ApiService {
     String? botReplyId,
   }) async {
     lastDripCampaignError = null;
-    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/step/store');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/step/store');
     try {
       final response = await http
           .post(
@@ -3510,7 +3719,8 @@ class ApiService {
 
   /// Fetch a single drip campaign's detail — steps (with resolved bot
   /// reply/template names) and subscriber counts.
-  Future<Map<String, dynamic>?> fetchDripCampaignDetail(String campaignUid) async {
+  Future<Map<String, dynamic>?> fetchDripCampaignDetail(
+      String campaignUid) async {
     lastDripCampaignError = null;
     final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid');
     try {
@@ -3539,7 +3749,8 @@ class ApiService {
     String? botReplyId,
   }) async {
     lastDripCampaignError = null;
-    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/update');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/update');
     try {
       final response = await http
           .post(
@@ -3567,7 +3778,8 @@ class ApiService {
   /// Delete a drip campaign step.
   Future<bool> deleteDripCampaignStep(String stepUid) async {
     lastDripCampaignError = null;
-    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/delete');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/drip-campaigns/step/$stepUid/delete');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
@@ -3586,7 +3798,8 @@ class ApiService {
   /// Delete an entire drip campaign.
   Future<bool> deleteDripCampaign(String campaignUid) async {
     lastDripCampaignError = null;
-    final url = Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/delete');
+    final url =
+        Uri.parse('${baseApiUrl}vendor/drip-campaigns/$campaignUid/delete');
     try {
       final response = await http
           .post(url, headers: _getHeaders())
@@ -3641,7 +3854,8 @@ class ApiService {
         if (body['reaction'] == 20 && body['data'] != null) {
           return {
             'success': true,
-            'notifications': List<Map<String, dynamic>>.from(body['data']['notifications'] ?? []),
+            'notifications': List<Map<String, dynamic>>.from(
+                body['data']['notifications'] ?? []),
             'unreadCount': body['data']['unreadCount'] ?? 0,
           };
         }

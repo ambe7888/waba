@@ -48,7 +48,8 @@ Future<void> _runApp() async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.red, size: 32),
+            const Icon(Icons.error_outline_rounded,
+                color: Colors.red, size: 32),
             const SizedBox(height: 8),
             Text(
               details.exceptionAsString(),
@@ -103,28 +104,35 @@ class MyApp extends StatelessWidget {
       animation: ThemeService(),
       builder: (context, _) {
         final themeService = ThemeService();
-        
-        // Dynamically update status bar based on theme
-        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        final overlayStyle = SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: themeService.isDark ? Brightness.light : Brightness.dark,
-          systemNavigationBarColor: themeService.isDark ? ThemeService.darkSurface : ThemeService.lightSurface,
-          systemNavigationBarIconBrightness: themeService.isDark ? Brightness.light : Brightness.dark,
-        ));
+          statusBarIconBrightness:
+              themeService.isDark ? Brightness.light : Brightness.dark,
+          systemNavigationBarColor: themeService.isDark
+              ? ThemeService.darkSurface
+              : ThemeService.lightSurface,
+          systemNavigationBarIconBrightness:
+              themeService.isDark ? Brightness.light : Brightness.dark,
+        );
 
-        return MaterialApp(
-          title: 'WhatsClick',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeService.themeMode,
-          theme: ThemeService.lightTheme,
-          darkTheme: ThemeService.darkTheme,
-          routes: {
-            '/login': (context) => const LoginScreen(),
-            '/register': (context) => const RegisterScreen(),
-          },
-          home: ApiService().isAuthenticated 
-                ? const MainLayoutScreen() 
-                : (hasSeenOnboarding ? const LoginScreen() : const OnboardingScreen()),
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: overlayStyle,
+          child: MaterialApp(
+            title: 'WhatsClick',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeService.themeMode,
+            theme: ThemeService.lightTheme,
+            darkTheme: ThemeService.darkTheme,
+            routes: {
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+            },
+            home: ApiService().isAuthenticated
+                ? const MainLayoutScreen()
+                : (hasSeenOnboarding
+                    ? const LoginScreen()
+                    : const OnboardingScreen()),
+          ),
         );
       },
     );

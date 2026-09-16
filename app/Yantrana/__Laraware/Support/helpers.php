@@ -660,6 +660,21 @@ if (! function_exists('__yesset')) {
                 $globFiles = glob($keyFile);
             }
 
+            // Fallback to public_path if relative glob did not find the file
+            $isPublicPathFallback = false;
+            if (empty($globFiles)) {
+                $publicKeyFile = public_path($keyFile);
+                if ($options['multiple_extensions']) {
+                    $publicGlob = glob($publicKeyFile, GLOB_BRACE);
+                } else {
+                    $publicGlob = glob($publicKeyFile);
+                }
+                if (!empty($publicGlob)) {
+                    $globFiles = $publicGlob;
+                    $isPublicPathFallback = true;
+                }
+            }
+
             $fileHash = null;
             $fileExt = null;
 
@@ -683,11 +698,12 @@ if (! function_exists('__yesset')) {
                 }
 
                 $fileinfo = pathinfo($getFileName);
-                $fileExt = $fileinfo['extension'];
+                $fileExt = $fileinfo['extension'] ?? null;
                 // generate url based on file name & path
                 // also append file hash to know the file has been changed.
-                $fileHash = sha1_file($getFileName, false);
-                $fileString = asset($getFileName) . '?sign=' . $fileHash;
+                $fileHash = file_exists($getFileName) ? sha1_file($getFileName, false) : null;
+                $assetFileName = $isPublicPathFallback ? $keyFile : $getFileName;
+                $fileString = asset($assetFileName) . ($fileHash ? ('?sign=' . $fileHash) : '');
             }
 
             // generate tags based on file extension
