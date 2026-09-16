@@ -81,8 +81,15 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   // Canned Replies State
   List<Map<String, dynamic>> _cannedReplies = [];
-  List<Map<String, dynamic>> _filteredCannedReplies = [];
-  bool _showCannedSuggestions = false;
+  // Every keystroke runs through _onMessageTextChanged() to filter these -
+  // that used to go through setState(), which rebuilt the *entire* screen
+  // (message list included) on every character typed. ValueNotifier lets
+  // only the small suggestions overlay below the composer listen and
+  // rebuild, so typing no longer re-runs _buildMessageBubble() for every
+  // visible message.
+  final ValueNotifier<List<Map<String, dynamic>>> _filteredCannedRepliesNotifier =
+      ValueNotifier(<Map<String, dynamic>>[]);
+  final ValueNotifier<bool> _showCannedSuggestionsNotifier = ValueNotifier(false);
 
   // Design constants
 
@@ -254,16 +261,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         return shortcut.contains(query) || name.contains(query) || msg.contains(query);
       }).toList();
 
-      setState(() {
-        _filteredCannedReplies = filtered;
-        _showCannedSuggestions = filtered.isNotEmpty;
-      });
+      _filteredCannedRepliesNotifier.value = filtered;
+      _showCannedSuggestionsNotifier.value = filtered.isNotEmpty;
     } else {
-      if (_showCannedSuggestions) {
-        setState(() {
-          _showCannedSuggestions = false;
-        });
-      }
+      _showCannedSuggestionsNotifier.value = false;
     }
   }
 
@@ -1423,6 +1424,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     _messageController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
+    _filteredCannedRepliesNotifier.dispose();
+    _showCannedSuggestionsNotifier.dispose();
     super.dispose();
   }
 
@@ -1521,8 +1524,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           ),
 
           // (Old 24h Window Warning removed, moved to bottom banner)          // Canned Replies Suggestions Overlay
-          if (_showCannedSuggestions)
-            Container(
+          // Scoped to its own ValueListenableBuilder (see the notifiers'
+          // declaration) so typing a "/" shortcut only rebuilds this small
+          // overlay, not the whole screen (message list included).
+          ValueListenableBuilder<bool>(
+            valueListenable: _showCannedSuggestionsNotifier,
+            builder: (context, showSuggestions, _) {
+              if (!showSuggestions) return const SizedBox.shrink();
+              return Container(
               constraints: const BoxConstraints(maxHeight: 200),
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
@@ -1543,12 +1552,14 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: ListView.builder(
+                child: ValueListenableBuilder<List<Map<String, dynamic>>>(
+                  valueListenable: _filteredCannedRepliesNotifier,
+                  builder: (context, filteredCannedReplies, _) => ListView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
-                  itemCount: _filteredCannedReplies.length,
+                  itemCount: filteredCannedReplies.length,
                   itemBuilder: (context, index) {
-                    final reply = _filteredCannedReplies[index];
+                    final reply = filteredCannedReplies[index];
                     final isBot = reply['is_bot'] == true;
                     final titleText = reply['shortcut'] ?? reply['name'] ?? '';
                     final messageText = reply['message'] ?? '';
@@ -1576,26 +1587,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
                         final botIdInt = botId != null ? (int.tryParse(botId.toString()) ?? 0) : 0;
 
                         if (isBot && botIdInt > 0) {
-                          setState(() {
-                            _messageController.clear();
-                            _showCannedSuggestions = false;
-                          });
+                          _messageController.clear();
+                          _showCannedSuggestionsNotifier.value = false;
                           _confirmBotReply(titleText, messageText, botIdInt);
                         } else {
-                          setState(() {
-                            _messageController.text = messageText.isNotEmpty ? messageText : titleText;
-                            _messageController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: _messageController.text.length),
-                            );
-                            _showCannedSuggestions = false;
-                          });
+                          _messageController.text = messageText.isNotEmpty ? messageText : titleText;
+                          _messageController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: _messageController.text.length),
+                          );
+                          _showCannedSuggestionsNotifier.value = false;
                         }
                       },
                     );
                   },
+                  ),
                 ),
               ),
-            ),
+              );
+            },
+          ),
 
           // MAIN INPUT BAR
           if (widget.contact.isBlocked)
