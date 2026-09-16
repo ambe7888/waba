@@ -517,7 +517,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                             <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
                             <th class="lw-orders-th d-none d-lg-table-cell">{{ __tr('Source / Agent') }}</th>
                             <th class="lw-orders-th">{{ __tr('Statut') }}</th>
-                            <th class="lw-orders-th text-right no-print">{{ __tr('Actions') }}</th>
+                            <th class="lw-orders-th text-right no-print d-none d-lg-table-cell">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -603,7 +603,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
                                     </template>
                                 </td>
-                                <td class="align-middle text-right no-print">
+                                <td class="align-middle text-right no-print d-none d-lg-table-cell">
                                     <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
                                         @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                                         <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px; white-space: nowrap;" title="{{ __tr('Assigner à un livreur') }}">
@@ -658,6 +658,25 @@ $deliveryDrivers = $deliveryManagementEnabled
                                             <span class="lw-orders-child-value" x-text="order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
                                         </div>
                                     </template>
+                                    <div class="lw-orders-child-item lw-orders-child-actions no-print">
+                                        <span class="lw-orders-child-label">{{ __tr('Actions') }}</span>
+                                        <span class="lw-orders-child-value">
+                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                <button type="button" @click.stop="viewOrderDetails(order)" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;">{{ __tr('Voir le reçu') }}</button>
+                                                <template x-if="order.contact && order.contact._uid">
+                                                    <a :href="getChatUrl(order.contact._uid)" target="_blank" @click.stop class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;">{{ __tr('Ouvrir WhatsApp') }}</a>
+                                                </template>
+                                                @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
+                                                <button type="button" @click.stop="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px;">
+                                                    <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
+                                                </button>
+                                                @endif
+                                                @if (hasVendorAccess('manage_orders', 'delete_orders'))
+                                                <button type="button" @click.stop="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger font-weight-bold" style="border-radius: 8px;">{{ __tr('Supprimer') }}</button>
+                                                @endif
+                                            </div>
+                                        </span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
