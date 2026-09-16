@@ -193,6 +193,19 @@ $deliveryDrivers = $deliveryManagementEnabled
     border-radius: 999px;
 }
 
+/* MOBILE RESPONSIVE FIXES */
+@media (max-width: 575.98px) {
+    #lwOrdersSortRow {
+        width: 100%;
+    }
+    #lwOrdersSortRow select {
+        width: 100% !important;
+    }
+    #lwOrdersSortRow .lw-today-btn {
+        width: 100%;
+    }
+}
+
 /* PERFECT CSS PRINT STYLES */
 @media print {
     html, body {
@@ -299,28 +312,28 @@ $deliveryDrivers = $deliveryManagementEnabled
 
     <!-- Top Key Metrics Cards -->
     <div class="row mb-4 no-print">
-        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #059669 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Total Commandes') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="allOrders.length"></div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #92600a !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Nouvelles (Validées)') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'validated').length"></div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #6d28d9 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('En Cours / Livraison') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length"></div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #04704e !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Commandes Livrées') }}</small>
                 <div class="lw-kpi-num" style="color: #04704e;" x-text="allOrders.filter(o => o.status === 'delivered').length"></div>
@@ -338,12 +351,12 @@ $deliveryDrivers = $deliveryManagementEnabled
         <div class="card-body p-4">
             <!-- Search & Filters Row 1 -->
             <div class="row mb-3 no-print">
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
                     <input type="text" class="form-control p-3 custom-input-white" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input="resetOrdersPage()">
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
@@ -356,7 +369,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                     </select>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Toutes les sources & agents') }}</option>
@@ -368,7 +381,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                     </select>
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique (Date)') }}</label>
                     <div class="d-flex align-items-center" style="gap: 5px;">
                         <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter" @change="resetOrdersPage()">
@@ -379,7 +392,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                 </div>
 
                 @if($deliveryManagementEnabled)
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par livreur') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDriverFilter" @change="resetOrdersPage()">
                         <option value="">{{ __tr('Tous les livreurs') }}</option>
@@ -394,7 +407,7 @@ $deliveryDrivers = $deliveryManagementEnabled
 
             <!-- Sort & Quick Filters Row 2 -->
             <div class="d-flex align-items-center justify-content-between flex-wrap mb-4 pb-2 border-bottom no-print" style="gap: 10px;">
-                <div class="d-flex align-items-center" style="gap: 10px;">
+                <div class="d-flex align-items-center flex-wrap" id="lwOrdersSortRow" style="gap: 10px;">
                     <span class="small font-weight-bold text-muted">{{ __tr('Trier par date:') }}</span>
                     <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 200px;" x-model="orderDateSort" @change="resetOrdersPage()">
                         <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
@@ -430,7 +443,7 @@ $deliveryDrivers = $deliveryManagementEnabled
             </div>
 
             <!-- Orders Table -->
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-items-center mb-0 lw-orders-table" style="border-radius: 12px; overflow: hidden; border: 1px solid #e4e7ec;">
                     <thead>
                         <tr>
@@ -555,6 +568,117 @@ $deliveryDrivers = $deliveryManagementEnabled
                         </template>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile card list (phones/small tablets): the table above is
+                 desktop-only (d-none d-md-block). Same Alpine bindings as the
+                 table rows, just laid out as stacked cards instead of a wide
+                 table that would otherwise need horizontal scrolling. -->
+            <div class="d-md-none">
+                <template x-for="order in getPaginatedOrders()" :key="order._uid">
+                    <div class="sharp-card p-3 mb-3" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-start" style="gap: 8px;">
+                                @if($deliveryManagementEnabled)
+                                <input type="checkbox" class="mt-1" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
+                                @endif
+                                <div>
+                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;">
+                                        <span x-text="'#' + order._uid.substring(0, 8)"></span>
+                                    </button>
+                                    <small class="text-muted d-block lw-orders-mono" x-text="formatDate(order.created_at)"></small>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; width: 34px; font-weight: 700;" title="{{ __tr('Plus d\'actions') }}">
+                                    ⋮
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right shadow-sm">
+                                    <a href="#" @click.prevent="viewOrderDetails(order)" class="dropdown-item">{{ __tr('Voir le reçu') }}</a>
+                                    <template x-if="order.contact && order.contact._uid">
+                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="dropdown-item">{{ __tr('Ouvrir WhatsApp') }}</a>
+                                    </template>
+                                    @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
+                                    <a href="#" @click.prevent="openAssignDriverModal([order._uid])" class="dropdown-item" x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></a>
+                                    @endif
+                                    @if (hasVendorAccess('manage_orders', 'delete_orders'))
+                                    <a href="#" @click.prevent="deleteOrder(order._uid)" class="dropdown-item text-danger">{{ __tr('Supprimer') }}</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
+                        <template x-if="order.contact && order.contact._uid">
+                            <a :href="getChatUrl(order.contact._uid)" target="_blank" class="font-weight-bold small lw-orders-mono d-block mb-2" style="color: #059669;">
+                                <span x-text="order.contact.wa_id"></span>
+                            </a>
+                        </template>
+
+                        <div class="lw-order-address mb-2" x-text="getAddress(order) || '—'"></div>
+                        <div class="small text-muted mb-2">
+                            <template x-for="(it, i) in getItems(order)" :key="i">
+                                <div class="text-truncate" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
+                            </template>
+                            <template x-if="getItems(order).length === 0">
+                                <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
+                            </template>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2 pt-2 border-top">
+                            <span class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></span>
+                            <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
+                        </div>
+
+                        @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
+                        <select class="order-status-select w-100"
+                                :class="{
+                                    'st-delivered': order.status === 'delivered',
+                                    'st-processing': order.status === 'shipped' || order.status === 'processing',
+                                    'st-confirmed': order.status === 'confirmed',
+                                    'st-new': order.status === 'validated',
+                                    'st-cancelled': order.status === 'cancelled',
+                                    'st-in-delivery': order.status === 'in_delivery',
+                                    'st-delivery-failed': order.status === 'delivery_failed'
+                                }"
+                                :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
+                            <option value="validated">{{ __tr('Nouvelle') }}</option>
+                            <option value="confirmed">{{ __tr('Confirmée') }}</option>
+                            <option value="processing">{{ __tr('En préparation') }}</option>
+                            <option value="shipped">{{ __tr('En livraison') }}</option>
+                            <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
+                            <option value="delivered">{{ __tr('Livrée') }}</option>
+                            <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
+                            <option value="cancelled">{{ __tr('Annulée') }}</option>
+                        </select>
+                        @else
+                        <span class="order-status-badge"
+                              :class="{
+                                  'st-delivered': order.status === 'delivered',
+                                  'st-processing': order.status === 'shipped' || order.status === 'processing',
+                                  'st-confirmed': order.status === 'confirmed',
+                                  'st-new': order.status === 'validated',
+                                  'st-cancelled': order.status === 'cancelled',
+                                  'st-in-delivery': order.status === 'in_delivery',
+                                  'st-delivery-failed': order.status === 'delivery_failed'
+                              }"
+                              x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : (order.status === 'in_delivery' ? '{{ __tr('En cours de livraison') }}' : (order.status === 'delivery_failed' ? '{{ __tr('Livraison échouée') }}' : '{{ __tr('Nouvelle') }}')))))">
+                        </span>
+                        @endif
+                        <template x-if="order.driver">
+                            <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
+                        </template>
+
+                        @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
+                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold btn-block mt-2" style="border-radius: 8px;">
+                            <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
+                        </button>
+                        @endif
+                    </div>
+                </template>
+            </div>
+
+            <div>
                 <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
                     <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande ne correspond à votre recherche.') }}</p>
                 </div>
@@ -659,7 +783,7 @@ $deliveryDrivers = $deliveryManagementEnabled
 
                             <template x-for="(item, idx) in newOrderItems" :key="idx">
                                 <div class="row align-items-center bg-white p-2 mb-2 rounded border" style="border-color: #e2e8f0 !important;">
-                                    <div class="col-md-5 form-group mb-2 mb-md-0">
+                                    <div class="col-12 col-md-5 form-group mb-2 mb-md-0">
                                         <label class="small font-weight-bold text-muted mb-1">{{ __tr('Produit') }}</label>
                                         <select class="form-control form-control-sm" x-model="item.product_id" @change="onItemProductChange(idx)" required>
                                             <option value="">-- {{ __tr('Choisir un produit') }} --</option>
@@ -668,16 +792,16 @@ $deliveryDrivers = $deliveryManagementEnabled
                                             </template>
                                         </select>
                                     </div>
-                                    <div class="col-md-2 form-group mb-2 mb-md-0">
+                                    <div class="col-6 col-md-2 form-group mb-2 mb-md-0">
                                         <label class="small font-weight-bold text-muted mb-1">{{ __tr('Qté') }}</label>
                                         <input type="number" min="1" class="form-control form-control-sm" x-model="item.quantity" required>
                                     </div>
-                                    <div class="col-md-4 form-group mb-2 mb-md-0">
+                                    <div class="col-6 col-md-4 form-group mb-2 mb-md-0">
                                         <label class="small font-weight-bold text-muted mb-1">{{ __tr('Prix Unitaire (CFA)') }}</label>
                                         <input type="number" class="form-control form-control-sm" x-model="item.custom_price" placeholder="Prix" required>
                                     </div>
-                                    <div class="col-md-1 text-right">
-                                        <label class="small d-block mb-1">&nbsp;</label>
+                                    <div class="col-12 col-md-1 text-right">
+                                        <label class="small d-block mb-1 d-none d-md-block">&nbsp;</label>
                                         <button type="button" @click="removeOrderItem(idx)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer ce produit" x-show="newOrderItems.length > 1">
                                             <i class="fa fa-times-circle fa-lg"></i>
                                         </button>
