@@ -1,21 +1,10 @@
 @php
 $vendorId = getVendorId();
 $vendorPlanDetails = vendorPlanDetails('ecommerce_catalog', 1, $vendorId);
-$orders = \App\Yantrana\Components\ECommerce\Models\OrderModel::with(['contact', 'driver'])
-    ->where('vendors__id', $vendorId)
-    ->latest()
-    ->get();
-// Contact's active_reminder/active_drip_campaign are accessors that each
-// run their own DB query on access - fine for the single contact shown in
-// a chat header, but every contact on this page pays that cost when the
-// list gets JSON-encoded below. Measured on vendor 32 (26,471 contacts):
-// 52,942 hidden queries and 28.7s just to encode $contactsList, neither
-// field used anywhere on this page.
-$orders->each(function ($order) {
-    if ($order->contact) {
-        $order->contact->makeHidden(['active_reminder', 'active_drip_campaign']);
-    }
-});
+// The orders themselves are no longer embedded in the page: the list is a
+// server-paged datatable (vendor.ecommerce.orders.list_data), so a vendor
+// with thousands of orders no longer ships (or JSON-encodes) all of them on
+// every page load.
 // The contact picker used to embed every contact ($contactsList, all
 // 26,471 of them for vendor 32) into the page as an 18MB JSON payload and
 // 26k <option> elements. Replaced by a Selectize remote-search field
@@ -206,112 +195,28 @@ $deliveryDrivers = $deliveryManagementEnabled
     }
 }
 
-/* Responsive column plan (mirrors how DataTables Responsive drops columns as
-   width runs out, rather than one single md breakpoint):
-     >= 992px  every column
-     576-991   drop Adresse, Source/Agent, Actions        -> .lw-orders-col-lg
-     < 576px   also drop the checkbox, the Réf date, the Client column and the
-               Montant column                             -> .lw-orders-col-sm
-               leaving 3 columns: "+", Réf/Client, Statut.
-   .lw-orders-phone-only is the mirror: the compact client+total line folded
-   into the Réf cell, and the child-row entries that only phones need. */
-@media (min-width: 992px) {
-    .lw-orders-expand-col,
-    .lw-orders-child-row {
-        display: none !important;
-    }
+/* The page keeps its own labelled "Rechercher Client / #Réf" field, so the
+   datatable's built-in search box would just be a second, unlabelled one. */
+#lwOrdersList_filter {
+    display: none;
 }
-@media (max-width: 991.98px) {
-    .lw-orders-col-lg {
-        display: none !important;
-    }
+/* Selection column: narrow, and never dropped into the responsive child row,
+   since ticking a row is the whole point of it being there. */
+.lw-orders-table td.lw-orders-select-col,
+.lw-orders-table th.lw-orders-select-col {
+    width: 36px;
+    text-align: center;
 }
 @media (max-width: 575.98px) {
-    .lw-orders-col-sm {
-        display: none !important;
+    #lwOrdersList_wrapper .dataTables_length,
+    #lwOrdersList_wrapper .dataTables_info {
+        text-align: left;
     }
-    .lw-orders-table th,
-    .lw-orders-table td {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+    #lwOrdersList_wrapper .dataTables_paginate {
+        float: none;
+        text-align: center;
+        padding-top: 8px;
     }
-    .order-status-select {
-        font-size: 0.7rem;
-        padding: 0.3rem 1.3rem 0.3rem 0.55rem;
-        max-width: 108px;
-    }
-    .lw-orders-child-label {
-        min-width: 100px;
-    }
-}
-@media (min-width: 576px) {
-    .lw-orders-phone-only {
-        display: none !important;
-    }
-}
-.lw-orders-phone-line {
-    font-size: 0.78rem;
-    line-height: 1.35;
-    margin-top: 2px;
-}
-.lw-orders-phone-total {
-    font-weight: 700;
-    color: #0f172a;
-}
-
-/* Responsive expand control + child row, matching the DataTables Responsive
-   "+"/"-" control (table.dataTable.dtr-*) used on every other list page in
-   the app, applied here to this page's own Alpine-rendered table instead of
-   a real DataTable instance. */
-.lw-orders-expand-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    background-color: #31b131;
-    border: 2px solid #fff;
-    border-radius: 16px;
-    box-shadow: 0 0 3px #444;
-    color: #fff;
-    font-size: 13px;
-    line-height: 1;
-    padding: 0;
-}
-.lw-orders-expand-btn::before {
-    content: "+";
-}
-.lw-orders-expand-btn.is-open {
-    background-color: #d33333;
-}
-.lw-orders-expand-btn.is-open::before {
-    content: "\2212";
-}
-.lw-orders-child-row > td {
-    background: #fafbfc;
-}
-.lw-orders-child-cell {
-    padding: 10px 16px !important;
-}
-.lw-orders-child-item {
-    padding: 6px 0;
-    border-bottom: 1px solid #eef0f2;
-}
-.lw-orders-child-item:last-child {
-    border-bottom: none;
-}
-.lw-orders-child-label {
-    display: inline-block;
-    font-weight: 700;
-    min-width: 130px;
-    vertical-align: top;
-    color: #475569;
-    font-size: 0.85rem;
-}
-.lw-orders-child-value {
-    display: inline-block;
-    font-size: 0.9rem;
-    color: #1e293b;
 }
 
 /* PERFECT CSS PRINT STYLES */
@@ -391,7 +296,7 @@ $deliveryDrivers = $deliveryManagementEnabled
 }
 </style>
 
-<div class="container-fluid pb-5" x-data="ordersPageData()" id="lwOrdersPageRoot">
+<div class="container-fluid pb-5" x-data="ordersPageData()" x-init="fetchOrderCounts()" id="lwOrdersPageRoot">
 
     <!-- Header Section -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
@@ -423,28 +328,28 @@ $deliveryDrivers = $deliveryManagementEnabled
         <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #059669 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Total Commandes') }}</small>
-                <div class="lw-kpi-num text-dark" x-text="allOrders.length"></div>
+                <div class="lw-kpi-num text-dark" x-text="orderCounts.total"></div>
             </div>
         </div>
 
         <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #92600a !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Nouvelles (Validées)') }}</small>
-                <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'validated').length"></div>
+                <div class="lw-kpi-num text-dark" x-text="orderCounts.validated"></div>
             </div>
         </div>
 
         <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #6d28d9 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('En Cours / Livraison') }}</small>
-                <div class="lw-kpi-num text-dark" x-text="allOrders.filter(o => o.status === 'processing' || o.status === 'shipped').length"></div>
+                <div class="lw-kpi-num text-dark" x-text="orderCounts.in_progress"></div>
             </div>
         </div>
 
         <div class="col-6 col-xl-3 mb-3">
             <div class="card sharp-card p-3" style="border-left: 3px solid #04704e !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Commandes Livrées') }}</small>
-                <div class="lw-kpi-num" style="color: #04704e;" x-text="allOrders.filter(o => o.status === 'delivered').length"></div>
+                <div class="lw-kpi-num" style="color: #04704e;" x-text="orderCounts.delivered"></div>
             </div>
         </div>
     </div>
@@ -461,12 +366,12 @@ $deliveryDrivers = $deliveryManagementEnabled
             <div class="row mb-3 no-print">
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
-                    <input type="text" class="form-control p-3 custom-input-white" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input="resetOrdersPage()">
+                    <input type="text" class="form-control p-3 custom-input-white" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input.debounce.400ms="reloadOrdersTable()">
                 </div>
 
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter" @change="resetOrdersPage()">
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter" @change="reloadOrdersTable()">
                         <option value="">{{ __tr('Tous les statuts') }}</option>
                         <option value="validated">{{ __tr('Nouvelle / Validée') }}</option>
                         <option value="confirmed">{{ __tr('Confirmée') }}</option>
@@ -479,7 +384,7 @@ $deliveryDrivers = $deliveryManagementEnabled
 
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Agent / Source') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter" @change="resetOrdersPage()">
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderSourceFilter" @change="reloadOrdersTable()">
                         <option value="">{{ __tr('Toutes les sources & agents') }}</option>
                         <option value="whatsapp">{{ __tr('Bot / IA WhatsApp') }}</option>
                         <option value="manuel">{{ __tr('Vendeur Manuel') }}</option>
@@ -492,9 +397,9 @@ $deliveryDrivers = $deliveryManagementEnabled
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Jour spécifique (Date)') }}</label>
                     <div class="d-flex align-items-center" style="gap: 5px;">
-                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter" @change="resetOrdersPage()">
+                        <input type="date" class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDateFilter" @change="reloadOrdersTable()">
                         <template x-if="orderDateFilter">
-                            <button type="button" @click="orderDateFilter = ''; resetOrdersPage();" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Réinitialiser la date') }}">&times;</button>
+                            <button type="button" @click="orderDateFilter = ''; reloadOrdersTable();" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="{{ __tr('Réinitialiser la date') }}">&times;</button>
                         </template>
                     </div>
                 </div>
@@ -502,7 +407,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                 @if($deliveryManagementEnabled)
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par livreur') }}</label>
-                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDriverFilter" @change="resetOrdersPage()">
+                    <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderDriverFilter" @change="reloadOrdersTable()">
                         <option value="">{{ __tr('Tous les livreurs') }}</option>
                         <option value="unassigned">{{ __tr('Non assignée') }}</option>
                         <template x-for="driver in deliveryDrivers" :key="driver._uid">
@@ -515,24 +420,14 @@ $deliveryDrivers = $deliveryManagementEnabled
 
             <!-- Sort & Quick Filters Row 2 -->
             <div class="d-flex align-items-center justify-content-between flex-wrap mb-4 pb-2 border-bottom no-print" style="gap: 10px;">
+                {{-- Date sorting and per-page are the datatable's own controls
+                     now (click the "Réf / Date" header, or its length menu),
+                     same as the drivers list - only the shortcut that isn't
+                     built in stays here. --}}
                 <div class="d-flex align-items-center flex-wrap" id="lwOrdersSortRow" style="gap: 10px;">
-                    <span class="small font-weight-bold text-muted">{{ __tr('Trier par date:') }}</span>
-                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 200px;" x-model="orderDateSort" @change="resetOrdersPage()">
-                        <option value="desc">{{ __tr('Du plus récent au plus ancien') }}</option>
-                        <option value="asc">{{ __tr('Du plus ancien au plus récent') }}</option>
-                    </select>
-
-                    <button type="button" @click="setTodayFilter(); resetOrdersPage();" class="btn lw-today-btn">
+                    <button type="button" @click="setTodayFilter(); reloadOrdersTable();" class="btn lw-today-btn">
                         {{ __tr('Commandes du jour') }}
                     </button>
-
-                    <span class="small font-weight-bold text-muted ml-2">{{ __tr('Par page:') }}</span>
-                    <select class="form-control form-control-sm custom-input-white font-weight-bold" style="border-radius: 8px !important; width: 100px;" x-model.number="ordersPerPage" @change="resetOrdersPage()">
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="250">250</option>
-                        <option value="500">500</option>
-                    </select>
                 </div>
 
                 <div class="d-flex align-items-center" style="gap: 10px;">
@@ -546,247 +441,27 @@ $deliveryDrivers = $deliveryManagementEnabled
                         </div>
                     </template>
                     @endif
-                    <span class="lw-count-pill" x-text="getFilteredOrders().length + ' commande(s) au total'"></span>
+                    <span class="lw-count-pill" x-text="ordersTotalCount + ' {{ __tr('commande(s) au total') }}'"></span>
                 </div>
             </div>
 
-            <!-- Orders Table -->
-            <div class="table-responsive">
-                <table class="table table-hover align-items-center mb-0 lw-orders-table" style="border-radius: 12px; overflow: hidden; border: 1px solid #e4e7ec;">
-                    <thead>
-                        <tr>
-                            <!-- Responsive expand control: same role as DataTables' Responsive
-                                 "+" column used on the other list pages - only shown below lg,
-                                 where the Adresse/Source columns get hidden into a child row. -->
-                            <th class="lw-orders-th lw-orders-th-expand lw-orders-expand-col" style="width: 32px;"></th>
-                            @if($deliveryManagementEnabled)
-                            <th class="lw-orders-th lw-orders-col-sm" style="width: 40px;">
-                                <input type="checkbox" :checked="isAllOnPageSelected()" @click="toggleSelectAllOnPage()">
-                            </th>
-                            @endif
-                            <th class="lw-orders-th">
-                                <span class="lw-orders-col-sm">{{ __tr('Réf / Date') }}</span>
-                                <span class="lw-orders-phone-only">{{ __tr('Commande') }}</span>
-                            </th>
-                            <th class="lw-orders-th lw-orders-col-sm">{{ __tr('Client WhatsApp') }}</th>
-                            <th class="lw-orders-th lw-orders-col-lg">{{ __tr('Adresse de livraison') }}</th>
-                            <th class="lw-orders-th lw-orders-col-sm">{{ __tr('Articles & Montant Total') }}</th>
-                            <th class="lw-orders-th lw-orders-col-lg">{{ __tr('Source / Agent') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Statut') }}</th>
-                            <th class="lw-orders-th text-right no-print lw-orders-col-lg">{{ __tr('Actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="order in getPaginatedOrders()" :key="order._uid">
-                        <tbody>
-                            <tr @if($deliveryManagementEnabled) @click="$event.target.closest('a, button, select, input, .dropdown-menu') ? null : toggleOrderSelected(order._uid)" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''" style="cursor: pointer;" @endif>
-                                <td class="align-middle text-center lw-orders-expand-col">
-                                    <button type="button" class="lw-orders-expand-btn" :class="isOrderExpanded(order._uid) ? 'is-open' : ''" @click.stop="toggleOrderExpand(order._uid)" :aria-expanded="isOrderExpanded(order._uid)" :title="isOrderExpanded(order._uid) ? '{{ __tr('Réduire') }}' : '{{ __tr('Voir plus de détails') }}'"></button>
-                                </td>
-                                @if($deliveryManagementEnabled)
-                                <td class="align-middle lw-orders-col-sm">
-                                    <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
-                                </td>
-                                @endif
-                                <td class="align-middle">
-                                    <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
-                                        <span x-text="'#' + order._uid.substring(0, 8)"></span>
-                                    </button>
-                                    <small class="text-muted d-block lw-orders-mono lw-orders-col-sm" x-text="formatDate(order.created_at)"></small>
-                                    <!-- Phone: the Client and Montant columns are dropped, so the two
-                                         things you actually scan a list of orders for get folded in here. -->
-                                    <div class="lw-orders-phone-only lw-orders-phone-line">
-                                        <div class="text-dark text-truncate" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
-                                        <div class="lw-orders-phone-total lw-orders-mono" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    </div>
-                                </td>
-                                <td class="align-middle lw-orders-col-sm">
-                                    <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
-                                    <template x-if="order.contact && order.contact._uid">
-                                        <a :href="getChatUrl(order.contact._uid)" target="_blank" class="font-weight-bold small lw-orders-mono" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
-                                            <span x-text="order.contact.wa_id"></span>
-                                        </a>
-                                    </template>
-                                </td>
-                                <td class="align-middle lw-orders-col-lg">
-                                    <div class="lw-order-address" x-text="getAddress(order) || '—'"></div>
-                                </td>
-                                <td class="align-middle lw-orders-col-sm">
-                                    <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <div class="small text-muted mt-1 lw-orders-col-lg">
-                                        <template x-for="(it, i) in getItems(order)" :key="i">
-                                            <div class="text-truncate" style="max-width: 280px;" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
-                                        </template>
-                                        <template x-if="getItems(order).length === 0">
-                                            <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
-                                        </template>
-                                    </div>
-                                </td>
-                                <td class="align-middle lw-orders-col-lg">
-                                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
-                                </td>
-                                <td class="align-middle">
-                                    @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
-                                    <select class="order-status-select"
-                                            :class="{
-                                                'st-delivered': order.status === 'delivered',
-                                                'st-processing': order.status === 'shipped' || order.status === 'processing',
-                                                'st-confirmed': order.status === 'confirmed',
-                                                'st-new': order.status === 'validated',
-                                                'st-cancelled': order.status === 'cancelled',
-                                                'st-in-delivery': order.status === 'in_delivery',
-                                                'st-delivery-failed': order.status === 'delivery_failed'
-                                            }"
-                                            :value="order.status" @change="updateOrderStatus(order._uid, $event.target.value)">
-                                        <option value="validated">{{ __tr('Nouvelle') }}</option>
-                                        <option value="confirmed">{{ __tr('Confirmée') }}</option>
-                                        <option value="processing">{{ __tr('En préparation') }}</option>
-                                        <option value="shipped">{{ __tr('En livraison') }}</option>
-                                        <option value="in_delivery">{{ __tr('En cours de livraison') }}</option>
-                                        <option value="delivered">{{ __tr('Livrée') }}</option>
-                                        <option value="delivery_failed">{{ __tr('Livraison échouée') }}</option>
-                                        <option value="cancelled">{{ __tr('Annulée') }}</option>
-                                    </select>
-                                    @else
-                                    <span class="order-status-badge"
-                                          :class="{
-                                              'st-delivered': order.status === 'delivered',
-                                              'st-processing': order.status === 'shipped' || order.status === 'processing',
-                                              'st-confirmed': order.status === 'confirmed',
-                                              'st-new': order.status === 'validated',
-                                              'st-cancelled': order.status === 'cancelled',
-                                              'st-in-delivery': order.status === 'in_delivery',
-                                              'st-delivery-failed': order.status === 'delivery_failed'
-                                          }"
-                                          x-text="order.status === 'delivered' ? '{{ __tr('Livrée') }}' : (order.status === 'shipped' ? '{{ __tr('En livraison') }}' : (order.status === 'confirmed' ? '{{ __tr('Confirmée') }}' : (order.status === 'cancelled' ? '{{ __tr('Annulée') }}' : (order.status === 'in_delivery' ? '{{ __tr('En cours de livraison') }}' : (order.status === 'delivery_failed' ? '{{ __tr('Livraison échouée') }}' : '{{ __tr('Nouvelle') }}')))))">
-                                    </span>
-                                    @endif
-                                    <template x-if="order.driver">
-                                        <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
-                                    </template>
-                                </td>
-                                <td class="align-middle text-right no-print lw-orders-col-lg">
-                                    <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
-                                        @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
-                                        <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px; white-space: nowrap;" title="{{ __tr('Assigner à un livreur') }}">
-                                            <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
-                                        </button>
-                                        @endif
-
-                                        <div class="dropdown d-inline-block">
-                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="dropdown" aria-expanded="false" style="border-radius: 8px; width: 34px; font-weight: 700;" title="{{ __tr('Plus d\'actions') }}">
-                                                ⋮
-                                            </button>
-                                            <div class="dropdown-menu dropdown-menu-right shadow-sm">
-                                                <a href="#" @click.prevent="viewOrderDetails(order)" class="dropdown-item">{{ __tr('Voir le reçu') }}</a>
-                                                <template x-if="order.contact && order.contact._uid">
-                                                    <a :href="getChatUrl(order.contact._uid)" target="_blank" class="dropdown-item">{{ __tr('Ouvrir WhatsApp') }}</a>
-                                                </template>
-                                                @if (hasVendorAccess('manage_orders', 'delete_orders'))
-                                                <a href="#" @click.prevent="deleteOrder(order._uid)" class="dropdown-item text-danger">{{ __tr('Supprimer') }}</a>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            <!-- Responsive child row (DataTables-style): reveals the columns
-                                 hidden below lg (Adresse, Source/Agent, item breakdown) when
-                                 the "+" control is toggled. -->
-                            <tr class="lw-orders-child-row" x-show="isOrderExpanded(order._uid)" x-cloak>
-                                <td colspan="9" class="lw-orders-child-cell">
-                                    <!-- Phone-only entries: these columns still exist on tablet,
-                                         so they'd be duplicated there. -->
-                                    <div class="lw-orders-child-item lw-orders-phone-only">
-                                        <span class="lw-orders-child-label">{{ __tr('Date') }}</span>
-                                        <span class="lw-orders-child-value lw-orders-mono" x-text="formatDate(order.created_at)"></span>
-                                    </div>
-                                    <template x-if="order.contact && order.contact._uid">
-                                        <div class="lw-orders-child-item lw-orders-phone-only">
-                                            <span class="lw-orders-child-label">{{ __tr('Téléphone') }}</span>
-                                            <a :href="getChatUrl(order.contact._uid)" target="_blank" @click.stop class="lw-orders-child-value lw-orders-mono font-weight-bold" style="color: #059669;" x-text="order.contact.wa_id"></a>
-                                        </div>
-                                    </template>
-                                    @if($deliveryManagementEnabled)
-                                    <div class="lw-orders-child-item lw-orders-phone-only no-print">
-                                        <span class="lw-orders-child-label">{{ __tr('Sélectionner') }}</span>
-                                        <span class="lw-orders-child-value">
-                                            <input type="checkbox" :checked="isOrderSelected(order._uid)" @click.stop="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
-                                        </span>
-                                    </div>
-                                    @endif
-                                    <div class="lw-orders-child-item">
-                                        <span class="lw-orders-child-label">{{ __tr('Adresse de livraison') }}</span>
-                                        <span class="lw-orders-child-value" x-text="getAddress(order) || '—'"></span>
-                                    </div>
-                                    <div class="lw-orders-child-item">
-                                        <span class="lw-orders-child-label">{{ __tr('Source / Agent') }}</span>
-                                        <span class="lw-orders-child-value" x-text="getSource(order)"></span>
-                                    </div>
-                                    <div class="lw-orders-child-item">
-                                        <span class="lw-orders-child-label">{{ __tr('Articles') }}</span>
-                                        <span class="lw-orders-child-value">
-                                            <template x-for="(it, i) in getItems(order)" :key="i">
-                                                <div x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
-                                            </template>
-                                            <template x-if="getItems(order).length === 0">
-                                                <span class="text-muted">{{ __tr('Aucun article détaillé') }}</span>
-                                            </template>
-                                        </span>
-                                    </div>
-                                    <template x-if="order.driver">
-                                        <div class="lw-orders-child-item">
-                                            <span class="lw-orders-child-label">{{ __tr('Livreur') }}</span>
-                                            <span class="lw-orders-child-value" x-text="order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
-                                        </div>
-                                    </template>
-                                    <div class="lw-orders-child-item lw-orders-child-actions no-print">
-                                        <span class="lw-orders-child-label">{{ __tr('Actions') }}</span>
-                                        <span class="lw-orders-child-value">
-                                            <div class="d-flex flex-wrap" style="gap: 6px;">
-                                                <button type="button" @click.stop="viewOrderDetails(order)" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;">{{ __tr('Voir le reçu') }}</button>
-                                                <template x-if="order.contact && order.contact._uid">
-                                                    <a :href="getChatUrl(order.contact._uid)" target="_blank" @click.stop class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;">{{ __tr('Ouvrir WhatsApp') }}</a>
-                                                </template>
-                                                @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
-                                                <button type="button" @click.stop="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px;">
-                                                    <span x-text="order.assigned_driver__id ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}'"></span>
-                                                </button>
-                                                @endif
-                                                @if (hasVendorAccess('manage_orders', 'delete_orders'))
-                                                <button type="button" @click.stop="deleteOrder(order._uid)" class="btn btn-sm btn-outline-danger font-weight-bold" style="border-radius: 8px;">{{ __tr('Supprimer') }}</button>
-                                                @endif
-                                            </div>
-                                        </span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-
-            <div>
-                <div x-show="getFilteredOrders().length === 0" class="text-center py-5 text-muted">
-                    <p class="mb-0 font-weight-bold">{{ __tr('Aucune commande ne correspond à votre recherche.') }}</p>
-                </div>
-
-                <!-- Pagination -->
-                <div x-show="getFilteredOrders().length > 0" class="d-flex align-items-center justify-content-between flex-wrap mt-3 no-print" style="gap: 10px;">
-                    <span class="small text-muted lw-orders-mono"
-                          x-text="'{{ __tr('Affichage') }} ' + (((ordersCurrentPage - 1) * ordersPerPage) + 1) + '-' + Math.min(ordersCurrentPage * ordersPerPage, getFilteredOrders().length) + ' {{ __tr('sur') }} ' + getFilteredOrders().length"></span>
-                    <div class="d-flex align-items-center" style="gap: 6px;">
-                        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage <= 1" @click="ordersCurrentPage--">
-                            {{ __tr('Précédent') }}
-                        </button>
-                        <span class="small font-weight-bold text-dark px-2 lw-orders-mono" x-text="'{{ __tr('Page') }} ' + ordersCurrentPage + ' / ' + getOrdersPageCount()"></span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" :disabled="ordersCurrentPage >= getOrdersPageCount()" @click="ordersCurrentPage++">
-                            {{ __tr('Suivant') }}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- Orders Table - same DataTables component (and Responsive
+                 "+" column behaviour) as the drivers / delivery tracking
+                 lists. Rows, paging, sorting and search all come from
+                 vendor.ecommerce.orders.list_data; the filter row above
+                 feeds it through reloadOrdersTable(). -->
+            <x-lw.datatable id="lwOrdersList" data-page-length="50" data-callback="lwOrdersDrawCallback" :url="route('vendor.ecommerce.orders.list_data')">
+                @if($deliveryManagementEnabled)
+                <th data-orderable="false" data-name="_uid" data-template="#lwOrdersSelectTemplate" data-class-name="lw-orders-select-col"></th>
+                @endif
+                <th data-orderable="true" data-order-by="created_at" data-order-type="desc" data-name="created_at" data-template="#lwOrdersRefTemplate">{{ __tr('Réf / Date') }}</th>
+                <th data-orderable="false" data-name="client_name" data-template="#lwOrdersClientTemplate">{{ __tr('Client WhatsApp') }}</th>
+                <th data-orderable="false" data-name="address_formatted">{{ __tr('Adresse de livraison') }}</th>
+                <th data-orderable="false" data-name="total_formatted" data-template="#lwOrdersTotalTemplate">{{ __tr('Articles & Montant') }}</th>
+                <th data-orderable="false" data-name="source_formatted">{{ __tr('Source / Agent') }}</th>
+                <th data-orderable="false" data-name="status" data-template="#lwOrdersStatusTemplate">{{ __tr('Statut') }}</th>
+                <th data-orderable="false" data-name="_uid" data-template="#lwOrdersActionsTemplate">{{ __tr('Actions') }}</th>
+            </x-lw.datatable>
         </div>
     </div>
 
@@ -1103,10 +778,188 @@ $deliveryDrivers = $deliveryManagementEnabled
 
 </div>
 
+{{-- Orders datatable cell templates (lodash templates, same mechanism the
+     drivers / delivery-tracking lists use). __tData is the formatted row
+     built by ECommerceController::formatOrderListRow(). --}}
+@if($deliveryManagementEnabled)
+<script type="text/template" id="lwOrdersSelectTemplate">
+    <input type="checkbox" class="lw-orders-row-select" value="<%- __tData._uid %>" onclick="lwOrdersToggleSelect(this.value, this.checked)" style="width: 18px; height: 18px;">
+</script>
+@endif
+
+<script type="text/template" id="lwOrdersRefTemplate">
+    <button type="button" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" onclick="lwOrdersViewReceipt('<%- __tData._uid %>')" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
+        <%- __tData.ref_short %>
+    </button>
+    <small class="text-muted d-block lw-orders-mono"><%- __tData.created_at_formatted %></small>
+</script>
+
+<script type="text/template" id="lwOrdersClientTemplate">
+    <div class="font-weight-bold text-dark"><%- __tData.client_name %></div>
+    <% if (__tData.client_uid) { %>
+    <a href="<%= __Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid' => 'contactUid']) }}', {'contactUid': __tData.client_uid}) %>" target="_blank" class="font-weight-bold small lw-orders-mono" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}"><%- __tData.client_wa_id %></a>
+    <% } %>
+</script>
+
+<script type="text/template" id="lwOrdersTotalTemplate">
+    <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;"><%- __tData.total_formatted %></div>
+    <div class="small text-muted mt-1">
+        <% if (__tData.items_formatted && __tData.items_formatted.length) { %>
+            <% _.forEach(__tData.items_formatted, function (item) { %>
+                <div class="text-truncate" style="max-width: 280px;"><%- item %></div>
+            <% }) %>
+        <% } else { %>
+            <small class="text-muted italic">{{ __tr('Aucun article détaillé') }}</small>
+        <% } %>
+    </div>
+</script>
+
+<script type="text/template" id="lwOrdersStatusTemplate">
+    @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
+    <select class="order-status-select st-<%- __tData.status === 'shipped' ? 'processing' : __tData.status.replace(/_/g, '-') %>" onchange="lwOrdersUpdateStatus('<%- __tData._uid %>', this.value)">
+        <option value="validated" <%- __tData.status === 'validated' ? 'selected' : '' %>>{{ __tr('Nouvelle') }}</option>
+        <option value="confirmed" <%- __tData.status === 'confirmed' ? 'selected' : '' %>>{{ __tr('Confirmée') }}</option>
+        <option value="processing" <%- __tData.status === 'processing' ? 'selected' : '' %>>{{ __tr('En préparation') }}</option>
+        <option value="shipped" <%- __tData.status === 'shipped' ? 'selected' : '' %>>{{ __tr('En livraison') }}</option>
+        <option value="in_delivery" <%- __tData.status === 'in_delivery' ? 'selected' : '' %>>{{ __tr('En cours de livraison') }}</option>
+        <option value="delivered" <%- __tData.status === 'delivered' ? 'selected' : '' %>>{{ __tr('Livrée') }}</option>
+        <option value="delivery_failed" <%- __tData.status === 'delivery_failed' ? 'selected' : '' %>>{{ __tr('Livraison échouée') }}</option>
+        <option value="cancelled" <%- __tData.status === 'cancelled' ? 'selected' : '' %>>{{ __tr('Annulée') }}</option>
+    </select>
+    @else
+    <span class="order-status-badge st-<%- __tData.status === 'shipped' ? 'processing' : __tData.status.replace(/_/g, '-') %>"><%- __tData.status %></span>
+    @endif
+    <% if (__tData.driver_name) { %>
+    <span class="lw-order-driver-name">{{ __tr('Livreur :') }} <%- __tData.driver_name %></span>
+    <% } %>
+</script>
+
+<script type="text/template" id="lwOrdersActionsTemplate">
+    <div class="btn-group">
+        <button type="button" class="btn btn-black btn-sm dropdown-toggle lw-datatable-action-dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-right">
+            <a class="dropdown-item" href="#" onclick="lwOrdersViewReceipt('<%- __tData._uid %>'); return false;"><i class="fa fa-receipt"></i> {{ __tr('Voir le reçu') }}</a>
+            <% if (__tData.client_uid) { %>
+            <a class="dropdown-item" target="_blank" href="<%= __Utils.apiURL('{{ route('vendor.chat_message.contact.view', ['contactUid' => 'contactUid']) }}', {'contactUid': __tData.client_uid}) %>"><i class="fab fa-whatsapp"></i> {{ __tr('Ouvrir WhatsApp') }}</a>
+            <% } %>
+            @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
+            <a class="dropdown-item" href="#" onclick="lwOrdersAssignDriver('<%- __tData._uid %>'); return false;"><i class="fa fa-truck"></i> <%- __tData.driver_name ? '{{ __tr('Réassigner à...') }}' : '{{ __tr('Assigner à...') }}' %></a>
+            @endif
+            @if (hasVendorAccess('manage_orders', 'delete_orders'))
+            <a class="dropdown-item text-danger" href="#" onclick="lwOrdersDelete('<%- __tData._uid %>'); return false;"><i class="fa fa-trash text-danger"></i> {{ __tr('Supprimer') }}</a>
+            @endif
+        </div>
+    </div>
+</script>
+
+<script>
+/* Bridge between the orders DataTable and the Alpine component.
+   The datatable renders its rows outside Alpine's reach (plain lodash
+   templates), so the cell templates call these globals, and they in turn
+   drive the Alpine instance that still owns the modals and the selection. */
+function lwOrdersAlpineData() {
+    var root = document.getElementById('lwOrdersPageRoot');
+    if (!root || typeof Alpine === 'undefined') return null;
+    try {
+        return Alpine.$data(root);
+    } catch (e) {
+        return null;
+    }
+}
+
+function lwOrdersTable() {
+    var el = document.getElementById('lwOrdersList');
+    if (!el || !$.fn.DataTable || !$.fn.DataTable.isDataTable(el)) return null;
+    return $(el).DataTable();
+}
+
+function lwOrdersListUrl() {
+    var base = '{{ route('vendor.ecommerce.orders.list_data') }}';
+    var data = lwOrdersAlpineData();
+    if (!data) return base;
+    var params = {
+        status_filter: data.orderStatusFilter,
+        source_filter: data.orderSourceFilter,
+        date_filter: data.orderDateFilter,
+        driver_filter: data.orderDriverFilter,
+        search_filter: data.orderSearch
+    };
+    var query = Object.keys(params)
+        .filter(function (key) { return params[key]; })
+        .map(function (key) { return key + '=' + encodeURIComponent(params[key]); })
+        .join('&');
+    return query ? (base + '?' + query) : base;
+}
+
+/* Called by every filter control on the page. */
+window.reloadOrdersTable = function () {
+    var table = lwOrdersTable();
+    if (!table) return;
+    table.ajax.url(lwOrdersListUrl()).load();
+};
+
+/* Re-applies the selection after each redraw (paging, sorting, filtering all
+   rebuild the rows) and refreshes the "N commande(s)" pill from the table's
+   own record count. */
+window.lwOrdersDrawCallback = function () {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    $('#lwOrdersList').find('.lw-orders-row-select').each(function () {
+        this.checked = data.selectedOrderUids.indexOf(this.value) !== -1;
+    });
+    var table = lwOrdersTable();
+    if (table) {
+        data.ordersTotalCount = table.page.info().recordsTotal;
+    }
+};
+
+window.lwOrdersToggleSelect = function (orderUid, isChecked) {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    var index = data.selectedOrderUids.indexOf(orderUid);
+    if (isChecked && index === -1) {
+        data.selectedOrderUids.push(orderUid);
+    } else if (!isChecked && index !== -1) {
+        data.selectedOrderUids.splice(index, 1);
+    }
+};
+
+window.lwOrdersViewReceipt = function (orderUid) {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    __DataRequest.get('{{ route('vendor.ecommerce.orders.receipt_json', ['orderRef' => 'ORDER_REF']) }}'.replace('ORDER_REF', orderUid), {}, function (response) {
+        if (response && response.reaction == 1) {
+            data.viewOrderDetails(response);
+        } else {
+            showErrorMessage((response && response.message) || '{{ __tr('Commande introuvable.') }}');
+        }
+    });
+};
+
+window.lwOrdersUpdateStatus = function (orderUid, newStatus) {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    data.updateOrderStatus(orderUid, newStatus);
+};
+
+window.lwOrdersAssignDriver = function (orderUid) {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    data.openAssignDriverModal([orderUid]);
+};
+
+window.lwOrdersDelete = function (orderUid) {
+    var data = lwOrdersAlpineData();
+    if (!data) return;
+    data.deleteOrder(orderUid);
+};
+</script>
+
 <script>
 function ordersPageData() {
     return {
-        allOrders: {!! json_encode($orders) !!},
         allProducts: {!! json_encode($productsList) !!},
         teamMembers: {!! json_encode($teamMembers) !!},
         orderSearch: '',
@@ -1115,22 +968,18 @@ function ordersPageData() {
         orderDriverFilter: '',
         orderDateFilter: '',
         orderDateSort: 'desc',
-        ordersPerPage: 100,
-        ordersCurrentPage: 1,
-        resetOrdersPage: function() {
-            this.ordersCurrentPage = 1;
-        },
-        getOrdersPageCount: function() {
-            return Math.max(1, Math.ceil(this.getFilteredOrders().length / this.ordersPerPage));
-        },
-        getPaginatedOrders: function() {
-            var filtered = this.getFilteredOrders();
-            var pageCount = this.getOrdersPageCount();
-            if (this.ordersCurrentPage > pageCount) {
-                this.ordersCurrentPage = pageCount;
-            }
-            var start = (this.ordersCurrentPage - 1) * this.ordersPerPage;
-            return filtered.slice(start, start + this.ordersPerPage);
+        // The list is paginated server-side by the datatable now; these only
+        // back the header pill and the KPI cards.
+        ordersTotalCount: 0,
+        orderCounts: { total: 0, validated: 0, in_progress: 0, delivered: 0 },
+        fetchOrderCounts: function() {
+            var self = this;
+            __DataRequest.get('{{ route('vendor.ecommerce.orders.counts') }}', {}, function(response) {
+                var counts = (response && response.data && response.data.counts) ? response.data.counts : (response ? response.counts : null);
+                if (counts) {
+                    self.orderCounts = counts;
+                }
+            });
         },
 
         deliveryDrivers: {!! json_encode($deliveryDrivers) !!},
@@ -1138,50 +987,15 @@ function ordersPageData() {
         assignDriverTargets: [],
         assignDriverSelectedId: '',
         isAssigningDriver: false,
-        expandedOrderUids: [],
-        isOrderExpanded: function(uid) {
-            return this.expandedOrderUids.indexOf(uid) !== -1;
-        },
-        toggleOrderExpand: function(uid) {
-            var idx = this.expandedOrderUids.indexOf(uid);
-            if (idx !== -1) {
-                this.expandedOrderUids.splice(idx, 1);
-            } else {
-                this.expandedOrderUids.push(uid);
-            }
-        },
+        // Selection lives here but the checkboxes are rendered by the
+        // datatable, so lwOrdersToggleSelect()/lwOrdersDrawCallback() keep the
+        // two in sync (see the bridge script above).
         isOrderSelected: function(uid) {
             return this.selectedOrderUids.indexOf(uid) !== -1;
         },
-        toggleOrderSelected: function(uid) {
-            var idx = this.selectedOrderUids.indexOf(uid);
-            if (idx !== -1) {
-                this.selectedOrderUids.splice(idx, 1);
-            } else {
-                this.selectedOrderUids.push(uid);
-            }
-        },
-        isAllOnPageSelected: function() {
-            var page = this.getPaginatedOrders();
-            if (page.length === 0) return false;
-            var self = this;
-            return page.every(function(o) { return self.selectedOrderUids.indexOf(o._uid) !== -1; });
-        },
-        toggleSelectAllOnPage: function() {
-            var page = this.getPaginatedOrders();
-            var self = this;
-            if (this.isAllOnPageSelected()) {
-                page.forEach(function(o) {
-                    var idx = self.selectedOrderUids.indexOf(o._uid);
-                    if (idx !== -1) self.selectedOrderUids.splice(idx, 1);
-                });
-            } else {
-                page.forEach(function(o) {
-                    if (self.selectedOrderUids.indexOf(o._uid) === -1) {
-                        self.selectedOrderUids.push(o._uid);
-                    }
-                });
-            }
+        clearOrderSelection: function() {
+            this.selectedOrderUids = [];
+            $('#lwOrdersList').find('.lw-orders-row-select').prop('checked', false);
         },
         openAssignDriverModal: function(orderUids) {
             this.assignDriverTargets = orderUids;
@@ -1205,13 +1019,10 @@ function ordersPageData() {
                 var msg = response.message || (response.data && response.data.message) || (isSuccess ? 'Commande(s) assignée(s).' : 'Erreur.');
                 if (isSuccess) {
                     showSuccessMessage(msg);
-                    self.assignDriverTargets.forEach(function(uid) {
-                        var order = self.allOrders.find(function(o) { return o._uid === uid; });
-                        if (order) { order.status = 'in_delivery'; }
-                        var idx = self.selectedOrderUids.indexOf(uid);
-                        if (idx !== -1) self.selectedOrderUids.splice(idx, 1);
-                    });
+                    self.clearOrderSelection();
                     $('#assignDriverModal').modal('hide');
+                    window.reloadOrdersTable();
+                    self.fetchOrderCounts();
                 } else {
                     showErrorMessage(msg);
                 }
@@ -1271,6 +1082,8 @@ function ordersPageData() {
         printOrdersListOnly: function() {
             var printContent = document.getElementById('printableOrdersListArea');
             if (!printContent) return;
+            // Prints the page the datatable is currently showing.
+            var visibleRowCount = $('#lwOrdersList tbody tr').not('.dataTables_empty').length;
 
             var iframe = document.getElementById('orders_list_print_frame');
             if (!iframe) {
@@ -1296,7 +1109,7 @@ function ordersPageData() {
             doc.write('.table-bordered th, .table-bordered td { border: 1px solid #cbd5e1 !important; }');
             doc.write('</style>');
             doc.write('</head><body>');
-            doc.write('<h3 class="mb-3 font-weight-bold">Rapport des Commandes (' + this.getFilteredOrders().length + ')</h3>');
+            doc.write('<h3 class="mb-3 font-weight-bold">Rapport des Commandes (' + visibleRowCount + ')</h3>');
             doc.write(printContent.innerHTML);
             doc.write('</body></html>');
             doc.close();
@@ -1323,59 +1136,22 @@ function ordersPageData() {
             this.orderDateFilter = yyyy + '-' + mm + '-' + dd;
         },
 
-        getFilteredOrders: function() {
-            var self = this;
-            var result = this.allOrders.filter(function(o) {
-                if (!o) return false;
-                
-                // Search filter
-                var contactName = o.contact ? ((o.contact.first_name || '') + ' ' + (o.contact.last_name || '') + ' ' + (o.contact.wa_id || '')) : '';
-                var orderRef = o._uid ? o._uid : '';
-                var matchesSearch = !self.orderSearch || 
-                    contactName.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1 || 
-                    orderRef.toLowerCase().indexOf(self.orderSearch.toLowerCase()) !== -1;
-                
-                // Status filter
-                var matchesStatus = !self.orderStatusFilter || o.status === self.orderStatusFilter;
-                
-                // Source / Agent filter
-                var orderSource = self.getSource(o);
-                var matchesSource = !self.orderSourceFilter || 
-                    orderSource.toLowerCase().indexOf(self.orderSourceFilter.toLowerCase()) !== -1;
-
-                // Driver filter ('' = all, 'unassigned' = no driver, else a driver _uid)
-                var matchesDriver = !self.orderDriverFilter ||
-                    (self.orderDriverFilter === 'unassigned' ? !o.driver : (o.driver && o.driver._uid === self.orderDriverFilter));
-
-                // Date filter (YYYY-MM-DD match, in UTC - see setTodayFilter)
-                var matchesDate = true;
-                if (self.orderDateFilter && o.created_at) {
-                    try {
-                        var d = new Date(o.created_at);
-                        if (!isNaN(d.getTime())) {
-                            var yyyy = d.getUTCFullYear();
-                            var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-                            var dd = String(d.getUTCDate()).padStart(2, '0');
-                            var orderCreatedStr = yyyy + '-' + mm + '-' + dd;
-                            matchesDate = (orderCreatedStr === self.orderDateFilter);
-                        } else {
-                            matchesDate = (String(o.created_at).indexOf(self.orderDateFilter) === 0);
-                        }
-                    } catch(e) {
-                        matchesDate = (String(o.created_at).indexOf(self.orderDateFilter) === 0);
-                    }
-                }
-
-                return matchesSearch && matchesStatus && matchesSource && matchesDriver && matchesDate;
+        /* The list is server-side now, so anything that needs *every* row
+           matching the current filters (CSV export, printing the list) asks
+           the server for them rather than slicing a local array. */
+        fetchAllFilteredOrders: function(callback) {
+            var params = {
+                status_filter: this.orderStatusFilter,
+                source_filter: this.orderSourceFilter,
+                date_filter: this.orderDateFilter,
+                driver_filter: this.orderDriverFilter,
+                search_filter: this.orderSearch,
+                date_sort: this.orderDateSort
+            };
+            __DataRequest.get('{{ route('vendor.ecommerce.orders.export_rows') }}', params, function(response) {
+                var orders = (response && response.data && response.data.orders) ? response.data.orders : (response ? response.orders : null);
+                callback(Array.isArray(orders) ? orders : []);
             });
-
-            result.sort(function(a, b) {
-                var dateA = new Date(a.created_at || 0);
-                var dateB = new Date(b.created_at || 0);
-                return self.orderDateSort === 'asc' ? dateA - dateB : dateB - dateA;
-            });
-
-            return result;
         },
 
         formatDate: function(dateStr) {
@@ -1505,10 +1281,10 @@ function ordersPageData() {
                 var msg = response.message || (response.data && response.data.message) || 'Statut mis à jour avec succès.';
                 if (isSuccess) {
                     showSuccessMessage(msg);
-                    var ord = self.allOrders.find(function(o) { return o._uid === orderUid; });
-                    if (ord) ord.status = newStatus;
+                    self.fetchOrderCounts();
                 } else {
                     showErrorMessage(msg || 'Erreur de mise à jour.');
+                    window.reloadOrdersTable();
                 }
             });
         },
@@ -1521,9 +1297,8 @@ function ordersPageData() {
                     var msg = response.message || (response.data && response.data.message) || 'Commande supprimée avec succès.';
                     if (isSuccess) {
                         showSuccessMessage(msg);
-                        self.allOrders = self.allOrders.filter(function(o) {
-                            return o._uid !== orderUid && o._id !== orderUid;
-                        });
+                        window.reloadOrdersTable();
+                        self.fetchOrderCounts();
                     } else {
                         showErrorMessage(msg || 'Erreur de suppression.');
                     }
@@ -1616,12 +1391,8 @@ function ordersPageData() {
                     self.newOrderAdditionalFee = 0;
                     self.newOrderAddress = '';
                     self.newOrderDate = '';
-                    var newOrd = (response.data && response.data.order) ? response.data.order : response.order;
-                    if (newOrd) {
-                        self.allOrders.unshift(newOrd);
-                    } else {
-                        setTimeout(function() { window.location.reload(); }, 1000);
-                    }
+                    window.reloadOrdersTable();
+                    self.fetchOrderCounts();
                 } else {
                     var errMsg = response.message || (response.data && response.data.message) || 'Erreur lors de la création.';
                     showErrorMessage(errMsg);
@@ -1630,9 +1401,15 @@ function ordersPageData() {
         },
 
         exportOrdersCSV: function() {
-            var list = this.getFilteredOrders();
+            var self = this;
+            this.fetchAllFilteredOrders(function(list) {
+                self.buildOrdersCSV(list);
+            });
+        },
+
+        buildOrdersCSV: function(list) {
             if (list.length === 0) {
-                showErrorMessage('Aucune commande à exporter.');
+                showErrorMessage('{{ __tr('Aucune commande à exporter.') }}');
                 return;
             }
             var self = this;
@@ -1641,14 +1418,14 @@ function ordersPageData() {
 
             for (var i = 0; i < list.length; i++) {
                 var o = list[i];
-                var ref = '#' + o._uid.substring(0, 8);
-                var dateStr = self.formatDate(o.created_at);
-                var clientName = o.contact ? (o.contact.first_name + ' ' + o.contact.last_name) : 'Inconnu';
-                var phone = o.contact ? o.contact.wa_id : '';
-                var items = self.getItems(o).map(function(it) { return (it.name || 'Produit') + ' (x' + (it.quantity||1) + ')'; }).join(' | ');
-                var total = self.getTotal(o);
+                var ref = o.ref_short;
+                var dateStr = o.created_at_formatted;
+                var clientName = o.client_name;
+                var phone = o.client_wa_id;
+                var items = (o.items_formatted || []).join(' | ');
+                var total = o.total_raw;
                 var status = o.status;
-                var source = self.getSource(o);
+                var source = o.source_formatted;
 
                 var row = [
                     '"' + ref + '"',
@@ -1729,10 +1506,13 @@ if (data.eventModelUpdate && data.eventModelUpdate.new_order) {
         var newOrderInfo = data.eventModelUpdate.new_order;
         showInfoMessage("{{ __tr('Nouvelle commande') }} " + newOrderInfo.order_ref + (newOrderInfo.client_name ? (" — " + newOrderInfo.client_name) : '') + " (" + newOrderInfo.total_formatted + ")");
     }
-    if (lwOrdersRoot) {
-        $.getJSON('{{ route("vendor.ecommerce.orders.list_json") }}', function(freshOrders) {
-            Alpine.$data(lwOrdersRoot).allOrders = freshOrders;
-        });
+    // A new order arrived over the vendor broadcast - pull the list and the
+    // KPI counts again rather than splicing a row into a server-paged table.
+    if (lwOrdersRoot && typeof window.reloadOrdersTable === 'function') {
+        window.reloadOrdersTable();
+        try {
+            Alpine.$data(lwOrdersRoot).fetchOrderCounts();
+        } catch (e) {}
     }
 }
 @endpush

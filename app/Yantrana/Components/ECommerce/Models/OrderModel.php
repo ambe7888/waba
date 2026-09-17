@@ -18,6 +18,12 @@ class OrderModel extends BaseModel
     protected $primaryKey = '_id';
 
     /**
+     * @var int - The orders list offers 50/100/250/500 per page; the 100
+     * default would silently cap the two largest options.
+     */
+    protected $maxDataTableResultCount = 500;
+
+    /**
      * @var array - The attributes that should be casted to native types.
      */
     protected $casts = [

@@ -1341,6 +1341,21 @@ Route::middleware([
                 'showOrderReceiptJson',
             ])->name('vendor.ecommerce.orders.receipt_json');
 
+            Route::get('/ecommerce/orders/list-data', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'ordersDataTable',
+            ])->name('vendor.ecommerce.orders.list_data');
+
+            Route::get('/ecommerce/orders/counts', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'ordersCounts',
+            ])->name('vendor.ecommerce.orders.counts');
+
+            Route::get('/ecommerce/orders/export-rows', [
+                \App\Yantrana\Components\ECommerce\Controllers\ECommerceController::class,
+                'ordersExportRows',
+            ])->name('vendor.ecommerce.orders.export_rows');
+
             // Delivery management (drivers + tracking)
             Route::prefix('/delivery')->group(function () {
                 Route::get('/drivers', [

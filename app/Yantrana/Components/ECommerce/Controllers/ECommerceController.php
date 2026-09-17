@@ -692,6 +692,239 @@ class ECommerceController extends BaseController
     }
 
     /**
+     * Apply the orders-list filters (shared by the datatable source and the
+     * "all matching rows" export/print endpoint, so both always agree on what
+     * the current filter selection means).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param Request $request
+     * @return \Illuminate\Database\Eloquent\Builder
+     *---------------------------------------------------------------- */
+    protected function applyOrdersListFilters($query, Request $request)
+    {
+        if ($request->filled('status_filter')) {
+            $query->where('status', $request->status_filter);
+        }
+
+        if ($request->filled('date_filter')) {
+            $query->whereDate('created_at', $request->date_filter);
+        }
+
+        $driverFilter = $request->driver_filter;
+        if ($driverFilter === 'unassigned') {
+            $query->whereNull('assigned_driver__id');
+        } elseif (!empty($driverFilter)) {
+            $query->whereHas('driver', function ($q) use ($driverFilter) {
+                $q->where('_uid', $driverFilter);
+            });
+        }
+
+        // The source is stored inside the order_details JSON, and the values
+        // it can hold don't match the filter labels one-to-one: the AI bot
+        // writes "whatsapp_ai", a manual order writes either "manual" or
+        // "Manuel (Vendeur: <name>)". Map the two fixed options onto what's
+        // actually stored; anything else is an agent name, matched as-is.
+        if ($request->filled('source_filter')) {
+            $source = $request->source_filter;
+            $query->where(function ($q) use ($source) {
+                if ($source === 'whatsapp') {
+                    $q->where('order_details->source', 'like', '%whatsapp%');
+                } elseif ($source === 'manuel') {
+                    $q->where('order_details->source', 'like', '%manu%');
+                } else {
+                    $q->where('order_details->source', 'like', '%' . $source . '%');
+                }
+            });
+        }
+
+        // Search covers the client (name / WhatsApp number) and the order
+        // reference, which is the uid's first 8 characters as shown in the list.
+        $search = trim((string) ($request->input('search.value') ?? $request->input('search_filter', '')));
+        if ($search !== '') {
+            $escaped = str_replace(['%', '_'], ['\\%', '\\_'], $search);
+            $query->where(function ($q) use ($escaped) {
+                $q->where('_uid', 'LIKE', $escaped . '%')
+                    ->orWhereHas('contact', function ($contactQuery) use ($escaped) {
+                        $contactQuery->where('first_name', 'LIKE', '%' . $escaped . '%')
+                            ->orWhere('last_name', 'LIKE', '%' . $escaped . '%')
+                            ->orWhere('wa_id', 'LIKE', '%' . $escaped . '%');
+                    });
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Shape one order row for the orders list, formatting server-side what the
+     * Blade templates would otherwise have to recompute per row.
+     *
+     * @param array $row
+     * @return array
+     *---------------------------------------------------------------- */
+    protected function formatOrderListRow(array $row)
+    {
+        $contact = $row['contact'] ?? null;
+        $driver = $row['driver'] ?? null;
+        $details = $row['order_details'] ?? [];
+        if (is_string($details)) {
+            $decoded = json_decode($details, true);
+            $details = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($details)) {
+            $details = [];
+        }
+
+        $items = $details['items'] ?? ($details['product_items'] ?? ($details['products'] ?? []));
+        $items = is_array($items) ? $items : [];
+
+        $total = $details['total_price'] ?? ($details['total'] ?? null);
+        if ($total === null) {
+            $total = 0;
+            foreach ($items as $item) {
+                $total += ((float) ($item['price'] ?? 0)) * ((float) ($item['quantity'] ?? 1));
+            }
+        }
+
+        $rawSource = $details['source'] ?? ($details['created_by_vendor'] ?? '');
+        if ($rawSource === 'whatsapp_ai') {
+            $sourceLabel = __tr('Bot / IA WhatsApp');
+        } elseif ($rawSource === 'manual' || $rawSource === 'manuel') {
+            $sourceLabel = __tr('Vendeur Manuel');
+        } else {
+            $sourceLabel = $rawSource ?: 'WhatsApp';
+        }
+
+        $row['ref_short'] = '#' . substr((string) $row['_uid'], 0, 8);
+        $row['created_at_formatted'] = !empty($row['created_at'])
+            ? \Carbon\Carbon::parse($row['created_at'])->format('d/m/Y H:i')
+            : '';
+        $row['client_name'] = $contact
+            ? trim(($contact['first_name'] ?? '') . ' ' . ($contact['last_name'] ?? ''))
+            : __tr('Client Inconnu');
+        $row['client_wa_id'] = $contact['wa_id'] ?? '';
+        $row['client_uid'] = $contact['_uid'] ?? '';
+        $row['address_formatted'] = $details['delivery_address'] ?? ($details['address'] ?? '');
+        $row['total_formatted'] = number_format((float) $total, 0, ',', ' ') . ' ' . ($details['currency'] ?? 'CFA');
+        $row['total_raw'] = (float) $total;
+        $row['source_formatted'] = $sourceLabel;
+        $row['driver_name'] = $driver
+            ? trim(($driver['first_name'] ?? '') . ' ' . ($driver['last_name'] ?? ''))
+            : '';
+        $row['items_formatted'] = array_map(function ($item) {
+            return ($item['name'] ?? __tr('Produit')) . ' (x' . ($item['quantity'] ?? 1) . ')';
+        }, $items);
+
+        // The raw details blob is only needed by the receipt modal, which
+        // fetches the order on its own - dropping it here keeps each list
+        // response small.
+        unset($row['order_details']);
+
+        return $row;
+    }
+
+    /**
+     * Datatable source for the vendor orders list.
+     *
+     * @param Request $request
+     * @return array
+     *---------------------------------------------------------------- */
+    public function ordersDataTable(Request $request)
+    {
+        validateVendorAccess('manage_orders');
+        $vendorId = getVendorId();
+
+        // Scoped columns only: the full contact record carries a large
+        // AI-conversation-summary field that's never shown in this list.
+        $query = OrderModel::where('vendors__id', $vendorId)
+            ->with([
+                'contact:_id,_uid,first_name,last_name,wa_id',
+                'driver:_id,_uid,first_name,last_name',
+            ]);
+
+        $this->applyOrdersListFilters($query, $request);
+
+        // Search is applied above against the contact relation, which
+        // scopeDataTables' own shodh() can't reach.
+        $data = $query->dataTables(['searchable' => []])->toArray();
+
+        if (!empty($data['data'])) {
+            foreach ($data['data'] as &$row) {
+                $row = $this->formatOrderListRow($row);
+            }
+        }
+
+        $data['recordsTotal'] = $data['total'] ?? 0;
+        $data['recordsFiltered'] = $data['total'] ?? 0;
+
+        return $data;
+    }
+
+    /**
+     * Status counts for the orders page KPI cards. The list itself is
+     * paginated server-side now, so these can't be counted from the rows.
+     *
+     * @return json object
+     *---------------------------------------------------------------- */
+    public function ordersCounts()
+    {
+        validateVendorAccess('manage_orders');
+        $vendorId = getVendorId();
+
+        $counts = OrderModel::where('vendors__id', $vendorId)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return $this->processResponse(1, [], [
+            'counts' => [
+                'total' => (int) $counts->sum(),
+                'validated' => (int) $counts->get('validated', 0),
+                'in_progress' => (int) $counts->get('processing', 0)
+                    + (int) $counts->get('shipped', 0)
+                    + (int) $counts->get('in_delivery', 0),
+                'delivered' => (int) $counts->get('delivered', 0),
+            ],
+        ]);
+    }
+
+    /**
+     * Every order matching the current filters, unpaginated - used by the CSV
+     * export and the "print the list" action, which both need the whole
+     * selection rather than the page the datatable happens to be showing.
+     *
+     * @param Request $request
+     * @return json object
+     *---------------------------------------------------------------- */
+    public function ordersExportRows(Request $request)
+    {
+        validateVendorAccess('manage_orders');
+        $vendorId = getVendorId();
+
+        $query = OrderModel::where('vendors__id', $vendorId)
+            ->with([
+                'contact:_id,_uid,first_name,last_name,wa_id',
+                'driver:_id,_uid,first_name,last_name',
+            ]);
+
+        $this->applyOrdersListFilters($query, $request);
+
+        $sortDirection = $request->input('date_sort') === 'asc' ? 'asc' : 'desc';
+        $rows = $query->orderBy('created_at', $sortDirection)
+            ->limit(5000)
+            ->get()
+            ->toArray();
+
+        $rows = array_map(function ($row) {
+            return $this->formatOrderListRow($row);
+        }, $rows);
+
+        return $this->processResponse(1, [], [
+            'orders' => $rows,
+        ]);
+    }
+
+    /**
      * Get Orders for a specific Contact (used in Live Chat CRM)
      */
     public function getContactOrders($contactUid)
