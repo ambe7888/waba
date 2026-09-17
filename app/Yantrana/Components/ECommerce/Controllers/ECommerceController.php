@@ -5,6 +5,7 @@ use App\Yantrana\Base\BaseController;
 use App\Yantrana\Components\ECommerce\ECommerceEngine;
 use App\Yantrana\Components\ECommerce\Models\ProductModel;
 use App\Yantrana\Components\ECommerce\Models\ProductCategoryModel;
+use App\Yantrana\Components\ECommerce\Models\OrderModel;
 use Illuminate\Http\Request;
 
 class ECommerceController extends BaseController
