@@ -206,6 +206,59 @@ $deliveryDrivers = $deliveryManagementEnabled
     }
 }
 
+/* Responsive column plan (mirrors how DataTables Responsive drops columns as
+   width runs out, rather than one single md breakpoint):
+     >= 992px  every column
+     576-991   drop Adresse, Source/Agent, Actions        -> .lw-orders-col-lg
+     < 576px   also drop the checkbox, the Réf date, the Client column and the
+               Montant column                             -> .lw-orders-col-sm
+               leaving 3 columns: "+", Réf/Client, Statut.
+   .lw-orders-phone-only is the mirror: the compact client+total line folded
+   into the Réf cell, and the child-row entries that only phones need. */
+@media (min-width: 992px) {
+    .lw-orders-expand-col,
+    .lw-orders-child-row {
+        display: none !important;
+    }
+}
+@media (max-width: 991.98px) {
+    .lw-orders-col-lg {
+        display: none !important;
+    }
+}
+@media (max-width: 575.98px) {
+    .lw-orders-col-sm {
+        display: none !important;
+    }
+    .lw-orders-table th,
+    .lw-orders-table td {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    .order-status-select {
+        font-size: 0.7rem;
+        padding: 0.3rem 1.3rem 0.3rem 0.55rem;
+        max-width: 108px;
+    }
+    .lw-orders-child-label {
+        min-width: 100px;
+    }
+}
+@media (min-width: 576px) {
+    .lw-orders-phone-only {
+        display: none !important;
+    }
+}
+.lw-orders-phone-line {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin-top: 2px;
+}
+.lw-orders-phone-total {
+    font-weight: 700;
+    color: #0f172a;
+}
+
 /* Responsive expand control + child row, matching the DataTables Responsive
    "+"/"-" control (table.dataTable.dtr-*) used on every other list page in
    the app, applied here to this page's own Alpine-rendered table instead of
@@ -505,30 +558,33 @@ $deliveryDrivers = $deliveryManagementEnabled
                             <!-- Responsive expand control: same role as DataTables' Responsive
                                  "+" column used on the other list pages - only shown below lg,
                                  where the Adresse/Source columns get hidden into a child row. -->
-                            <th class="lw-orders-th lw-orders-th-expand d-lg-none" style="width: 32px;"></th>
+                            <th class="lw-orders-th lw-orders-th-expand lw-orders-expand-col" style="width: 32px;"></th>
                             @if($deliveryManagementEnabled)
-                            <th class="lw-orders-th" style="width: 40px;">
+                            <th class="lw-orders-th lw-orders-col-sm" style="width: 40px;">
                                 <input type="checkbox" :checked="isAllOnPageSelected()" @click="toggleSelectAllOnPage()">
                             </th>
                             @endif
-                            <th class="lw-orders-th">{{ __tr('Réf / Date') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Client WhatsApp') }}</th>
-                            <th class="lw-orders-th d-none d-lg-table-cell">{{ __tr('Adresse de livraison') }}</th>
-                            <th class="lw-orders-th">{{ __tr('Articles & Montant Total') }}</th>
-                            <th class="lw-orders-th d-none d-lg-table-cell">{{ __tr('Source / Agent') }}</th>
+                            <th class="lw-orders-th">
+                                <span class="lw-orders-col-sm">{{ __tr('Réf / Date') }}</span>
+                                <span class="lw-orders-phone-only">{{ __tr('Commande') }}</span>
+                            </th>
+                            <th class="lw-orders-th lw-orders-col-sm">{{ __tr('Client WhatsApp') }}</th>
+                            <th class="lw-orders-th lw-orders-col-lg">{{ __tr('Adresse de livraison') }}</th>
+                            <th class="lw-orders-th lw-orders-col-sm">{{ __tr('Articles & Montant Total') }}</th>
+                            <th class="lw-orders-th lw-orders-col-lg">{{ __tr('Source / Agent') }}</th>
                             <th class="lw-orders-th">{{ __tr('Statut') }}</th>
-                            <th class="lw-orders-th text-right no-print d-none d-lg-table-cell">{{ __tr('Actions') }}</th>
+                            <th class="lw-orders-th text-right no-print lw-orders-col-lg">{{ __tr('Actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="order in getPaginatedOrders()" :key="order._uid">
                         <tbody>
                             <tr @if($deliveryManagementEnabled) @click="$event.target.closest('a, button, select, input, .dropdown-menu') ? null : toggleOrderSelected(order._uid)" :class="isOrderSelected(order._uid) ? 'lw-order-row-selected' : ''" style="cursor: pointer;" @endif>
-                                <td class="align-middle text-center d-lg-none">
+                                <td class="align-middle text-center lw-orders-expand-col">
                                     <button type="button" class="lw-orders-expand-btn" :class="isOrderExpanded(order._uid) ? 'is-open' : ''" @click.stop="toggleOrderExpand(order._uid)" :aria-expanded="isOrderExpanded(order._uid)" :title="isOrderExpanded(order._uid) ? '{{ __tr('Réduire') }}' : '{{ __tr('Voir plus de détails') }}'"></button>
                                 </td>
                                 @if($deliveryManagementEnabled)
-                                <td class="align-middle">
+                                <td class="align-middle lw-orders-col-sm">
                                     <input type="checkbox" :checked="isOrderSelected(order._uid)" @click="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
                                 </td>
                                 @endif
@@ -536,9 +592,15 @@ $deliveryDrivers = $deliveryManagementEnabled
                                     <button type="button" @click="viewOrderDetails(order)" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
                                         <span x-text="'#' + order._uid.substring(0, 8)"></span>
                                     </button>
-                                    <small class="text-muted d-block lw-orders-mono" x-text="formatDate(order.created_at)"></small>
+                                    <small class="text-muted d-block lw-orders-mono lw-orders-col-sm" x-text="formatDate(order.created_at)"></small>
+                                    <!-- Phone: the Client and Montant columns are dropped, so the two
+                                         things you actually scan a list of orders for get folded in here. -->
+                                    <div class="lw-orders-phone-only lw-orders-phone-line">
+                                        <div class="text-dark text-truncate" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
+                                        <div class="lw-orders-phone-total lw-orders-mono" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
+                                    </div>
                                 </td>
-                                <td class="align-middle">
+                                <td class="align-middle lw-orders-col-sm">
                                     <div class="font-weight-bold text-dark" x-text="order.contact ? (order.contact.first_name + ' ' + order.contact.last_name) : '{{ __tr('Client Inconnu') }}'"></div>
                                     <template x-if="order.contact && order.contact._uid">
                                         <a :href="getChatUrl(order.contact._uid)" target="_blank" class="font-weight-bold small lw-orders-mono" style="color: #059669;" title="{{ __tr('Ouvrir la conversation WhatsApp') }}">
@@ -546,12 +608,12 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         </a>
                                     </template>
                                 </td>
-                                <td class="align-middle d-none d-lg-table-cell">
+                                <td class="align-middle lw-orders-col-lg">
                                     <div class="lw-order-address" x-text="getAddress(order) || '—'"></div>
                                 </td>
-                                <td class="align-middle">
+                                <td class="align-middle lw-orders-col-sm">
                                     <div class="font-weight-bold text-dark lw-orders-mono" style="font-size: 1.05rem;" x-text="getTotal(order).toLocaleString() + ' CFA'"></div>
-                                    <div class="small text-muted mt-1 d-none d-lg-block">
+                                    <div class="small text-muted mt-1 lw-orders-col-lg">
                                         <template x-for="(it, i) in getItems(order)" :key="i">
                                             <div class="text-truncate" style="max-width: 280px;" x-text="(it.name || 'Produit') + ' (x' + (it.quantity || 1) + ')'"></div>
                                         </template>
@@ -560,7 +622,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         </template>
                                     </div>
                                 </td>
-                                <td class="align-middle d-none d-lg-table-cell">
+                                <td class="align-middle lw-orders-col-lg">
                                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark" style="border-radius: 8px;" x-text="getSource(order)"></span>
                                 </td>
                                 <td class="align-middle">
@@ -603,7 +665,7 @@ $deliveryDrivers = $deliveryManagementEnabled
                                         <span class="lw-order-driver-name" x-text="'{{ __tr('Livreur :') }} ' + order.driver.first_name + ' ' + (order.driver.last_name || '')"></span>
                                     </template>
                                 </td>
-                                <td class="align-middle text-right no-print d-none d-lg-table-cell">
+                                <td class="align-middle text-right no-print lw-orders-col-lg">
                                     <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
                                         @if($deliveryManagementEnabled && hasVendorAccess('delivery', 'assign_orders_to_driver'))
                                         <button type="button" @click="openAssignDriverModal([order._uid])" class="btn btn-sm btn-outline-info font-weight-bold" style="border-radius: 8px; white-space: nowrap;" title="{{ __tr('Assigner à un livreur') }}">
@@ -631,8 +693,28 @@ $deliveryDrivers = $deliveryManagementEnabled
                             <!-- Responsive child row (DataTables-style): reveals the columns
                                  hidden below lg (Adresse, Source/Agent, item breakdown) when
                                  the "+" control is toggled. -->
-                            <tr class="lw-orders-child-row d-lg-none" x-show="isOrderExpanded(order._uid)" x-cloak>
+                            <tr class="lw-orders-child-row" x-show="isOrderExpanded(order._uid)" x-cloak>
                                 <td colspan="9" class="lw-orders-child-cell">
+                                    <!-- Phone-only entries: these columns still exist on tablet,
+                                         so they'd be duplicated there. -->
+                                    <div class="lw-orders-child-item lw-orders-phone-only">
+                                        <span class="lw-orders-child-label">{{ __tr('Date') }}</span>
+                                        <span class="lw-orders-child-value lw-orders-mono" x-text="formatDate(order.created_at)"></span>
+                                    </div>
+                                    <template x-if="order.contact && order.contact._uid">
+                                        <div class="lw-orders-child-item lw-orders-phone-only">
+                                            <span class="lw-orders-child-label">{{ __tr('Téléphone') }}</span>
+                                            <a :href="getChatUrl(order.contact._uid)" target="_blank" @click.stop class="lw-orders-child-value lw-orders-mono font-weight-bold" style="color: #059669;" x-text="order.contact.wa_id"></a>
+                                        </div>
+                                    </template>
+                                    @if($deliveryManagementEnabled)
+                                    <div class="lw-orders-child-item lw-orders-phone-only no-print">
+                                        <span class="lw-orders-child-label">{{ __tr('Sélectionner') }}</span>
+                                        <span class="lw-orders-child-value">
+                                            <input type="checkbox" :checked="isOrderSelected(order._uid)" @click.stop="toggleOrderSelected(order._uid)" style="width: 18px; height: 18px;">
+                                        </span>
+                                    </div>
+                                    @endif
                                     <div class="lw-orders-child-item">
                                         <span class="lw-orders-child-label">{{ __tr('Adresse de livraison') }}</span>
                                         <span class="lw-orders-child-value" x-text="getAddress(order) || '—'"></span>
