@@ -200,7 +200,8 @@ $deliveryDrivers = $deliveryManagementEnabled
 #lwOrdersList_filter {
     display: none;
 }
-.lw-orders-ref-client {
+.lw-orders-ref-client,
+.lw-orders-ref-meta {
     font-size: 0.82rem;
     line-height: 1.3;
     margin-top: 2px;
@@ -208,6 +209,13 @@ $deliveryDrivers = $deliveryManagementEnabled
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.lw-orders-ref-total {
+    font-weight: 700;
+    color: #04704e;
+}
+.lw-orders-ref-city {
+    color: #626a79;
 }
 /* Selection column: narrow, and never dropped into the responsive child row,
    since ticking a row is the whole point of it being there. */
@@ -792,7 +800,10 @@ $deliveryDrivers = $deliveryManagementEnabled
      built by ECommerceController::formatOrderListRow(). --}}
 @if($deliveryManagementEnabled)
 <script type="text/template" id="lwOrdersSelectTemplate">
-    <input type="checkbox" class="lw-orders-row-select" value="<%- __tData._uid %>" onclick="lwOrdersToggleSelect(this.value, this.checked)" style="width: 18px; height: 18px;">
+    {{-- stopPropagation: Responsive's expand control lives on the first column
+         (details.target defaults to 0), so without this a tick also toggles
+         the child row. --}}
+    <input type="checkbox" class="lw-orders-row-select" value="<%- __tData._uid %>" onclick="event.stopPropagation(); lwOrdersToggleSelect(this.value, this.checked);" style="width: 18px; height: 18px;">
 </script>
 @endif
 
@@ -800,10 +811,16 @@ $deliveryDrivers = $deliveryManagementEnabled
     <button type="button" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" onclick="lwOrdersViewReceipt('<%- __tData._uid %>')" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
         <%- __tData.ref_short %>
     </button>
-    {{-- Client name here too: on narrow screens the Client column is the first
-         one DataTables Responsive folds away, so without this the row reads as
-         a bare reference. --}}
+    {{-- Client, amount and city repeated here: these columns are the ones
+         DataTables Responsive folds away first, so without them a narrow row
+         reads as a bare reference. --}}
     <div class="lw-orders-ref-client font-weight-bold text-dark"><%- __tData.client_name %></div>
+    <div class="lw-orders-ref-meta">
+        <span class="lw-orders-ref-total lw-orders-mono"><%- __tData.total_formatted %></span>
+        <% if (__tData.address_formatted) { %>
+        <span class="lw-orders-ref-city">· <%- __tData.address_formatted %></span>
+        <% } %>
+    </div>
     <small class="text-muted d-block lw-orders-mono"><%- __tData.created_at_formatted %></small>
 </script>
 
