@@ -195,6 +195,43 @@ $deliveryDrivers = $deliveryManagementEnabled
     }
 }
 
+/* Below lg the secondary filters collapse behind the "Filtres" button; from
+   lg up there's room for them, so the toggle disappears and the panel is
+   always open. */
+@media (min-width: 992px) {
+    .lw-filters-toggle {
+        display: none !important;
+    }
+}
+@media (max-width: 991.98px) {
+    .lw-orders-filters:not(.is-open) {
+        display: none !important;
+    }
+}
+/* Compact KPI tiles: four across even on a phone, so they cost one row
+   instead of two before the table. */
+@media (max-width: 575.98px) {
+    .lw-kpi-col {
+        flex: 0 0 25%;
+        max-width: 25%;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    .lw-kpi-col .sharp-card {
+        padding: 0.5rem !important;
+    }
+    .lw-kpi-label {
+        font-size: 0.6rem;
+        line-height: 1.15;
+    }
+    .lw-kpi-num {
+        font-size: 1.15rem;
+    }
+    .lw-orders-page-subtitle {
+        display: none;
+    }
+}
+
 /* The page keeps its own labelled "Rechercher Client / #Réf" field, so the
    datatable's built-in search box would just be a second, unlabelled one. */
 #lwOrdersList_filter {
@@ -319,7 +356,7 @@ $deliveryDrivers = $deliveryManagementEnabled
     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print">
         <div>
             <h1 class="h3 font-weight-bold text-dark mb-1">{{ __tr('Gestion des Commandes WhatsApp') }}</h1>
-            <p class="text-muted small mb-0">{{ __tr('Suivez, filtrez par date, agent ou statut, et imprimez les reçus individuels ou le rapport de liste complet') }}</p>
+            <p class="text-muted small mb-0 lw-orders-page-subtitle">{{ __tr('Suivez, filtrez par date, agent ou statut, et imprimez les reçus individuels ou le rapport de liste complet') }}</p>
         </div>
         <div class="mt-2 mt-sm-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
             @if (hasVendorAccess('manage_orders', 'add_edit_orders'))
@@ -342,28 +379,28 @@ $deliveryDrivers = $deliveryManagementEnabled
 
     <!-- Top Key Metrics Cards -->
     <div class="row mb-4 no-print">
-        <div class="col-6 col-xl-3 mb-3">
+        <div class="col-6 col-xl-3 mb-3 lw-kpi-col">
             <div class="card sharp-card p-3" style="border-left: 3px solid #059669 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Total Commandes') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="orderCounts.total"></div>
             </div>
         </div>
 
-        <div class="col-6 col-xl-3 mb-3">
+        <div class="col-6 col-xl-3 mb-3 lw-kpi-col">
             <div class="card sharp-card p-3" style="border-left: 3px solid #92600a !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Nouvelles (Validées)') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="orderCounts.validated"></div>
             </div>
         </div>
 
-        <div class="col-6 col-xl-3 mb-3">
+        <div class="col-6 col-xl-3 mb-3 lw-kpi-col">
             <div class="card sharp-card p-3" style="border-left: 3px solid #6d28d9 !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('En Cours / Livraison') }}</small>
                 <div class="lw-kpi-num text-dark" x-text="orderCounts.in_progress"></div>
             </div>
         </div>
 
-        <div class="col-6 col-xl-3 mb-3">
+        <div class="col-6 col-xl-3 mb-3 lw-kpi-col">
             <div class="card sharp-card p-3" style="border-left: 3px solid #04704e !important;">
                 <small class="lw-kpi-label text-muted d-block mb-1">{{ __tr('Commandes Livrées') }}</small>
                 <div class="lw-kpi-num" style="color: #04704e;" x-text="orderCounts.delivered"></div>
@@ -379,13 +416,25 @@ $deliveryDrivers = $deliveryManagementEnabled
         </div>
 
         <div class="card-body p-4">
-            <!-- Search & Filters Row 1 -->
-            <div class="row mb-3 no-print">
-                <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <!-- Search (always visible) + the rest of the filters, which fold
+                 behind a toggle below lg so the table isn't pushed a screen and
+                 a half down on a phone. -->
+            <div class="row mb-2 no-print">
+                <div class="col-12 col-lg-3 mb-2">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Rechercher Client / #Réf') }}</label>
-                    <input type="text" class="form-control p-3 custom-input-white" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input.debounce.400ms="reloadOrdersTable()">
+                    <div class="d-flex" style="gap: 8px;">
+                        <input type="text" class="form-control custom-input-white flex-grow-1" style="border-radius: 10px !important;" placeholder="{{ __tr('Nom, tel ou #Réf...') }}" x-model="orderSearch" @input.debounce.400ms="reloadOrdersTable()">
+                        <button type="button" class="btn btn-outline-secondary font-weight-bold lw-filters-toggle" style="border-radius: 10px; white-space: nowrap;" @click="filtersOpen = !filtersOpen">
+                            {{ __tr('Filtres') }}
+                            <template x-if="activeFilterCount() > 0">
+                                <span class="badge badge-success ml-1" x-text="activeFilterCount()"></span>
+                            </template>
+                        </button>
+                    </div>
                 </div>
+            </div>
 
+            <div class="row mb-3 no-print lw-orders-filters" :class="filtersOpen ? 'is-open' : ''">
                 <div class="col-12 col-sm-6 col-lg-3 mb-3">
                     <label class="font-weight-bold text-dark small mb-1">{{ __tr('Filtrer par statut') }}</label>
                     <select class="form-control custom-input-white" style="border-radius: 10px !important;" x-model="orderStatusFilter" @change="reloadOrdersTable()">
@@ -998,6 +1047,11 @@ function ordersPageData() {
         orderDriverFilter: '',
         orderDateFilter: '',
         orderDateSort: 'desc',
+        filtersOpen: false,
+        activeFilterCount: function() {
+            return [this.orderStatusFilter, this.orderSourceFilter, this.orderDateFilter, this.orderDriverFilter]
+                .filter(function(v) { return !!v; }).length;
+        },
         // The list is paginated server-side by the datatable now; these only
         // back the header pill and the KPI cards.
         ordersTotalCount: 0,
