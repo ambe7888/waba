@@ -726,15 +726,19 @@ class ECommerceController extends BaseController
         // "Manuel (Vendeur: <name>)". Map the two fixed options onto what's
         // actually stored; anything else is an agent name, matched as-is.
         if ($request->filled('source_filter')) {
-            $source = $request->source_filter;
-            $query->where(function ($q) use ($source) {
-                if ($source === 'whatsapp') {
-                    $q->where('order_details->source', 'like', '%whatsapp%');
-                } elseif ($source === 'manuel') {
-                    $q->where('order_details->source', 'like', '%manu%');
-                } else {
-                    $q->where('order_details->source', 'like', '%' . $source . '%');
-                }
+            $source = mb_strtolower($request->source_filter);
+            if ($source === 'manuel') {
+                // stored as "manual" or "Manuel (Vendeur: <name>)"
+                $needle = '%manu%';
+            } else {
+                $needle = '%' . $source . '%';
+            }
+            // Laravel's order_details->source arrow syntax compares the raw
+            // (quoted, case-sensitive) JSON value and matches nothing here -
+            // unquote and lower-case it explicitly instead.
+            $query->where(function ($q) use ($needle) {
+                $q->whereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(order_details, '$.source'))) LIKE ?", [$needle])
+                    ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(order_details, '$.created_by_vendor'))) LIKE ?", [$needle]);
             });
         }
 
