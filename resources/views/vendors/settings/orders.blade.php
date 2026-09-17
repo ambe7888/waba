@@ -200,6 +200,15 @@ $deliveryDrivers = $deliveryManagementEnabled
 #lwOrdersList_filter {
     display: none;
 }
+.lw-orders-ref-client {
+    font-size: 0.82rem;
+    line-height: 1.3;
+    margin-top: 2px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 /* Selection column: narrow, and never dropped into the responsive child row,
    since ticking a row is the whole point of it being there. */
 .lw-orders-table td.lw-orders-select-col,
@@ -791,6 +800,10 @@ $deliveryDrivers = $deliveryManagementEnabled
     <button type="button" class="btn btn-link p-0 font-weight-bold lw-orders-ref text-left" style="color: #059669; text-decoration: underline;" onclick="lwOrdersViewReceipt('<%- __tData._uid %>')" title="{{ __tr('Cliquer pour voir la fiche complète') }}">
         <%- __tData.ref_short %>
     </button>
+    {{-- Client name here too: on narrow screens the Client column is the first
+         one DataTables Responsive folds away, so without this the row reads as
+         a bare reference. --}}
+    <div class="lw-orders-ref-client font-weight-bold text-dark"><%- __tData.client_name %></div>
     <small class="text-muted d-block lw-orders-mono"><%- __tData.created_at_formatted %></small>
 </script>
 
